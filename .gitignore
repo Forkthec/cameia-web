@@ -1,25 +1,20 @@
 gitignore
-.gradle/
+node_modules/
+dist/
 build/
-target/
-out/
-
-.idea/
-*.iml
-.vscode/
-
-*.class
-*.jar
-*.war
-*.log
+coverage/
+.vite/
 
 .env
 .env.*
 !.env.example
 
-application-local.yml
-application-local.yaml
-application-local.properties
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
+.idea/
+.vscode/
 .DS_Store
 Thumbs.db
