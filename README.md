@@ -77,10 +77,10 @@ Health check: pendiente de confirmar en CM-104
 
 - Rama estable: `main`.
 - Rama de integración: `develop`.
-- Ramas de trabajo: `CA-<numero>-<descripcion-kebab-case>`, creadas desde `develop`.
+- Ramas de trabajo: `CM-<numero>-<descripcion-kebab-case>`, creadas desde `develop`.
 - Los cambios ordinarios se integran a `develop` mediante Pull Request y Squash.
 - La promoción `develop → main` utiliza un PR independiente y Merge commit.
-- Las ramas `CA-*` se eliminan después del merge; `develop` se conserva.
+- Las ramas `CM-*` se eliminan después del merge; `develop` se conserva.
 - El autor no puede ser la única aprobación.
 
 ## Cuándo actualizar este README
