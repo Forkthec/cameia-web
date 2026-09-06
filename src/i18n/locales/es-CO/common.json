@@ -1,0 +1,21 @@
+{
+  "acciones": {
+    "guardar": "Guardar",
+    "cancelar": "Cancelar",
+    "continuar": "Continuar",
+    "atras": "Atrás",
+    "siguiente": "Siguiente",
+    "cerrar": "Cerrar",
+    "reintentar": "Reintentar"
+  },
+  "estados": {
+    "cargando": "Cargando…",
+    "sinResultados": "Sin resultados"
+  },
+  "navegacion": {
+    "inicio": "Inicio",
+    "entrenar": "Entrenar",
+    "progreso": "Progreso",
+    "perfiles": "Perfiles"
+  }
+}
