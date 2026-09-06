@@ -12,6 +12,7 @@
   --bg-surface: var(--neutral-0);
   --bg-surface-sunken: var(--neutral-100);
   --bg-inverse: var(--neutral-900);
+  --bg-disabled: var(--neutral-100);
 
   /* === Texto === */
   --text-primary: var(--neutral-900);
@@ -42,7 +43,16 @@
 
   --danger-base: var(--brick-500);
   --danger-tint: var(--brick-50);
+  /* brick-500 no tiene contraste suficiente como texto; se usa el mismo
+     escalón oscuro para texto de error y para hover/press del botón
+     destructivo, igual que warning-text reutiliza amber-700. */
+  --danger-text: var(--brick-700);
+  --danger-hover: var(--brick-700);
 
+  /* Agregado para las moléculas de alerta/estado: sin esto, warning era el
+     único de los cuatro estados sin un tono medio vibrante para ícono/relleno
+     (success/danger/info sí lo tienen). Reutiliza amber-500, ya definido. */
+  --warning-base: var(--amber-500);
   --warning-text: var(--amber-700);
   --warning-tint: var(--amber-50);
 

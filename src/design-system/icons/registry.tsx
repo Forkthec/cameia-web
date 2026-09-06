@@ -27,6 +27,7 @@ import {
   Globe,
   Info,
   LoaderCircle,
+  Lock,
   LogOut,
   Mic,
   MessageCircle,
@@ -77,6 +78,7 @@ export const icons = {
   globe: Globe, // temporal · Lucide, reemplazar por SVG de Figma
   'arrow-right': ArrowRight, // temporal · Lucide, reemplazar por SVG de Figma
   'loading-arc': LoaderCircle, // temporal · Lucide, reemplazar por SVG de Figma
+  lock: Lock, // temporal · Lucide, reemplazar por SVG de Figma
   // "google" no tiene equivalente real en Lucide: el set no incluye logos de
   // marca (ni siquiera uno para "Chrome"). AtSign es un placeholder aún más
   // temporal que el resto, a la espera del logo oficial de Google en SVG.

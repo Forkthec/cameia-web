@@ -34,6 +34,7 @@
   --color-bg-surface: var(--bg-surface);
   --color-bg-surface-sunken: var(--bg-surface-sunken);
   --color-bg-inverse: var(--bg-inverse);
+  --color-bg-disabled: var(--bg-disabled);
 
   --color-text-primary: var(--text-primary);
   --color-text-muted: var(--text-muted);
@@ -59,7 +60,10 @@
 
   --color-danger-base: var(--danger-base);
   --color-danger-tint: var(--danger-tint);
+  --color-danger-text: var(--danger-text);
+  --color-danger-hover: var(--danger-hover);
 
+  --color-warning-base: var(--warning-base);
   --color-warning-text: var(--warning-text);
   --color-warning-tint: var(--warning-tint);
 

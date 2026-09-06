@@ -18,3 +18,7 @@ pnpm-debug.log*
 .vscode/
 .DS_Store
 Thumbs.db
+
+# graphify: instalación personal (CA-100), no compartida con el equipo
+.claude/
+graphify-out/
