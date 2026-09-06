@@ -1,0 +1,94 @@
+/* Tokens que sí usa la interfaz. Cada uno apunta a un primitivo con var(), nunca a un hex. */
+
+:root {
+  /* === Fondo === */
+  --bg-canvas: var(--neutral-50);
+  --bg-surface: var(--neutral-0);
+  --bg-surface-sunken: var(--neutral-100);
+  --bg-inverse: var(--neutral-900);
+
+  /* === Texto === */
+  --text-primary: var(--neutral-900);
+  --text-muted: var(--neutral-600);
+  --text-disabled: var(--neutral-400);
+  --text-on-inverse: var(--neutral-0);
+  --text-link: var(--indigo-500);
+
+  /* === Borde === */
+  --border-subtle: var(--neutral-200);
+  --border-strong: var(--neutral-300);
+  --border-focus: var(--indigo-400);
+
+  /* === Marca === */
+  --brand-base: var(--indigo-500);
+  --brand-tint: var(--indigo-50);
+
+  /* === Acción === */
+  --action-primary: var(--mustard-400);
+  --action-primary-hover: var(--mustard-500);
+  --action-primary-press: var(--mustard-600);
+  --action-on-primary: var(--neutral-900);
+
+  /* === Estado === */
+  --success-base: var(--green-500);
+  --success-text: var(--green-700);
+  --success-tint: var(--green-50);
+
+  --danger-base: var(--brick-500);
+  --danger-tint: var(--brick-50);
+
+  --warning-text: var(--amber-700);
+  --warning-tint: var(--amber-50);
+
+  --info-base: var(--blue-500);
+  --info-tint: var(--blue-50);
+
+  /* === Espaciado (rem, escala sobre raíz de 16px) === */
+  --space-1: 0.25rem; /* 4px */
+  --space-2: 0.5rem; /* 8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem; /* 16px */
+  --space-5: 1.5rem; /* 24px */
+  --space-6: 2rem; /* 32px */
+  --space-7: 2.5rem; /* 40px */
+  --space-8: 4rem; /* 64px */
+  --space-9: 6rem; /* 96px */
+
+  /* === Radios (px: decisión de forma, no se mueve con el zoom de texto) === */
+  --token-radius-sm: 6px;
+  --token-radius-md: 10px;
+  --token-radius-lg: 18px;
+  --token-radius-xl: 26px;
+  --token-radius-full: 999px;
+
+  /* === Elevación (px: son sombras, no texto) === */
+  --elevation-0: none; /* sin sombra: el nivel 0 se resuelve con border-subtle */
+  --elevation-1: 0 1px 3px rgba(36, 53, 107, 0.07), 0 2px 12px rgba(36, 53, 107, 0.05);
+  --elevation-2: 0 2px 6px rgba(36, 53, 107, 0.09), 0 8px 24px rgba(36, 53, 107, 0.08);
+  --elevation-3: 0 4px 12px rgba(36, 53, 107, 0.1), 0 20px 48px rgba(36, 53, 107, 0.14);
+  --focus-ring:
+    0 0 0 2px var(--bg-surface), 0 0 0 4px var(--border-focus), 0 0 0 7px var(--indigo-100);
+
+  /* === Movimiento === */
+  --duration-instant: 120ms;
+  --duration-quick: 180ms;
+  --duration-smooth: 260ms;
+  --duration-deliberate: 400ms;
+
+  --token-ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --token-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --token-ease-inout: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/*
+ * PENDIENTE: tokens chart/* — exportar de Figma cuando entre HE-06/HE-07
+ *
+ * chart/series-1
+ * chart/series-2
+ * chart/series-3
+ * chart/track
+ * chart/positive
+ * chart/attention
+ * chart/critical
+ * chart/unavailable
+ */
