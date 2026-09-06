@@ -1,0 +1,70 @@
+/**
+ * Rampas crudas de color (CLAUDE.md §6). Valores tomados literalmente del
+ * archivo de Figma (Cameia · Mockups MVP). Nadie fuera de semantic.css debería
+ * referenciar estas variables directamente: los componentes solo consumen
+ * tokens semánticos, para que un futuro modo oscuro sea re-apuntar
+ * semantic.css y no rehacer la UI (CLAUDE.md §3.1).
+ */
+
+:root {
+  /* indigo: marca, texto de enlace, foco */
+  --indigo-50: #eef1f8;
+  --indigo-100: #dce2f0;
+  --indigo-200: #b8c2de;
+  --indigo-300: #8a98c4;
+  --indigo-400: #566aa0;
+  --indigo-500: #24356b;
+  --indigo-600: #1d2b58;
+  --indigo-700: #172244;
+  --indigo-800: #111931;
+  --indigo-900: #0b1020;
+
+  /* mustard: acción primaria (botones, CTA) */
+  --mustard-50: #fef6e9;
+  --mustard-100: #fbeacb;
+  --mustard-200: #f6d496;
+  --mustard-300: #efbb63;
+  --mustard-400: #e8a33d;
+  --mustard-500: #d8912c;
+  --mustard-600: #b87720;
+  --mustard-700: #8e5a17;
+  --mustard-800: #653f10;
+  --mustard-900: #3e2708;
+
+  /* neutral: fondo, texto, bordes */
+  --neutral-0: #ffffff;
+  --neutral-50: #f7f7f4;
+  --neutral-100: #efefea;
+  --neutral-200: #e0e0da;
+  --neutral-300: #c4c5be;
+  --neutral-400: #9a9c97;
+  --neutral-500: #6f7280;
+  --neutral-600: #5a6079;
+  --neutral-700: #3c4257;
+  --neutral-800: #262b41;
+  --neutral-900: #14182b;
+
+  /* green: estado de éxito */
+  --green-50: #e7f5f0;
+  --green-200: #a8decd;
+  --green-500: #1e9e7a;
+  --green-700: #17765c;
+
+  /* brick: estado de error/peligro */
+  --brick-50: #fbedea;
+  --brick-200: #efb7ac;
+  --brick-500: #c4442f;
+  --brick-700: #9b3323;
+
+  /* amber: estado de advertencia */
+  --amber-50: #fbf0dc;
+  --amber-200: #ebc689;
+  --amber-500: #c97a10;
+  --amber-700: #8e5a17;
+
+  /* blue: estado informativo */
+  --blue-50: #eaf0fb;
+  --blue-200: #aec3e8;
+  --blue-500: #3a63b8;
+  --blue-700: #2a4a8c;
+}

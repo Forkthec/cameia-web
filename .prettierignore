@@ -1,0 +1,5 @@
+# Generados o de terceros: no tiene sentido que Prettier los reformatee.
+dist
+coverage
+pnpm-lock.yaml
+.vite
