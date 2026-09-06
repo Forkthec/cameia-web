@@ -1,5 +1,14 @@
-// Único archivo del proyecto autorizado a importar de lucide-react (CLAUDE.md §3.3).
-// Bloqueado en eslint.config.js para cualquier otro archivo.
+/**
+ * Único archivo del proyecto autorizado a importar de `lucide-react`
+ * (CLAUDE.md §3.3), bloqueado en eslint.config.js para cualquier otro
+ * archivo mediante `no-restricted-imports`.
+ *
+ * Expone el mapa {@link icons}, que traduce nombres semánticos de CAMEIA a un
+ * componente de ícono concreto. Todos son temporales de Lucide mientras no
+ * exista su SVG exportado de Figma (ver design-system/icons/svg/README.md):
+ * migrar un ícono es cambiar su línea aquí, sin tocar `Icon.tsx` ni a quien
+ * consuma `<Icon name="..." />`.
+ */
 import {
   ArrowRight,
   AtSign,
@@ -32,6 +41,13 @@ import {
   X,
 } from 'lucide-react';
 
+/**
+ * Mapa de nombre semántico → componente de ícono.
+ *
+ * Se usan los nombres canónicos actuales de Lucide, no sus alias deprecados
+ * (p. ej. `CircleCheckBig` en vez de `CheckCircle`), para no depender de
+ * exports que la librería ya marcó para retirar en una futura versión mayor.
+ */
 export const icons = {
   microphone: Mic, // temporal · Lucide, reemplazar por SVG de Figma
   message: MessageCircle, // temporal · Lucide, reemplazar por SVG de Figma
@@ -61,6 +77,8 @@ export const icons = {
   globe: Globe, // temporal · Lucide, reemplazar por SVG de Figma
   'arrow-right': ArrowRight, // temporal · Lucide, reemplazar por SVG de Figma
   'loading-arc': LoaderCircle, // temporal · Lucide, reemplazar por SVG de Figma
-  // temporal · Lucide no tiene logos de marca; reemplazar por el logo oficial de Google en SVG
+  // "google" no tiene equivalente real en Lucide: el set no incluye logos de
+  // marca (ni siquiera uno para "Chrome"). AtSign es un placeholder aún más
+  // temporal que el resto, a la espera del logo oficial de Google en SVG.
   google: AtSign,
 } as const;

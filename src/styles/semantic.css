@@ -1,4 +1,10 @@
-/* Tokens que sí usa la interfaz. Cada uno apunta a un primitivo con var(), nunca a un hex. */
+/**
+ * Tokens que sí usa la interfaz (CLAUDE.md §6). Cada uno apunta a un
+ * primitivo de primitives.css con var(), nunca a un hex — así, cambiar la
+ * paleta o soportar modo oscuro es reapuntar estas variables, no tocar
+ * componentes. Los componentes solo deberían usar los nombres de este
+ * archivo, jamás una rampa de primitives.css directamente.
+ */
 
 :root {
   /* === Fondo === */
@@ -54,7 +60,11 @@
   --space-8: 4rem; /* 64px */
   --space-9: 6rem; /* 96px */
 
-  /* === Radios (px: decisión de forma, no se mueve con el zoom de texto) === */
+  /* === Radios (px: decisión de forma, no se mueve con el zoom de texto) ===
+     Prefijo "token-" a propósito: "--radius-*" es un nombre reservado del
+     tema de Tailwind (genera las utilidades rounded-*). index.css referencia
+     estas variables desde @theme; sin el prefijo, ambos archivos declararían
+     la misma custom property y se produciría una referencia circular. */
   --token-radius-sm: 6px;
   --token-radius-md: 10px;
   --token-radius-lg: 18px;
@@ -69,12 +79,16 @@
   --focus-ring:
     0 0 0 2px var(--bg-surface), 0 0 0 4px var(--border-focus), 0 0 0 7px var(--indigo-100);
 
-  /* === Movimiento === */
+  /* === Movimiento ===
+     Duraciones para transiciones/animaciones. Tailwind no tiene un namespace
+     de tema para duraciones con nombre, así que "--duration-*" no colisiona. */
   --duration-instant: 120ms;
   --duration-quick: 180ms;
   --duration-smooth: 260ms;
   --duration-deliberate: 400ms;
 
+  /* Prefijo "token-" por la misma razón que los radios: "--ease-*" es el
+     nombre reservado del tema de Tailwind (genera las utilidades ease-*). */
   --token-ease-out: cubic-bezier(0.2, 0, 0, 1);
   --token-ease-in: cubic-bezier(0.4, 0, 1, 1);
   --token-ease-inout: cubic-bezier(0.4, 0, 0.2, 1);

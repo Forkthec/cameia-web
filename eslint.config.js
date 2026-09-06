@@ -1,3 +1,11 @@
+/**
+ * Configuración de ESLint (flat config) para cameia-web.
+ *
+ * La pieza más particular es `eslint-plugin-boundaries`: hace cumplir en el
+ * linter la matriz de capas de docs/ARCHITECTURE.md §4. Sin esto la
+ * estructura de carpetas del proyecto es solo una convención de buena fe que
+ * cualquier import puede romper sin que nadie se entere hasta revisión.
+ */
 import js from '@eslint/js';
 import queryPlugin from '@tanstack/eslint-plugin-query';
 import boundaries from 'eslint-plugin-boundaries';
@@ -35,6 +43,8 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   {
+    // Este propio archivo (.js) no pertenece a ningún tsconfig del proyecto:
+    // sin esto, projectService fallaría al buscarle un programa de TS.
     files: ['**/*.js'],
     ...tseslint.configs.disableTypeChecked,
   },
@@ -147,6 +157,8 @@ export default tseslint.config(
               },
             },
             {
+              // "app" es la capa de arranque/cableado global: puede importar
+              // de cualquier otra (CLAUDE.md §4).
               from: { element: { type: 'app' } },
               allow: {
                 to: { element: { type: '*' } },

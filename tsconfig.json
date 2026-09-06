@@ -1,4 +1,9 @@
 {
+  // Archivo "solución": no compila nada por sí mismo ("files" vacío), solo
+  // declara qué proyectos sí tienen código real. "pnpm build" corre
+  // "tsc -b" sobre este archivo, que construye ambas referencias:
+  //   - tsconfig.app.json → código de la app (src/)
+  //   - tsconfig.node.json → configuración que corre en Node (vite.config.ts)
   "files": [],
   "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
 }

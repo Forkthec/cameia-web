@@ -1,8 +1,15 @@
 <!doctype html>
+<!--
+  Punto de entrada de la SPA. En desarrollo, Vite sirve este archivo tal cual
+  y monta src/main.tsx como módulo ES; en build, reemplaza ese <script> por
+  el bundle final con hash.
+-->
 <html lang="es-CO">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Título mínimo de respaldo: cada página lo sobrescribe en runtime
+         con react-helmet-async (ver CLAUDE.md §1). -->
     <title>CAMEIA</title>
   </head>
   <body>

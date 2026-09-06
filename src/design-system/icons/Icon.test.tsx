@@ -1,3 +1,8 @@
+/**
+ * Pruebas de humo de {@link Icon}: que renderiza, que respeta el tamaño
+ * recibido, y su contrato de accesibilidad (decorativo sin `title`, nombre
+ * accesible con `title`).
+ */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { Icon } from './Icon';

@@ -1,3 +1,11 @@
+# pnpm bloquea por defecto los scripts "postinstall" de dependencias de
+# terceros (protección de cadena de suministro): sin esta lista, "pnpm
+# install" falla con ERR_PNPM_IGNORED_BUILDS. Los cuatro paquetes de abajo
+# son de confianza y su script sí hace falta:
+#   - @firebase/util y protobufjs: dependencias del SDK de Firebase.
+#   - msw: genera el service worker que usan los mocks de red en pruebas.
+#   - unrs-resolver: resolver nativo que usa eslint-import-resolver-typescript
+#     para que "boundaries" entienda el alias "@/*" (ver eslint.config.js).
 allowBuilds:
   '@firebase/util': true
   msw: true

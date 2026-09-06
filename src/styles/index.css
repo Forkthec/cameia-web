@@ -1,3 +1,9 @@
+/**
+ * Punto de entrada de estilos. Importa las fuentes, Tailwind 4, las rampas
+ * crudas (primitives.css) y los tokens semánticos (semantic.css), y expone
+ * todo a Tailwind con @theme (CLAUDE.md §6: no hay tailwind.config.js, Tailwind
+ * 4 se configura enteramente en CSS).
+ */
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Source+Sans+3:wght@400;600;700&display=swap');
 /* source(none): la detección automática de Tailwind escanea todo el repo, incluida
    la prosa de CLAUDE.md/docs (que cita a propósito clases como bg-[#E8A33D] como

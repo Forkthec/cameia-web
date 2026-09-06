@@ -1,27 +1,37 @@
 {
   "compilerOptions": {
+    // Este proyecto es una referencia de tsconfig.json ("solución"), por eso
+    // necesita "composite" y su propio archivo de caché incremental.
     "composite": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+
+    // Target moderno: quien transpila para el navegador final es Vite
+    // (esbuild), a tsc aquí solo le importa entender la sintaxis, no bajarla
+    // de nivel (ver "noEmit" abajo: tsc nunca escribe JS de este proyecto).
     "target": "ES2022",
     "useDefineForClassFields": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
 
+    // "bundler": la resolución de módulos la hace Vite, no tsc. Permite
+    // importar sin extensión sin sufrir la restricción estricta de Node ESM.
     "moduleResolution": "bundler",
-    "resolveJsonModule": true,
+    "resolveJsonModule": true, // necesario para los JSON de src/i18n/locales/**
     "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
+    "verbatimModuleSyntax": true, // obliga "import type" explícito para tipos
     "moduleDetection": "force",
-    "noEmit": true,
+    "noEmit": true, // Vite hace la transpilación real; tsc solo type-checkea
     "jsx": "react-jsx",
 
     "strict": true,
-    "noUncheckedIndexedAccess": true,
+    "noUncheckedIndexedAccess": true, // acceso por índice puede dar undefined
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
+    // Sin "baseUrl": TypeScript 6.0 lo deprecó (CLAUDE.md §2). No hace falta
+    // para que "paths" funcione con "moduleResolution": "bundler".
     "paths": {
       "@/*": ["./src/*"]
     }
