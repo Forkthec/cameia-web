@@ -7,16 +7,22 @@
     "atras": "Atrás",
     "siguiente": "Siguiente",
     "cerrar": "Cerrar",
-    "reintentar": "Reintentar"
+    "reintentar": "Reintentar",
+    "volverInicio": "Volver a inicio"
   },
   "estados": {
     "cargando": "Cargando…",
     "sinResultados": "Sin resultados"
   },
   "navegacion": {
+    "principal": "Navegación principal",
     "inicio": "Inicio",
     "entrenar": "Entrenar",
     "progreso": "Progreso",
     "perfiles": "Perfiles"
+  },
+  "pendiente": {
+    "titulo": "Pantalla pendiente · {{ticket}}",
+    "descripcion": "Todavía no se implementa esta historia ({{prt}})."
   }
 }

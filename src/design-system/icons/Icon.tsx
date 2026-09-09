@@ -6,7 +6,7 @@ import { useId } from 'react';
 import { icons } from './registry';
 
 /** Nombre semántico válido: una llave de {@link icons}. */
-type IconName = keyof typeof icons;
+export type IconName = keyof typeof icons;
 
 interface IconProps {
   /** Nombre semántico del ícono a renderizar (ver registry.tsx). */

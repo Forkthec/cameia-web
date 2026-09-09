@@ -1,4 +1,7 @@
 {
+  "asistente": {
+    "progreso": "Progreso del formulario de perfil"
+  },
   "informacionGeneral": {
     "titulo": "Información general",
     "campos": {
