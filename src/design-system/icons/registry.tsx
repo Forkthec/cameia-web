@@ -20,11 +20,13 @@ import {
   CircleAlert,
   CircleCheckBig,
   Clock,
+  Dumbbell,
   Eye,
   EyeOff,
   FileText,
   Flame,
   Globe,
+  Home,
   Info,
   LoaderCircle,
   Lock,
@@ -50,6 +52,8 @@ import {
  * exports que la librería ya marcó para retirar en una futura versión mayor.
  */
 export const icons = {
+  home: Home, // temporal · Lucide, reemplazar por SVG de Figma
+  dumbbell: Dumbbell, // temporal · Lucide, reemplazar por SVG de Figma
   microphone: Mic, // temporal · Lucide, reemplazar por SVG de Figma
   message: MessageCircle, // temporal · Lucide, reemplazar por SVG de Figma
   document: FileText, // temporal · Lucide, reemplazar por SVG de Figma

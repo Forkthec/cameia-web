@@ -1,15 +1,7 @@
-/**
- * Punto de entrada de la aplicación.
- *
- * Todavía no existen `app/App.tsx` ni el resto de providers planeados en
- * docs/ARCHITECTURE.md (QueryClient, Auth, Toast, ErrorBoundary): por ahora
- * solo se registra i18next. Cuando esos providers existan, este árbol se
- * traslada tal cual a `app/providers/AppProviders.tsx`.
- */
+/** Punto de entrada de la aplicación. El árbol de arranque completo vive en `app/`. */
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { I18nextProvider } from 'react-i18next';
-import i18n from './i18n';
+import { App } from './app/App';
 
 const rootElement = document.getElementById('root');
 
@@ -19,6 +11,6 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <I18nextProvider i18n={i18n} />
+    <App />
   </StrictMode>,
 );

@@ -1,0 +1,1 @@
+export { interviewSetupRoutes } from './routes';

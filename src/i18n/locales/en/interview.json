@@ -1,5 +1,13 @@
 {
   "_status": "PENDIENTE: sin copia aprobada en inglés — Hueco 22",
+  "asistente": {
+    "progreso": "Progreso del asistente",
+    "pasos": {
+      "ofertaYRol": "Oferta y rol",
+      "modoYTono": "Modo y tono",
+      "idiomaYFormato": "Idioma y forma de respuesta"
+    }
+  },
   "modo": {
     "ENTRENO": "Entreno",
     "SIMULACION": "Simulación"

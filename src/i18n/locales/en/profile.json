@@ -1,5 +1,8 @@
 {
   "_status": "PENDIENTE: sin copia aprobada en inglés — Hueco 22",
+  "asistente": {
+    "progreso": "Progreso del formulario de perfil"
+  },
   "informacionGeneral": {
     "titulo": "Información general",
     "campos": {
