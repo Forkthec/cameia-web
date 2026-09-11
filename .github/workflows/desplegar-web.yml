@@ -60,7 +60,7 @@ jobs:
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CAMEIA }}
-          projectId: cameia
+          projectId: cameia-app
           channelId: live
 
       # Cada PR obtiene su propia URL de vista previa (expira sola en 7 días) sin
@@ -71,5 +71,5 @@ jobs:
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CAMEIA }}
-          projectId: cameia
+          projectId: cameia-app
           expires: 7d

@@ -1,6 +1,6 @@
 {
   "projects": {
-    "default": "cameia"
+    "default": "cameia-app"
   },
   "targets": {},
   "etags": {}
