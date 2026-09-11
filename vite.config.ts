@@ -29,5 +29,18 @@ export default defineConfig({
     // Sin esto, "vitest run" termina con código de error cuando todavía no
     // existe ningún archivo de prueba (etapa inicial del proyecto).
     passWithNoTests: true,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'lcov'],
+      // Umbral exigido por la guía DevOps del sprint (>70%). "test:coverage" falla
+      // el proceso si cualquiera de estas métricas cae por debajo — es el mecanismo
+      // real que hace del gate de CI un bloqueo, no solo un número informativo.
+      thresholds: {
+        lines: 70,
+        statements: 70,
+        functions: 70,
+        branches: 70,
+      },
+    },
   },
 });

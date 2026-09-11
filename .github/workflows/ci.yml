@@ -1,0 +1,67 @@
+name: CI
+
+# Corre en cada PR hacia develop/main y en cada push a develop (integración), tal como exige
+# la guía DevOps del sprint (§2.7): valida el cambio antes de fusionar y otra vez al integrar.
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop]
+
+# Cancela una corrida anterior del mismo PR/rama cuando llega un push nuevo: evita gastar
+# minutos de Actions verificando un commit que ya quedó obsoleto.
+concurrency:
+  group: ci-web-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: Build, lint y pruebas
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # corepack resuelve la versión exacta de pnpm declarada en package.json
+      # ("packageManager"). Sin esto, pnpm sin versión fijada puede resolver distinto
+      # entre el runner y las máquinas del equipo (ya visto en CM-130 con husky).
+      - name: Habilitar pnpm vía corepack
+        run: corepack enable
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Formato (prettier --check)
+        run: pnpm format:check
+
+      - name: Lint (eslint)
+        run: pnpm lint
+
+      - name: Typecheck (tsc --noEmit)
+        run: pnpm typecheck
+
+      - name: Pruebas + cobertura (gate 70%, ver vite.config.ts)
+        run: pnpm test:coverage
+
+      - name: Build de producción
+        run: pnpm build
+
+      - name: Publicar artefactos (build + reporte de cobertura)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cameia-web-build-cobertura
+          path: |
+            dist/
+            coverage/
+          retention-days: 14
+          if-no-files-found: warn
