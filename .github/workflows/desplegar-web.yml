@@ -1,0 +1,75 @@
+name: Desplegar a Firebase Hosting # publica la SPA en cameia.web.app en cada push a develop
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop] # cada PR recibe su propia URL de vista previa, sin tocar producción
+    types: [opened, synchronize, reopened]
+
+# Mínimo privilegio (guía DevOps §2.9): solo lee código; los "id-token: write" se
+# necesitarían para OIDC/WIF, todavía no configurado (ver PENDIENTE abajo).
+permissions:
+  contents: read
+  pull-requests: write # deja el comentario con el enlace de vista previa en el PR
+
+jobs:
+  build-y-desplegar:
+    name: Build + deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Habilitar pnpm vía corepack
+        run: corepack enable
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      # PENDIENTE (Bloque 6, sin resolver todavía): estas 4 variables son las
+      # credenciales reales de Firebase Authentication. Deben cargarse desde
+      # "Variables" del repositorio en GitHub (Settings → Secrets and variables →
+      # Actions), no inventarse ni dejarse vacías — sin ellas el login no funciona
+      # en el sitio desplegado, aunque el build sí compile.
+      - name: Build de producción
+        env:
+          VITE_APP_ENV: production
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+        run: pnpm build
+
+      # PENDIENTE (bloqueante, sin resolver): necesita el secreto
+      # FIREBASE_SERVICE_ACCOUNT_CAMEIA (JSON de una cuenta de servicio con rol
+      # "Firebase Hosting Admin", generada desde la consola de Firebase — requiere
+      # la sesión de Paula, no se puede generar desde esta sesión). Preferible a
+      # futuro: migrar a WIF/OIDC cuando el billing de GCP esté resuelto (guía
+      # DevOps §2.8, evita guardar una llave estática).
+      - name: Desplegar a producción (push a develop)
+        if: github.event_name == 'push'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CAMEIA }}
+          projectId: cameia
+          channelId: live
+
+      # Cada PR obtiene su propia URL de vista previa (expira sola en 7 días) sin
+      # tocar el sitio de producción — así se revisa un cambio antes de fusionar.
+      - name: Vista previa (PR)
+        if: github.event_name == 'pull_request'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CAMEIA }}
+          projectId: cameia
+          expires: 7d
