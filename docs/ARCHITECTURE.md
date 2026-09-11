@@ -183,13 +183,13 @@ features/interview-setup/
 
 `eslint-plugin-boundaries` define cinco capas y las hace cumplir en CI:
 
-| Capa | Puede importar de |
-|---|---|
-| `design-system` | `utils`, `lib`, `i18n` |
-| `layouts` | `design-system`, `hooks`, `stores`, `i18n`, `utils` |
-| `features` | `design-system`, `layouts`, `services`, `stores`, `hooks`, `lib`, `utils`, `i18n`, `config`, **su propia carpeta** |
-| `services` | `config`, `lib`, `utils` |
-| `app` | todo |
+| Capa            | Puede importar de                                                                                                  |
+| --------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `design-system` | `utils`, `lib`, `i18n`                                                                                             |
+| `layouts`       | `design-system`, `hooks`, `stores`, `i18n`, `utils`                                                                |
+| `features`      | `design-system`, `layouts`, `services`, `stores`, `hooks`, `lib`, `utils`, `i18n`, `config`, **su propia carpeta** |
+| `services`      | `config`, `lib`, `utils`                                                                                           |
+| `app`           | todo                                                                                                               |
 
 Prohibiciones explícitas: una feature no importa de otra feature; `design-system` no importa de
 `features`, `services` ni `stores`; nadie importa `lucide-react` salvo `design-system/icons/registry.tsx`.
@@ -232,18 +232,18 @@ entre su primera historia al sprint.
 
 ## 6. Convenciones de nombres
 
-| Elemento | Convención | Ejemplo |
-|---|---|---|
-| Componente | `PascalCase`, **igual que en Figma** | `card-selectable` → `CardSelectable` |
-| Props de variante | igual que la variante de Figma | `variant`, `size`, `state`, `context`, `author` |
-| Archivo de componente | `PascalCase.tsx` | `ChatBubble.tsx` |
-| Hook | `useAlgo.ts` | `useSubmitTurn.ts` |
-| Utilidad | `camelCase.ts` | `formatDuration.ts` |
-| Prueba | al lado del archivo | `Button.test.tsx` |
-| Token semántico | `categoria/rol/variante` | `action/primary-hover` |
-| CSS custom property | el token con `-` | `--action-primary-hover` |
-| Llave de i18n | `namespace:seccion.llave` | `interview:tono.ESTRICTO` |
-| Rama | `CA-<n>-<kebab>` | `CA-100-estructura-inicial` |
+| Elemento              | Convención                            | Ejemplo                                         |
+| --------------------- | ------------------------------------- | ----------------------------------------------- |
+| Componente            | `PascalCase`, **igual que en Figma**  | `card-selectable` → `CardSelectable`            |
+| Props de variante     | igual que la variante de Figma        | `variant`, `size`, `state`, `context`, `author` |
+| Archivo de componente | `PascalCase.tsx`                      | `ChatBubble.tsx`                                |
+| Hook                  | `useAlgo.ts`                          | `useSubmitTurn.ts`                              |
+| Utilidad              | `camelCase.ts`                        | `formatDuration.ts`                             |
+| Prueba                | al lado del archivo                   | `Button.test.tsx`                               |
+| Token semántico       | `categoria/rol/variante`              | `action/primary-hover`                          |
+| CSS custom property   | el token con `-`                      | `--action-primary-hover`                        |
+| Llave de i18n         | `namespace:seccion.llave`             | `interview:tono.ESTRICTO`                       |
+| Rama                  | `CM-<n>-<kebab>`, sin prefijo de tipo | `CM-100-estructura-inicial`                     |
 
 Tipos e interfaces sin prefijo `I` ni sufijo `Type`. Enums de dominio en `SCREAMING_SNAKE_CASE`
 porque replican valores del backend.
@@ -252,13 +252,13 @@ porque replican valores del backend.
 
 ## 7. Riesgos declarados
 
-| # | Riesgo | Impacto | Necesita |
-|---|---|---|---|
-| 1 | Ni la Landing pública (PRT-00.01) ni el Dashboard (PRT-00.02) tienen HU, aunque ambas están dibujadas y el login redirige a la segunda | Trabajo de dos pantallas sin ticket | HU o subtarea en CM-100 para ambas |
-| 2 | PRT-04.09 preselecciona AUDIO pero HU-5.8 es Sprint 2 | Callejón sin salida en el flujo | Decisión de PO |
-| 3 | HU-1.2 (verificación de correo) fuera de Sprint 1 | El registro no tiene destino | Decisión de PO |
-| 4 | El selector de método ofrece «Autocompletar con IA», HU-2.6–2.10 son Sprint 2 | Ruta muerta | Decisión de PO |
-| 5 | Sin OpenAPI, los DTO se escriben a mano | Retrabajo al publicarse el contrato | OpenAPI de backend |
-| 6 | Tres catálogos distintos de estados de sesión | Enum incorrecto en el front | `GLO-TBD-02` |
-| 7 | La matriz de trazabilidad del Figma usa numeración antigua | Tester deriva casos equivocados | Actualizar el anexo |
-| 8 | 13 subtareas de pantalla + andamiaje, una persona, 24 días | Riesgo de alcance | Visibilidad en Scrum |
+| #   | Riesgo                                                                                                                                 | Impacto                             | Necesita                           |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ---------------------------------- |
+| 1   | Ni la Landing pública (PRT-00.01) ni el Dashboard (PRT-00.02) tienen HU, aunque ambas están dibujadas y el login redirige a la segunda | Trabajo de dos pantallas sin ticket | HU o subtarea en CM-100 para ambas |
+| 2   | PRT-04.09 preselecciona AUDIO pero HU-5.8 es Sprint 2                                                                                  | Callejón sin salida en el flujo     | Decisión de PO                     |
+| 3   | HU-1.2 (verificación de correo) fuera de Sprint 1                                                                                      | El registro no tiene destino        | Decisión de PO                     |
+| 4   | El selector de método ofrece «Autocompletar con IA», HU-2.6–2.10 son Sprint 2                                                          | Ruta muerta                         | Decisión de PO                     |
+| 5   | Sin OpenAPI, los DTO se escriben a mano                                                                                                | Retrabajo al publicarse el contrato | OpenAPI de backend                 |
+| 6   | Tres catálogos distintos de estados de sesión                                                                                          | Enum incorrecto en el front         | `GLO-TBD-02`                       |
+| 7   | La matriz de trazabilidad del Figma usa numeración antigua                                                                             | Tester deriva casos equivocados     | Actualizar el anexo                |
+| 8   | 13 subtareas de pantalla + andamiaje, una persona, 24 días                                                                             | Riesgo de alcance                   | Visibilidad en Scrum               |

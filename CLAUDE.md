@@ -37,60 +37,60 @@ automáticamente y en la versión exacta indicada, sin importar qué hubiera ant
 
 ### dependencies
 
-| Paquete | Versión |
-|---|---|
-| react | 19.2.8 |
-| react-dom | 19.2.8 |
-| react-router | 7.18.3 |
-| @tanstack/react-query | 5.102.8 |
-| zustand | 5.0.15 |
-| react-hook-form | 7.87.0 |
-| @hookform/resolvers | 5.9.1 |
-| zod | 4.5.4 |
-| i18next | 26.4.2 |
-| react-i18next | 17.0.13 |
-| i18next-browser-languagedetector | 8.2.1 |
-| firebase | 12.18.0 |
-| clsx | 2.1.1 |
-| tailwind-merge | 3.6.0 |
-| class-variance-authority | 0.7.1 |
-| lucide-react | 1.38.0 |
-| react-helmet-async | 3.0.0 |
+| Paquete                          | Versión |
+| -------------------------------- | ------- |
+| react                            | 19.2.8  |
+| react-dom                        | 19.2.8  |
+| react-router                     | 7.18.3  |
+| @tanstack/react-query            | 5.102.8 |
+| zustand                          | 5.0.15  |
+| react-hook-form                  | 7.87.0  |
+| @hookform/resolvers              | 5.9.1   |
+| zod                              | 4.5.4   |
+| i18next                          | 26.4.2  |
+| react-i18next                    | 17.0.13 |
+| i18next-browser-languagedetector | 8.2.1   |
+| firebase                         | 12.18.0 |
+| clsx                             | 2.1.1   |
+| tailwind-merge                   | 3.6.0   |
+| class-variance-authority         | 0.7.1   |
+| lucide-react                     | 1.38.0  |
+| react-helmet-async               | 3.0.0   |
 
 ### devDependencies
 
-| Paquete | Versión |
-|---|---|
-| typescript | 6.0.3 |
-| vite | 8.2.2 |
-| @vitejs/plugin-react | 6.1.1 |
-| vite-plugin-svgr | 5.2.0 |
-| tailwindcss | 4.3.3 |
-| @tailwindcss/vite | 4.3.3 |
-| @types/react | 19.2.18 |
-| @types/react-dom | 19.2.7 |
-| @types/node | 24.13.3 |
-| vitest | 4.1.11 |
-| @vitest/coverage-v8 | 4.1.11 |
-| @vitest/ui | 4.1.11 |
-| jsdom | 30.0.1 |
-| @testing-library/react | 16.3.3 |
-| @testing-library/dom | 10.4.1 |
-| @testing-library/user-event | 14.6.7 |
-| @testing-library/jest-dom | 7.0.1 |
-| msw | 2.15.0 |
-| eslint | 10.9.1 |
-| @eslint/js | 10.0.1 |
-| typescript-eslint | 8.69.0 |
-| eslint-plugin-react-hooks | 7.1.1 |
-| eslint-plugin-react-refresh | 0.5.6 |
-| eslint-plugin-jsx-a11y | 6.10.2 |
-| eslint-plugin-boundaries | 7.2.0 |
-| eslint-import-resolver-typescript | 4.4.5 |
-| @tanstack/eslint-plugin-query | 5.102.8 |
-| globals | 17.12.0 |
-| prettier | 3.9.6 |
-| prettier-plugin-tailwindcss | 0.8.1 |
+| Paquete                           | Versión |
+| --------------------------------- | ------- |
+| typescript                        | 6.0.3   |
+| vite                              | 8.2.2   |
+| @vitejs/plugin-react              | 6.1.1   |
+| vite-plugin-svgr                  | 5.2.0   |
+| tailwindcss                       | 4.3.3   |
+| @tailwindcss/vite                 | 4.3.3   |
+| @types/react                      | 19.2.18 |
+| @types/react-dom                  | 19.2.7  |
+| @types/node                       | 24.13.3 |
+| vitest                            | 4.1.11  |
+| @vitest/coverage-v8               | 4.1.11  |
+| @vitest/ui                        | 4.1.11  |
+| jsdom                             | 30.0.1  |
+| @testing-library/react            | 16.3.3  |
+| @testing-library/dom              | 10.4.1  |
+| @testing-library/user-event       | 14.6.7  |
+| @testing-library/jest-dom         | 7.0.1   |
+| msw                               | 2.15.0  |
+| eslint                            | 10.9.1  |
+| @eslint/js                        | 10.0.1  |
+| typescript-eslint                 | 8.69.0  |
+| eslint-plugin-react-hooks         | 7.1.1   |
+| eslint-plugin-react-refresh       | 0.5.6   |
+| eslint-plugin-jsx-a11y            | 6.10.2  |
+| eslint-plugin-boundaries          | 7.2.0   |
+| eslint-import-resolver-typescript | 4.4.5   |
+| @tanstack/eslint-plugin-query     | 5.102.8 |
+| globals                           | 17.12.0 |
+| prettier                          | 3.9.6   |
+| prettier-plugin-tailwindcss       | 0.8.1   |
 
 **Restricciones que explican estas versiones. No las cambies sin verificar los peers:**
 
@@ -190,7 +190,8 @@ features/<nombre>/
 - Archivos de componente: `PascalCase.tsx`. Hooks: `useAlgo.ts`. Utilidades: `camelCase.ts`.
 - Tipos e interfaces sin prefijo `I` ni sufijo `Type`.
 - Tokens y llaves de i18n: `kebab-case` / `camelCase` según la convención ya establecida en cada archivo.
-- Ramas: `CA-<numero>-<descripcion-kebab-case>`. Commits: Conventional Commits, sin la clave Jira.
+- Ramas: `CM-<numero>-<descripcion-kebab-case>`, sin prefijo de tipo (resuelto 5-sep-2026, ver
+  `cameia-perfil/AGENTS.md` §10.2). Commits: Conventional Commits, sin la clave Jira.
 
 ---
 
@@ -224,6 +225,7 @@ Regla de anidado de radios: un hijo siempre lleva un radio menor que su contened
   ```
 
   Cambiar un nombre visible debe ser editar un JSON, en un solo sitio.
+
 - **Dos idiomas distintos, no los acoples:** el idioma de la interfaz (preferencia de UI) y
   `sesion_entrevista.idioma` (dato de negocio del entrevistador IA, formato BCP-47). Puede sugerirse
   uno como valor por defecto del otro, nada más.
@@ -279,21 +281,21 @@ Todo lo demás vive detrás de `RequireAuth`, incluida `/inicio` (dashboard, PRT
 
 Subtareas de frontend en el sprint:
 
-| Jira | HU | Entregable |
-|---|---|---|
-| CM-34 | 1.1 | Formulario de registro con Firebase Auth · PRT-01.01 |
-| CM-40 | 1.3 | Inicio de sesión con Firebase Auth · PRT-01.03 |
-| CM-46 | 2.2 | Selección del método de configuración · PRT-02.02 |
-| CM-53 | 2.3 | Sección «Información General» · PRT-02.03 |
-| CM-61 | 2.4 | Experiencia laboral **y educación** · PRT-02.03 |
-| CM-65 | 2.5 | Habilidades, expectativas y finalizar · PRT-02.03 |
-| CM-69 | 2.11 | Gestión de roles objetivo · PRT-02.07 |
-| CM-80 | 4.2 | Pasos Perfil / Oferta / Rol · PRT-04.02, 04.03, 04.06 |
-| CM-84 | 4.3 | Pasos Modo y Tono/Personalidad · PRT-04.07 |
-| CM-85 | 4.3 | Forma de respuesta e Idioma · PRT-04.09 |
-| CM-89 | 4.4 | Botón «Iniciar entrevista» con estado de carga · PRT-04.11 |
-| CM-93 | 4.5 | Pantalla de espera y error de la transición · PRT-04.11 |
-| CM-31 | 5.2 | Chat de turno, Entreno y Simulación · PRT-05.08, 05.10 |
+| Jira  | HU   | Entregable                                                 |
+| ----- | ---- | ---------------------------------------------------------- |
+| CM-34 | 1.1  | Formulario de registro con Firebase Auth · PRT-01.01       |
+| CM-40 | 1.3  | Inicio de sesión con Firebase Auth · PRT-01.03             |
+| CM-46 | 2.2  | Selección del método de configuración · PRT-02.02          |
+| CM-53 | 2.3  | Sección «Información General» · PRT-02.03                  |
+| CM-61 | 2.4  | Experiencia laboral **y educación** · PRT-02.03            |
+| CM-65 | 2.5  | Habilidades, expectativas y finalizar · PRT-02.03          |
+| CM-69 | 2.11 | Gestión de roles objetivo · PRT-02.07                      |
+| CM-80 | 4.2  | Pasos Perfil / Oferta / Rol · PRT-04.02, 04.03, 04.06      |
+| CM-84 | 4.3  | Pasos Modo y Tono/Personalidad · PRT-04.07                 |
+| CM-85 | 4.3  | Forma de respuesta e Idioma · PRT-04.09                    |
+| CM-89 | 4.4  | Botón «Iniciar entrevista» con estado de carga · PRT-04.11 |
+| CM-93 | 4.5  | Pantalla de espera y error de la transición · PRT-04.11    |
+| CM-31 | 5.2  | Chat de turno, Entreno y Simulación · PRT-05.08, 05.10     |
 
 El asistente de configuración de sesión tiene **tres pasos**, no siete:
 «Oferta y rol» → «Modo y tono» → «Idioma y forma de respuesta».
