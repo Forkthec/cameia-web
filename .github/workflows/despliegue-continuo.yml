@@ -1,0 +1,96 @@
+name: Desplegar a Firebase Hosting # staging desde develop, producción solo al promover a main
+
+# Modelo de ambientes corregido el 11-sep-2026 (v2 del plan DevOps, ver
+# prompts/salidas/11092026_v2_plan-devops-72h.md sección A y ADR-0001 en docs/).
+# La versión anterior desplegaba a producción en cada push a develop, lo que
+# contradecía la guía del sprint (§2.8: "develop no es un ambiente, es la fuente
+# versionada de staging") y el Anexo_Despliegue aprobado (producción se promueve
+# manualmente desde main). No se repite ese error.
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop] # cada PR recibe su propia URL de vista previa, sin tocar ningún ambiente
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write # deja el comentario con el enlace de vista previa en el PR
+  checks: write # la acción crea un "check run" como indicador de progreso del deploy
+
+jobs:
+  build-y-desplegar:
+    name: Build + deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Habilitar pnpm vía corepack
+        run: corepack enable
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      # VITE_APP_ENV depende de la rama: 'staging' en develop (y en las vistas
+      # previas de PR, que nacen de develop), 'production' solo en main — es el
+      # único punto donde src/config/env.ts distingue el ambiente en tiempo de
+      # ejecución (ver env.ts:11, acepta 'local' | 'staging' | 'production').
+      #
+      # VITE_API_BASE_URL: sin valor todavía — el API Gateway no está desplegado
+      # (depende de que se active billing de GCP). Bloqueado por respuesta de
+      # Frontend, ver comunicaciones/11092026_frontend_variable-api-base-url.md.
+      # No se inventa un valor.
+      - name: Build
+        env:
+          VITE_APP_NAME: ${{ vars.VITE_APP_NAME }}
+          VITE_APP_ENV: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+        run: pnpm build
+
+      # main → producción real (cameia-app.web.app). Solo ocurre al fusionar el
+      # PR de promoción develop→main (Merge commit, revisado) — nunca por un
+      # push directo, porque develop→main tampoco admite push directo.
+      - name: Desplegar a producción (push a main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CAMEIA }}
+          projectId: cameia-app
+          channelId: live
+
+      # develop → canal 'staging' persistente (no expira). Es el ambiente de
+      # integración: refleja lo que ya está fusionado, no lo que se está
+      # revisando. Automático en cada push a develop, tal como exige la guía
+      # del sprint §2.10.
+      - name: Desplegar a staging (push a develop)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CAMEIA }}
+          projectId: cameia-app
+          channelId: staging
+
+      # Cada PR obtiene su propia URL de vista previa (expira sola en 7 días),
+      # sin tocar staging ni producción — así se revisa un cambio antes de
+      # fusionarlo.
+      - name: Vista previa (PR)
+        if: github.event_name == 'pull_request'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CAMEIA }}
+          projectId: cameia-app
+          expires: 7d
