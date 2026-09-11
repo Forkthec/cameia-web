@@ -9,6 +9,7 @@ jobs:
   validar-nombre-rama:
     name: Validar nombre de rama
     runs-on: ubuntu-latest # igual que los otros workflows del repo; sin motivo para otro
+    if: github.actor != 'dependabot[bot]' # CM-138: Dependabot no puede seguir CM-<n>-<desc> ni la plantilla de 8 campos
     steps:
       # "continue-on-error: true": el check puede salir en rojo sin impedir fusionar
       # todavía (fase informativa, CM-122) — solo deja la advertencia visible.

@@ -26,7 +26,7 @@ jobs:
     steps:
       # Descarga el código del commit/PR que disparó el workflow.
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Fija la versión exacta de pnpm declarada en "packageManager" del package.json;
       # sin esto el runner puede resolver una versión distinta a la del equipo (CM-130).
@@ -35,7 +35,7 @@ jobs:
 
       # Instala la versión de Node.js (el motor que ejecuta JavaScript) que usa el proyecto.
       - name: Configurar Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc # misma fuente de verdad que el resto del equipo
           cache: pnpm # cachea el store de pnpm entre corridas, no node_modules
@@ -70,7 +70,7 @@ jobs:
       # poder inspeccionar qué se alcanzó a generar sin repetir la corrida completa.
       - name: Publicar artefactos (build + reporte de cobertura)
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cameia-web-build-cobertura
           path: |
