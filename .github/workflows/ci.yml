@@ -1,4 +1,4 @@
-name: CI
+name: CI # nombre de este pipeline, visible en la pestaña "Actions" de GitHub
 
 # Corre en cada PR hacia develop/main y en cada push a develop (integración), tal como exige
 # la guía DevOps del sprint (§2.7): valida el cambio antes de fusionar y otra vez al integrar.
@@ -14,13 +14,15 @@ concurrency:
   group: ci-web-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+# Mínimo privilegio (guía DevOps §2.9): este job solo lee código, no publica nada ni
+# necesita escribir en el repo.
 permissions:
   contents: read
 
 jobs:
   ci:
     name: Build, lint y pruebas
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # igual que los otros workflows del repo; sin motivo para otro
     steps:
       # Descarga el código del commit/PR que disparó el workflow.
       - name: Checkout
@@ -31,6 +33,7 @@ jobs:
       - name: Habilitar pnpm vía corepack
         run: corepack enable
 
+      # Instala la versión de Node.js (el motor que ejecuta JavaScript) que usa el proyecto.
       - name: Configurar Node
         uses: actions/setup-node@v4
         with:
@@ -42,18 +45,24 @@ jobs:
       - name: Instalar dependencias
         run: pnpm install --frozen-lockfile
 
+      # Revisa que el código tenga el mismo estilo de escritura (espacios, comillas...)
+      # en todo el proyecto, sin cambiar cómo funciona.
       - name: Formato (prettier --check)
         run: pnpm format:check
 
+      # Busca errores comunes y malas prácticas en el código antes de aceptar el cambio.
       - name: Lint (eslint)
         run: pnpm lint
 
+      # Revisa que el código use bien los tipos de datos, sin llegar a ejecutarlo.
       - name: Typecheck (tsc -b, ver tsconfig.json)
         run: pnpm typecheck
 
+      # Corre las pruebas automáticas y mide qué porcentaje del código quedó cubierto.
       - name: Pruebas + cobertura (gate 70%, ver vite.config.ts)
         run: pnpm test:coverage
 
+      # Genera los archivos finales optimizados, listos para publicar en Firebase Hosting.
       - name: Build de producción
         run: pnpm build
 
