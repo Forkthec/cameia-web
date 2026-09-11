@@ -1,5 +1,6 @@
 name: Validar nombre de rama
 
+# Corre cada vez que se abre o actualiza un PR hacia develop.
 on:
   pull_request:
     branches: [develop]
@@ -7,14 +8,17 @@ on:
 jobs:
   validar-nombre-rama:
     name: Validar nombre de rama
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # igual que los otros workflows del repo; sin motivo para otro
     steps:
+      # "continue-on-error: true": el check puede salir en rojo sin impedir fusionar
+      # todavía (fase informativa, CM-122) — solo deja la advertencia visible.
       - name: Verificar patron CM-numero-descripcion-kebab-case
         continue-on-error: true
         env:
-          BRANCH: ${{ github.head_ref }}
+          BRANCH: ${{ github.head_ref }} # nombre real de la rama que abrió el PR
         run: |
           echo "Rama: $BRANCH"
+          # Patrón exigido: CM-<numero>-<descripcion-en-minusculas-con-guiones>.
           if [[ "$BRANCH" =~ ^CM-[0-9]+-[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
             echo "Nombre de rama valido."
           else

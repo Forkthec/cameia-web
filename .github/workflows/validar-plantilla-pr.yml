@@ -1,5 +1,8 @@
 name: Validar plantilla de PR
 
+# "types" va explícito (no el valor por defecto de GitHub) para incluir
+# "converted_to_draft": sin él, pasar un PR a Draft no volvía a correr este check
+# y dejaba datos viejos (bug real, corregido en CM-123).
 on:
   pull_request:
     types: [opened, edited, synchronize, ready_for_review, converted_to_draft]
@@ -8,14 +11,19 @@ on:
 jobs:
   validar-plantilla:
     name: Validar plantilla de PR
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # igual que los otros workflows del repo; sin motivo para otro
     steps:
+      # Descarga el código del PR — el script del paso siguiente vive en el repo.
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Prueba el validador mismo antes de usarlo, no el PR — evita confiar en un
+      # script con un error propio.
       - name: Autoprueba del validador (CM-123 — siempre bloqueante, no es fase informativa)
         run: python3 .github/scripts/test_pr_policy.py
 
+      # Junta título, rama, cuerpo y estado del PR en un archivo que el validador
+      # Python del siguiente paso pueda leer.
       - name: Preparar entrada
         run: |
           cat > /tmp/pr.json <<'PYEOF'
