@@ -21,5 +21,4 @@ Thumbs.db
 
 # graphify: instalación personal (CA-100), no compartida con el equipo
 .claude/
-graphify-out/.firebase/
-__pycache__/
+graphify-out/
