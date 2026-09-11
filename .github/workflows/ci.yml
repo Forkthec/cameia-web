@@ -22,21 +22,23 @@ jobs:
     name: Build, lint y pruebas
     runs-on: ubuntu-latest
     steps:
+      # Descarga el código del commit/PR que disparó el workflow.
       - name: Checkout
         uses: actions/checkout@v4
 
-      # corepack resuelve la versión exacta de pnpm declarada en package.json
-      # ("packageManager"). Sin esto, pnpm sin versión fijada puede resolver distinto
-      # entre el runner y las máquinas del equipo (ya visto en CM-130 con husky).
+      # Fija la versión exacta de pnpm declarada en "packageManager" del package.json;
+      # sin esto el runner puede resolver una versión distinta a la del equipo (CM-130).
       - name: Habilitar pnpm vía corepack
         run: corepack enable
 
       - name: Configurar Node
         uses: actions/setup-node@v4
         with:
-          node-version-file: .nvmrc
-          cache: pnpm
+          node-version-file: .nvmrc # misma fuente de verdad que el resto del equipo
+          cache: pnpm # cachea el store de pnpm entre corridas, no node_modules
 
+      # "--frozen-lockfile": falla si pnpm-lock.yaml no coincide con package.json, en
+      # vez de regenerarlo en silencio — el lockfile del CI es el mismo que el local.
       - name: Instalar dependencias
         run: pnpm install --frozen-lockfile
 
@@ -46,7 +48,7 @@ jobs:
       - name: Lint (eslint)
         run: pnpm lint
 
-      - name: Typecheck (tsc --noEmit)
+      - name: Typecheck (tsc -b, ver tsconfig.json)
         run: pnpm typecheck
 
       - name: Pruebas + cobertura (gate 70%, ver vite.config.ts)
@@ -55,6 +57,8 @@ jobs:
       - name: Build de producción
         run: pnpm build
 
+      # "if: always()" publica el artefacto incluso si un paso anterior falló, para
+      # poder inspeccionar qué se alcanzó a generar sin repetir la corrida completa.
       - name: Publicar artefactos (build + reporte de cobertura)
         if: always()
         uses: actions/upload-artifact@v4
@@ -63,5 +67,5 @@ jobs:
           path: |
             dist/
             coverage/
-          retention-days: 14
-          if-no-files-found: warn
+          retention-days: 14 # suficiente para revisar un PR sin acumular basura
+          if-no-files-found: warn # no falla el job si algún paso previo no llegó a generarlo

@@ -25,13 +25,13 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true, // permite usar describe/it/expect sin importarlos en cada archivo
-    setupFiles: ['./src/test/setup.ts'],
+    setupFiles: ['./src/test/setup.ts'], // matchers de jest-dom, mocks globales
     // Sin esto, "vitest run" termina con código de error cuando todavía no
     // existe ningún archivo de prueba (etapa inicial del proyecto).
     passWithNoTests: true,
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'html', 'lcov'],
+      provider: 'v8', // ya viene con Node, no agrega instrumentación de Babel/Istanbul
+      reporter: ['text', 'html', 'lcov'], // text: consola; html: local; lcov: artefacto CI
       // Umbral exigido por la guía DevOps del sprint (>70%). "test:coverage" falla
       // el proceso si cualquiera de estas métricas cae por debajo — es el mecanismo
       // real que hace del gate de CI un bloqueo, no solo un número informativo.
