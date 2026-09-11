@@ -189,7 +189,11 @@ features/<nombre>/
   `context`, `author`, `mode`.
 - Archivos de componente: `PascalCase.tsx`. Hooks: `useAlgo.ts`. Utilidades: `camelCase.ts`.
 - Tipos e interfaces sin prefijo `I` ni sufijo `Type`.
-- Tokens y llaves de i18n: `kebab-case` / `camelCase` según la convención ya establecida en cada archivo.
+- Tokens CSS: `kebab-case` (`--action-primary-hover`).
+- Llaves de i18n: `camelCase` (`asistente.pasos.ofertaYRol`), y `UPPER_SNAKE_CASE` cuando la llave
+  es un código de dominio (`interview:modo.ENTRENO`). **Nunca kebab-case.** Los códigos BCP-47
+  (`interview:idioma.es-CO`) llevan guion porque son código de dominio copiado tal cual, igual que
+  `ENTRENO`; no son kebab-case. Detalle en §7.
 - Ramas: `CM-<numero>-<descripcion-kebab-case>`, sin prefijo de tipo (resuelto 5-sep-2026, ver
   `cameia-perfil/AGENTS.md` §10.2). Commits: Conventional Commits, sin la clave Jira.
 
@@ -207,6 +211,20 @@ La fuente de verdad de los tokens es el archivo de Figma
 - Los estilos de texto de Figma (`text/display`, `text/h1`… `text/nav-active`) se replican como
   utilidades o como variantes de un componente `Text`, no repitiendo `text-[34px] leading-[36px]` por ahí.
 - Elevación: `elevation/0` a `elevation/3` y `state/focus-ring` son tokens de sombra, no valores sueltos.
+- **Unidades, tal como ya están en `semantic.css` e `index.css`:** espaciado en `rem`
+  (`--space-4: 1rem`), radios en `px` (`--token-radius-md: 10px`), tamaño de fuente en `rem`
+  (`--text-body: 1rem`), altura de línea **sin unidad** (`--text-body--line-height: 1.625`),
+  espaciado entre letras en `em` (`--text-h1--letter-spacing: -0.02em`). No se mezclan.
+- **Área táctil.** El mínimo 44×44 de §10 se resuelve con el token `--touch-target: 44px` en
+  `semantic.css`, expuesto en `index.css` como `--spacing-touch-target` dentro de `@theme`. Genera
+  `min-h-touch-target` y `min-w-touch-target` (junto con el resto de utilidades de la escala de
+  espaciado bajo ese nombre, que simplemente no se usan). Ya reemplaza los ocho literales de 44 px
+  de `Button` (md), `Input`, `Checkbox`, `Radio`, `Toggle`, `Combobox` y `PasswordField`. En
+  `PasswordField` el uso no es área táctil sino reserva de ancho para el botón superpuesto (mismo
+  token porque debe seguir su tamaño); documentado en el TSDoc del archivo.
+  Los cuatro literales de tamaño de botón (`h/w-[52px]`, `h/w-[34px]`) siguen sin resolver: es una
+  decisión aparte, no cubierta por este token. Evidencia:
+  `docs/bitacora-ia/CM-100-convenciones-observadas.md` §2.1.
 
 Regla de anidado de radios: un hijo siempre lleva un radio menor que su contenedor.
 
@@ -214,17 +232,26 @@ Regla de anidado de radios: un hijo siempre lleva un radio menor que su contened
 
 ## 7. Internacionalización
 
-- `es-CO` es el idioma completo. `en` existe como estructura y **hereda de `es-CO`** mientras no
-  haya copia aprobada; eso es intencional, no un bug.
-- Un namespace por feature: `common`, `auth`, `profile`, `interview`, `report`, `errors`.
+- `es-CO` es el **único idioma con recursos**. `en` sigue declarado en `SUPPORTED_LANGUAGES` pero
+  no tiene archivos propios: cuando el navegador pide inglés, i18next resuelve cada llave por
+  `fallbackLng: 'es-CO'`. No hay copia en inglés aprobada; el fallback es el mecanismo, no un
+  parche. `locales/en/` ya no existe: se borró y `fallbackLng` opera de verdad.
+- Un namespace por feature: `common`, `auth`, `profile`, `interview`, `errors`. (No existe
+  `report`; se crea cuando entre su feature.)
+- Llaves en `camelCase`; `UPPER_SNAKE_CASE` cuando la llave es un código de dominio; nunca
+  kebab-case. Los códigos BCP-47 (`idioma.es-CO`) se copian tal cual porque son código de dominio,
+  no llave inventada (`docs/GLOSSARY.md` §1, regla 3).
 - **Los catálogos guardan códigos, no etiquetas.** Ejemplo obligatorio:
 
   ```ts
-  export const TONOS = ['PROFESIONAL_NEUTRO', 'CALIDO', 'ESTRICTO', 'MOTIVADOR'] as const;
-  // etiqueta visible = t(`interview:tono.${codigo}`)
+  export const ANSWER_FORMATS = ['TEXTO', 'AUDIO'] as const;
+  // etiqueta visible = t(`interview:formaRespuesta.${codigo}`)
   ```
 
-  Cambiar un nombre visible debe ser editar un JSON, en un solo sitio.
+  Los códigos son los del glosario (`docs/GLOSSARY.md` §5). `VIDEO` **no** es un valor del
+  enumerado: queda fuera del MVP y se muestra deshabilitado con «Próximamente» (decisión D-05), por
+  eso su llave existe en `interview.json` sin estar en el catálogo. Cambiar un nombre visible debe
+  ser editar un JSON, en un solo sitio.
 
 - **Dos idiomas distintos, no los acoples:** el idioma de la interfaz (preferencia de UI) y
   `sesion_entrevista.idioma` (dato de negocio del entrevistador IA, formato BCP-47). Puede sugerirse
@@ -237,13 +264,37 @@ Regla de anidado de radios: un hijo siempre lleva un radio menor que su contened
 
 - `services/http/httpClient.ts` es un envoltorio delgado de `fetch`. **No usamos axios.**
 - El cliente adjunta el ID Token de Firebase (`await getIdToken()`) en cada petición y maneja el refresh.
-- `services/http/errorMap.ts` traduce el formato común de error del backend a errores tipados de dominio.
-  **El frontend nunca renderiza el `message` crudo del backend**: usa el `code` estable como llave de i18n.
+- `services/http/errorMap.ts` traduce el cuerpo de error del backend a errores tipados de dominio.
+  **Objetivo acordado con backend:** Problem Details, **RFC 9457**, con extensiones propias (un
+  código estable, `correlationId` y el detalle de validación). **El frontend nunca renderiza
+  `title`, `detail` ni ningún mensaje crudo del backend**: usa el código estable como llave de
+  `errors:*`.
+  **PENDIENTE — no está implementado:** hoy `errorMap.ts` implementa el formato provisional
+  `{ code, message, details }` y lo declara en su primera línea (`// PROVISIONAL — … API-TBD-14`).
+  La migración a RFC 9457 es de un solo archivo y depende del contrato real (ADR-0003
+  §Consecuencias; `docs/decisiones/11092026_v2_…` «Cierre de TBD obsoletos», API-TBD-14). No se
+  afirma como hecho lo que no lo está.
 - Los DTO viven en `features/*/api/*.dto.ts` y se convierten a modelo de UI en `*.mapper.ts`.
   Ningún componente toca un DTO directamente.
 - Mientras no exista el OpenAPI del backend, los DTO se escriben a mano y se marcan con
   `// PROVISIONAL — pendiente de OpenAPI` en la primera línea del archivo.
 - Todo endpoint tiene su handler equivalente en `mocks/handlers/`.
+- **Orden de construcción de una feature.** El contrato del backend es lo más volátil del
+  proyecto, así que empezar por `api/` es empezar por lo que más cambia. El orden es:
+
+  1. `model/` — tipos de dominio y catálogos de códigos, desde el glosario y el backlog.
+  2. `schemas/` — validación zod de formularios.
+  3. `organisms/` — con sus **hooks de interfaz** (estado del asistente, apertura de un panel,
+     permiso del micrófono), escritos cuando el componente los necesita.
+  4. `pages/` — contra datos simulados en `mocks/handlers/`.
+  5. `api/` al final: `<x>.dto.ts`, `<x>.mapper.ts`, `<x>.api.ts`, junto con los **hooks de
+     datos** (los que envuelven `useQuery`/`useMutation`), porque dependen del contrato.
+
+  **El mapper es el cortafuegos:** todo lo que el backend pueda cambiar —nombre de un campo, forma
+  de una colección, código de un enumerado— se detiene en `*.mapper.ts` y no llega a `model/` ni a
+  los componentes (ADR-0003; `docs/GLOSSARY.md` §1, regla 2). Es la misma línea de corte que separa
+  `SPEC.md` §4 (contrato observable, estable) de §5 (enlace HTTP, provisional), y es lo que permite
+  construir la interfaz antes de que el contrato esté cerrado.
 
 ---
 
@@ -279,51 +330,222 @@ Todo lo demás vive detrás de `RequireAuth`, incluida `/inicio` (dashboard, PRT
 **No crees** `account`, `progress`, `evaluation-report`, `billing`, `usage` ni `job-offers`.
 `job-offers` (HE-03) está fuera del alcance del MVP completo.
 
-Subtareas de frontend en el sprint:
+**Son 13 subtareas** de frontend en el sprint. Los entregables ya incorporan la respuesta del PO
+del 11-sep-2026 (`docs/decisiones/11092026_v2_respuesta-decisiones-frontend-sprint-1.md`; los
+títulos en Jira se actualizan por parte del PO):
 
-| Jira  | HU   | Entregable                                                 |
-| ----- | ---- | ---------------------------------------------------------- |
-| CM-34 | 1.1  | Formulario de registro con Firebase Auth · PRT-01.01       |
-| CM-40 | 1.3  | Inicio de sesión con Firebase Auth · PRT-01.03             |
-| CM-46 | 2.2  | Selección del método de configuración · PRT-02.02          |
-| CM-53 | 2.3  | Sección «Información General» · PRT-02.03                  |
-| CM-61 | 2.4  | Experiencia laboral **y educación** · PRT-02.03            |
-| CM-65 | 2.5  | Habilidades, expectativas y finalizar · PRT-02.03          |
-| CM-69 | 2.11 | Gestión de roles objetivo · PRT-02.07                      |
-| CM-80 | 4.2  | Pasos Perfil / Oferta / Rol · PRT-04.02, 04.03, 04.06      |
-| CM-84 | 4.3  | Pasos Modo y Tono/Personalidad · PRT-04.07                 |
-| CM-85 | 4.3  | Forma de respuesta e Idioma · PRT-04.09                    |
-| CM-89 | 4.4  | Botón «Iniciar entrevista» con estado de carga · PRT-04.11 |
-| CM-93 | 4.5  | Pantalla de espera y error de la transición · PRT-04.11    |
-| CM-31 | 5.2  | Chat de turno, Entreno y Simulación · PRT-05.08, 05.10     |
+| Jira  | HU   | Entregable                                                                                                                                                                                 |
+| ----- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| CM-34 | 1.1  | Formulario de registro con Firebase Auth · PRT-01.01                                                                                                                                       |
+| CM-40 | 1.3  | Inicio de sesión con Firebase Auth · PRT-01.03                                                                                                                                             |
+| CM-46 | 2.2  | Selección del método de configuración · PRT-02.02                                                                                                                                          |
+| CM-53 | 2.3  | Sección «Información General» · PRT-02.03                                                                                                                                                  |
+| CM-61 | 2.4  | Experiencia laboral **y educación**; la educación es **obligatoria** para activar el perfil (J-01) · PRT-02.03                                                                             |
+| CM-65 | 2.5  | Habilidades (texto libre + nivel) y finalizar · **sin expectativas**, fuera del MVP (D-02) · PRT-02.03                                                                                     |
+| CM-69 | 2.11 | Roles Objetivo **dentro del formulario del perfil**: consultar, agregar, sustituir y eliminar; de catálogo, sin prioridad ni reorden (D-01, J-03) · PRT-02.03. **PRT-02.07 sale del MVP.** |
+| CM-80 | 4.2  | Pasos Perfil / Oferta / Rol · PRT-04.02, 04.03, 04.06                                                                                                                                      |
+| CM-84 | 4.3  | Pasos Modo y Tono/Personalidad · PRT-04.07                                                                                                                                                 |
+| CM-85 | 4.3  | Forma de respuesta e Idioma · PRT-04.09                                                                                                                                                    |
+| CM-89 | 4.4  | Botón «Iniciar entrevista» con estado de carga · PRT-04.11                                                                                                                                 |
+| CM-93 | 4.5  | Pantalla de espera y error de la transición (J-04) · PRT-04.11                                                                                                                             |
+| CM-31 | 5.2  | Chat de turno, Entreno y Simulación · PRT-05.08, 05.10                                                                                                                                     |
+
+Landing (PRT-00.01) y Tablero (PRT-00.02) siguen sin HU: el PO las incorporará al backlog (D-03).
+Se puede trabajar sobre los prototipos aprobados, pero **no se asumen dentro del alcance
+comprometido** hasta que existan como historias.
 
 El asistente de configuración de sesión tiene **tres pasos**, no siete:
 «Oferta y rol» → «Modo y tono» → «Idioma y forma de respuesta».
 
 ---
 
-## 12. Contradicciones conocidas — no las resuelvas por tu cuenta
+## 12. Contradicciones: resueltas y abiertas
 
-Si el trabajo toca alguna de estas, **para y pregunta**:
+Lo resuelto se aplica sin preguntar y se cita por su fuente. Lo abierto **no se resuelve
+escribiendo código**: si el trabajo lo toca, para y pregunta.
 
-1. **Audio.** PRT-04.09 preselecciona AUDIO, pero HU-5.8 es Sprint 2 y el backend no procesa audio
-   todavía. Hasta que haya decisión, AUDIO se renderiza deshabilitado con etiqueta «Próximamente».
-2. **Verificación de correo.** HU-1.2 no está en Sprint 1 pero el registro debería redirigir allí.
-3. **Autocompletar con IA.** El selector de método (CM-46) ofrece esa ruta, pero HU-2.6 a HU-2.10
-   son Sprint 2. Se renderiza deshabilitada.
-4. **Estados de sesión.** El backlog, el DDL y el diagrama de clases dan tres catálogos distintos.
-   Usa el que devuelva el backend, no inventes el enum.
-5. **Landing y Dashboard.** PRT-00.01 (`/`) y PRT-00.02 (`/inicio`) están dibujados y el login
-   redirige al segundo, pero ninguno de los dos tiene HU en el backlog.
-6. **Matriz de trazabilidad del Figma.** Está desactualizada respecto a los frames. Los frames mandan.
+**Resueltas** (fuentes: `docs/GLOSSARY.md`; `docs/decisiones/11092026_v2_…`):
+
+1. **Estados de sesión.** Oficiales: `CONFIGURADA`, `EN_CURSO`, `EVALUANDO`, `FINALIZADA`,
+   `ABANDONADA` (`GLOSSARY` §5). No se añade ninguno del DDL histórico.
+2. **Idioma de sesión.** BCP-47, `es-CO` por defecto (`GLOSSARY` §5). Sigue siendo un dato de
+   negocio distinto del idioma de la interfaz (§7).
+3. **Estados de perfil.** El perfil se crea en `IN_PROGRESS` y la finalización va directo a
+   `COMPLETED`. No existe `PENDING`; `IN_REVIEW` queda fuera del flujo manual y en Sprint 1 ningún
+   perfil lo alcanza ni aparece en listados (T-02; `GLOSSARY` §3).
+4. **Voz.** Aparece **visible pero deshabilitada**, con etiqueta «Próximamente», y **Texto queda
+   preseleccionado**. En Sprint 1 no hay captura ni transcripción (HU-5.8 es Sprint 2) (D-04).
+5. **Video.** Fuera del MVP. Se muestra deshabilitado con «Próximamente», alineado visualmente con
+   el tratamiento de la voz (D-05).
+
+**Abiertas — para y pregunta:**
+
+1. **Origen del contrato de la API.** No hay OpenAPI; los DTO se escriben a mano contra mocks y
+   los nombres de campo del perfil siguen `pendiente` en `GLOSSARY` §2 (T-03; consulta C-01).
+2. **Identidad por cabecera `X-User-Id`.** La respuesta del PO la menciona para HU-2.2; no está
+   confirmado que sea definitiva frente al ID Token que el gateway ya valida.
+3. **Valores del nivel de habilidad** (`SkillLevel`): enum sin valores publicados (C-06).
+4. **Textos en español de los niveles educativos** `TECHNICAL`, `UNDERGRADUATE`, `POSTGRADUATE`
+   (C-07).
+5. **Si los enumerados de Entrevistas pasan a inglés.** El marco general dice «enums en inglés»,
+   pero los códigos de sesión, modalidad y forma de respuesta están en español (C-08;
+   `GLOSSARY` §5).
+6. **Verificación de correo.** HU-1.2 no está en Sprint 1 pero el registro debería redirigir allí.
+   Sin decisión escrita.
+7. **Autocompletar con IA.** El selector de método (CM-46) ofrece esa ruta, pero HU-2.6 a HU-2.10
+   son Sprint 2. Se renderiza deshabilitada. Sin decisión escrita.
+8. **Landing y Tablero.** PRT-00.01 (`/`) y PRT-00.02 (`/inicio`) siguen sin HU; el PO las creará
+   antes de comprometerlas (D-03). Hasta entonces no forman parte del alcance comprometido.
+9. **Referencias a prototipos.** La lista de PRT del backlog puede estar desactualizada frente a
+   Figma (S-02). Los frames mandan; solo se construyen las pantallas efectivamente dibujadas.
+10. **Destino de HU-2.10 y de PRT-02.07.** El PO retiró PRT-02.07 del MVP (D-01) pero no dijo qué
+    pasa con la sugerencia de roles con IA de Sprint 2, que usaba esa pantalla (consulta C-04).
+    `ProfileRolesPage.tsx` y la ruta `/perfiles/:id/roles` **no se borran** hasta tener respuesta.
 
 ---
 
 ## 13. Cómo trabajar en este repositorio
 
+- Antes de tocar código de una feature, lee su `SPEC.md` (§16).
 - Antes de escribir código, mira si el componente ya existe en `design-system/`.
 - Antes de crear un archivo, mira si su carpeta ya tiene la convención definida arriba.
 - Cambios grandes: propón el plan y espera confirmación antes de generar archivos.
 - Al terminar, corre `pnpm typecheck && pnpm lint && pnpm test` y reporta el resultado real.
 - No dejes `TODO` sin un identificador Jira asociado.
 - No dejes código muerto, comentado o «por si acaso».
+
+---
+
+## 14. Estándares de código
+
+Estas reglas no son aspiración: se midieron sobre los 121 archivos fuente y 51 de prueba de
+`src/` y se cumplen sin excepción (evidencia, con comandos y archivo:línea, en
+`docs/bitacora-ia/CM-100-convenciones-observadas.md` §1). Código nuevo que las rompa es un defecto,
+no un estilo distinto.
+
+1. **Idioma.** Identificadores —variables, funciones, tipos, archivos, carpetas, el nombre de
+   cada `describe`— en **inglés**. Todo lo que lee una persona —TSDoc, comentarios, el nombre de
+   cada `it`, llaves y valores de traducción, documentación— en **español**. La frontera es simple:
+   si lo lee el compilador, inglés; si lo lee una persona, español.
+2. **Componentes con `export function`.** Ni arrow functions para componentes, ni
+   `export default`. Única excepción vigente: `src/i18n/index.ts` exporta la instancia de i18next
+   por defecto porque la integración con `react-i18next` lo impone. Una excepción nueva solo si una
+   librería la exige, y se anota en el TSDoc del archivo.
+3. **Imports en tres grupos, sin línea en blanco entre ellos:** externos → alias `@/` →
+   relativos. Es convención observada, no regla de ESLint (no hay `import/order` configurado):
+   el revisor la mira.
+4. **`import type { X } from '…'`** (completo) cuando el import es solo de tipos.
+   **`import { valor, type X } from '…'`** (inline) cuando se mezcla con valores. Ejemplo real:
+   `errorMap.ts` línea 8.
+5. **Las interfaces y tipos `*Props` no se exportan.** El componente es la superficie pública;
+   sus props se leen en el archivo del componente.
+6. **Barriles `index.ts` solo en dos sitios:** la carpeta de cada componente del design system
+   (`atoms/Button/index.ts`) y la raíz de cada feature (`features/auth/index.ts`). No hay barril de
+   categoría (`atoms/index.ts`, `design-system/index.ts`) ni de carpeta técnica (`hooks/`, `utils/`,
+   `services/`, `stores/`). Se importa el archivo concreto: `@/utils/cn`, `@/hooks/useDebounce`,
+   `@/stores/auth.store`.
+7. **El design system no llama a `useTranslation`.** Todo texto visible —etiqueta, `aria-label`,
+   placeholder, gerundio de carga— entra como **prop obligatoria, sin valor por defecto**. `Button`
+   exige `children`, y con `loading` exige `loadingLabel`; no inventa un «Cargando…».
+   **Por qué, porque no es evidente:** es lo que permite reutilizar el design system **fuera de
+   esta aplicación** —otro producto, un catálogo de componentes aislado, una prueba unitaria— sin
+   arrastrar i18next ni sus catálogos. El componente no sabe qué dice ni en qué idioma, solo dónde
+   lo pone. Es la misma razón por la que no conoce el dominio (§3.5): un design system que importa
+   traducciones de CAMEIA ya no es un design system, es una feature.
+8. **Pruebas.** `describe` con el identificador bajo prueba, en inglés: `describe('Button')`,
+   `describe('mapErrorResponse')`. `it` en español, conjugado en tercera persona, sin «should» ni
+   «debería»: `it('redirige a /ingresar cuando no hay sesión')`. El archivo de prueba es hermano
+   del archivo probado (`Button.test.tsx` junto a `Button.tsx`); nunca carpetas `__tests__`.
+
+---
+
+## 15. Documentación del código: TSDoc
+
+**TSDoc es obligatorio en TODOS los archivos de `src/`, en la línea 1, antes de los imports.**
+Un archivo sin cabecera está incompleto aunque compile y pase las pruebas. La única marca que puede
+ir antes es `// PROVISIONAL — …` (§8), y el TSDoc va inmediatamente después.
+
+Hay **dos dialectos según el tipo de archivo**, y no se mezclan:
+
+| Tipo de archivo                             | Lleva                                                                                                                  | No lleva                                                                                           |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Módulo con lógica (store, config, servicio) | Prosa que explica **por qué existe y qué decisión encierra**                                                           | —                                                                                                  |
+| Componente de UI                            | Prosa en la cabecera, **más una línea sobre cada prop dentro de la interfaz**                                          | `@param` y `@returns`: documentar que un componente recibe props y devuelve JSX no informa de nada |
+| Hook o función pura                         | Prosa, **más `@param`, `@returns` y `@throws`** cuando aplique (`useDebounce.ts`)                                      | —                                                                                                  |
+| Barril `index.ts`                           | Qué expone y **qué deja deliberadamente fuera**                                                                        | —                                                                                                  |
+| Prueba `*.test.ts(x)`                       | **Qué regla o contrato protege, y de dónde sale esa regla** (sección de este archivo, CA del backlog, decisión del PO) | —                                                                                                  |
+
+Los comentarios dentro del cuerpo explican **por qué**, nunca **qué**; si hay que explicar qué hace,
+el nombre está mal. Sin `TODO` sin clave Jira y sin código comentado (§13).
+
+**Convención de citas.** Cuando un comentario justifica algo con una regla, la cita con la forma
+exacta que ya usa el código:
+
+- Las **reglas duras** se citan `§3.N`: `CLAUDE.md §3.2` (ningún texto visible en el código),
+  `§3.6` (datos del servidor en TanStack Query, no en Zustand), `§3.7` (ninguna constante de
+  negocio hardcodeada).
+- Las **secciones** por su número: `§7`, `§14`, `§16`.
+- Las fuentes externas por documento: `ADR-0003`, `GLOSSARY §3`, `decisiones/11092026 D-04`,
+  `CA-2.11.3`.
+- Cuidado con §6: es «Tokens y estilos». La regla de Zustand y Query es `§3.6`, no `§6`.
+
+**PENDIENTE — paso 3 (documentación):** hoy 37 de los 39 barriles y 45 de las 51 pruebas no
+tienen cabecera; 8 archivos fuente la tienen después de los imports (`App.tsx`, `cn.ts` y los seis
+`features/*/routes.tsx`); `queryClient.ts:2` y `auth.store.ts:2` citan «§6» donde corresponde
+`§3.6`; `auth.store.ts:4-6` describe `app/providers/` como inexistente cuando ya existe. Lista
+completa en `docs/bitacora-ia/CM-100-convenciones-observadas.md` §2.2–2.6.
+
+---
+
+## 16. Contrato con las especificaciones
+
+Cada feature tiene un **`SPEC.md` en su raíz** (`features/<nombre>/SPEC.md`). Es la descripción
+viva de lo que la feature hace, en el vocabulario del glosario, con sus cuatro estados por pantalla
+y su estado de implementación archivo por archivo.
+
+- **Antes de tocar código de una feature se lee su SPEC.**
+- **Si el cambio altera el comportamiento descrito ahí, el SPEC se actualiza en el mismo
+  commit**, y el humano lo aprueba en el Pull Request. Un PR que cambia comportamiento sin tocar
+  el SPEC está incompleto.
+
+**Reglas de autoridad, con todas las letras:**
+
+- **El comportamiento lo fija el backlog. El diseño lo fija Frontend.**
+- Cuando el SPEC y Figma difieren en **diseño**, **manda el SPEC** y Figma se actualiza después.
+- Cuando difieren en **comportamiento**, **manda el backlog, siempre.**
+- Toda diferencia consciente respecto a Figma o al backlog se anota en el SPEC (§9 de la
+  plantilla), con su razón.
+
+**Dónde vive cada cosa:**
+
+| Documento                         | Qué es                                                                                                                                                                 |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs/_plantilla-feature/SPEC.md` | **La forma.** Encabezado que lee `pnpm spec:check`, nueve secciones, cuatro estados obligatorios por pantalla.                                                         |
+| `docs/GLOSSARY.md`                | **La tabla de vocabulario** glosario ↔ código ↔ contrato ↔ i18n ↔ enumerado. El término del glosario manda; la traducción ocurre en el mapper, nunca en un componente. |
+| `docs/adr/`                       | **La memoria de decisiones** estructurales. Un ADR no se edita para cambiar de opinión: se escribe otro que lo sustituye.                                              |
+| `docs/decisiones/`                | **Lo que el PO resolvió por fuera del backlog**, por escrito y con fecha. Cada SPEC lista en `decisiones` los que lo modifican.                                        |
+| `docs/bitacora-ia/`               | Evidencia de sesiones asistidas por IA (CONTRIBUTING §Uso de IA).                                                                                                      |
+
+`pnpm spec:check` ya existe (`package.json`) y corre en CI (`.github/workflows/validar-specs.yml`,
+fase informativa hasta el 18-sep-2026). La instanciación de la plantilla por feature está en
+marcha: `professional-profile` ya tiene `SPEC.md` (`BLOQUEADA`); las cinco features restantes
+siguen sin el suyo. El estado real, por feature, se rastrea en `docs/SPEC-INDEX.md` (regenerado por
+`pnpm spec:check --write`), no aquí.
+
+---
+
+## 17. Pendientes de este archivo
+
+Reglas de arriba que describen algo que **todavía no existe en el código**. No se suavizan ni se
+borran: cada una tiene el paso que la resuelve. Evidencia en
+`docs/bitacora-ia/CM-100-convenciones-observadas.md` §3.
+
+| Regla                                           | Qué falta en el código                                                                                       | Paso que lo resuelve                                                                |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| §6 tamaños de botón 52/34 px                    | 4 literales en `Button.tsx`; `size="sm"` mide 34 px, por debajo del 44×44 de §10                             | decisión aparte, sin resolver                                                       |
+| §8 errores en formato RFC 9457                  | `errorMap.ts` implementa `{ code, message, details }` provisional                                            | cuando exista el contrato real                                                      |
+| §8 `*.dto.ts`, `*.mapper.ts` por feature        | `src/mocks/handlers/` ya existe (resuelto); ninguna feature tiene todavía `api/`, `*.dto.ts` ni `*.mapper.ts` | primera feature que necesite `api/`                                                 |
+| §15 TSDoc en línea 1 de todos los archivos      | 37 barriles, 45 pruebas y 8 fuentes sin cabecera en línea 1; 2 citas «§6» incorrectas; 1 comentario obsoleto | paso 3 (documentación)                                                              |
+| §11 PRT-02.07 fuera del MVP                     | `ProfileRolesPage.tsx` y la ruta `/perfiles/:id/roles` existen                                               | pendiente de **C-04** (§12 abierta 10); se retiran solo si la respuesta lo confirma |
+| §4 anatomía completa de feature                 | las seis features solo tienen `pages/`, `routes.tsx`, `index.ts`                                             | conforme entren HU al sprint (regla de crecimiento)                                 |
+| §5 nombre de esta rama                          | `feat/CM-100-estructura-inicial` conserva el prefijo `feat/` por excepción explícita de la estrategia de branching v1.2, corrección del 5-sep-2026 (`docs/referencias/03092026_v1_estrategia-branching-pull-requests.md`, línea 6: «se corrige la documentación, no se cambia el flujo ni se renombran ramas remotas») | no se resuelve: excepción permanente para esta rama ya creada; `CM-<numero>-<kebab>` sin prefijo aplica desde la siguiente rama en adelante |

@@ -1,3 +1,11 @@
+/**
+ * Protege el contrato PROVISIONAL de `errorMap.ts` (CLAUDE.md §8: hoy
+ * `{ code, message, details }`, no RFC 9457 todavía): que un error de
+ * validación con `details` se mapea completo, que 401 se distingue como
+ * `isUnauthorized` y 500 como `isServer`, y que una respuesta malformada
+ * o con una forma inesperada (sin `code`/`message`) no lanza sin
+ * control, sino que arma un `ApiError` con `UNKNOWN_ERROR`.
+ */
 import { describe, expect, it } from 'vitest';
 import { ApiError } from './ApiError';
 import { mapErrorResponse } from './errorMap';

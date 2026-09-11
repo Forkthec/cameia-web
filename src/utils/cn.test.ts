@@ -1,3 +1,8 @@
+/**
+ * Contrato de `cn`: concatena clases descartando valores falsy, y ante un
+ * conflicto de utilidades de Tailwind (vía `tailwind-merge`) se queda
+ * con la última, no con las dos a la vez.
+ */
 import { describe, expect, it } from 'vitest';
 import { cn } from './cn';
 

@@ -1,3 +1,8 @@
+/**
+ * Comportamiento observable de `PasswordField`, no implementación: que
+ * empieza oculta (`type="password"`) y que el botón superpuesto alterna
+ * el tipo del campo entre oculto y visible.
+ */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';

@@ -136,7 +136,7 @@ export function Combobox({
           onFocus={() => setIsOpen(true)}
           onBlur={() => setIsOpen(false)}
           onKeyDown={handleKeyDown}
-          className="border-border-strong bg-bg-surface px-space-4 py-space-2 pr-space-8 text-body text-text-primary placeholder:text-text-muted focus-visible:shadow-focus-ring min-h-[44px] w-full rounded-md border focus-visible:outline-none"
+          className="border-border-strong bg-bg-surface px-space-4 py-space-2 pr-space-8 text-body text-text-primary placeholder:text-text-muted focus-visible:shadow-focus-ring min-h-touch-target w-full rounded-md border focus-visible:outline-none"
         />
         <Icon
           name="chevron-down"

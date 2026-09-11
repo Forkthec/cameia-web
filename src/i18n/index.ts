@@ -19,12 +19,6 @@ import profileEsCO from './locales/es-CO/profile.json';
 import interviewEsCO from './locales/es-CO/interview.json';
 import errorsEsCO from './locales/es-CO/errors.json';
 
-import commonEn from './locales/en/common.json';
-import authEn from './locales/en/auth.json';
-import profileEn from './locales/en/profile.json';
-import interviewEn from './locales/en/interview.json';
-import errorsEn from './locales/en/errors.json';
-
 // El resultado de "init" no se usa: los recursos son inline (no hay backend
 // remoto), así que la instancia queda lista de forma efectivamente síncrona.
 void i18next
@@ -40,13 +34,8 @@ void i18next
         interview: interviewEsCO,
         errors: errorsEsCO,
       },
-      en: {
-        common: commonEn,
-        auth: authEn,
-        profile: profileEn,
-        interview: interviewEn,
-        errors: errorsEn,
-      },
+      // "en" no tiene bundle propio a propósito: cada llave se resuelve por
+      // fallbackLng contra "es-CO" (config.ts, CLAUDE.md §7).
     },
   });
 

@@ -1,3 +1,8 @@
+/**
+ * Comportamiento observable de `Avatar`, no implementación: que con `src`
+ * renderiza la imagen con su texto alternativo, y que sin `src` cae a
+ * mostrar las iniciales como respaldo.
+ */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { Avatar } from './Avatar';

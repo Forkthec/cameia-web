@@ -1,3 +1,9 @@
+/**
+ * Comportamiento observable de `ErrorText`, no implementación: que se
+ * anuncia con `role="alert"` y expone un `id` estable, el que un campo
+ * usa en su `aria-describedby` (CLAUDE.md §10: los errores de formulario
+ * se asocian por `aria-describedby`).
+ */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ErrorText } from './ErrorText';

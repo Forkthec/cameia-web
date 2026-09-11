@@ -1,3 +1,10 @@
+/**
+ * Comportamiento observable de `NavHeader`, no implementación: que
+ * renderiza los ítems recibidos, marca como activo el de la ruta
+ * actual, que un ítem `disabled` deja de ser un enlace real (no un
+ * enlace deshabilitado visualmente pero navegable), y que expone un
+ * nombre accesible para la barra completa.
+ */
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';

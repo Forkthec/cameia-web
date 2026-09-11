@@ -1,3 +1,10 @@
+/**
+ * Comportamiento observable de `WizardLayout`, no implementación: que
+ * renderiza los pasos y el contenido recibidos, que la acción primaria
+ * dispara `onPrimaryAction`, y que sin `onBack` no se renderiza la
+ * acción secundaria — la plantilla de los asistentes multi-paso
+ * (CLAUDE.md §4).
+ */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';

@@ -1,3 +1,9 @@
+/**
+ * Comportamiento observable de `Checkbox`, no implementación: que
+ * `onChange` se dispara al hacer clic en la etiqueta asociada, que el
+ * estado marcado se refleja en el input nativo, y que `disabled` bloquea
+ * el evento.
+ */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';

@@ -1,3 +1,9 @@
+/**
+ * Comportamiento observable de `usePrefersReducedMotion`, no
+ * implementación: que refleja `prefers-reduced-motion` del sistema
+ * (CLAUDE.md §10: con `reduce`, las duraciones de animación se van a 0),
+ * y que consulta exactamente esa media query, no una parecida.
+ */
 import { renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { usePrefersReducedMotion } from './usePrefersReducedMotion';

@@ -1,3 +1,9 @@
+/**
+ * Comportamiento observable de `AlertInline`, no implementación: que
+ * `variant="error"` usa `role="alert"` (anuncio inmediato) y el resto de
+ * variantes usa `role="status"` (anuncio no urgente) — la urgencia del
+ * anuncio depende de la variante, no es la misma para todas.
+ */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { AlertInline } from './AlertInline';

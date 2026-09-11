@@ -1,3 +1,9 @@
+/**
+ * Comportamiento observable de `PasswordStrength`, no implementación: que
+ * el nivel se anuncia también por texto (no solo por color, para no
+ * depender de percepción de color) y que solo se rellenan los segmentos
+ * hasta el nivel recibido.
+ */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { PasswordStrength } from './PasswordStrength';

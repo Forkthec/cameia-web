@@ -1,0 +1,44 @@
+name: Validar especificaciones de feature
+
+# Corre en cada PR hacia develop/main: valida que los SPEC.md declarados en
+# src/features/*/SPEC.md sigan las reglas de CLAUDE.md §16.
+on:
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  validar-specs:
+    name: Validar especificaciones de feature
+    runs-on: ubuntu-latest # igual que los otros workflows del repo; sin motivo para otro
+    steps:
+      # Descarga el código del PR — el script del paso siguiente vive en el repo.
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Fija la versión exacta de pnpm declarada en "packageManager" del package.json.
+      - name: Habilitar pnpm vía corepack
+        run: corepack enable
+
+      # Instala la versión de Node.js que usa el proyecto.
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      # Sin "pnpm install": scripts/spec-check.mjs no importa nada de
+      # node_modules (solo node:fs, node:path, node:url), así que instalar
+      # dependencias aquí sería trabajo de CI sin propósito.
+
+      # "continue-on-error: true": el check puede salir en rojo sin impedir fusionar
+      # todavía (fase informativa, CM-100) — solo deja la advertencia visible.
+      - name: Ejecutar spec:check (fase informativa — CM-100, no bloquea todavia)
+        continue-on-error: true
+        run: |
+          set +e
+          pnpm spec:check
+          RESULT=$?
+          if [ $RESULT -ne 0 ]; then
+            echo "::warning::pnpm spec:check encontro hallazgos (fase informativa: no bloquea todavia). Pasara a bloqueante el 18-sep-2026."
+            exit 1
+          fi

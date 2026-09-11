@@ -19,6 +19,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "spec:check": "node scripts/spec-check.mjs",
     "prepare": "husky"
   },
   "lint-staged": {

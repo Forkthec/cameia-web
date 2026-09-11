@@ -1,9 +1,17 @@
+/**
+ * Comportamiento observable de `RequireAuth` y `RedirectIfAuthenticated`,
+ * no implementación: que todo lo que no es la landing pública, `/registro`
+ * ni `/ingresar` vive detrás de sesión (CLAUDE.md §11), que mientras la
+ * sesión no resuelve se muestra un estado de carga en vez de decidir en
+ * falso, y que con sesión ya resuelta no se vuelven a mostrar las
+ * pantallas públicas de entrada.
+ */
 import { render, screen } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 import i18n from '@/i18n';
-import { useAuthStore } from '@/stores';
+import { useAuthStore } from '@/stores/auth.store';
 import { RedirectIfAuthenticated, RequireAuth } from './RequireAuth';
 
 async function waitUntilReady() {

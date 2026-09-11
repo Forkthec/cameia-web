@@ -11,7 +11,7 @@ export function NotFoundPage() {
   return (
     <div className="flex min-h-dvh items-center justify-center">
       <EmptyState
-        title={t('errors:NOT_FOUND')}
+        title={t('errors:codigos.NOT_FOUND')}
         actionLabel={t('common:acciones.volverInicio')}
         onAction={() => {
           void navigate(ROUTES.landing);

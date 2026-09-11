@@ -15,9 +15,10 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
-// Capas de docs/ARCHITECTURE.md §4. Solo estas cinco se restringen con
-// boundaries/dependencies; el resto se registra únicamente como destino
-// válido de import (utils, lib, i18n, hooks, stores, config, ...).
+// Capas de docs/ARCHITECTURE.md §4. Solo estas seis se restringen con
+// boundaries/dependencies (mocks se sumó para las pruebas de humo de la
+// capa de mocks); el resto se registra únicamente como destino válido de
+// import (utils, lib, i18n, hooks, stores, config, ...).
 // Los patrones usan "**" porque los archivos reales viven anidados
 // (p. ej. src/design-system/atoms/Button.tsx), no como hijos directos.
 const boundariesElements = [
@@ -38,15 +39,29 @@ const boundariesElements = [
 ];
 
 export default tseslint.config(
-  { ignores: ['dist', 'coverage'] },
+  // "docs/_plantilla-feature/**": tiene routes.tsx e index.ts de EJEMPLO (solo
+  // comentario, sin código funcional) para copiar al crear una feature. No
+  // pertenecen a ningún tsconfig (tsconfig.app.json solo incluye "src"), así
+  // que el "project service" de typescript-eslint no les encuentra programa.
+  // El patrón es la ruta completa desde la raíz: no existe ningún "docs" ni
+  // "_plantilla-feature" dentro de src/, así que no oculta nada real.
+  { ignores: ['dist', 'coverage', 'docs/_plantilla-feature/**'] },
 
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   {
-    // Este propio archivo (.js) no pertenece a ningún tsconfig del proyecto:
-    // sin esto, projectService fallaría al buscarle un programa de TS.
-    files: ['**/*.js'],
+    // Este propio archivo (.js) y los scripts de scripts/ (.mjs) no
+    // pertenecen a ningún tsconfig del proyecto: sin esto, projectService
+    // fallaría al buscarles un programa de TS (mismo motivo por el que
+    // docs/_plantilla-feature/**, más abajo, va en "ignores" en vez de aquí
+    // — ahí no hay ningún código real que valga la pena lintear).
+    files: ['**/*.js', '**/*.mjs'],
     ...tseslint.configs.disableTypeChecked,
+    languageOptions: {
+      // "**/*.{ts,tsx}" (más abajo) declara globals.browser; estos archivos
+      // corren en Node (eslint.config.js, scripts/), no en el navegador.
+      globals: globals.node,
+    },
   },
 
   {
@@ -154,6 +169,17 @@ export default tseslint.config(
                   { element: { type: 'lib' } },
                   { element: { type: 'utils' } },
                 ],
+              },
+            },
+            {
+              // "mocks" es la única capa nueva desde ADR-0001: sin esta
+              // política, default: 'disallow' la deja ciega incluso a
+              // "services" (mismo tropiezo que documenta el ADR con
+              // "hooks → config"). La necesita la prueba de humo de
+              // profiles.handlers.ts, que usa httpClient/ApiError reales.
+              from: { element: { type: 'mocks' } },
+              allow: {
+                to: [{ element: { type: 'mocks' } }, { element: { type: 'services' } }],
               },
             },
             {

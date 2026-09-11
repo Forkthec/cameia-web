@@ -1,3 +1,8 @@
+/**
+ * Comportamiento observable de `CardSelectable`, no implementación: que
+ * `onClick` refleja el estado seleccionado, y que `disabled` bloquea el
+ * evento.
+ */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';

@@ -39,7 +39,7 @@ const buttonVariants = cva(
       },
       size: {
         lg: 'h-[52px] px-space-6 text-body',
-        md: 'h-[44px] px-space-5 text-body',
+        md: 'h-touch-target px-space-5 text-body',
         sm: 'h-[34px] px-space-4 text-small',
       },
     },
@@ -47,7 +47,7 @@ const buttonVariants = cva(
       // El botón "icon" es cuadrado: mismo ancho que el alto, sin padding
       // horizontal (el glifo se centra con justify-center).
       { variant: 'icon', size: 'lg', class: 'w-[52px] px-0' },
-      { variant: 'icon', size: 'md', class: 'w-[44px] px-0' },
+      { variant: 'icon', size: 'md', class: 'w-touch-target px-0' },
       { variant: 'icon', size: 'sm', class: 'w-[34px] px-0' },
     ],
     defaultVariants: {

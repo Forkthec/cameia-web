@@ -1,3 +1,9 @@
+/**
+ * Comportamiento observable de `Spinner`, no implementación: que anuncia
+ * la carga con `role="status"` y el texto recibido (CLAUDE.md §3.2: todo
+ * texto visible entra como prop, sin valor por defecto), y que respeta
+ * el tamaño recibido.
+ */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { Spinner } from './Spinner';

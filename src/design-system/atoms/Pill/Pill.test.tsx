@@ -1,3 +1,8 @@
+/**
+ * Comportamiento observable de `Pill`, no implementación: que es
+ * puramente decorativo — no expone rol interactivo y su tipo no admite
+ * `onClick` — a diferencia de `Chip`, que sí es accionable.
+ */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { Pill } from './Pill';

@@ -1,5 +1,5 @@
 /**
- * QueryClient de TanStack (CLAUDE.md §6: los datos del servidor viven aquí,
+ * QueryClient de TanStack (CLAUDE.md §3.6: los datos del servidor viven aquí,
  * nunca en Zustand). Reintentar un 4xx no lo arregla —credenciales
  * inválidas, un recurso que no existe— así que se corta antes de intentarlo
  * de nuevo; el resto de errores sí se reintenta una vez.

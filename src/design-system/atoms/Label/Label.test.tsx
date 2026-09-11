@@ -1,3 +1,8 @@
+/**
+ * Comportamiento observable de `Label`, no implementación: que el texto
+ * recibido se asocia a su control por `htmlFor`, no solo se muestra al
+ * lado.
+ */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { Label } from './Label';
