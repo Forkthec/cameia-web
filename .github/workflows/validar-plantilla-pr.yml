@@ -15,7 +15,7 @@ jobs:
     steps:
       # Descarga el código del PR — el script del paso siguiente vive en el repo.
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Prueba el validador mismo antes de usarlo, no el PR — evita confiar en un
       # script con un error propio.
