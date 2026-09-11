@@ -1,3 +1,8 @@
+/**
+ * Comportamiento observable de `Banner`, no implementación: que sin
+ * `actionLabel`/`onAction` no se muestra ninguna acción, y que con
+ * ambos, hacer clic dispara `onAction`.
+ */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';

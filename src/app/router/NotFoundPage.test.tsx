@@ -1,3 +1,9 @@
+/**
+ * Comportamiento observable de `NotFoundPage`, no implementación: que usa
+ * la llave `errors:codigos.NOT_FOUND` (CLAUDE.md §7, §8) para el
+ * mensaje, y que su acción regresa a la ruta pública raíz (`/`), no al
+ * historial del navegador.
+ */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { I18nextProvider } from 'react-i18next';

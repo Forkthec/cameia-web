@@ -1,5 +1,5 @@
 /**
- * Estado de cliente del usuario autenticado (CLAUDE.md §6: los datos de
+ * Estado de cliente del usuario autenticado (CLAUDE.md §3.6: los datos de
  * servidor viven en TanStack Query, Zustand es solo para estado de cliente
  * como la sesión de auth). Este store no importa Firebase ni sabe de
  * `onAuthStateChanged`: quien cablee ese listener (todavía no existe,

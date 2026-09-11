@@ -1,3 +1,8 @@
+/**
+ * Comportamiento observable de `HelperText`, no implementación: que
+ * renderiza el texto recibido y expone un `id` estable para que un campo
+ * lo use en su `aria-describedby`.
+ */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { HelperText } from './HelperText';

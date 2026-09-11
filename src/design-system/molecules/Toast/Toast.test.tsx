@@ -1,3 +1,8 @@
+/**
+ * Comportamiento observable de `Toast`, no implementación: que
+ * `variant="error"` usa `role="alert"`, y que el botón de cerrar solo
+ * existe (y dispara `onDismiss`) cuando se recibe ese callback.
+ */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';

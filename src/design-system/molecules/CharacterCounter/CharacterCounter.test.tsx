@@ -1,3 +1,9 @@
+/**
+ * Comportamiento observable de `CharacterCounter`, no implementación: que
+ * dentro del límite se muestra como texto de ayuda, y que al superarlo
+ * cambia a estado de error — el mismo componente cambia de rol según el
+ * conteo, no son dos componentes distintos.
+ */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { CharacterCounter } from './CharacterCounter';

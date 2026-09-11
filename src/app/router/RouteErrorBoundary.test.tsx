@@ -1,3 +1,9 @@
+/**
+ * Comportamiento observable de `RouteErrorBoundary`, no implementación:
+ * que un error lanzado por el loader o el render de una ruta (react-
+ * router) se resuelve en `errors:generico` (CLAUDE.md §8) dentro de esa
+ * ruta, sin depender de `RootErrorBoundary`, que cubre un caso distinto.
+ */
 import { render, screen } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import { createMemoryRouter, RouterProvider } from 'react-router';

@@ -9,7 +9,7 @@ import { I18nextProvider } from 'react-i18next';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 import i18n from '@/i18n';
-import { useAuthStore } from '@/stores';
+import { useAuthStore } from '@/stores/auth.store';
 import { routeConfig } from './index';
 
 async function waitUntilReady() {

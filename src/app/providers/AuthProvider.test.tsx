@@ -1,6 +1,13 @@
+/**
+ * Comportamiento observable de `AuthProvider`, no implementación: que no
+ * bloquea el render de sus hijos esperando a que resuelva Firebase, y que
+ * sincroniza el resultado (con o sin sesión) en `useAuthStore` (CLAUDE.md
+ * §3.6: el estado de sesión vive en Zustand, no en un estado local de
+ * este componente).
+ */
 import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { useAuthStore } from '@/stores';
+import { useAuthStore } from '@/stores/auth.store';
 import { AuthProvider } from './AuthProvider';
 
 const { onAuthStateChangedMock, getIdTokenResultMock } = vi.hoisted(() => ({

@@ -36,7 +36,7 @@ export function Checkbox({
     <label
       htmlFor={inputId}
       className={cn(
-        'gap-space-2 py-space-2 inline-flex min-h-[44px] items-center',
+        'gap-space-2 py-space-2 min-h-touch-target inline-flex items-center',
         disabled ? 'text-text-disabled cursor-not-allowed' : 'text-text-primary cursor-pointer',
         className,
       )}

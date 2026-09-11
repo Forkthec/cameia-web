@@ -7,7 +7,7 @@
 import { getIdTokenResult } from 'firebase/auth';
 import { useEffect, type ReactNode } from 'react';
 import { onAuthStateChanged } from '@/services/firebase/auth.service';
-import { useAuthStore } from '@/stores';
+import { useAuthStore } from '@/stores/auth.store';
 
 interface AuthProviderProps {
   children: ReactNode;

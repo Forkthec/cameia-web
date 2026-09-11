@@ -80,6 +80,7 @@
   --spacing-space-7: var(--space-7);
   --spacing-space-8: var(--space-8);
   --spacing-space-9: var(--space-9);
+  --spacing-touch-target: var(--touch-target);
 
   /* === Radios (referencia semantic.css; "token-radius-*" no colisiona con "radius-*") === */
   --radius-sm: var(--token-radius-sm);

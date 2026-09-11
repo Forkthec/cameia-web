@@ -1,3 +1,9 @@
+/**
+ * Comportamiento observable de `ProgressBar`, no implementación: que
+ * expone `value`/`min`/`max` y un nombre accesible, y que el valor
+ * recibido se acota al rango `[0, max]` en vez de desbordar la barra o
+ * el atributo ARIA.
+ */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ProgressBar } from './ProgressBar';

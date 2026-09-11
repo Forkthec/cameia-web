@@ -1,3 +1,9 @@
+/**
+ * Comportamiento observable de `Chip`, no implementación: que `onClick`
+ * refleja el estado de selección en `aria-pressed`, y que el botón de
+ * quitar solo existe (con nombre accesible propio) cuando se recibe
+ * `onRemove`.
+ */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';

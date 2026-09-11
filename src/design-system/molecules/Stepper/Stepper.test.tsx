@@ -1,3 +1,9 @@
+/**
+ * Comportamiento observable de `Stepper`, no implementación: que
+ * renderiza los pasos recibidos, marca el paso actual con
+ * `aria-current="step"`, y expone un nombre accesible para la lista
+ * completa (no solo para cada paso suelto).
+ */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { Stepper, type Step } from './Stepper';

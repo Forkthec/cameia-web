@@ -76,8 +76,7 @@ cameia-web/
     │   ├── AuthLayout.tsx              PRT-01.*
     │   ├── AppShell.tsx                NavHeader + TabBar
     │   ├── WizardLayout.tsx            PRT-02.03 · PRT-04.*
-    │   ├── SessionLayout.tsx           bg/inverse, sin navegación · PRT-05.*
-    │   └── ReportLayout.tsx            posterior
+    │   └── SessionLayout.tsx           bg/inverse, sin navegación · PRT-05.*
     │
     ├── features/                       ORGANISMOS DE DOMINIO + PÁGINAS
     │   ├── landing/                    pública, antes de auth · PRT-00.01 · sin HU, riesgo declarado
@@ -119,8 +118,7 @@ cameia-web/
     ├── i18n/
     │   ├── index.ts · config.ts
     │   └── locales/
-    │       ├── es-CO/  common · auth · profile · interview · errors .json
-    │       └── en/     misma estructura, hereda de es-CO
+    │       └── es-CO/  common · auth · profile · interview · errors .json
     │
     ├── mocks/
     │   ├── browser.ts · server.ts
@@ -181,7 +179,7 @@ features/interview-setup/
 
 ## 4. Fronteras, verificadas por el linter
 
-`eslint-plugin-boundaries` define cinco capas y las hace cumplir en CI:
+`eslint-plugin-boundaries` define seis capas y las hace cumplir en CI:
 
 | Capa            | Puede importar de                                                                                                  |
 | --------------- | ------------------------------------------------------------------------------------------------------------------ |
@@ -189,6 +187,7 @@ features/interview-setup/
 | `layouts`       | `design-system`, `hooks`, `stores`, `i18n`, `utils`                                                                |
 | `features`      | `design-system`, `layouts`, `services`, `stores`, `hooks`, `lib`, `utils`, `i18n`, `config`, **su propia carpeta** |
 | `services`      | `config`, `lib`, `utils`                                                                                           |
+| `mocks`         | `services` (lo necesitan las pruebas de humo que ejercitan `httpClient`/`ApiError` reales contra los handlers)     |
 | `app`           | todo                                                                                                               |
 
 Prohibiciones explícitas: una feature no importa de otra feature; `design-system` no importa de

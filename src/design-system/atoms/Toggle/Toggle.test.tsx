@@ -1,3 +1,9 @@
+/**
+ * Comportamiento observable de `Toggle`, no implementación: que
+ * `onChange` se dispara y el control se anuncia como `switch`, que el
+ * estado encendido se refleja en el DOM, y que `disabled` bloquea el
+ * evento.
+ */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';

@@ -18,17 +18,15 @@ i18n/
 ├── config.ts             opciones de i18next (idiomas, namespaces, detección)
 ├── index.ts               inicializa i18next y expone la instancia configurada
 └── locales/
-    ├── es-CO/              idioma completo, fuente de verdad de la copia
-    │   ├── common.json      acciones, estados y navegación transversales
-    │   ├── auth.json         PRT-01.01 (registro) y PRT-01.03 (ingreso)
-    │   ├── profile.json      perfil profesional
-    │   ├── interview.json    catálogos de configuración de entrevista
-    │   └── errors.json       llaves por código de error del backend
-    └── en/                 misma estructura de llaves que es-CO
+    └── es-CO/              único idioma con recursos; fuente de verdad de la copia
+        ├── common.json      acciones, estados y navegación transversales
+        ├── auth.json         PRT-01.01 (registro) y PRT-01.03 (ingreso)
+        ├── profile.json      perfil profesional
+        ├── interview.json    catálogos de configuración de entrevista
+        └── errors.json       mensajes de interfaz y códigos de error del backend
 ```
 
-`en/` no es una traducción: hoy tiene los mismos valores en español que
-`es-CO`, con `"_status": "PENDIENTE: sin copia aprobada en inglés — Hueco 22"`
-como primera llave de cada archivo. Es intencional (CLAUDE.md §7: "en" hereda
-de "es-CO" mientras no haya copia aprobada), no un olvido — de ahí que quede
-marcado en vez de dejarlo en silencio.
+`en` sigue declarado en `SUPPORTED_LANGUAGES` (`config.ts`), pero no tiene bundle
+propio: cuando el navegador pide inglés, i18next resuelve cada llave por
+`fallbackLng: 'es-CO'`. No hay copia en inglés aprobada; el fallback es el
+mecanismo real, no un parche temporal (CLAUDE.md §7).

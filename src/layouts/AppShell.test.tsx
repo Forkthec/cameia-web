@@ -1,3 +1,11 @@
+/**
+ * Comportamiento observable de `AppShell`, no implementación: que
+ * renderiza la ruta hija a través de `Outlet`, que `NavHeader` y
+ * `TabBar` repiten los mismos ítems de navegación (una sola fuente de
+ * verdad para las dos superficies), que «Progreso» se deshabilita según
+ * `progressEnabled`, y que «Progreso» nunca es un enlace real todavía —
+ * HE-07 no tiene ruta propia en este sprint (CLAUDE.md §11).
+ */
 import { render, screen } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter, Route, Routes } from 'react-router';

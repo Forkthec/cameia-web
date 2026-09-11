@@ -4,7 +4,10 @@
  */
 import type { InitOptions } from 'i18next';
 
-/** Idiomas que la interfaz puede mostrar. `en` hereda copia de `es-CO` (CLAUDE.md §7). */
+/**
+ * Idiomas que la interfaz puede mostrar. `en` no tiene recursos propios: cada
+ * llave se resuelve por `fallbackLng` contra `es-CO` (CLAUDE.md §7).
+ */
 export const SUPPORTED_LANGUAGES = ['es-CO', 'en'] as const;
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 

@@ -1,3 +1,9 @@
+/**
+ * Contrato de `useDebounce`: devuelve el valor inicial de inmediato, solo
+ * actualiza al valor nuevo después de que pase el `delay` completo, y si
+ * el valor cambia antes de que expire, reinicia el temporizador en vez
+ * de encolar la actualización anterior.
+ */
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useDebounce } from './useDebounce';

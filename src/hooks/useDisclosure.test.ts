@@ -1,3 +1,8 @@
+/**
+ * Contrato de `useDisclosure`: empieza cerrado por defecto salvo que se
+ * pida un estado inicial explícito, y `open`/`close`/`toggle` cambian el
+ * estado de la forma esperada por su nombre.
+ */
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { useDisclosure } from './useDisclosure';

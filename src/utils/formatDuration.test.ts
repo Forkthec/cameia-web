@@ -1,3 +1,9 @@
+/**
+ * Contrato de `formatDuration`: trata los valores negativos como 0 en
+ * vez de mostrar un signo, y trunca los segundos fraccionarios en vez de
+ * redondear — una duración se muestra completa o no se muestra, nunca
+ * con un decimal suelto.
+ */
 import { describe, expect, it } from 'vitest';
 import { formatDuration } from './formatDuration';
 

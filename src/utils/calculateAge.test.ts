@@ -1,3 +1,9 @@
+/**
+ * Contrato de `calculateAge`: un cumpleaños hoy ya cuenta el año recién
+ * cumplido, uno mañana todavía no; y el caso límite del 29 de febrero no
+ * sube la edad hasta el 1 de marzo en un año no bisiesto, mientras que
+ * en uno bisiesto el cumpleaños cae el mismo día.
+ */
 import { describe, expect, it } from 'vitest';
 import { calculateAge, isAdult } from './calculateAge';
 

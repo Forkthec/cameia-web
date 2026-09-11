@@ -1,3 +1,9 @@
+/**
+ * Comportamiento observable de `EmptyState`, no implementación: que
+ * renderiza título y descripción, y que el botón de acción solo existe
+ * (y dispara `onAction`) cuando se reciben `actionLabel` y `onAction`
+ * juntos.
+ */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';

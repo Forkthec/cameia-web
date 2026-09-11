@@ -25,7 +25,7 @@ export type InputState = 'default' | 'focus' | 'error' | 'disabled' | 'disabled-
 
 const inputVariants = cva(
   [
-    'w-full min-h-[44px] rounded-md border bg-bg-surface px-space-4 py-space-2 text-body text-text-primary',
+    'w-full min-h-touch-target rounded-md border bg-bg-surface px-space-4 py-space-2 text-body text-text-primary',
     'placeholder:text-text-muted transition-colors',
     'focus-visible:outline-none focus-visible:shadow-focus-ring',
     'disabled:cursor-not-allowed disabled:border-border-subtle disabled:bg-bg-disabled disabled:text-text-disabled',

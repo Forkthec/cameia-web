@@ -1,3 +1,8 @@
+/**
+ * Comportamiento observable de `StepList`, no implementación: que
+ * renderiza las cuatro secciones recibidas, y que marca la sección
+ * actual con `aria-current="step"`.
+ */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { StepList, type StepListItem } from './StepList';

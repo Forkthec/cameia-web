@@ -1,3 +1,10 @@
+/**
+ * Comportamiento observable de `RootErrorBoundary`, no implementación:
+ * que no interfiere cuando no hay error, y que atrapa una excepción de
+ * render de cualquier hijo mostrando `errors:generico` en vez de dejar
+ * la aplicación en blanco (CLAUDE.md §8: el frontend nunca muestra un
+ * mensaje crudo, usa la llave de traducción).
+ */
 import { render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '@/i18n';

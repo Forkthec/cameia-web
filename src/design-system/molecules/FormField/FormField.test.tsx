@@ -1,3 +1,10 @@
+/**
+ * Comportamiento observable de `FormField`, no implementación: que
+ * `Label` se asocia al control por `id`/`htmlFor`, y que el mensaje de
+ * ayuda o de error se asocia al control por `aria-describedby` según
+ * corresponda (CLAUDE.md §10: los errores de formulario se asocian por
+ * `aria-describedby`) — nunca los dos anunciados a la vez.
+ */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { Input } from '../../atoms/Input';

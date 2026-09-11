@@ -1,3 +1,10 @@
+/**
+ * Comportamiento observable de `TabBar`, no implementación: mismo
+ * contrato que `NavHeader` (renderiza los ítems, marca el activo por
+ * ruta, un ítem `disabled` no es un enlace real, nombre accesible para
+ * la barra completa) — son las dos superficies de navegación del shell
+ * autenticado, una para escritorio y otra para móvil.
+ */
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';

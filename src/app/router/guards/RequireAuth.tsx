@@ -10,7 +10,7 @@
 import { useTranslation } from 'react-i18next';
 import { Navigate, Outlet, useLocation } from 'react-router';
 import { Spinner } from '@/design-system/atoms/Spinner';
-import { useAuthStore } from '@/stores';
+import { useAuthStore } from '@/stores/auth.store';
 import { ROUTES } from '../routes';
 
 /**

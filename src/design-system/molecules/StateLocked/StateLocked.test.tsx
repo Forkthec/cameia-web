@@ -1,3 +1,9 @@
+/**
+ * Comportamiento observable de `StateLocked`, no implementación: que
+ * renderiza el contenido envuelto junto con la insignia recibida, y que
+ * no oculta ese contenido de lectores de pantalla — «bloqueado» es un
+ * estado visual, no una razón para volverlo inaccesible.
+ */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { StateLocked } from './StateLocked';

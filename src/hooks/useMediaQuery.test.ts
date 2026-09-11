@@ -1,3 +1,8 @@
+/**
+ * Contrato de `useMediaQuery`: devuelve el estado inicial real de la
+ * media query recibida, y se actualiza cuando esa media query cambia en
+ * tiempo de ejecución (no solo al montar).
+ */
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useMediaQuery } from './useMediaQuery';

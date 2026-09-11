@@ -70,6 +70,9 @@
   --space-8: 4rem; /* 64px */
   --space-9: 6rem; /* 96px */
 
+  /* === Área táctil (px: es un mínimo de accesibilidad, no una medida tipográfica) === */
+  --touch-target: 44px;
+
   /* === Radios (px: decisión de forma, no se mueve con el zoom de texto) ===
      Prefijo "token-" a propósito: "--radius-*" es un nombre reservado del
      tema de Tailwind (genera las utilidades rounded-*). index.css referencia
