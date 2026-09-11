@@ -35,7 +35,7 @@ jobs:
 
       # Instala la versión de Node.js (el motor que ejecuta JavaScript) que usa el proyecto.
       - name: Configurar Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc # misma fuente de verdad que el resto del equipo
           cache: pnpm # cachea el store de pnpm entre corridas, no node_modules
