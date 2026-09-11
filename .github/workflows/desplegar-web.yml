@@ -12,6 +12,7 @@ on:
 permissions:
   contents: read
   pull-requests: write # deja el comentario con el enlace de vista previa en el PR
+  checks: write # la acción crea un "check run" como indicador de progreso del deploy
 
 jobs:
   build-y-desplegar:
