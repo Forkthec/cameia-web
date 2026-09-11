@@ -1,1 +1,5 @@
+# Corre antes de cada "git commit": corrige formato/lint solo en los archivos que
+# se están commiteando (ver "lint-staged" en package.json), para que nunca entre
+# un commit con formato roto. "corepack" evita el fallo real de CM-130 (pnpm sin
+# versión fija no resolvía en algunas máquinas).
 corepack pnpm exec lint-staged
