@@ -12,6 +12,7 @@ jobs:
   validar-plantilla:
     name: Validar plantilla de PR
     runs-on: ubuntu-latest # igual que los otros workflows del repo; sin motivo para otro
+    if: github.actor != 'dependabot[bot]' # CM-138: Dependabot no puede seguir CM-<n>-<desc> ni la plantilla de 8 campos
     steps:
       # Descarga el código del PR — el script del paso siguiente vive en el repo.
       - name: Checkout
