@@ -13,7 +13,6 @@ que ya se discutió, y para que quien entre nuevo entienda por qué el código e
 | [0003](0003-fetch-nativo-en-vez-de-axios.md)         | `fetch` nativo en vez de axios                        | Aceptada                         | 06-sep-2026 |
 | [0004](0004-perfil-activo-como-seleccion-efimera.md) | El perfil activo es una selección efímera del cliente | Aceptada, con revisión pendiente | 06-sep-2026 |
 | [0005](0005-tema-claro-unico-en-el-mvp.md)           | Un solo tema visual en el MVP                         | Aceptada                         | 06-sep-2026 |
-| [0006](0006-despliegue-hosting-sin-clave-service-account.md) | Despliegue a Firebase Hosting sin clave de service account (WIF + API REST) | Aceptada | 12-sep-2026 |
 
 ## Reglas
 
