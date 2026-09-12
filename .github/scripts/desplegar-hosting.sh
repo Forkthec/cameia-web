@@ -39,7 +39,7 @@ auth_curl() {
   if [ "$status" -ge 400 ]; then
     echo "Error HTTP ${status} llamando a la API de Firebase Hosting:" >&2
     echo "$body" >&2
-    exit 1
+    return 1
   fi
   echo "$body"
 }
