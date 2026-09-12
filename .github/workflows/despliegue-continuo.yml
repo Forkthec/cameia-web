@@ -17,6 +17,7 @@ permissions:
   contents: read
   pull-requests: write # deja el comentario con el enlace de vista previa en el PR
   checks: write # la acción crea un "check run" como indicador de progreso del deploy
+  id-token: write # requerido por google-github-actions/auth para pedir el token OIDC (WIF)
 
 jobs:
   build-y-desplegar:
@@ -58,16 +59,29 @@ jobs:
           VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
         run: pnpm build
 
-      # main → producción real (cameia-app.web.app). Solo ocurre al fusionar el
-      # PR de promoción develop→main (Merge commit, revisado) — nunca por un
-      # push directo, porque develop→main tampoco admite push directo.
+      # Autenticación sin clave estática (Workload Identity Federation) —
+      # reemplaza el secret FIREBASE_SERVICE_ACCOUNT_CAMEIA (clave JSON) del
+      # proyecto anterior cameia-app. El proyecto nuevo cameia-e245f tiene
+      # bloqueada por Google la creación de claves de service account
+      # (constraints/iam.disableServiceAccountKeyCreation, política de
+      # seguridad por defecto en proyectos nuevos) — WIF ya era la opción
+      # preferida según informacion/02092026_v3_reglas-devops.md.
+      - name: Autenticar en GCP (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: cameia-e245f
+          workload_identity_provider: projects/25798898664/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: github-action-cameia-web@cameia-e245f.iam.gserviceaccount.com
+
+      # main → producción real. Solo ocurre al fusionar el PR de promoción
+      # develop→main (Merge commit, revisado) — nunca por un push directo,
+      # porque develop→main tampoco admite push directo.
       - name: Desplegar a producción (push a main)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CAMEIA }}
-          projectId: cameia-app
+          projectId: cameia-e245f
           channelId: live
 
       # develop → canal 'staging' persistente (no expira). Es el ambiente de
@@ -79,8 +93,7 @@ jobs:
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CAMEIA }}
-          projectId: cameia-app
+          projectId: cameia-e245f
           channelId: staging
 
       # Cada PR obtiene su propia URL de vista previa (expira sola en 7 días),
@@ -91,6 +104,5 @@ jobs:
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CAMEIA }}
-          projectId: cameia-app
+          projectId: cameia-e245f
           expires: 7d
