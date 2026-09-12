@@ -20,7 +20,15 @@ const rawEnvSchema = z
   .object({
     VITE_APP_NAME: z.string().min(1),
     VITE_APP_ENV: z.enum(['local', 'staging', 'production']),
-    VITE_API_BASE_URL: z.optional(z.url()),
+    // Vite no deja `import.meta.env.VITE_X` como `undefined` cuando la
+    // variable nunca se definió: la deja como string vacío (verificado en un
+    // build real de CI, no solo en pruebas). z.optional() por sí solo no
+    // trata el string vacío como "ausente", así que el preprocess lo
+    // normaliza a undefined antes de validar la URL.
+    VITE_API_BASE_URL: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.optional(z.url()),
+    ),
     VITE_FIREBASE_API_KEY: z.string().min(1),
     VITE_FIREBASE_AUTH_DOMAIN: z.string().min(1),
     VITE_FIREBASE_PROJECT_ID: z.string().min(1),

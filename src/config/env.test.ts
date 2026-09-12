@@ -3,6 +3,12 @@
  * comunicaciones/11092026_frontend_variable-api-base-url.md): la URL del API
  * es opcional fuera de producción para no dejar el sitio en blanco mientras
  * el Gateway no existe, pero sigue siendo obligatoria en producción.
+ *
+ * Los casos "sin VITE_API_BASE_URL" usan string vacío (`''`), no
+ * `vi.stubEnv(key, undefined)`: es lo que un build real de Vite deja en
+ * `import.meta.env` cuando la variable nunca se definió (confirmado contra
+ * un despliegue real en CI, PR #30 de cameia-web — la primera versión de
+ * este archivo probaba solo `undefined` y no detectó el bug real).
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -16,9 +22,9 @@ afterEach(() => {
 });
 
 describe('env', () => {
-  it('arranca en staging sin VITE_API_BASE_URL', async () => {
+  it('arranca en staging con VITE_API_BASE_URL vacía (como la deja un build real sin definirla)', async () => {
     vi.stubEnv('VITE_APP_ENV', 'staging');
-    vi.stubEnv('VITE_API_BASE_URL', undefined);
+    vi.stubEnv('VITE_API_BASE_URL', '');
 
     const { env } = await loadEnv();
 
@@ -26,9 +32,9 @@ describe('env', () => {
     expect(env.apiBaseUrl).toBeUndefined();
   });
 
-  it('arranca en local sin VITE_API_BASE_URL', async () => {
+  it('arranca en local con VITE_API_BASE_URL vacía', async () => {
     vi.stubEnv('VITE_APP_ENV', 'local');
-    vi.stubEnv('VITE_API_BASE_URL', undefined);
+    vi.stubEnv('VITE_API_BASE_URL', '');
 
     const { env } = await loadEnv();
 
@@ -36,9 +42,9 @@ describe('env', () => {
     expect(env.apiBaseUrl).toBeUndefined();
   });
 
-  it('rechaza producción sin VITE_API_BASE_URL', async () => {
+  it('rechaza producción con VITE_API_BASE_URL vacía', async () => {
     vi.stubEnv('VITE_APP_ENV', 'production');
-    vi.stubEnv('VITE_API_BASE_URL', undefined);
+    vi.stubEnv('VITE_API_BASE_URL', '');
 
     await expect(loadEnv()).rejects.toThrow(/VITE_API_BASE_URL/);
   });
