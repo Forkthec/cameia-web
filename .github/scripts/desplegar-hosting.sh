@@ -29,10 +29,19 @@ WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 
 auth_curl() {
-  curl -sS --fail-with-body \
+  local response status body
+  response="$(curl -sS -w $'\n%{http_code}' \
     -H "Authorization: Bearer ${TOKEN}" \
     -H "X-Goog-User-Project: ${PROJECT_ID}" \
-    "$@"
+    "$@")"
+  status="${response##*$'\n'}"
+  body="${response%$'\n'*}"
+  if [ "$status" -ge 400 ]; then
+    echo "Error HTTP ${status} llamando a la API de Firebase Hosting:" >&2
+    echo "$body" >&2
+    exit 1
+  fi
+  echo "$body"
 }
 
 echo "==> Creando version nueva en sites/${PROJECT_ID}"
