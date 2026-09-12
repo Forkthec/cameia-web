@@ -73,36 +73,39 @@ jobs:
           workload_identity_provider: projects/25798898664/locations/global/workloadIdentityPools/github-pool/providers/github-provider
           service_account: github-action-cameia-web@cameia-e245f.iam.gserviceaccount.com
 
+      # FirebaseExtended/action-hosting-deploy@v0 exige el input
+      # firebaseServiceAccount (clave JSON) sin excepción — probado en vivo
+      # en el PR #28: falla con "Input required and not supplied:
+      # firebaseServiceAccount" aunque WIF ya haya dejado credenciales ADC
+      # listas. No soporta ADC/WIF. Por eso los 3 pasos de abajo llaman a la
+      # CLI de Firebase directo, que sí usa GOOGLE_APPLICATION_CREDENTIALS
+      # (dejado por el paso de arriba) de forma nativa.
+      - name: Instalar Firebase CLI
+        run: npm install --global firebase-tools@latest
+
       # main → producción real. Solo ocurre al fusionar el PR de promoción
       # develop→main (Merge commit, revisado) — nunca por un push directo,
       # porque develop→main tampoco admite push directo.
       - name: Desplegar a producción (push a main)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          projectId: cameia-e245f
-          channelId: live
+        run: firebase deploy --only hosting --project cameia-e245f --non-interactive
 
-      # develop → canal 'staging' persistente (no expira). Es el ambiente de
-      # integración: refleja lo que ya está fusionado, no lo que se está
-      # revisando. Automático en cada push a develop, tal como exige la guía
-      # del sprint §2.10.
+      # develop → canal 'staging'. Se redespliega en cada push a develop, así
+      # que la ventana de expiración se renueva en la práctica. La CLI de
+      # Firebase no tiene un modo "nunca expira" para canales que no sean
+      # 'live' (a diferencia de lo que asumía el comentario original de este
+      # paso); 30d da margen amplio entre pushes.
       - name: Desplegar a staging (push a develop)
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          projectId: cameia-e245f
-          channelId: staging
+        run: firebase hosting:channel:deploy staging --project cameia-e245f --expires 30d --non-interactive
 
       # Cada PR obtiene su propia URL de vista previa (expira sola en 7 días),
       # sin tocar staging ni producción — así se revisa un cambio antes de
       # fusionarlo.
+      # PENDIENTE: se perdió el comentario automático en el PR con el enlace
+      # (lo hacía la acción de Firebase). El enlace queda visible en el log
+      # de este job mientras tanto — restaurar el comentario es una mejora
+      # aparte, no bloquea el sprint.
       - name: Vista previa (PR)
         if: github.event_name == 'pull_request'
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          projectId: cameia-e245f
-          expires: 7d
+        run: firebase hosting:channel:deploy "pr-${{ github.event.pull_request.number }}" --project cameia-e245f --expires 7d --non-interactive
