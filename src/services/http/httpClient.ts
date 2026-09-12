@@ -35,7 +35,23 @@ interface RequestOptions {
   params?: QueryParams;
 }
 
+/**
+ * VITE_API_BASE_URL es opcional fuera de producción (env.ts) porque el API
+ * Gateway todavía no está desplegado. Cualquier llamada real sin esa
+ * variable falla con este error de dominio en vez de un TypeError críptico
+ * de `new URL(path, undefined)`.
+ */
+export class BackendNotConfiguredError extends Error {
+  constructor() {
+    super('No hay URL de backend configurada (VITE_API_BASE_URL) para este ambiente.');
+    this.name = 'BackendNotConfiguredError';
+  }
+}
+
 function buildUrl(path: string, params?: QueryParams): string {
+  if (!env.apiBaseUrl) {
+    throw new BackendNotConfiguredError();
+  }
   const url = new URL(path, env.apiBaseUrl);
   if (params) {
     for (const [key, value] of Object.entries(params)) {

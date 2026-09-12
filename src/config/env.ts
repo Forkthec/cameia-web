@@ -5,19 +5,39 @@
  */
 import { z } from 'zod';
 
-/** Forma cruda de las variables de entorno, tal como llegan de Vite. */
-const rawEnvSchema = z.object({
-  VITE_APP_NAME: z.string().min(1),
-  VITE_APP_ENV: z.enum(['local', 'staging', 'production']),
-  VITE_API_BASE_URL: z.url(),
-  VITE_FIREBASE_API_KEY: z.string().min(1),
-  VITE_FIREBASE_AUTH_DOMAIN: z.string().min(1),
-  VITE_FIREBASE_PROJECT_ID: z.string().min(1),
-  VITE_FIREBASE_APP_ID: z.string().min(1),
-  // Opcional a propósito: puede no existir en .env. El valor efectivo se
-  // calcula abajo en "enableMsw", que además solo lo respeta en local.
-  VITE_ENABLE_MSW: z.optional(z.string()),
-});
+/**
+ * Forma cruda de las variables de entorno, tal como llegan de Vite.
+ *
+ * VITE_API_BASE_URL es opcional aquí a propósito: el API Gateway todavía no
+ * está desplegado (depende de Billing de GCP), así que exigirla siempre
+ * dejaría el sitio en blanco en cualquier ambiente desplegado. El
+ * `superRefine` de abajo la vuelve a exigir, pero solo en producción — ver
+ * comunicaciones/11092026_frontend_variable-api-base-url.md (opción 1,
+ * decidida por Frontend el 11-sep-2026, implementada por DevOps con permiso
+ * de Frontend el 12-sep-2026).
+ */
+const rawEnvSchema = z
+  .object({
+    VITE_APP_NAME: z.string().min(1),
+    VITE_APP_ENV: z.enum(['local', 'staging', 'production']),
+    VITE_API_BASE_URL: z.optional(z.url()),
+    VITE_FIREBASE_API_KEY: z.string().min(1),
+    VITE_FIREBASE_AUTH_DOMAIN: z.string().min(1),
+    VITE_FIREBASE_PROJECT_ID: z.string().min(1),
+    VITE_FIREBASE_APP_ID: z.string().min(1),
+    // Opcional a propósito: puede no existir en .env. El valor efectivo se
+    // calcula abajo en "enableMsw", que además solo lo respeta en local.
+    VITE_ENABLE_MSW: z.optional(z.string()),
+  })
+  .superRefine((value, ctx) => {
+    if (value.VITE_APP_ENV === 'production' && !value.VITE_API_BASE_URL) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['VITE_API_BASE_URL'],
+        message: 'VITE_API_BASE_URL es obligatoria cuando VITE_APP_ENV=production.',
+      });
+    }
+  });
 
 /**
  * Parsea y valida `import.meta.env` contra {@link rawEnvSchema}.
