@@ -17,6 +17,7 @@ permissions:
   contents: read
   pull-requests: write # deja el comentario con el enlace de vista previa en el PR
   checks: write # la acción crea un "check run" como indicador de progreso del deploy
+  id-token: write # requerido por google-github-actions/auth para pedir el token OIDC (WIF)
 
 jobs:
   build-y-desplegar:
@@ -58,39 +59,53 @@ jobs:
           VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
         run: pnpm build
 
-      # main → producción real (cameia-app.web.app). Solo ocurre al fusionar el
-      # PR de promoción develop→main (Merge commit, revisado) — nunca por un
-      # push directo, porque develop→main tampoco admite push directo.
+      # Inicia sesión en Google Cloud con una credencial temporal que Google
+      # genera para esta ejecución puntual (Workload Identity Federation), en
+      # vez de una llave guardada para siempre en la configuración del
+      # proyecto. Detalle completo de por qué en la cabecera de
+      # .github/scripts/desplegar-hosting.sh.
+      - name: Autenticar en GCP (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: cameia-e245f
+          workload_identity_provider: projects/25798898664/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: github-action-cameia-web@cameia-e245f.iam.gserviceaccount.com
+
+      # Deja lista la herramienta de línea de comandos de Google Cloud (gcloud),
+      # ya con la sesión temporal del paso anterior, para que el script de
+      # despliegue pueda usarla.
+      - name: Configurar gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      # El script propio (.github/scripts/desplegar-hosting.sh) reemplaza a la
+      # acción oficial de Firebase y a su CLI: ninguna de las dos acepta la
+      # credencial temporal del paso de arriba para publicar en Hosting
+      # (probado en vivo, ver PR #28) -- exigían la llave permanente que se
+      # dejó de usar.
+
+      # main → producción real. Solo ocurre al fusionar el PR de promoción
+      # develop→main (Merge commit, revisado) — nunca por un push directo,
+      # porque develop→main tampoco admite push directo.
       - name: Desplegar a producción (push a main)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CAMEIA }}
-          projectId: cameia-app
-          channelId: live
+        run: .github/scripts/desplegar-hosting.sh cameia-e245f dist live
 
-      # develop → canal 'staging' persistente (no expira). Es el ambiente de
-      # integración: refleja lo que ya está fusionado, no lo que se está
-      # revisando. Automático en cada push a develop, tal como exige la guía
-      # del sprint §2.10.
+      # develop → canal 'staging'. Se redespliega en cada push a develop, así
+      # que la ventana de expiración se renueva en la práctica; la API de
+      # Hosting no tiene un modo "nunca expira" para canales que no sean
+      # 'live' (a diferencia de lo que asumía el comentario original de este
+      # paso). 30 días da margen amplio entre pushes.
       - name: Desplegar a staging (push a develop)
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CAMEIA }}
-          projectId: cameia-app
-          channelId: staging
+        run: .github/scripts/desplegar-hosting.sh cameia-e245f dist channel staging 2592000
 
       # Cada PR obtiene su propia URL de vista previa (expira sola en 7 días),
       # sin tocar staging ni producción — así se revisa un cambio antes de
       # fusionarlo.
+      # PENDIENTE: se perdió el comentario automático en el PR con el enlace
+      # (lo hacía la acción de Firebase). El enlace queda visible en el log
+      # de este job mientras tanto — restaurar el comentario es una mejora
+      # aparte, no bloquea el sprint.
       - name: Vista previa (PR)
         if: github.event_name == 'pull_request'
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_CAMEIA }}
-          projectId: cameia-app
-          expires: 7d
+        run: .github/scripts/desplegar-hosting.sh cameia-e245f dist channel "pr-${{ github.event.pull_request.number }}" 604800

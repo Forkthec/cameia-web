@@ -18,27 +18,27 @@ destino. Es el mismo mecanismo que describe
 1. Listar las versiones recientes del sitio, para identificar la versión buena anterior:
 
    ```
-   firebase hosting:channel:list --project cameia-app
+   firebase hosting:channel:list --project cameia-e245f
    ```
 
    (o, con más detalle de versiones, desde la consola: `console.firebase.google.com` → proyecto
-   `cameia-app` → Hosting → "Historial de versiones" del sitio `cameia-app`.)
+   `cameia-e245f` → Hosting → "Historial de versiones" del sitio `cameia-e245f`.)
 
 2. Clonar la versión anterior conocida hacia el canal afectado:
 
    ```
    # Producción
-   firebase hosting:clone cameia-app:live@<version-anterior> cameia-app:live --project cameia-app
+   firebase hosting:clone cameia-e245f:live@<version-anterior> cameia-e245f:live --project cameia-e245f
 
    # Staging
-   firebase hosting:clone cameia-app:staging@<version-anterior> cameia-app:staging --project cameia-app
+   firebase hosting:clone cameia-e245f:staging@<version-anterior> cameia-e245f:staging --project cameia-e245f
    ```
 
 3. Verificar que el sitio vuelve a responder con el contenido esperado:
 
    ```
-   curl -I https://cameia-app.web.app       # producción
-   curl -I https://cameia-app--staging-<hash>.web.app   # staging
+   curl -I https://cameia-e245f.web.app       # producción
+   curl -I https://cameia-e245f--staging-<hash>.web.app   # staging
    ```
 
 4. Registrar en Jira (comentario de evidencia, formato §4 de `CLAUDE.md`) qué versión se restauró,
