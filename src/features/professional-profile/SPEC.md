@@ -6,7 +6,7 @@ prt: [PRT-02.02, PRT-02.03, PRT-02.07]
 jira: [CM-46, CM-61, CM-65, CM-69]
 rutas: [/perfiles/nuevo, /perfiles/:id/editar, /perfiles/:id/roles]
 documentacion: tsdoc-es
-backlog: 06092026_01
+backlog: 12092026_01
 decisiones: [10092026_v1, 11092026_v2, 11092026_v1]
 figma: Cameia · Mockups MVP
 revisado: 2026-09-11
@@ -63,23 +63,48 @@ contrato real, no se puede afirmar que el backend distinga "no existe" de "no es
 
 ### 3.1 · `/perfiles/nuevo` — Selección del método · `PRT-02.02` · CM-46
 
+Fuente: backlog 12092026_01, hoja «Criterios de aceptación», HU-2.2, CA-2.2.1 a CA-2.2.4.
+
 **Qué hace**
 
-- Punto de entrada para crear un perfil nuevo. Ofrece el método manual y, deshabilitado, el
-  autocompletado con IA (fuera del alcance, §2).
+- Punto de entrada para crear un perfil nuevo: dos tarjetas excluyentes, «Llenado Manual» y
+  «Autocompletar con IA». Tocar una tarjeta ES la acción — no hay campo para el nombre del perfil
+  ni botón «Continuar» (CA-2.2.1: «El Perfil Profesional se crea vacío, sin nombre_perfil ni ningún
+  otro dato; el POST de creación no recibe cuerpo (body)»; `nombre_perfil` se fija después por
+  `PATCH /api/v1/profiles/{id}`, ver HU-2.3 / §3.2).
+- **CA-2.2.1 (ruta manual) — implementado, salvo la validación de cupo del plan.** Tocar «Llenado
+  Manual» crea el perfil vacío en `IN_PROGRESS` (`POST /api/v1/profiles` sin body) y navega al
+  Formulario de Perfil Profesional (`/perfiles/:id/editar`) con el `id` devuelto. La precondición
+  de cupo que describe el criterio («El sistema valida el cupo del plan... si se excede, dirigir al
+  Paywall») **no se implementa**: el mock no modela ningún límite de plan ni el Paywall de HU-2.12
+  (Sprint 3), y no hay forma de descartar un perfil vacío creado de más (consulta C-03, §8).
+  Mientras la creación está en curso, la tarjeta manual da realimentación inmediata (queda marcada
+  como seleccionada) y se anuncia un indicador de carga; un segundo toque durante ese lapso se
+  ignora, para no crear dos perfiles con el mismo cupo antes de que responda el primero.
+- **CA-2.2.2 (ruta de IA) — NO implementado en Sprint 1.** La tarjeta «Autocompletar con IA» se
+  muestra deshabilitada con la insignia «Próximamente» en vez de navegar a la Carga de CV (HU-2.6),
+  que es Sprint 2 (`CLAUDE.md` §12, abierta 7). Diverge del frame de Figma, que la dibuja habilitada
+  con una insignia «Recomendado» — ver §9.
+- **CA-2.2.3 (rechazo por límite de cupo) — NO implementado.** Ninguna ruta dirige al Paywall
+  (HU-2.12, Sprint 3); el mock no modela ningún rechazo por cupo de plan.
+- **CA-2.2.4 (convergencia de ambas rutas en el mismo perfil) — no aplica a esta pantalla.**
+  Describe el comportamiento posterior, ya dentro del Formulario de Perfil Profesional (§3.2 a
+  §3.4), no la selección del método.
 
 **Estados**
 
-| Estado      | Qué muestra                                                                                 |
-| ----------- | ------------------------------------------------------------------------------------------- |
-| Carga       | No aplica: la pantalla no depende de datos remotos para renderizar las opciones de método   |
-| Vacío       | No aplica: no hay una colección que pueda estar vacía en esta pantalla                      |
-| Error       | Si `POST /api/v1/profiles` falla, mensaje genérico (`errors:generico`) y permite reintentar |
-| Sin permiso | Ver nota transversal arriba                                                                 |
+| Estado      | Qué muestra                                                                                                                                                                       |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Carga       | No aplica al render inicial: la pantalla no depende de datos remotos para mostrar las dos tarjetas. Mientras la creación está en curso, la tarjeta manual queda marcada como seleccionada y se anuncia un indicador de carga; un segundo toque se ignora (ver CA-2.2.1 arriba) |
+| Vacío       | No aplica: no hay una colección que pueda estar vacía en esta pantalla                                                                                                            |
+| Error       | Si `POST /api/v1/profiles` falla, mensaje genérico (`errors:generico`) y permite reintentar tocando la tarjeta de nuevo                                                          |
+| Sin permiso | Ver nota transversal arriba                                                                                                                                                       |
 
 **Validaciones del lado del cliente**
 
-- Ninguna: esta pantalla no captura datos de formulario, solo dispara la creación.
+- Ninguna: esta pantalla no captura datos de formulario, solo dispara la creación. No hay campo de
+  nombre que validar — a diferencia de una versión anterior de esta subsección, escrita contra el
+  backlog del 6-sep, que sí lo tenía (ver §9).
 
 ### 3.2 · `/perfiles/:id/editar` (paso 1) — Información general · `PRT-02.03` · CM pendiente de confirmar
 
@@ -243,12 +268,17 @@ memoria, no un handler HTTP. El endpoint real de `PROFESSIONAL_ROLES` es depende
 
 ## 7. Estado de implementación
 
-| Archivo                                   | Qué implementa                                                                                      | Prueba                                         |
-| ----------------------------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| `src/mocks/handlers/profiles.handlers.ts` | Infraestructura de apoyo: ciclo completo de mocks del perfil (crear, actualizar, finalizar, listar) | `src/mocks/handlers/profiles.handlers.test.ts` |
+| Archivo                                                                                        | Qué implementa                                                                                                              | Prueba                                                                                              |
+| ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `src/mocks/handlers/profiles.handlers.ts`                                                       | Infraestructura de apoyo: ciclo completo de mocks del perfil (crear, actualizar, finalizar, listar)                        | `src/mocks/handlers/profiles.handlers.test.ts`                                                     |
+| `src/features/professional-profile/organisms/ProfileMethodSelector/ProfileMethodSelector.tsx`  | §3.1 (CM-46): las dos tarjetas excluyentes y la guarda contra doble creación mientras la mutación está en curso            | `src/features/professional-profile/organisms/ProfileMethodSelector/ProfileMethodSelector.test.tsx` |
+| `src/features/professional-profile/pages/NewProfilePage.tsx`                                    | §3.1: la ruta «/perfiles/nuevo» — crea el perfil sin cuerpo al elegir «Llenado Manual» y navega al formulario con el id devuelto | `src/features/professional-profile/pages/NewProfilePage.test.tsx`                            |
+| `src/features/professional-profile/routes.tsx`                                                  | Mapea la ruta «/perfiles/nuevo» bajo `professionalProfileShellRoutes` (se anida en AppShell, ver §9)                       | `src/app/router/index.test.tsx` (features no puede importar RequireAuth, ver §9)                    |
+| `src/test/setup.ts`                                                                              | Infraestructura de apoyo: reinicia `src/mocks/handlers/profiles.handlers.ts` (función `resetProfiles`) antes de cada prueba de toda la suite, ver §9 | —                                                                        |
+| `src/test/msw.ts`                                                                                | Infraestructura de apoyo: instala handlers puntuales de MSW desde una prueba de feature, ver §9                             | —                                                                                                  |
 
-Ninguna página está construida todavía: `NewProfilePage.tsx`, `EditProfilePage.tsx` y
-`ProfileRolesPage.tsx` son placeholders con `EmptyState`, sin lógica de formulario.
+`EditProfilePage.tsx` y `ProfileRolesPage.tsx` siguen siendo placeholders con `EmptyState`, sin
+lógica de formulario. `NewProfilePage.tsx` ya no lo es: es la primera página real de esta feature.
 
 ## 8. Bloqueos
 
@@ -272,10 +302,63 @@ seguimiento de Frontend a la respuesta del PO del 11-sep).
 cuando esta especificación y Figma difieren en diseño, manda la especificación y Figma se actualiza
 después. Toda diferencia consciente respecto a Figma o al backlog queda anotada aquí.
 
-**Estado compartido en las pruebas.** `profiles.handlers.ts` mantiene su array en memoria y
-`resetProfiles()` como estado compartido entre archivos de prueba: cualquier prueba futura que
-consuma estos handlers (incluidas las de esta feature) debe llamar `resetProfiles()` en su propio
-`beforeEach`, o va a heredar datos de la prueba anterior (`profiles.handlers.ts`, líneas 8-11).
+**Estado compartido en las pruebas.** `profiles.handlers.ts` mantiene su array en memoria; desde
+CM-46, `resetProfiles()` ya no es responsabilidad de cada archivo de prueba, sino un `beforeEach`
+global en `src/test/setup.ts` (que corre antes de cada prueba de toda la suite, no solo de las de
+esta feature). Esto reemplaza la redacción anterior de esta nota, que pedía llamarlo a mano: sigue
+siendo cierto que el array es estado compartido, pero ya no hay que acordarse de resetearlo.
+`profiles.handlers.test.ts` conserva su propio `resetProfiles()` en un `beforeEach` local; con el
+global ya corriendo, es un segundo reset inocuo, no un conflicto.
+
+**Divergencias respecto a Figma, PRT-02.02 (CM-46).**
+
+1. Tarjeta de «Autocompletar con IA»: el frame PRT-02.02 la dibuja habilitada y con una insignia
+   «Recomendado». Se implementa deshabilitada, con la insignia «Próximamente», porque HU-2.6 a
+   HU-2.10 son Sprint 2 (`CLAUDE.md` §12 abierta 7) y por la regla de autoridad de `CLAUDE.md` §16.
+   El tratamiento visual se alinea con el de voz y video (D-04, D-05). Figma se actualiza después.
+2. Texto de pie del frame PRT-02.02, omitido en esta implementación. El frame muestra, debajo de
+   las dos tarjetas, esta frase literal: «Puedes combinar las dos: empezar manual y subir tu CV
+   después, o al revés.» Se omite porque promete la carga de CV, que es HU-2.6 (Sprint 2) y no
+   existe en Sprint 1; con la tarjeta de IA deshabilitada, el texto ofrecería al usuario una salida
+   inexistente. Queda transcrito aquí para recuperarlo desde el repositorio cuando entre HU-2.6,
+   sin volver a consultar Figma. Reescribirlo en vez de omitirlo sería inventar contenido de
+   producto.
+3. Cabecera de `AppShell` (layout compartido de `/inicio`, `/perfiles/nuevo` y
+   `/perfiles/:id/roles`, no exclusivo de esta feature): el frame dibuja un logotipo compuesto de
+   glifo vectorial + wordmark «cameia» (nodo `logo`, `121:184` en sm, `191:500` en lg). Se
+   implementa solo el wordmark, en texto (`text-h3 font-extrabold`, el token de tipografía más
+   cercano a los ~20px medidos en el frame lg — sin tracking negativo, que no tiene token): el
+   glifo es un activo de marca vectorial que no existe todavía en `design-system`, y dibujarlo a
+   mano sería inventarlo. Se completa cuando exista el SVG oficial, sin rehacer esta cabecera. El
+   avatar y el menú de usuario del `nav-header` del frame lg también quedan fuera: son controles, y
+   no existe todavía el flujo de cuenta ni de cierre de sesión.
+
+**Notas técnicas de esta implementación (no son divergencias de diseño).**
+
+4. `NewProfilePage.tsx` tipa `{ id: string }` en el propio archivo de la página en vez de crear ya
+   `api/*.dto.ts` — `CLAUDE.md` §8 deja esa capa para el final de una feature, y el contrato real
+   todavía tiene bloqueos abiertos (C-01, C-02). Es deuda consciente hasta que exista `api/`.
+5. La misma petición (`POST /api/v1/profiles`) no envía la cabecera `X-User-Id` que la respuesta
+   del PO menciona para HU-2.2 (§8, C-02): funciona contra el mock (que no la exige), no
+   necesariamente contra el backend real cuando exista.
+6. `src/features/professional-profile/routes.tsx` mueve `/perfiles/nuevo` de
+   `professionalProfileWizardRoutes` a `professionalProfileShellRoutes` para que se anide bajo
+   `AppShell` — la pantalla no tiene stepper ni botón primario, así que no encaja en
+   `WizardLayout`. `NewProfilePage.test.tsx` no puede probar que `RequireAuth` la sigue protegiendo
+   tras la mudanza: `features` no puede importar `app/router/guards/RequireAuth`
+   (`docs/ARCHITECTURE.md` §4). Esa cobertura vive en `src/app/router/index.test.tsx`, que monta el
+   árbol de rutas real y sí puede importar cualquier cosa (capa `app`).
+7. Carve-out de fronteras: `eslint.config.js` añade un elemento `app-routes`
+   (`src/app/router/routes.ts`, con `mode: 'file'`) para que `features` y `layouts` puedan importar
+   `ROUTES` sin ganar acceso al resto de `app`. No documentado todavía en `docs/ARCHITECTURE.md`
+   §4 — se reporta en el PR, se decide aparte si esa matriz documentada se actualiza.
+8. Colisión de identificadores: `CA-2.2.1` a `CA-2.2.3` en §3.2, §4 y §6 (sin tocar en este commit)
+   citan el backlog del 6-sep, donde esos ids son la validación de `name` (1-120 caracteres). §3.1
+   ahora cita `CA-2.2.1` a `CA-2.2.4` del backlog del 12-sep, donde los mismos ids son la elección
+   de ruta manual/IA y el rechazo por cupo — un tema distinto. No es un error de trascripción: son
+   dos backlogs distintos que reutilizan la misma numeración. Se resuelve cuando §4, §6 y §8 se
+   reescriban con el contrato de backend en la mano (fuera del alcance autorizado para este
+   commit).
 
 **Divergencias conscientes, registradas sin corregirlas (fuera del alcance de este archivo):**
 

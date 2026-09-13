@@ -3,8 +3,11 @@
  * renderiza la ruta hija a través de `Outlet`, que `NavHeader` y
  * `TabBar` repiten los mismos ítems de navegación (una sola fuente de
  * verdad para las dos superficies), que «Progreso» se deshabilita según
- * `progressEnabled`, y que «Progreso» nunca es un enlace real todavía —
- * HE-07 no tiene ruta propia en este sprint (CLAUDE.md §11).
+ * `progressEnabled`, que «Progreso» nunca es un enlace real todavía —
+ * HE-07 no tiene ruta propia en este sprint (CLAUDE.md §11)—, y que el
+ * wordmark "cameia" se renderiza en todos los breakpoints y enlaza a
+ * `/inicio` (CM-46: sin él, la cabecera queda vacía en móvil, donde
+ * `NavHeader` está oculto).
  */
 import { render, screen } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
@@ -70,5 +73,13 @@ describe('AppShell', () => {
     // hay a dónde navegar): sigue sin ser un <NavLink>, solo cambia
     // aria-disabled cuando en el futuro sí exista una ruta propia.
     expect(screen.queryAllByRole('link', { name: /Progreso/ })).toHaveLength(0);
+  });
+
+  it('renderiza el wordmark "cameia" y enlaza a /inicio', async () => {
+    await waitUntilReady();
+    renderShell();
+
+    const wordmark = screen.getByRole('link', { name: 'cameia' });
+    expect(wordmark).toHaveAttribute('href', '/inicio');
   });
 });
