@@ -21,7 +21,25 @@ import tseslint from 'typescript-eslint';
 // import (utils, lib, i18n, hooks, stores, config, ...).
 // Los patrones usan "**" porque los archivos reales viven anidados
 // (p. ej. src/design-system/atoms/Button.tsx), no como hijos directos.
+//
+// "app-routes" es un carve-out puntual, NO documentado todavía en
+// docs/ARCHITECTURE.md §4 (se reporta en el PR de CM-46; decidir aparte si
+// la matriz documentada se actualiza). Aísla únicamente
+// src/app/router/routes.ts —un módulo hoja sin imports propios, ver su
+// TSDoc: "Nadie escribe un string de ruta a mano fuera de este archivo"
+// (acuerdo con DevOps del 4-sep-2026)— para que `features` y `layouts`
+// puedan importar el catálogo de rutas sin ganar acceso al resto de `app`
+// (arranque, providers, router, guards). `mode: 'file'` (deprecated pero
+// vigente en @boundaries/elements@3.1.1, la librería que usa esta versión
+// del plugin) es obligatorio aquí: el modo por defecto ('folder') solo
+// clasifica carpetas —añade "**/*" al patrón—, así que sin esto este
+// descriptor jamás matchearía un archivo suelto y "routes.ts" seguiría
+// cayendo en "app" (verificado con eslint --stdin antes de fijar esto).
+// Va ANTES que "app" en este arreglo por claridad de lectura, aunque con
+// mode: 'file' el orden no determina la clasificación (a diferencia de
+// mode: 'folder').
 const boundariesElements = [
+  { type: 'app-routes', mode: 'file', pattern: 'src/app/router/routes.ts' },
   { type: 'app', pattern: 'src/app/**' },
   { type: 'design-system', pattern: 'src/design-system/**' },
   { type: 'layouts', pattern: 'src/layouts/**' },
@@ -135,6 +153,9 @@ export default tseslint.config(
                   { element: { type: 'stores' } },
                   { element: { type: 'i18n' } },
                   { element: { type: 'utils' } },
+                  // Carve-out CM-46: ver el comentario de "app-routes" arriba.
+                  // AppShell enlaza su wordmark a ROUTES.inicio.
+                  { element: { type: 'app-routes' } },
                 ],
               },
             },
@@ -151,6 +172,8 @@ export default tseslint.config(
                   { element: { type: 'utils' } },
                   { element: { type: 'i18n' } },
                   { element: { type: 'config' } },
+                  // Carve-out CM-46: ver el comentario de "app-routes" arriba.
+                  { element: { type: 'app-routes' } },
                   {
                     element: {
                       type: 'features',
