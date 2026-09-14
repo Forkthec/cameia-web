@@ -1,9 +1,16 @@
 /**
  * Simula el ciclo completo del Perfil Profesional (CLAUDE.md §8, «Todo
  * endpoint tiene su handler equivalente en `mocks/handlers/`») sobre un
- * array en memoria: crear, actualizar por secciones, finalizar y listar.
- * Nada persiste entre ejecuciones del proceso — solo dentro de la sesión de
- * mocks activa (dev o una corrida de pruebas).
+ * array en memoria: crear, obtener por id, actualizar por secciones,
+ * finalizar y listar. Nada persiste entre ejecuciones del proceso — solo
+ * dentro de la sesión de mocks activa (dev o una corrida de pruebas).
+ *
+ * CM-53: el `PATCH` deriva `summaryProvenance`/`summaryProvenanceOrigin` a
+ * partir del valor anterior de `summary` (CA-2.3.1, CA-2.3.2, CA-2.3.4,
+ * `SPEC.md` §5) — el cliente nunca envía esos dos campos. Es lógica de
+ * negocio que en el contrato real correspondería al backend; vive aquí
+ * porque el mock es la única capa contra la que corre el frontend
+ * mientras C-01 sigue sin respuesta.
  *
  * El array en memoria y `resetProfiles()` son estado compartido entre
  * archivos de prueba; cualquier prueba futura que consuma estos handlers
@@ -58,12 +65,22 @@ interface WorkExperienceItem {
 
 type ProfileStatus = 'IN_PROGRESS' | 'COMPLETED';
 
+/**
+ * CM-53, CA-2.3.1/CA-2.3.2/CA-2.3.4: procedencia del resumen profesional.
+ * `AI_SUGGESTED` es inalcanzable desde la interfaz en Sprint 1 (nace de
+ * HU-2.6–2.10, Sprint 2) — solo lo produce `seedProfileForTests` para poder
+ * probar la transición a `AI_EDITED` (SPEC.md §2, alcance consciente).
+ */
+type SummaryProvenance = 'MANUAL' | 'AI_SUGGESTED' | 'AI_EDITED' | null;
+
 interface ProfileRecord {
   id: string;
   ownerId: string;
   status: ProfileStatus;
   name: string;
   summary: string;
+  summaryProvenance: SummaryProvenance;
+  summaryProvenanceOrigin: string | null;
   workExperience: WorkExperienceItem[];
   education: EducationItem[];
   skills: SkillItem[];
@@ -124,6 +141,34 @@ export function resetProfiles(): void {
   nextId = 1;
 }
 
+/**
+ * Solo para pruebas: siembra un perfil con campos arbitrarios, incluido
+ * `summaryProvenance: 'AI_SUGGESTED'`, estado que ningún endpoint público
+ * puede producir en Sprint 1 (CA-2.3.2 es inalcanzable desde la interfaz
+ * hasta HU-2.6–2.10, Sprint 2). Ninguna feature puede importar este
+ * archivo — `eslint-plugin-boundaries` no incluye `mocks` entre los
+ * destinos permitidos desde `features` (`eslint.config.js`) — así que este
+ * helper no puede llegar a producción por ese camino.
+ */
+export function seedProfileForTests(overrides: Partial<ProfileRecord> = {}): ProfileRecord {
+  const profile: ProfileRecord = {
+    id: `profile-${nextId++}`,
+    ownerId: MOCK_USER_ID,
+    status: 'IN_PROGRESS',
+    name: '',
+    summary: '',
+    summaryProvenance: null,
+    summaryProvenanceOrigin: null,
+    workExperience: [],
+    education: [],
+    skills: [],
+    targetRoleIds: [],
+    ...overrides,
+  };
+  profiles.push(profile);
+  return profile;
+}
+
 function createEmptyProfile(name: string): ProfileRecord {
   return {
     id: `profile-${nextId++}`,
@@ -132,6 +177,8 @@ function createEmptyProfile(name: string): ProfileRecord {
     status: 'IN_PROGRESS',
     name,
     summary: '',
+    summaryProvenance: null,
+    summaryProvenanceOrigin: null,
     workExperience: [],
     education: [],
     skills: [],
@@ -175,7 +222,32 @@ export const profilesHandlers: HttpHandler[] = [
         if (error) return HttpResponse.json(error, { status: 400 });
         profile.name = body.name;
       }
-      if (typeof body.summary === 'string') profile.summary = body.summary;
+      // El cliente nunca envía `summaryProvenance`: lo deriva este mock a
+      // partir del valor anterior, tal como lo haría el backend real
+      // (SPEC.md §5). Orden: CA-2.3.4 (vaciar) primero; si el texto no
+      // cambió, no hay transición que hacer (guardar un resumen intacto no
+      // es "editarlo"); luego CA-2.3.2 (edición de un resumen sugerido por
+      // IA); CA-2.3.1 como caso general.
+      if (typeof body.summary === 'string') {
+        const trimmed = body.summary.trim();
+        const unchanged = body.summary === profile.summary;
+        if (trimmed.length === 0) {
+          profile.summary = '';
+          profile.summaryProvenance = null;
+          profile.summaryProvenanceOrigin = null;
+        } else if (unchanged) {
+          // No-op: conserva la procedencia actual tal cual (MANUAL,
+          // AI_SUGGESTED o AI_EDITED) — no hubo edición.
+        } else if (profile.summaryProvenance === 'AI_SUGGESTED') {
+          profile.summary = body.summary;
+          profile.summaryProvenance = 'AI_EDITED';
+          // El origen de ejecución se conserva por trazabilidad (CA-2.3.2).
+        } else {
+          profile.summary = body.summary;
+          profile.summaryProvenance = 'MANUAL';
+          profile.summaryProvenanceOrigin = null;
+        }
+      }
       // Casteos explícitos, no `unknown` a ciegas: este mock confía en la
       // forma que le manda quien construye la feature, no valida cada
       // campo de cada item (no es el contrato real, es la capa de mocks).
@@ -224,5 +296,17 @@ export const profilesHandlers: HttpHandler[] = [
       profiles.filter((profile) => profile.ownerId === MOCK_USER_ID),
       { status: 200 },
     );
+  }),
+
+  // CM-53: SPEC.md §3.2 ya asumía este endpoint (estado de carga "mientras
+  // se obtiene el perfil por id") antes de que existiera. Sin filtro por
+  // `ownerId`, igual que PATCH/finalize (nota transversal de SPEC.md §3,
+  // C-01: el mock no distingue "no existe" de "no es tuyo").
+  http.get('*/api/v1/profiles/:id', ({ params }) => {
+    const profile = profiles.find((item) => item.id === params.id);
+    if (!profile) {
+      return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+    }
+    return HttpResponse.json(profile, { status: 200 });
   }),
 ];

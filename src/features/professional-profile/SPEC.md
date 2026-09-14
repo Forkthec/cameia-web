@@ -3,13 +3,13 @@ feature: professional-profile
 estado: BLOQUEADA
 hu: [HU-2.2, HU-2.3, HU-2.4, HU-2.5, HU-2.11]
 prt: [PRT-02.02, PRT-02.03, PRT-02.07]
-jira: [CM-46, CM-61, CM-65, CM-69]
+jira: [CM-46, CM-53, CM-61, CM-65, CM-69]
 rutas: [/perfiles/nuevo, /perfiles/:id/editar, /perfiles/:id/roles]
 documentacion: tsdoc-es
 backlog: 12092026_01
 decisiones: [10092026_v1, 11092026_v2, 11092026_v1]
 figma: Cameia · Mockups MVP
-revisado: 2026-09-11
+revisado: 2026-09-13
 ---
 
 # Feature · Perfil Profesional
@@ -106,14 +106,12 @@ Fuente: backlog 12092026_01, hoja «Criterios de aceptación», HU-2.2, CA-2.2.1
   nombre que validar — a diferencia de una versión anterior de esta subsección, escrita contra el
   backlog del 6-sep, que sí lo tenía (ver §9).
 
-### 3.2 · `/perfiles/:id/editar` (paso 1) — Información general · `PRT-02.03` · CM pendiente de confirmar
-
-HU-2.3 tiene subtarea propia en el orden de trabajo del usuario, pero su clave de Jira no está
-confirmada contra el tablero en esta sesión (ver §9). No se inventa un número.
+### 3.2 · `/perfiles/:id/editar` (paso 1) — Información general · `PRT-02.03` · CM-53
 
 **Qué hace**
 
-- Captura `name` y `summary` del perfil ya creado.
+- Captura `name` y `summary` del perfil ya creado. Al guardar, `summaryProvenance` se recalcula
+  según CA-2.3.1/CA-2.3.2/CA-2.3.4 (ver §4); el cliente nunca lo envía.
 
 **Estados**
 
@@ -127,8 +125,9 @@ confirmada contra el tablero en esta sesión (ver §9). No se inventa un número
 **Validaciones del lado del cliente**
 
 - `name`: vacío o mayor a 120 caracteres bloquea sin llamar al servidor (CA-2.2.1 a CA-2.2.3). Llave
-  de error a crear: `errors:codigos.PROFILE_NAME_INVALID` — hoy no existe en `es-CO/errors.json`
-  (ver §4).
+  de error: `errors:codigos.PROFILE_NAME_INVALID` (ver §4).
+- `summary`: más de 2000 caracteres bloquea sin llamar al servidor y muestra el contador de
+  caracteres restantes (CA-2.3.3, `GLOSSARY.md` §2).
 
 ### 3.3 · `/perfiles/:id/editar` (paso 2) — Experiencia laboral y educación · `PRT-02.03` · CM-61
 
@@ -213,6 +212,8 @@ misma pantalla.
 | `education`      | `EducationItem[]`      | Obligatorio ≥1 para finalizar; `level` del enum fijo        | HU-2.4, T-01                          |
 | `skills`         | `SkillItem[]`          | Texto libre (`skillName`) + `level`; sin catálogo           | HU-2.5, T-01, D-01                    |
 | `targetRoleIds`  | `string[]`             | Catálogo cerrado; máximo 5; sin prioridad ni reordenamiento | HU-2.11, D-01, J-03                   |
+| `summaryProvenance` | `'MANUAL' \| 'AI_SUGGESTED' \| 'AI_EDITED' \| null` | Lo calcula el backend/mock a partir del valor anterior; el cliente nunca lo envía en el `PATCH` | CA-2.3.1, CA-2.3.2, CA-2.3.4 |
+| `summaryProvenanceOrigin` | `string \| null` | Se conserva solo en la transición `AI_SUGGESTED → AI_EDITED`; nulo en cualquier otro caso, incluida la creación manual | CA-2.3.2 |
 
 **Estados y enumerados**
 
@@ -234,8 +235,8 @@ español de `EducationLevel` están sin aprobar (**C-07**).
 
 `PROFILE_NAME_INVALID` y `EDUCATION_REQUIRED` son códigos de mock, no confirmados con backend
 (`profiles.handlers.ts` líneas 30-36); pueden no coincidir cuando exista el contrato real (C-01).
-`es-CO/errors.json` hoy solo declara `NOT_FOUND`, `VALIDATION_ERROR` y `UNAUTHORIZED` bajo
-`codigos` — las otras dos llaves no existen todavía.
+`PROFILE_NAME_INVALID` ya tiene llave en `es-CO/errors.json` (CM-53); `EDUCATION_REQUIRED` sigue
+sin ella — la agrega CM-65, la subtarea dueña de la pantalla de finalizar.
 
 ## 5. Enlace HTTP · PROVISIONAL
 
@@ -245,9 +246,17 @@ sin OpenAPI; C-01 sin responder) · revisado el 11-sep-2026.
 | Operación                | Método y ruta                        | Envía                                                                     | Recibe                                                                                |
 | ------------------------ | ------------------------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | Crear                    | `POST /api/v1/profiles`              | Body opcional; sin `name` crea vacío (memo 11-sep); con `name`, se valida | 201 `ProfileRecord` · 400 `PROFILE_NAME_INVALID`                                      |
+| Obtener                  | `GET /api/v1/profiles/:id`           | Sin body                                                                  | 200 `ProfileRecord` · 404 `NOT_FOUND`                                                 |
 | Actualizar por secciones | `PATCH /api/v1/profiles/:id`         | Cualquier subconjunto de `ProfilePatchBody`                               | 200 `ProfileRecord` · 400 `PROFILE_NAME_INVALID` · 404 `NOT_FOUND`                    |
 | Finalizar                | `POST /api/v1/profiles/:id/finalize` | Sin body                                                                  | 200 `ProfileRecord` (status `COMPLETED`) · 422 `EDUCATION_REQUIRED` · 404 `NOT_FOUND` |
 | Listar                   | `GET /api/v1/profiles`               | Sin body                                                                  | 200 `ProfileRecord[]`, filtrado por `ownerId`                                         |
+
+El `PATCH` nunca recibe `provenance`: `profiles.handlers.ts` deriva
+`summaryProvenance`/`summaryProvenanceOrigin` del valor almacenado y del nuevo `summary` (vaciar el
+campo limpia los tres en conjunto — CA-2.3.4; editar un resumen `AI_SUGGESTED` lo pasa a
+`AI_EDITED` conservando el origen — CA-2.3.2; cualquier otro caso queda en `MANUAL` con origen nulo
+— CA-2.3.1). Es responsabilidad del backend real cuando exista (C-01); aquí la sostiene el mock
+porque es la única capa contra la que corre el frontend mientras tanto (CM-53).
 
 No existe endpoint de catálogo de roles: `src/mocks/data/catalogs.ts` es un módulo de datos en
 memoria, no un handler HTTP. El endpoint real de `PROFESSIONAL_ROLES` es dependencia de Backend
@@ -270,15 +279,25 @@ memoria, no un handler HTTP. El endpoint real de `PROFESSIONAL_ROLES` es depende
 
 | Archivo                                                                                        | Qué implementa                                                                                                              | Prueba                                                                                              |
 | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `src/mocks/handlers/profiles.handlers.ts`                                                       | Infraestructura de apoyo: ciclo completo de mocks del perfil (crear, actualizar, finalizar, listar)                        | `src/mocks/handlers/profiles.handlers.test.ts`                                                     |
+| `src/mocks/handlers/profiles.handlers.ts`                                                       | Infraestructura de apoyo: ciclo completo de mocks del perfil (crear, obtener por id, actualizar, finalizar, listar); deriva `summaryProvenance`/`summaryProvenanceOrigin` en el `PATCH` (CA-2.3.1, CA-2.3.2, CA-2.3.4) | `src/mocks/handlers/profiles.handlers.test.ts`                                                     |
 | `src/features/professional-profile/organisms/ProfileMethodSelector/ProfileMethodSelector.tsx`  | §3.1 (CM-46): las dos tarjetas excluyentes y la guarda contra doble creación mientras la mutación está en curso            | `src/features/professional-profile/organisms/ProfileMethodSelector/ProfileMethodSelector.test.tsx` |
 | `src/features/professional-profile/pages/NewProfilePage.tsx`                                    | §3.1: la ruta «/perfiles/nuevo» — crea el perfil sin cuerpo al elegir «Llenado Manual» y navega al formulario con el id devuelto | `src/features/professional-profile/pages/NewProfilePage.test.tsx`                            |
+| `src/features/professional-profile/model/profile.constants.ts`, `model/profile.types.ts`        | §3.2 (CM-53): límites de `name`/`summary` y los tipos de dominio (`Profile`, `SummaryProvenance`)                          | cubierto por las pruebas de `GeneralInfoForm` y `EditProfilePage`                                    |
+| `src/features/professional-profile/schemas/generalInfo.schema.ts`                                | §3.2 (CM-53): validación zod de `name`/`summary`, sin mensajes de texto (CLAUDE.md §3.2)                                   | `GeneralInfoForm.test.tsx`                                                                          |
+| `src/features/professional-profile/organisms/GeneralInfoForm/GeneralInfoForm.tsx`                | §3.2 (CM-53): el formulario de Información General — react-hook-form + zod, `<Controller>` (Input no acepta `ref`)         | `GeneralInfoForm.test.tsx`                                                                          |
+| `src/features/professional-profile/api/profile.dto.ts`, `api/profile.mapper.ts`, `api/profile.api.ts` | §3.2 (CM-53): `fetchProfile`/`updateGeneralInfo` contra el mock, `ProfileDto → Profile`                              | cubierto por `EditProfilePage.test.tsx` (integración vía MSW)                                       |
+| `src/features/professional-profile/hooks/useProfileQuery.ts`, `hooks/useUpdateProfileGeneralInfo.ts` | §3.2 (CM-53): `useQuery`/`useMutation` de la sección                                                                  | cubierto por `EditProfilePage.test.tsx`                                                             |
+| `src/features/professional-profile/pages/EditProfilePage.tsx`                                    | §3.2 (CM-53): estados Carga/Error/formulario real; deja de ser placeholder para el paso 1                                  | `src/features/professional-profile/pages/EditProfilePage.test.tsx`                                  |
+| `src/layouts/WizardLayout.tsx`                                                                    | Prop `primaryActionFormId` (CM-53): el botón primario dispara el `<form>` de la sección en vez de un `onClick`             | `src/layouts/WizardLayout.test.tsx`                                                                  |
 | `src/features/professional-profile/routes.tsx`                                                  | Mapea la ruta «/perfiles/nuevo» bajo `professionalProfileShellRoutes` (se anida en AppShell, ver §9)                       | `src/app/router/index.test.tsx` (features no puede importar RequireAuth, ver §9)                    |
 | `src/test/setup.ts`                                                                              | Infraestructura de apoyo: reinicia `src/mocks/handlers/profiles.handlers.ts` (función `resetProfiles`) antes de cada prueba de toda la suite, ver §9 | —                                                                        |
 | `src/test/msw.ts`                                                                                | Infraestructura de apoyo: instala handlers puntuales de MSW desde una prueba de feature, ver §9                             | —                                                                                                  |
 
-`EditProfilePage.tsx` y `ProfileRolesPage.tsx` siguen siendo placeholders con `EmptyState`, sin
-lógica de formulario. `NewProfilePage.tsx` ya no lo es: es la primera página real de esta feature.
+`ProfileRolesPage.tsx` sigue siendo placeholder con `EmptyState`, sin lógica de formulario.
+`NewProfilePage.tsx` y `EditProfilePage.tsx` ya no lo son: son las páginas reales de §3.1 y §3.2.
+El paso 1 de `EditProfilePage.tsx` no incluye máquina de pasos ni navegación entre los tres pasos
+del asistente — esa pieza sigue sin dueño, se construye cuando CM-61 o CM-65 la necesiten
+(`docs/ARCHITECTURE.md` §5, regla de crecimiento).
 
 ## 8. Bloqueos
 
@@ -295,6 +314,7 @@ seguimiento de Frontend a la respuesta del PO del 11-sep).
 | C-05 | Si CM-69 se mantiene como ticket propio para la sección de roles dentro del formulario o su alcance se absorbe en CM-65; si «sustituir» sigue siendo una acción distinta sin sugerencias de IA                                                                           | Product Owner / Scrum Master | sin respuesta del PO al 11-sep-2026 |
 | C-06 | Valores de `SkillLevel`; criterio de duplicado con texto libre («Java» vs «java»); límite de caracteres por habilidad y máximo por perfil                                                                                                                                | Product Owner / Backend      | sin respuesta del PO al 11-sep-2026 |
 | C-07 | Si la lista `TECHNICAL`/`UNDERGRADUATE`/`POSTGRADUATE` (sin tecnólogo, agrupando especialización/maestría/doctorado) es intencional; textos en español a mostrar; confirmar que se pierde el estado «interrumpida» de una formación                                      | Product Owner                | sin respuesta del PO al 11-sep-2026 |
+| C-09 | Origen documentable de `preferredModality` — cero ocurrencias en el backlog, `GLOSSARY.md` o los tres memos de decisiones; no se implementa hasta que exista                                                                                                             | Backend / Product Owner      | detectado 13-sep-2026, CM-53        |
 
 ## 9. Notas
 
@@ -359,6 +379,15 @@ global ya corriendo, es un segundo reset inocuo, no un conflicto.
    dos backlogs distintos que reutilizan la misma numeración. Se resuelve cuando §4, §6 y §8 se
    reescriban con el contrato de backend en la mano (fuera del alcance autorizado para este
    commit).
+9. `GET /api/v1/profiles/:id` (CM-53) se agrega a los mocks porque §3.2 ya lo daba por hecho como
+   estado de carga y el endpoint no existía — deuda cerrada, no una divergencia nueva.
+10. `summaryProvenance`/`summaryProvenanceOrigin` (CM-53) se añaden al contrato de mocks para que
+    CA-2.3.1, CA-2.3.2 y CA-2.3.4 sean demostrables. Su lógica de transición vive en
+    `profiles.handlers.ts`, no en el cliente; se revisa cuando exista el contrato real (C-01).
+11. `WizardLayout` (CM-53) gana la prop opcional `primaryActionFormId` para que su botón primario
+    dispare por `type="submit"`/`form` el `<form>` de la sección en vez de un `onClick` —
+    retrocompatible: `interview-setup`, que no la usa, sigue con el comportamiento anterior.
+    Documentado también en el TSDoc del propio layout.
 
 **Divergencias conscientes, registradas sin corregirlas (fuera del alcance de este archivo):**
 
@@ -366,9 +395,10 @@ global ya corriendo, es un segundo reset inocuo, no un conflicto.
    backlog (CA-2.2.1 a CA-2.2.3). El 255 viene del memo del PO del 11-sep sin fuente verificada
    (C-01) — manda el backlog.
 2. `src/i18n/locales/es-CO/profile.json` todavía dice `"habilidades.titulo": "Habilidades y
-expectativas"`, pese a que D-02 retiró las expectativas del alcance.
-3. HU-2.3 (Información General, §3.2) no tiene clave de Jira confirmada contra el tablero en esta
-   sesión.
+expectativas"`, pese a que D-02 retiró las expectativas del alcance. Ese mismo archivo conserva,
+sin tocar en CM-53, la sección huérfana `informacionGeneral.campos` (`nombreCompleto`,
+`fechaNacimiento`, `ciudad`) que no corresponde a ningún campo del contrato de Perfil Profesional
+— deuda preexistente de CM-100, fuera del diff autorizado de esta subtarea.
 
-Ninguna de las tres se corrige en este commit: corregirlas es tocar `GLOSSARY.md` o
-`profile.json`, fuera del diff autorizado para esta spec.
+Ninguna de las dos se corrige en este commit: corregirlas es tocar `GLOSSARY.md` o `profile.json`
+más allá de lo que esta spec necesita.
