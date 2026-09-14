@@ -75,7 +75,7 @@ cameia-web/
     ├── layouts/                        PLANTILLAS
     │   ├── AuthLayout.tsx              PRT-01.*
     │   ├── AppShell.tsx                NavHeader + TabBar
-    │   ├── WizardLayout.tsx            PRT-02.03 · PRT-04.*
+    │   ├── WizardLayout.tsx            PRT-04.* (PRT-02.03 no es un asistente, ver CM-53)
     │   └── SessionLayout.tsx           bg/inverse, sin navegación · PRT-05.*
     │
     ├── features/                       ORGANISMOS DE DOMINIO + PÁGINAS

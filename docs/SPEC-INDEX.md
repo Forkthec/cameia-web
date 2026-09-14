@@ -10,6 +10,6 @@
 | `interview-session` | — (sin SPEC.md) | — | — | — | — |
 | `interview-setup` | — (sin SPEC.md) | — | — | — | — |
 | `landing` | — (sin SPEC.md) | — | — | — | — |
-| `professional-profile` | BLOQUEADA | HU-2.2, HU-2.3, HU-2.4, HU-2.5, HU-2.11 | PRT-02.02, PRT-02.03, PRT-02.07 | CM-46, CM-61, CM-65, CM-69 | 2026-09-11 |
+| `professional-profile` | BLOQUEADA | HU-2.2, HU-2.3, HU-2.4, HU-2.5, HU-2.11 | PRT-02.02, PRT-02.03, PRT-02.07 | CM-46, CM-53, CM-61, CM-65, CM-69 | 2026-09-14 |
 
-_Generado automáticamente el 2026-09-11T22:18:57.727Z con `pnpm spec:check --write`. No se edita a mano._
+_Generado automáticamente el 2026-09-14T05:28:06.559Z con `pnpm spec:check --write`. No se edita a mano._

@@ -10,6 +10,25 @@
       "ciudad": "Ciudad"
     }
   },
+  "general": {
+    "tituloSeccion": "Información General",
+    "nombre": {
+      "etiqueta": "Nombre del perfil",
+      "placeholder": "Escribe aquí",
+      "ayuda": "Por ejemplo: \"Analista de datos\" o \"Producto senior\".",
+      "errorRequerido": "Ingresa un nombre para el perfil.",
+      "errorLongitud": "El nombre no puede superar los 120 caracteres."
+    },
+    "resumen": {
+      "etiqueta": "Resumen profesional",
+      "placeholder": "Escribe aquí. Este campo crece con el contenido.",
+      "errorLongitud": "El resumen no puede superar los 2000 caracteres.",
+      "contador": "{{count}} / {{max}} caracteres"
+    },
+    "guardarBorrador": "Guardar borrador",
+    "guardandoBorrador": "Guardando…",
+    "confirmacionGuardado": "Cambios guardados."
+  },
   "experiencia": {
     "titulo": "Experiencia laboral y educación",
     "agregarExperiencia": "Agregar experiencia",

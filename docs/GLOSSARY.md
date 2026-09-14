@@ -45,6 +45,7 @@ necesita una tabla, o cada persona la cruza a su manera.
 | Nivel de habilidad         | `SkillLevel`          | `level`                 | `profile:habilidades.nivel.<CODIGO>` | pendiente (C-06)                               |
 | Rol Objetivo               | `TargetRole`          | `target-roles`          | `profile:rolesObjetivo.*`            | —                                              |
 | Rol profesional (catálogo) | `ProfessionalRole`    | pendiente               | `profile:rolesObjetivo.catalogo`     | —                                              |
+| Procedencia del resumen    | `summaryProvenance`   | `summaryProvenance` (mock, CM-53) | sin llave — no se muestra al usuario | `MANUAL` · `AI_SUGGESTED` · `AI_EDITED` |
 
 **Retirados del alcance.** `seniority` sale del contrato y queda como deuda sin uso. Las expectativas
 salariales quedan fuera del producto mínimo; el recurso `salary-expectation` existe en el contrato
