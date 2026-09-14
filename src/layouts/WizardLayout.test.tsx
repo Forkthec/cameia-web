@@ -7,6 +7,7 @@
  */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { FormEvent } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { Step } from '@/design-system/molecules/Stepper';
 import { WizardLayout } from './WizardLayout';
@@ -65,5 +66,35 @@ describe('WizardLayout', () => {
     );
 
     expect(screen.queryByRole('button', { name: 'Atrás' })).not.toBeInTheDocument();
+  });
+
+  // CM-53: con `primaryActionFormId`, el botón envía el `<form>` de la
+  // sección (type="submit" + atributo form) en vez de disparar un onClick.
+  it('con primaryActionFormId dispara el submit del form en vez de onClick', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn((event: FormEvent) => event.preventDefault());
+    const onPrimaryAction = vi.fn();
+
+    render(
+      <WizardLayout
+        steps={steps}
+        stepsLabel="Progreso del asistente"
+        primaryActionLabel="Guardar borrador"
+        onPrimaryAction={onPrimaryAction}
+        primaryActionFormId="seccion-form"
+      >
+        <form id="seccion-form" onSubmit={onSubmit}>
+          <p>Paso actual</p>
+        </form>
+      </WizardLayout>,
+    );
+
+    const button = screen.getByRole('button', { name: 'Guardar borrador' });
+    expect(button).toHaveAttribute('type', 'submit');
+    expect(button).toHaveAttribute('form', 'seccion-form');
+
+    await user.click(button);
+    expect(onSubmit).toHaveBeenCalledOnce();
+    expect(onPrimaryAction).not.toHaveBeenCalled();
   });
 });

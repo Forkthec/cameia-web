@@ -3,6 +3,14 @@
  * `Stepper` y pie con la acción primaria. En móvil el botón primario ocupa el
  * ancho completo y se ancla al fondo de la pantalla; en escritorio queda en
  * el flujo normal, alineado a la derecha.
+ *
+ * `primaryActionFormId` (CM-53) conecta el botón primario con un `<form>`
+ * que vive dentro de `children`, vía el atributo HTML `form`: el botón pasa
+ * a `type="submit"` y deja de necesitar `onClick`, para que el envío real lo
+ * decida el `onSubmit` del formulario (validación incluida) y no un
+ * `onPrimaryAction` que solo sabe hacer clic. Opcional y retrocompatible:
+ * sin ella, el layout se comporta exactamente como antes (`interview-setup`
+ * no la usa).
  */
 import type { ReactNode } from 'react';
 import { Button } from '@/design-system/atoms/Button';
@@ -15,7 +23,10 @@ interface WizardLayoutProps {
   backLabel?: string;
   onBack?: () => void;
   primaryActionLabel: string;
-  onPrimaryAction: () => void;
+  /** Ignorado cuando se pasa `primaryActionFormId`: el envío lo dispara el `<form>`, no un clic. */
+  onPrimaryAction?: () => void;
+  /** Id del `<form>` (dentro de `children`) que este botón debe enviar como `type="submit"`. */
+  primaryActionFormId?: string;
   primaryActionLoading?: boolean;
   primaryActionLoadingLabel?: string;
   primaryActionDisabled?: boolean;
@@ -29,6 +40,7 @@ export function WizardLayout({
   onBack,
   primaryActionLabel,
   onPrimaryAction,
+  primaryActionFormId,
   primaryActionLoading = false,
   primaryActionLoadingLabel,
   primaryActionDisabled = false,
@@ -52,6 +64,8 @@ export function WizardLayout({
           <Button
             variant="primary"
             size="lg"
+            type={primaryActionFormId ? 'submit' : 'button'}
+            form={primaryActionFormId}
             loading
             loadingLabel={primaryActionLoadingLabel ?? primaryActionLabel}
             className="w-full md:w-auto"
@@ -62,7 +76,9 @@ export function WizardLayout({
           <Button
             variant="primary"
             size="lg"
-            onClick={onPrimaryAction}
+            type={primaryActionFormId ? 'submit' : 'button'}
+            form={primaryActionFormId}
+            onClick={primaryActionFormId ? undefined : onPrimaryAction}
             disabled={primaryActionDisabled}
             className="w-full md:w-auto"
           >
