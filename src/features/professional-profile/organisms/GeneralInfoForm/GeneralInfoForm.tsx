@@ -2,12 +2,30 @@
  * Sección «Información General» del Formulario de Perfil Profesional
  * (HU-2.3, PRT-02.03, CM-53): campo «Nombre del perfil» + sección
  * «Información General» con «Resumen profesional». Layout, jerarquía y
- * copy verificados contra el prototipo real de Figma (nodo `140:960`, lg —
- * `142:638`, sm no cambia el contenido de esta sección, solo el contenedor
- * que la envuelve, que no es responsabilidad de este organismo). Ver
- * `docs/bitacora-ia/hallazgo-figma-no-revisado-cm53.md`: la primera versión
- * de este archivo se escribió sin abrir Figma y asumía un layout de
+ * copy verificados contra el prototipo real de Figma en **ambos**
+ * breakpoints (nodo `140:960` lg, `142:638` sm) — no solo el de escritorio.
+ * Ver `docs/bitacora-ia/hallazgo-figma-no-revisado-cm53.md`: la primera
+ * versión de este archivo se escribió sin abrir Figma y asumía un layout de
  * asistente por pasos que el frame real no tiene.
+ *
+ * Los campos en sí (nombre, resumen) son idénticos en ambos breakpoints —
+ * mismo componente `input`, mismo copy, mismo alto — así que este organismo
+ * no necesita ninguna variante `sm`/`lg` propia. El encabezado de sección
+ * tampoco: `text-h2` ya cae de 26px a 21px bajo 599px
+ * (`styles/index.css:152-166`), que coincide exacto con el `text/h2-sm` de
+ * Figma (21px/700/-1.5).
+ *
+ * **Advertencia para quien arme el armazón compartido:** en `sm`, Figma
+ * dibuja el título «Información General» **una sola vez**, como el
+ * encabezado del acordeón (`142:667`) — no hay un `<h2>` interno duplicado
+ * dentro del contenido expandido. En `lg`, en cambio, el título sí vive
+ * dentro del contenido (`140:979`), separado de la etiqueta del índice
+ * lateral (`175:1392`, 14px, distinta). Si el acordeón de `sm` monta este
+ * organismo completo (con su propio `<h2>`) además de renderizar su propio
+ * encabezado de disparador, el título queda duplicado. No se resuelve aquí
+ * —depende de cómo se construya ese acordeón, fuera del alcance de CM-53—
+ * pero queda registrado para que no se repita el mismo error de no revisar
+ * Figma antes de ensamblarlo.
  *
  * Deliberadamente NO incluye el campo «Ubicación» que sí aparece en el
  * frame: ningún CA de HU-2.3 lo pide, no existe en `GLOSSARY.md` ni en el

@@ -410,6 +410,13 @@ global ya corriendo, es un segundo reset inocuo, no un conflicto.
    `AlertInline variant="success"` (decisión de Frontend, `CLAUDE.md` §16: el diseño lo fija
    Frontend cuando Figma no lo resuelve), consistente con el patrón de error ya usado en
    `ProfileMethodSelector`. Se revisa si aparece un frame de éxito más adelante.
+6. **Verificado también en `sm` (`142:638`, no solo `lg`):** los campos de esta sección son
+   idénticos en ambos breakpoints; el encabezado de sección ya escala solo (`text-h2` → 21px bajo
+   599px, coincide con `text/h2-sm` de Figma). Hallazgo para quien arme el armazón: en `sm`,
+   «Información General» aparece una sola vez, como encabezado del acordeón — no hay un `<h2>`
+   duplicado dentro del contenido expandido, a diferencia de `lg`, donde el título vive dentro del
+   contenido y el índice lateral usa una etiqueta aparte (14px). Ver el TSDoc de cabecera de
+   `GeneralInfoForm.tsx` para el detalle completo.
 
 **Notas técnicas de esta implementación (no son divergencias de diseño).**
 
