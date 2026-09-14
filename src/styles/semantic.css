@@ -1,0 +1,121 @@
+/**
+ * Tokens que sí usa la interfaz (CLAUDE.md §6). Cada uno apunta a un
+ * primitivo de primitives.css con var(), nunca a un hex — así, cambiar la
+ * paleta o soportar modo oscuro es reapuntar estas variables, no tocar
+ * componentes. Los componentes solo deberían usar los nombres de este
+ * archivo, jamás una rampa de primitives.css directamente.
+ */
+
+:root {
+  /* === Fondo === */
+  --bg-canvas: var(--neutral-50);
+  --bg-surface: var(--neutral-0);
+  --bg-surface-sunken: var(--neutral-100);
+  --bg-inverse: var(--neutral-900);
+  --bg-disabled: var(--neutral-100);
+
+  /* === Texto === */
+  --text-primary: var(--neutral-900);
+  --text-muted: var(--neutral-600);
+  --text-disabled: var(--neutral-400);
+  --text-on-inverse: var(--neutral-0);
+  --text-link: var(--indigo-500);
+
+  /* === Borde === */
+  --border-subtle: var(--neutral-200);
+  --border-strong: var(--neutral-300);
+  --border-focus: var(--indigo-400);
+
+  /* === Marca === */
+  --brand-base: var(--indigo-500);
+  --brand-tint: var(--indigo-50);
+
+  /* === Acción === */
+  --action-primary: var(--mustard-400);
+  --action-primary-hover: var(--mustard-500);
+  --action-primary-press: var(--mustard-600);
+  --action-on-primary: var(--neutral-900);
+
+  /* === Estado === */
+  --success-base: var(--green-500);
+  --success-text: var(--green-700);
+  --success-tint: var(--green-50);
+
+  --danger-base: var(--brick-500);
+  --danger-tint: var(--brick-50);
+  /* brick-500 no tiene contraste suficiente como texto; se usa el mismo
+     escalón oscuro para texto de error y para hover/press del botón
+     destructivo, igual que warning-text reutiliza amber-700. */
+  --danger-text: var(--brick-700);
+  --danger-hover: var(--brick-700);
+
+  /* Agregado para las moléculas de alerta/estado: sin esto, warning era el
+     único de los cuatro estados sin un tono medio vibrante para ícono/relleno
+     (success/danger/info sí lo tienen). Reutiliza amber-500, ya definido. */
+  --warning-base: var(--amber-500);
+  --warning-text: var(--amber-700);
+  --warning-tint: var(--amber-50);
+
+  --info-base: var(--blue-500);
+  --info-tint: var(--blue-50);
+
+  /* === Espaciado (rem, escala sobre raíz de 16px) === */
+  --space-1: 0.25rem; /* 4px */
+  --space-2: 0.5rem; /* 8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem; /* 16px */
+  --space-5: 1.5rem; /* 24px */
+  --space-6: 2rem; /* 32px */
+  --space-7: 2.5rem; /* 40px */
+  --space-8: 4rem; /* 64px */
+  --space-9: 6rem; /* 96px */
+
+  /* === Área táctil (px: es un mínimo de accesibilidad, no una medida tipográfica) === */
+  --touch-target: 44px;
+
+  /* === Radios (px: decisión de forma, no se mueve con el zoom de texto) ===
+     Prefijo "token-" a propósito: "--radius-*" es un nombre reservado del
+     tema de Tailwind (genera las utilidades rounded-*). index.css referencia
+     estas variables desde @theme; sin el prefijo, ambos archivos declararían
+     la misma custom property y se produciría una referencia circular. */
+  --token-radius-sm: 6px;
+  --token-radius-md: 10px;
+  --token-radius-lg: 18px;
+  --token-radius-xl: 26px;
+  --token-radius-full: 999px;
+
+  /* === Elevación (px: son sombras, no texto) === */
+  --elevation-0: none; /* sin sombra: el nivel 0 se resuelve con border-subtle */
+  --elevation-1: 0 1px 3px rgba(36, 53, 107, 0.07), 0 2px 12px rgba(36, 53, 107, 0.05);
+  --elevation-2: 0 2px 6px rgba(36, 53, 107, 0.09), 0 8px 24px rgba(36, 53, 107, 0.08);
+  --elevation-3: 0 4px 12px rgba(36, 53, 107, 0.1), 0 20px 48px rgba(36, 53, 107, 0.14);
+  --focus-ring:
+    0 0 0 2px var(--bg-surface), 0 0 0 4px var(--border-focus), 0 0 0 7px var(--indigo-100);
+
+  /* === Movimiento ===
+     Duraciones para transiciones/animaciones. Tailwind no tiene un namespace
+     de tema para duraciones con nombre, así que "--duration-*" no colisiona. */
+  --duration-instant: 120ms;
+  --duration-quick: 180ms;
+  --duration-smooth: 260ms;
+  --duration-deliberate: 400ms;
+
+  /* Prefijo "token-" por la misma razón que los radios: "--ease-*" es el
+     nombre reservado del tema de Tailwind (genera las utilidades ease-*). */
+  --token-ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --token-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --token-ease-inout: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/*
+ * PENDIENTE: tokens chart/* — exportar de Figma cuando entre HE-06/HE-07
+ *
+ * chart/series-1
+ * chart/series-2
+ * chart/series-3
+ * chart/track
+ * chart/positive
+ * chart/attention
+ * chart/critical
+ * chart/unavailable
+ */

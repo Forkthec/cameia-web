@@ -1,0 +1,9 @@
+{
+  // Archivo "solución": no compila nada por sí mismo, solo referencia los dos de abajo.
+  // "pnpm build"/"pnpm typecheck" corren "tsc -b" aquí, nunca "tsc --noEmit" directo:
+  // con "files" vacío eso no revisaría nada y saldría en éxito igual (CM-127).
+  "files": [],
+  // tsconfig.app.json: código de la app (src/). tsconfig.node.json: config que corre
+  // en Node (vite.config.ts).
+  "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
+}

@@ -1,0 +1,56 @@
+name: Validar plantilla de PR
+
+# "types" va explícito (no el valor por defecto de GitHub) para incluir
+# "converted_to_draft": sin él, pasar un PR a Draft no volvía a correr este check
+# y dejaba datos viejos (bug real, corregido en CM-123).
+on:
+  pull_request:
+    types: [opened, edited, synchronize, ready_for_review, converted_to_draft]
+    branches: [develop, main]
+
+jobs:
+  validar-plantilla:
+    name: Validar plantilla de PR
+    runs-on: ubuntu-latest # igual que los otros workflows del repo; sin motivo para otro
+    if: github.actor != 'dependabot[bot]' # CM-138: Dependabot no puede seguir CM-<n>-<desc> ni la plantilla de 8 campos
+    steps:
+      # Descarga el código del PR — el script del paso siguiente vive en el repo.
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Prueba el validador mismo antes de usarlo, no el PR — evita confiar en un
+      # script con un error propio.
+      - name: Autoprueba del validador (CM-123 — siempre bloqueante, no es fase informativa)
+        run: python3 .github/scripts/test_pr_policy.py
+
+      # Junta título, rama, cuerpo y estado del PR en un archivo que el validador
+      # Python del siguiente paso pueda leer.
+      - name: Preparar entrada
+        run: |
+          cat > /tmp/pr.json <<'PYEOF'
+          {
+            "title": ${{ toJSON(github.event.pull_request.title) }},
+            "head": ${{ toJSON(github.event.pull_request.head.ref) }},
+            "base": ${{ toJSON(github.event.pull_request.base.ref) }},
+            "body": ${{ toJSON(github.event.pull_request.body) }},
+            "draft": ${{ github.event.pull_request.draft }},
+            "same_repository": ${{ github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name }}
+          }
+          PYEOF
+
+      - name: Ejecutar validador (fase informativa — CM-121, no bloquea todavia)
+        continue-on-error: true
+        run: |
+          set +e
+          python3 .github/scripts/pr_policy.py /tmp/pr.json | tee /tmp/report.json
+          RESULT=$(python3 -c "import json; print(json.load(open('/tmp/report.json'))['result'])")
+          ERRORS=$(python3 -c "import json; print(len(json.load(open('/tmp/report.json'))['errors']))")
+          echo "Resultado: $RESULT — hallazgos: $ERRORS"
+          # CM-123: 'result' dice BORRADOR aunque haya errores reales cuando el PR esta en Draft
+          # (asi diseñado por el validador para no exigir campos completos mientras es WIP). Como
+          # aqui usamos Draft para "listo mientras Paula revisa", no para "aun incompleto", hay que
+          # mirar tambien 'errors' y no confiar solo en 'result'.
+          if [ "$ERRORS" != "0" ]; then
+            echo "::warning::Plantilla de PR con $ERRORS hallazgo(s) (fase informativa, CM-121/CM-123: no bloquea todavia). Ver el detalle en 'errors' arriba. Pasara a bloqueante con 5 PR consecutivos en verde o el 18-sep-2026."
+            exit 1
+          fi

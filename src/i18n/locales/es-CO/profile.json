@@ -1,0 +1,38 @@
+{
+  "asistente": {
+    "progreso": "Progreso del formulario de perfil"
+  },
+  "informacionGeneral": {
+    "titulo": "Información general",
+    "campos": {
+      "nombreCompleto": "Nombre completo",
+      "fechaNacimiento": "Fecha de nacimiento",
+      "ciudad": "Ciudad"
+    }
+  },
+  "experiencia": {
+    "titulo": "Experiencia laboral y educación",
+    "agregarExperiencia": "Agregar experiencia",
+    "agregarEducacion": "Agregar educación"
+  },
+  "habilidades": {
+    "titulo": "Habilidades y expectativas",
+    "agregarHabilidad": "Agregar habilidad"
+  },
+  "rolesObjetivo": {
+    "titulo": "Roles objetivo"
+  },
+  "metodo": {
+    "titulo": "¿Cómo quieres completarlo?",
+    "grupoEtiqueta": "Método de configuración del perfil",
+    "manual": {
+      "titulo": "Llenado Manual",
+      "descripcion": "Escribes tú cada sección. Control total sobre lo que queda escrito."
+    },
+    "ia": {
+      "titulo": "Autocompletar con IA",
+      "descripcion": "Subes tu Hoja de Vida (CV) y la IA prellena lo que encuentre. Tú revisas y corriges antes de guardar.",
+      "insignia": "Próximamente"
+    }
+  }
+}

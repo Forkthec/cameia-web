@@ -1,0 +1,164 @@
+name: Desplegar a Firebase Hosting # staging desde develop, producción solo al promover a main
+
+# Modelo de ambientes corregido el 11-sep-2026 (v2 del plan DevOps, ver
+# prompts/salidas/11092026_v2_plan-devops-72h.md sección A y ADR-0001 en docs/).
+# La versión anterior desplegaba a producción en cada push a develop, lo que
+# contradecía la guía del sprint (§2.8: "develop no es un ambiente, es la fuente
+# versionada de staging") y el Anexo_Despliegue aprobado (producción se promueve
+# manualmente desde main). No se repite ese error.
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop] # cada PR recibe su propia URL de vista previa, sin tocar ningún ambiente
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write # deja el comentario con el enlace de vista previa en el PR
+  checks: write # la acción crea un "check run" como indicador de progreso del deploy
+  id-token: write # requerido por google-github-actions/auth para pedir el token OIDC (WIF)
+
+jobs:
+  # Publica en producción real. Solo corre al fusionar el PR de promoción
+  # develop→main (Merge commit, ya revisado) — nunca por un push directo,
+  # porque develop→main tampoco lo admite. Lleva el Environment de GitHub
+  # "production", que exige aprobación del equipo cameia-devops antes de
+  # correr: la revisión del código (el PR) y la aprobación de publicarlo a
+  # producción quedan como dos pasos separados, no el mismo.
+  desplegar-main:
+    name: Desplegar a producción (main)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Habilitar pnpm vía corepack
+        run: corepack enable
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      # VITE_API_BASE_URL: sin valor todavía — el API Gateway no está desplegado
+      # (depende de que se active billing de GCP). Bloqueado por respuesta de
+      # Frontend, ver comunicaciones/11092026_frontend_variable-api-base-url.md.
+      # No se inventa un valor.
+      - name: Build
+        env:
+          VITE_APP_NAME: ${{ vars.VITE_APP_NAME }}
+          VITE_APP_ENV: production
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+        run: pnpm build
+
+      # Inicia sesión en Google Cloud con una credencial temporal que Google
+      # genera para esta ejecución puntual (Workload Identity Federation), en
+      # vez de una llave guardada para siempre. Detalle completo de por qué
+      # en la cabecera de .github/scripts/desplegar-hosting.sh.
+      #
+      # El proyecto de GCP, el proveedor de identidad y la cuenta de servicio
+      # viven como variables del repositorio (Settings → Variables), no
+      # escritos aquí a mano: si el proyecto vuelve a cambiar (ya pasó una
+      # vez, de cameia-app a cameia-e245f), se edita en un solo lugar sin
+      # tocar este archivo.
+      - name: Autenticar en GCP (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      # Deja lista la herramienta de línea de comandos de Google Cloud (gcloud),
+      # ya con la sesión temporal del paso anterior, para que el script de
+      # despliegue pueda usarla.
+      - name: Configurar gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Desplegar
+        run: .github/scripts/desplegar-hosting.sh ${{ vars.GCP_PROJECT_ID }} dist live
+
+  # Publica en un canal aparte, nunca en producción: el canal 'staging' en
+  # cada push a develop, o un canal propio por cada Pull Request para
+  # revisar un cambio antes de fusionarlo. Automático, sin revisor
+  # obligatorio — en un job separado del de producción para que el
+  # Environment de arriba no lo alcance.
+  desplegar-develop-pr:
+    name: Desplegar a staging o vista previa (develop/PR)
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/develop') || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Habilitar pnpm vía corepack
+        run: corepack enable
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      # VITE_API_BASE_URL: sin valor todavía — el API Gateway no está desplegado
+      # (depende de que se active billing de GCP). Bloqueado por respuesta de
+      # Frontend, ver comunicaciones/11092026_frontend_variable-api-base-url.md.
+      # No se inventa un valor.
+      - name: Build
+        env:
+          VITE_APP_NAME: ${{ vars.VITE_APP_NAME }}
+          VITE_APP_ENV: staging
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+        run: pnpm build
+
+      # Inicia sesión en Google Cloud con una credencial temporal (ver
+      # detalle en el job de arriba y en desplegar-hosting.sh). Mismas
+      # variables de repositorio, mismo motivo de modificabilidad.
+      - name: Autenticar en GCP (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      # Deja lista la herramienta de línea de comandos de Google Cloud (gcloud),
+      # ya con la sesión temporal del paso anterior, para que el script de
+      # despliegue pueda usarla.
+      - name: Configurar gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      # develop → canal 'staging'. Se redespliega en cada push a develop, así
+      # que la ventana de expiración se renueva en la práctica; la API de
+      # Hosting no tiene un modo "nunca expira" para canales que no sean
+      # 'live'. 30 días da margen amplio entre pushes.
+      - name: Desplegar a staging (push a develop)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        run: .github/scripts/desplegar-hosting.sh ${{ vars.GCP_PROJECT_ID }} dist channel staging 2592000
+
+      # Cada PR obtiene su propia URL de vista previa (expira sola en 7 días),
+      # sin tocar staging ni producción — así se revisa un cambio antes de
+      # fusionarlo.
+      # PENDIENTE: se perdió el comentario automático en el PR con el enlace
+      # (lo hacía la acción de Firebase). El enlace queda visible en el log
+      # de este job mientras tanto — restaurar el comentario es una mejora
+      # aparte, no bloquea el sprint.
+      - name: Vista previa (PR)
+        if: github.event_name == 'pull_request'
+        run: .github/scripts/desplegar-hosting.sh ${{ vars.GCP_PROJECT_ID }} dist channel "pr-${{ github.event.pull_request.number }}" 604800

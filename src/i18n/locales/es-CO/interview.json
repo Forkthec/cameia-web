@@ -1,0 +1,29 @@
+{
+  "asistente": {
+    "progreso": "Progreso del asistente",
+    "pasos": {
+      "ofertaYRol": "Oferta y rol",
+      "modoYTono": "Modo y tono",
+      "idiomaYFormato": "Idioma y forma de respuesta"
+    }
+  },
+  "modo": {
+    "ENTRENO": "Entreno",
+    "SIMULACION": "Simulación"
+  },
+  "tono": {
+    "PROFESIONAL_NEUTRO": "Profesional y neutro",
+    "CALIDO": "Cálido",
+    "ESTRICTO": "Estricto",
+    "MOTIVADOR": "Motivador"
+  },
+  "formaRespuesta": {
+    "TEXTO": "Texto",
+    "AUDIO": "Audio",
+    "VIDEO": "Video"
+  },
+  "idioma": {
+    "es-CO": "Español (Colombia)",
+    "en": "Inglés"
+  }
+}

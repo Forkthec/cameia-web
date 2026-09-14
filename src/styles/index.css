@@ -1,0 +1,166 @@
+/**
+ * Punto de entrada de estilos. Importa las fuentes, Tailwind 4, las rampas
+ * crudas (primitives.css) y los tokens semánticos (semantic.css), y expone
+ * todo a Tailwind con @theme (CLAUDE.md §6: no hay tailwind.config.js, Tailwind
+ * 4 se configura enteramente en CSS).
+ */
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Source+Sans+3:wght@400;600;700&display=swap');
+/* source(none): la detección automática de Tailwind escanea todo el repo, incluida
+   la prosa de CLAUDE.md/docs (que cita a propósito clases como bg-[#E8A33D] como
+   ejemplo de lo que NO hacer). Se limita el escaneo a los archivos reales de la app. */
+@import 'tailwindcss' source(none);
+@source '../**/*.{ts,tsx}';
+@source '../../index.html';
+@import './primitives.css';
+@import './semantic.css';
+
+@theme {
+  /* === Familias tipográficas === */
+  --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Source Sans 3', ui-sans-serif, system-ui, sans-serif;
+
+  /* === Breakpoints ===
+     CAMEIA no tiene un breakpoint "sm" como variante de Tailwind: 0-599px es el
+     estado por defecto (mobile-first, sin prefijo). Se limpia la escala por
+     defecto de Tailwind y solo se registran los umbrales que sí delimitan un
+     rango superior real (md 600, lg 1024, xl 1440). */
+  --breakpoint-*: initial;
+  --breakpoint-md: 600px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1440px;
+
+  /* === Colores semánticos (referencian semantic.css, nunca un hex) === */
+  --color-bg-canvas: var(--bg-canvas);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-surface-sunken: var(--bg-surface-sunken);
+  --color-bg-inverse: var(--bg-inverse);
+  --color-bg-disabled: var(--bg-disabled);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-muted: var(--text-muted);
+  --color-text-disabled: var(--text-disabled);
+  --color-text-on-inverse: var(--text-on-inverse);
+  --color-text-link: var(--text-link);
+
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+  --color-border-focus: var(--border-focus);
+
+  --color-brand-base: var(--brand-base);
+  --color-brand-tint: var(--brand-tint);
+
+  --color-action-primary: var(--action-primary);
+  --color-action-primary-hover: var(--action-primary-hover);
+  --color-action-primary-press: var(--action-primary-press);
+  --color-action-on-primary: var(--action-on-primary);
+
+  --color-success-base: var(--success-base);
+  --color-success-text: var(--success-text);
+  --color-success-tint: var(--success-tint);
+
+  --color-danger-base: var(--danger-base);
+  --color-danger-tint: var(--danger-tint);
+  --color-danger-text: var(--danger-text);
+  --color-danger-hover: var(--danger-hover);
+
+  --color-warning-base: var(--warning-base);
+  --color-warning-text: var(--warning-text);
+  --color-warning-tint: var(--warning-tint);
+
+  --color-info-base: var(--info-base);
+  --color-info-tint: var(--info-tint);
+
+  /* === Espaciado (referencia semantic.css; sin colisión de nombre) === */
+  --spacing-space-1: var(--space-1);
+  --spacing-space-2: var(--space-2);
+  --spacing-space-3: var(--space-3);
+  --spacing-space-4: var(--space-4);
+  --spacing-space-5: var(--space-5);
+  --spacing-space-6: var(--space-6);
+  --spacing-space-7: var(--space-7);
+  --spacing-space-8: var(--space-8);
+  --spacing-space-9: var(--space-9);
+  --spacing-touch-target: var(--touch-target);
+
+  /* === Radios (referencia semantic.css; "token-radius-*" no colisiona con "radius-*") === */
+  --radius-sm: var(--token-radius-sm);
+  --radius-md: var(--token-radius-md);
+  --radius-lg: var(--token-radius-lg);
+  --radius-xl: var(--token-radius-xl);
+  --radius-full: var(--token-radius-full);
+
+  /* === Elevación (referencia semantic.css; "elevation-*" no colisiona con "shadow-*") === */
+  --shadow-elevation-0: var(--elevation-0);
+  --shadow-elevation-1: var(--elevation-1);
+  --shadow-elevation-2: var(--elevation-2);
+  --shadow-elevation-3: var(--elevation-3);
+  --shadow-focus-ring: var(--focus-ring);
+
+  /* === Movimiento ===
+     Tailwind no tiene namespace para duraciones; se registra igual para
+     mantener el token en var(--duration-quick). Easing referencia
+     semantic.css igual que radios (sin colisión de nombre). */
+  --duration-instant: 120ms;
+  --duration-quick: 180ms;
+  --duration-smooth: 260ms;
+  --duration-deliberate: 400ms;
+
+  --ease-out: var(--token-ease-out);
+  --ease-in: var(--token-ease-in);
+  --ease-inout: var(--token-ease-inout);
+
+  /* === Escala tipográfica (escritorio) ===
+     font-size en rem, line-height siempre unitless. */
+  --text-display: 3.5rem;
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: -0.025em;
+  --text-display--font-weight: 800;
+
+  --text-h1: 2.25rem;
+  --text-h1--line-height: 1.111;
+  --text-h1--letter-spacing: -0.02em;
+  --text-h1--font-weight: 700;
+
+  --text-h2: 1.625rem;
+  --text-h2--line-height: 1.192;
+  --text-h2--letter-spacing: -0.015em;
+  --text-h2--font-weight: 700;
+
+  --text-h3: 1.1875rem;
+  --text-h3--line-height: 1.368;
+  --text-h3--font-weight: 600;
+
+  --text-body: 1rem;
+  --text-body--line-height: 1.625;
+  --text-body--font-weight: 400;
+
+  --text-small: 0.875rem;
+  --text-small--line-height: 1.5;
+  --text-small--font-weight: 400;
+
+  --text-label: 0.75rem;
+  --text-label--line-height: 1.333;
+  --text-label--letter-spacing: 0.09em;
+  --text-label--font-weight: 700;
+}
+
+/* Escala tipográfica en móvil (0-599px): SOLO display, h1, h2 y h3 cambian de
+   tamaño y line-height. body y label no cambian. Las variables de @theme son
+   variables CSS normales, así que se pueden reasignar en cascada dentro de un
+   @media plano — sin tocar tracking ni peso, que no están declarados aquí y
+   por lo tanto conservan el valor de escritorio. */
+@media (max-width: 599px) {
+  :root {
+    --text-display: 2.125rem;
+    --text-display--line-height: 1.059;
+
+    --text-h1: 1.625rem;
+    --text-h1--line-height: 1.192;
+
+    --text-h2: 1.3125rem;
+    --text-h2--line-height: 1.286;
+
+    --text-h3: 1.0625rem;
+    --text-h3--line-height: 1.412;
+  }
+}

@@ -1,0 +1,80 @@
+name: CI # nombre de este pipeline, visible en la pestaña "Actions" de GitHub
+
+# Corre en cada PR hacia develop/main y en cada push a develop (integración), tal como exige
+# la guía DevOps del sprint (§2.7): valida el cambio antes de fusionar y otra vez al integrar.
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop]
+
+# Cancela una corrida anterior del mismo PR/rama cuando llega un push nuevo: evita gastar
+# minutos de Actions verificando un commit que ya quedó obsoleto.
+concurrency:
+  group: ci-web-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# Mínimo privilegio (guía DevOps §2.9): este job solo lee código, no publica nada ni
+# necesita escribir en el repo.
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: Build, lint y pruebas
+    runs-on: ubuntu-latest # igual que los otros workflows del repo; sin motivo para otro
+    steps:
+      # Descarga el código del commit/PR que disparó el workflow.
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Fija la versión exacta de pnpm declarada en "packageManager" del package.json;
+      # sin esto el runner puede resolver una versión distinta a la del equipo (CM-130).
+      - name: Habilitar pnpm vía corepack
+        run: corepack enable
+
+      # Instala la versión de Node.js (el motor que ejecuta JavaScript) que usa el proyecto.
+      - name: Configurar Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc # misma fuente de verdad que el resto del equipo
+          cache: pnpm # cachea el store de pnpm entre corridas, no node_modules
+
+      # "--frozen-lockfile": falla si pnpm-lock.yaml no coincide con package.json, en
+      # vez de regenerarlo en silencio — el lockfile del CI es el mismo que el local.
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      # Revisa que el código tenga el mismo estilo de escritura (espacios, comillas...)
+      # en todo el proyecto, sin cambiar cómo funciona.
+      - name: Formato (prettier --check)
+        run: pnpm format:check
+
+      # Busca errores comunes y malas prácticas en el código antes de aceptar el cambio.
+      - name: Lint (eslint)
+        run: pnpm lint
+
+      # Revisa que el código use bien los tipos de datos, sin llegar a ejecutarlo.
+      - name: Typecheck (tsc -b, ver tsconfig.json)
+        run: pnpm typecheck
+
+      # Corre las pruebas automáticas y mide qué porcentaje del código quedó cubierto.
+      - name: Pruebas + cobertura (gate 70%, ver vite.config.ts)
+        run: pnpm test:coverage
+
+      # Genera los archivos finales optimizados, listos para publicar en Firebase Hosting.
+      - name: Build de producción
+        run: pnpm build
+
+      # "if: always()" publica el artefacto incluso si un paso anterior falló, para
+      # poder inspeccionar qué se alcanzó a generar sin repetir la corrida completa.
+      - name: Publicar artefactos (build + reporte de cobertura)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cameia-web-build-cobertura
+          path: |
+            dist/
+            coverage/
+          retention-days: 14 # suficiente para revisar un PR sin acumular basura
+          if-no-files-found: warn # no falla el job si algún paso previo no llegó a generarlo
