@@ -1,10 +1,28 @@
 /**
- * Formulario de Información General del Perfil Profesional (HU-2.3,
- * PRT-02.03, CM-53): captura `name` y `summary`. Se renderiza como
- * `<form id={formId}>` para que el botón primario de `WizardLayout`
- * (`primaryActionFormId`) lo envíe por `type="submit"`/`form` en vez de un
- * `onClick` — así el envío pasa siempre por la validación de
- * `react-hook-form` antes de llegar a `onSubmit`.
+ * Sección «Información General» del Formulario de Perfil Profesional
+ * (HU-2.3, PRT-02.03, CM-53): campo «Nombre del perfil» + sección
+ * «Información General» con «Resumen profesional». Layout, jerarquía y
+ * copy verificados contra el prototipo real de Figma (nodo `140:960`, lg —
+ * `142:638`, sm no cambia el contenido de esta sección, solo el contenedor
+ * que la envuelve, que no es responsabilidad de este organismo). Ver
+ * `docs/bitacora-ia/hallazgo-figma-no-revisado-cm53.md`: la primera versión
+ * de este archivo se escribió sin abrir Figma y asumía un layout de
+ * asistente por pasos que el frame real no tiene.
+ *
+ * Deliberadamente NO incluye el campo «Ubicación» que sí aparece en el
+ * frame: ningún CA de HU-2.3 lo pide, no existe en `GLOSSARY.md` ni en el
+ * contrato — es el bloqueo C-10 de `SPEC.md` §8 (CLAUDE.md §16: en
+ * comportamiento manda el backlog, siempre, aunque Figma ya lo dibuje).
+ *
+ * Tampoco arma el `<h2>Información General</h2>` como una pieza aislada de
+ * layout de página: esta sección se renderiza como fragmento, lista para
+ * insertarse dentro del armazón compartido (índice de secciones + barra de
+ * acciones) que construye quien lo arme primero — no es trabajo de CM-53
+ * (SPEC.md §3.2, §9).
+ *
+ * Se renderiza como `<form id={formId}>` para que, cuando exista el botón
+ * real («Guardar borrador», fuera de este componente), pueda enviarlo por
+ * el atributo HTML `form` en vez de por `onClick`.
  *
  * Los campos van por `<Controller>`, no por `register()`: `Input` (átomo
  * del design system) no acepta `ref` — no usa `forwardRef` ni expone `ref`
@@ -12,9 +30,9 @@
  * así que `register()` no tiene dónde enganchar el nodo del DOM.
  *
  * `name`/`summary` (los valores iniciales) se pasan por props en vez de que
- * el propio formulario haga el `fetch`: quien lo monta (`EditProfilePage`)
- * decide cuándo hay datos suficientes para montar el formulario, y este
- * componente no necesita saber que existe una petición de red detrás.
+ * el propio formulario haga el `fetch`: quien lo monta decide cuándo hay
+ * datos suficientes para montar el formulario, y este componente no
+ * necesita saber que existe una petición de red detrás.
  *
  * Igual que `ProfileMethodSelector` (CM-46), sigue la regla de CLAUDE.md
  * §14.7 aunque viva en `features`: no llama `useTranslation`, todo texto
@@ -31,20 +49,27 @@ import { NAME_MAX_LENGTH, SUMMARY_MAX_LENGTH } from '../../model/profile.constan
 import { generalInfoSchema, type GeneralInfoFormValues } from '../../schemas/generalInfo.schema';
 
 interface GeneralInfoFormProps {
-  /** Id del `<form>` que el botón primario del `WizardLayout` envía. */
+  /** Id del `<form>`, para que el botón real de guardado (fuera de este componente) lo envíe por el atributo HTML `form`. */
   formId: string;
   name: string;
   summary: string;
+  /** «Información General» — encabezado de la sección (nodo `140:979` del frame). */
+  sectionTitle: string;
   /** `true` mientras la mutación de guardado está en curso: deshabilita los campos. */
   isSaving?: boolean;
   onSubmit: (values: GeneralInfoFormValues) => void;
   nameLabel: string;
+  /** Copia literal del frame: `Por ejemplo: "Analista de datos" o "Producto senior".` */
+  nameHelperText: string;
+  /** Copia literal del frame: `Escribe aquí`. */
+  namePlaceholder: string;
   /** CA-2.3.5: `name` vacío. */
   nameErrorRequired: string;
   /** CA-2.3.5: `name` mayor a 120 caracteres. */
   nameErrorTooLong: string;
   summaryLabel: string;
-  summaryHelperText?: string;
+  /** Copia literal del frame: `Escribe aquí. Este campo crece con el contenido.` */
+  summaryPlaceholder: string;
   /** CA-2.3.3: red de seguridad si `summary` llega a superar 2000 caracteres pese al `maxLength` del campo. */
   summaryErrorTooLong: string;
   /** Recibe el conteo y el máximo ya interpolados (ver `CharacterCounter`). */
@@ -56,13 +81,16 @@ export function GeneralInfoForm({
   formId,
   name,
   summary,
+  sectionTitle,
   isSaving = false,
   onSubmit,
   nameLabel,
+  nameHelperText,
+  namePlaceholder,
   nameErrorRequired,
   nameErrorTooLong,
   summaryLabel,
-  summaryHelperText,
+  summaryPlaceholder,
   summaryErrorTooLong,
   summaryCounterLabel,
   className,
@@ -75,7 +103,9 @@ export function GeneralInfoForm({
   return (
     <form
       id={formId}
-      className={cn('gap-space-5 flex flex-col', className)}
+      // gap-space-7 (40px): el mismo espacio que separa "campo-nombre-del-perfil"
+      // de "seccion-informacion-general" en el frame (nodo 140:977, "formulario").
+      className={cn('gap-space-7 flex flex-col', className)}
       // `handleSubmit` devuelve una función async (el resolver de zod lo es);
       // el `onSubmit` nativo espera `void`, de ahí el `void` explícito.
       onSubmit={(event) => void handleSubmit(onSubmit)(event)}
@@ -87,6 +117,7 @@ export function GeneralInfoForm({
         render={({ field, fieldState }) => (
           <FormField
             label={nameLabel}
+            helperText={fieldState.error ? undefined : nameHelperText}
             error={
               fieldState.error?.type === 'too_small'
                 ? nameErrorRequired
@@ -99,6 +130,7 @@ export function GeneralInfoForm({
               value={field.value}
               onChange={field.onChange}
               onBlur={field.onBlur}
+              placeholder={namePlaceholder}
               maxLength={NAME_MAX_LENGTH}
               state={isSaving ? 'disabled' : fieldState.error ? 'error' : 'default'}
             />
@@ -106,33 +138,38 @@ export function GeneralInfoForm({
         )}
       />
 
-      <Controller
-        control={control}
-        name="summary"
-        render={({ field, fieldState }) => (
-          <div className="gap-space-1 flex flex-col">
-            <FormField
-              label={summaryLabel}
-              helperText={fieldState.error ? undefined : summaryHelperText}
-              error={fieldState.error?.type === 'too_big' ? summaryErrorTooLong : undefined}
-            >
-              <Input
-                type="textarea"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                maxLength={SUMMARY_MAX_LENGTH}
-                state={isSaving ? 'disabled' : fieldState.error ? 'error' : 'default'}
+      {/* seccion-informacion-general (nodo 140:978): encabezado + resumen.
+          El campo "Ubicación" del frame se omite a propósito — bloqueo C-10. */}
+      <div className="gap-space-4 flex flex-col">
+        <h2 className="text-h2 font-display text-text-primary">{sectionTitle}</h2>
+        <Controller
+          control={control}
+          name="summary"
+          render={({ field, fieldState }) => (
+            <div className="gap-space-1 flex flex-col">
+              <FormField
+                label={summaryLabel}
+                error={fieldState.error?.type === 'too_big' ? summaryErrorTooLong : undefined}
+              >
+                <Input
+                  type="textarea"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder={summaryPlaceholder}
+                  maxLength={SUMMARY_MAX_LENGTH}
+                  state={isSaving ? 'disabled' : fieldState.error ? 'error' : 'default'}
+                />
+              </FormField>
+              <CharacterCounter
+                count={field.value.length}
+                max={SUMMARY_MAX_LENGTH}
+                formatLabel={summaryCounterLabel}
               />
-            </FormField>
-            <CharacterCounter
-              count={field.value.length}
-              max={SUMMARY_MAX_LENGTH}
-              formatLabel={summaryCounterLabel}
-            />
-          </div>
-        )}
-      />
+            </div>
+          )}
+        />
+      </div>
     </form>
   );
 }

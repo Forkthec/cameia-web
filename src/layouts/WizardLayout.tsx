@@ -1,8 +1,15 @@
 /**
- * Plantilla de los asistentes de pasos (PRT-02.03 · PRT-04.*): encabezado con
- * `Stepper` y pie con la acción primaria. En móvil el botón primario ocupa el
- * ancho completo y se ancla al fondo de la pantalla; en escritorio queda en
- * el flujo normal, alineado a la derecha.
+ * Plantilla de los asistentes de pasos (PRT-04.*): encabezado con `Stepper`
+ * y pie con la acción primaria. En móvil el botón primario ocupa el ancho
+ * completo y se ancla al fondo de la pantalla; en escritorio queda en el
+ * flujo normal, alineado a la derecha.
+ *
+ * **No es la plantilla de PRT-02.03** (Formulario de Perfil Profesional):
+ * verificado contra Figma en CM-53 — esa pantalla no es un asistente por
+ * pasos, es una página única con índice de secciones y una barra de
+ * acciones compartida (`docs/bitacora-ia/hallazgo-figma-no-revisado-cm53.md`).
+ * `ARCHITECTURE.md` §2 y `SPEC.md` de `professional-profile` citaban esta
+ * plantilla para esa pantalla sin haberlo comprobado; ya corregido en ambos.
  */
 import type { ReactNode } from 'react';
 import { Button } from '@/design-system/atoms/Button';

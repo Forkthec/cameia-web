@@ -9,7 +9,7 @@ documentacion: tsdoc-es
 backlog: 12092026_01
 decisiones: [10092026_v1, 11092026_v2, 11092026_v1]
 figma: Cameia · Mockups MVP
-revisado: 2026-09-13
+revisado: 2026-09-14
 ---
 
 # Feature · Perfil Profesional
@@ -48,10 +48,23 @@ secciones hasta finalizarlo.
 
 ## 3. Comportamiento esperado
 
-`app/router/routes.ts` declara tres rutas para esta feature. Las subsecciones 2 a 4 son **tres
-pasos del mismo asistente** sobre `/perfiles/:id/editar` — comparten ruta, tal como ya lo documenta
-el TSDoc de `EditProfilePage.tsx`: «los 3 pasos del formulario de perfil comparten esta misma
-ruta» — y no tres pantallas independientes.
+`app/router/routes.ts` declara tres rutas para esta feature. Las subsecciones 2 a 4 **no son pasos
+de un asistente**: son las cuatro secciones (Información General, Formación académica, Experiencia
+Laboral, Expectativas Profesionales — esta última fuera del MVP, D-02) de **una sola página** en
+`/perfiles/:id/editar`, verificado contra el prototipo real de Figma en CM-53 (nodos `140:960` lg /
+`142:638` sm de `PRT-02.03 · Formulario de Perfil Profesional`). La página tiene un índice de
+secciones (`step-list` vertical en `lg`, acordeón en `sm`) y una barra de acciones **compartida
+entre las cuatro secciones**, con una `progress-bar` de completitud del perfil y dos botones:
+«Guardar borrador» (`variant=secondary`) y «Finalizar y Continuar» (`variant=primary`, deshabilitado
+hasta que las cuatro secciones cumplan sus requisitos). Ninguna sección tiene su propio botón de
+guardado ni su propio estado de carga de página — todo eso lo posee el armazón compartido, que
+sigue sin dueño (ver nota técnica en §9). Antes de esta verificación, `docs/ARCHITECTURE.md` §2, el
+TSDoc de `WizardLayout.tsx` y una versión anterior de esta misma sección citaban un asistente
+paginado que el frame real no tiene — ya corregido en los tres lugares
+(`docs/bitacora-ia/hallazgo-figma-no-revisado-cm53.md`). **§3.3 y §3.4 abajo (CM-61, CM-65, todavía
+sin construir) conservan el lenguaje de «paso 2»/«paso 3» heredado de ese mismo error, sin
+verificar** — no se reescriben aquí por no ser el alcance de CM-53; quien abra esos tickets debe
+releerlas contra Figma antes de darlas por buenas.
 
 **Nota transversal de "Sin permiso" para las cinco subsecciones:** las cinco viven detrás de
 `RequireAuth` (`CLAUDE.md` §11), que redirige a `/ingresar` antes de montar la página; ese caso no
@@ -106,19 +119,35 @@ Fuente: backlog 12092026_01, hoja «Criterios de aceptación», HU-2.2, CA-2.2.1
   nombre que validar — a diferencia de una versión anterior de esta subsección, escrita contra el
   backlog del 6-sep, que sí lo tenía (ver §9).
 
-### 3.2 · `/perfiles/:id/editar` (paso 1) — Información general · `PRT-02.03` · CM-53
+### 3.2 · `/perfiles/:id/editar` — Sección «Información General» · `PRT-02.03` · CM-53
 
 **Qué hace**
 
-- Captura `name` y `summary` del perfil ya creado. Al guardar, `summaryProvenance` se recalcula
-  según CA-2.3.1/CA-2.3.2/CA-2.3.4 (ver §4); el cliente nunca lo envía.
+- Dentro de la página única (ver nota de §3), el campo «Nombre del perfil» (fuera de cualquier
+  encabezado de sección en el frame, pero es el primer dato que captura la página) y la sección
+  «Información General» con «Resumen profesional». Captura `name` y `summary` del perfil ya creado.
+  Al guardar, `summaryProvenance` se recalcula según CA-2.3.1/CA-2.3.2/CA-2.3.4 (ver §4); el cliente
+  nunca lo envía.
+- **Alcance real entregado por CM-53: el organismo `GeneralInfoForm`, no la página.** El frame
+  incluye un índice de secciones, una `progress-bar` de completitud (que cuenta campos de las
+  cuatro secciones) y dos botones compartidos con «Finalizar y Continuar» — nada de eso depende
+  solo de esta sección, y construirlo ahora sería inventar el comportamiento de secciones que
+  CM-61/CM-65/CM-69 todavía no tienen. Por decisión explícita (13-sep-2026): CM-53 entrega
+  `GeneralInfoForm` listo para insertarse; `EditProfilePage.tsx` sigue siendo el placeholder de
+  `EmptyState` hasta que alguien arme el armazón completo. Los estados de Carga/Error/Sin permiso
+  de la tabla de abajo describen el comportamiento **previsto de la página**, no algo que CM-53
+  implemente todavía — `fetchProfile`/`useProfileQuery` y `updateGeneralInfo`/
+  `useUpdateProfileGeneralInfo` ya existen y los prueba su propia suite, listos para que la página
+  los consuma.
+- **No incluye el campo «Ubicación»** que el frame sí dibuja en esta sección: ningún CA de HU-2.3 lo
+  menciona, no existe en `GLOSSARY.md` ni en el contrato — bloqueo **C-10** (§8).
 
 **Estados**
 
 | Estado      | Qué muestra                                                                           |
 | ----------- | ------------------------------------------------------------------------------------- |
 | Carga       | Estado de carga mientras se obtiene el perfil por `id` antes de mostrar el formulario |
-| Vacío       | No aplica: el perfil siempre existe en este punto (se creó en el paso anterior)       |
+| Vacío       | No aplica: el perfil siempre existe en este punto (se creó en el método de configuración) |
 | Error       | Perfil inexistente → `errors:codigos.NOT_FOUND`; fallo de red → `errors:red`          |
 | Sin permiso | Ver nota transversal arriba                                                           |
 
@@ -126,8 +155,9 @@ Fuente: backlog 12092026_01, hoja «Criterios de aceptación», HU-2.2, CA-2.2.1
 
 - `name`: vacío o mayor a 120 caracteres bloquea sin llamar al servidor (CA-2.2.1 a CA-2.2.3). Llave
   de error: `errors:codigos.PROFILE_NAME_INVALID` (ver §4).
-- `summary`: más de 2000 caracteres bloquea sin llamar al servidor y muestra el contador de
-  caracteres restantes (CA-2.3.3, `GLOSSARY.md` §2).
+- `summary`: más de 2000 caracteres bloquea sin llamar al servidor (`maxLength` del campo) y muestra
+  el contador de caracteres restantes (CA-2.3.3, `GLOSSARY.md` §2). El frame de Figma muestra el
+  contador en 600, no 2000 — se mantiene 2000 por decisión explícita (bloqueo **C-11**, §8).
 
 ### 3.3 · `/perfiles/:id/editar` (paso 2) — Experiencia laboral y educación · `PRT-02.03` · CM-61
 
@@ -286,22 +316,21 @@ memoria, no un handler HTTP. El endpoint real de `PROFESSIONAL_ROLES` es depende
 | `src/features/professional-profile/model/profile.types.ts`                                      | §3.2 (CM-53): tipos de dominio `Profile`, `SummaryProvenance`                                                              | cubierto por las pruebas de `GeneralInfoForm` y `EditProfilePage`                                    |
 | `src/features/professional-profile/schemas/generalInfo.schema.ts`                                | §3.2 (CM-53): validación zod de `name`/`summary`, sin mensajes de texto (CLAUDE.md §3.2)                                   | `src/features/professional-profile/organisms/GeneralInfoForm/GeneralInfoForm.test.tsx`             |
 | `src/features/professional-profile/organisms/GeneralInfoForm/GeneralInfoForm.tsx`                | §3.2 (CM-53): el formulario de Información General — react-hook-form + zod, `<Controller>` (Input no acepta `ref`)         | `src/features/professional-profile/organisms/GeneralInfoForm/GeneralInfoForm.test.tsx`             |
-| `src/features/professional-profile/api/profile.dto.ts`                                          | §3.2 (CM-53): forma cruda del `ProfileRecord` que necesita este paso                                                       | cubierto por `src/features/professional-profile/pages/EditProfilePage.test.tsx` (integración vía MSW) |
-| `src/features/professional-profile/api/profile.mapper.ts`                                       | §3.2 (CM-53): `ProfileDto → Profile`                                                                                       | cubierto por `src/features/professional-profile/pages/EditProfilePage.test.tsx` (integración vía MSW) |
-| `src/features/professional-profile/api/profile.api.ts`                                          | §3.2 (CM-53): `fetchProfile`/`updateGeneralInfo` contra el mock                                                             | cubierto por `src/features/professional-profile/pages/EditProfilePage.test.tsx` (integración vía MSW) |
-| `src/features/professional-profile/hooks/useProfileQuery.ts`                                    | §3.2 (CM-53): `useQuery` del perfil por id                                                                                 | cubierto por `src/features/professional-profile/pages/EditProfilePage.test.tsx`                     |
-| `src/features/professional-profile/hooks/useUpdateProfileGeneralInfo.ts`                        | §3.2 (CM-53): `useMutation` del guardado                                                                                   | cubierto por `src/features/professional-profile/pages/EditProfilePage.test.tsx`                     |
-| `src/features/professional-profile/pages/EditProfilePage.tsx`                                    | §3.2 (CM-53): estados Carga/Error/formulario real; deja de ser placeholder para el paso 1                                  | `src/features/professional-profile/pages/EditProfilePage.test.tsx`                                  |
-| `src/layouts/WizardLayout.tsx`                                                                    | Prop `primaryActionFormId` (CM-53): el botón primario dispara el `<form>` de la sección en vez de un `onClick`             | `src/layouts/WizardLayout.test.tsx`                                                                  |
+| `src/features/professional-profile/api/profile.dto.ts`                                          | §3.2 (CM-53): forma cruda del `ProfileRecord` que necesita esta sección                                                    | cubierto por `useProfileQuery.test.tsx`/`useUpdateProfileGeneralInfo.test.tsx` (integración vía MSW) |
+| `src/features/professional-profile/api/profile.mapper.ts`                                       | §3.2 (CM-53): `ProfileDto → Profile`                                                                                       | cubierto por `useProfileQuery.test.tsx`/`useUpdateProfileGeneralInfo.test.tsx` (integración vía MSW) |
+| `src/features/professional-profile/api/profile.api.ts`                                          | §3.2 (CM-53): `fetchProfile`/`updateGeneralInfo` contra el mock                                                             | cubierto por `useProfileQuery.test.tsx`/`useUpdateProfileGeneralInfo.test.tsx` (integración vía MSW) |
+| `src/features/professional-profile/hooks/useProfileQuery.ts`                                    | §3.2 (CM-53): `useQuery` del perfil por id, listo para que la página lo consuma cuando exista                              | `src/features/professional-profile/hooks/useProfileQuery.test.tsx`                                   |
+| `src/features/professional-profile/hooks/useUpdateProfileGeneralInfo.ts`                        | §3.2 (CM-53): `useMutation` del guardado, escribe la respuesta directo en la caché de `useProfileQuery`                     | `src/features/professional-profile/hooks/useUpdateProfileGeneralInfo.test.tsx`                       |
 | `src/features/professional-profile/routes.tsx`                                                  | Mapea la ruta «/perfiles/nuevo» bajo `professionalProfileShellRoutes` (se anida en AppShell, ver §9)                       | `src/app/router/index.test.tsx` (features no puede importar RequireAuth, ver §9)                    |
 | `src/test/setup.ts`                                                                              | Infraestructura de apoyo: reinicia `src/mocks/handlers/profiles.handlers.ts` (función `resetProfiles`) antes de cada prueba de toda la suite, ver §9 | —                                                                        |
 | `src/test/msw.ts`                                                                                | Infraestructura de apoyo: instala handlers puntuales de MSW desde una prueba de feature, ver §9                             | —                                                                                                  |
 
-`ProfileRolesPage.tsx` sigue siendo placeholder con `EmptyState`, sin lógica de formulario.
-`NewProfilePage.tsx` y `EditProfilePage.tsx` ya no lo son: son las páginas reales de §3.1 y §3.2.
-El paso 1 de `EditProfilePage.tsx` no incluye máquina de pasos ni navegación entre los tres pasos
-del asistente — esa pieza sigue sin dueño, se construye cuando CM-61 o CM-65 la necesiten
-(`docs/ARCHITECTURE.md` §5, regla de crecimiento).
+`EditProfilePage.tsx` y `ProfileRolesPage.tsx` siguen siendo placeholders con `EmptyState`, sin
+lógica de formulario — `EditProfilePage.tsx` no se toca en CM-53 (ver nota de §3 y §9: se construyó
+y se revirtió tras verificar que el armazón real de PRT-02.03 no es un asistente por pasos).
+`NewProfilePage.tsx` sigue siendo la única página real de esta feature. `WizardLayout.tsx` tampoco
+cambia: la prop `primaryActionFormId` que CM-53 le agregó se revirtió por no tener ningún consumidor
+una vez descartado su uso en esta pantalla (`docs/bitacora-ia/hallazgo-figma-no-revisado-cm53.md`).
 
 ## 8. Bloqueos
 
@@ -319,6 +348,8 @@ seguimiento de Frontend a la respuesta del PO del 11-sep).
 | C-06 | Valores de `SkillLevel`; criterio de duplicado con texto libre («Java» vs «java»); límite de caracteres por habilidad y máximo por perfil                                                                                                                                | Product Owner / Backend      | sin respuesta del PO al 11-sep-2026 |
 | C-07 | Si la lista `TECHNICAL`/`UNDERGRADUATE`/`POSTGRADUATE` (sin tecnólogo, agrupando especialización/maestría/doctorado) es intencional; textos en español a mostrar; confirmar que se pierde el estado «interrumpida» de una formación                                      | Product Owner                | sin respuesta del PO al 11-sep-2026 |
 | C-09 | Origen documentable de `preferredModality` — cero ocurrencias en el backlog, `GLOSSARY.md` o los tres memos de decisiones; no se implementa hasta que exista                                                                                                             | Backend / Product Owner      | detectado 13-sep-2026, CM-53        |
+| C-10 | El frame real de PRT-02.03 (nodo `140:960`/`142:638`) dibuja un campo «Ubicación» en la sección Información General que ningún CA de HU-2.3 menciona, que no está en `GLOSSARY.md` ni en el contrato de mocks — ¿entra a HU-2.3, es de otra HU, o el frame quedó desactualizado? No se construye hasta confirmar | Product Owner                | detectado 14-sep-2026, CM-53        |
+| C-11 | El mismo frame muestra el contador de `summary` en «0 / 600 caracteres»; `GLOSSARY.md` §2, HU-2.5 (backlog 12-sep) y el memo del PO del 11-sep dicen 2000. CM-53 mantuvo 2000 por decisión explícita del usuario, pero uno de los dos artefactos (el frame o el glosario) está desactualizado y nadie lo ha corregido | Product Owner / Diseño       | detectado 14-sep-2026, CM-53        |
 
 ## 9. Notas
 
@@ -357,6 +388,29 @@ global ya corriendo, es un segundo reset inocuo, no un conflicto.
    avatar y el menú de usuario del `nav-header` del frame lg también quedan fuera: son controles, y
    no existe todavía el flujo de cuenta ni de cierre de sesión.
 
+**Divergencias respecto a Figma, PRT-02.03 (CM-53, verificadas 14-sep-2026 — nodos `140:960` lg /
+`142:638` sm).**
+
+1. **El armazón no es un asistente por pasos.** Corrige la lectura original de esta SPEC y de
+   `docs/ARCHITECTURE.md` §2 (ver nota de §3): la página real tiene un índice de secciones
+   (`step-list` vertical en `lg`, acordeón en `sm`) y una barra de acciones compartida entre las
+   cuatro secciones, no un `Stepper` horizontal ni un botón por paso.
+2. **«Guardar borrador» es `variant=secondary`, no primario.** El botón primario real (mostaza) es
+   «Finalizar y Continuar», deshabilitado hasta cumplir los requisitos de las cuatro secciones —
+   coherente con la regla R3 del propio archivo de Figma («un solo primario mostaza, nunca dos a la
+   vez»). Ninguno de los dos botones lo construye CM-53 (ver nota de §3.2).
+3. **Campo «Ubicación»**, dibujado en la sección Información General: no se construye — bloqueo
+   C-10 (§8), el backlog no lo pide.
+4. **Contador de `summary` en 600, no 2000**: se mantiene 2000 por decisión explícita (bloqueo
+   C-11, §8) porque tres fuentes independientes (`GLOSSARY.md` §2, HU-2.5 del backlog 12-sep, el
+   memo del PO del 11-sep) lo respaldan y solo el frame (sin actualizar desde entonces, como ya le
+   pasó a la tarjeta de IA de PRT-02.02) dice 600.
+5. **Confirmación visual de guardado (CA-2.3.1) sin frame que la respalde.** Ningún frame de
+   PRT-02.03 revisado muestra un estado de éxito — solo el de «validación de campos». Se usa
+   `AlertInline variant="success"` (decisión de Frontend, `CLAUDE.md` §16: el diseño lo fija
+   Frontend cuando Figma no lo resuelve), consistente con el patrón de error ya usado en
+   `ProfileMethodSelector`. Se revisa si aparece un frame de éxito más adelante.
+
 **Notas técnicas de esta implementación (no son divergencias de diseño).**
 
 4. `NewProfilePage.tsx` tipa `{ id: string }` en el propio archivo de la página en vez de crear ya
@@ -388,10 +442,13 @@ global ya corriendo, es un segundo reset inocuo, no un conflicto.
 10. `summaryProvenance`/`summaryProvenanceOrigin` (CM-53) se añaden al contrato de mocks para que
     CA-2.3.1, CA-2.3.2 y CA-2.3.4 sean demostrables. Su lógica de transición vive en
     `profiles.handlers.ts`, no en el cliente; se revisa cuando exista el contrato real (C-01).
-11. `WizardLayout` (CM-53) gana la prop opcional `primaryActionFormId` para que su botón primario
-    dispare por `type="submit"`/`form` el `<form>` de la sección en vez de un `onClick` —
-    retrocompatible: `interview-setup`, que no la usa, sigue con el comportamiento anterior.
-    Documentado también en el TSDoc del propio layout.
+11. **Revertido (14-sep-2026):** CM-53 había agregado a `WizardLayout` la prop opcional
+    `primaryActionFormId` y cableado `EditProfilePage.tsx` sobre esa plantilla con
+    `GeneralInfoForm` ya insertado. Al verificar el frame real de PRT-02.03 en Figma resultó que
+    esta pantalla no usa `WizardLayout` — se revirtieron ambos cambios
+    (`docs/bitacora-ia/hallazgo-figma-no-revisado-cm53.md`). `GeneralInfoForm` (§3.2) se conserva,
+    reescrito para la fidelidad real del frame; `WizardLayout.tsx` y `EditProfilePage.tsx` quedan
+    exactamente como estaban en `develop` antes de CM-53.
 
 **Divergencias conscientes, registradas sin corregirlas (fuera del alcance de este archivo):**
 
