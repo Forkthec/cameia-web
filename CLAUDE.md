@@ -407,6 +407,18 @@ escribiendo código**: si el trabajo lo toca, para y pregunta.
 ## 13. Cómo trabajar en este repositorio
 
 - Antes de tocar código de una feature, lee su `SPEC.md` (§16).
+- **Antes de tocar código de una pantalla con prototipo (cualquier `PRT-XX.XX`), ábrelo y
+  revísalo en vivo en Figma** (`get_metadata` para ubicar el frame exacto por su nombre, luego
+  `get_design_context` con la skill `figma-design-to-code` cargada primero) — layout, componentes
+  usados, copy literal y estados. **Que `SPEC.md`, un ADR o un commit anterior ya describan el
+  diseño no es evidencia de que alguien lo comprobó contra Figma esa vez.** CM-53 se construyó
+  completo (organismo, página, mocks, pruebas, 4 commits) asumiendo un asistente por pasos
+  (`WizardLayout`) porque así lo describía la documentación heredada, sin abrir el archivo real;
+  el prototipo real de PRT-02.03 es una sola página con índice de secciones (`step-list` en
+  desktop, acordeón en `sm`) y una barra de acciones compartida — nada de wizard paginado. Hubo
+  que revertir y rehacer. Incidente completo en
+  `docs/bitacora-ia/hallazgo-figma-no-revisado-cm53.md`. Si no hay una URL de Figma con `node-id`
+  a la mano, se pide antes de escribir código, no después.
 - Antes de escribir código, mira si el componente ya existe en `design-system/`.
 - Antes de crear un archivo, mira si su carpeta ya tiene la convención definida arriba.
 - Cambios grandes: propón el plan y espera confirmación antes de generar archivos.
