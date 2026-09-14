@@ -10,6 +10,21 @@
       "ciudad": "Ciudad"
     }
   },
+  "general": {
+    "nombre": {
+      "etiqueta": "Nombre del perfil",
+      "errorRequerido": "Ingresa un nombre para el perfil.",
+      "errorLongitud": "El nombre no puede superar los 120 caracteres."
+    },
+    "resumen": {
+      "etiqueta": "Resumen profesional",
+      "ayuda": "Cuenta brevemente tu experiencia y lo que buscas en tu próximo rol.",
+      "errorLongitud": "El resumen no puede superar los 2000 caracteres.",
+      "contador": "{{count}}/{{max}} caracteres"
+    },
+    "guardarBorrador": "Guardar borrador",
+    "confirmacionGuardado": "Cambios guardados."
+  },
   "experiencia": {
     "titulo": "Experiencia laboral y educación",
     "agregarExperiencia": "Agregar experiencia",

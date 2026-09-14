@@ -4,6 +4,7 @@
   "codigos": {
     "NOT_FOUND": "No encontramos lo que buscabas.",
     "VALIDATION_ERROR": "Revisa los datos ingresados.",
-    "UNAUTHORIZED": "Tu sesión expiró. Vuelve a iniciar sesión."
+    "UNAUTHORIZED": "Tu sesión expiró. Vuelve a iniciar sesión.",
+    "PROFILE_NAME_INVALID": "El nombre del perfil no es válido."
   }
 }
