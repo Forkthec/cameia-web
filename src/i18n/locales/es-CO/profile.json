@@ -23,6 +23,7 @@
       "contador": "{{count}}/{{max}} caracteres"
     },
     "guardarBorrador": "Guardar borrador",
+    "guardandoBorrador": "Guardando…",
     "confirmacionGuardado": "Cambios guardados."
   },
   "experiencia": {
