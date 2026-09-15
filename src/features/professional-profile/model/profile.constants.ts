@@ -4,11 +4,12 @@
  * `CharacterCounter` — nunca repetidas como número suelto en otro archivo
  * (CLAUDE.md §7, ninguna constante de negocio se hardcodea sin origen).
  *
- * `NAME_MAX_LENGTH` viene de CA-2.3.5 (backlog vigente `13092026_01`,
- * idéntico al 6-sep y al 12-sep para esta regla). El memo del PO del
- * 11-sep pide 255, pero esa cifra nunca llegó al backlog ni tiene fuente
- * documentable (bloqueo C-01, `SPEC.md` §8) — manda el backlog
- * (CLAUDE.md §16), así que se mantiene 120 hasta que se resuelva C-01.
+ * `NAME_MAX_LENGTH` es 255, confirmado por la respuesta oficial del PO del
+ * 13-sep (`docs/decisiones/13092026_v1_respuesta-oficial-frontend-C01-C09.md`
+ * C-01): fuente única es el código/OpenAPI de MicroPerfilPro, ya reflejado en
+ * el backlog corregido `13092026_01_Backlog.xlsx`. Cierra el bloqueo C-01 de
+ * `SPEC.md` §8, que fijaba 120 mientras la cifra de 255 no tenía fuente
+ * documentable.
  *
  * `SUMMARY_MAX_LENGTH` viene de `docs/GLOSSARY.md` §2, respaldado también
  * por HU-2.5 (backlog 12-sep) y por el memo del PO del 11-sep (línea 155):
@@ -41,7 +42,7 @@
  */
 import type { DataProvenance, EducationLevel } from './profile.types';
 
-export const NAME_MAX_LENGTH = 120;
+export const NAME_MAX_LENGTH = 255;
 export const SUMMARY_MAX_LENGTH = 2000;
 
 export const DESCRIPTION_MAX_LENGTH = 500;

@@ -24,7 +24,7 @@
       "placeholder": "Escribe aquí",
       "ayuda": "Por ejemplo: \"Analista de datos\" o \"Producto senior\".",
       "errorRequerido": "Ingresa un nombre para el perfil.",
-      "errorLongitud": "El nombre no puede superar los 120 caracteres."
+      "errorLongitud": "El nombre no puede superar los 255 caracteres."
     },
     "resumen": {
       "etiqueta": "Resumen profesional",

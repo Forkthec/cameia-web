@@ -7,7 +7,7 @@ jira: [CM-46, CM-53, CM-61, CM-65, CM-69]
 rutas: [/perfiles/nuevo, /perfiles/:id/editar, /perfiles/:id/roles]
 documentacion: tsdoc-es
 backlog: 12092026_01
-decisiones: [10092026_v1, 11092026_v2, 11092026_v1]
+decisiones: [10092026_v1, 11092026_v2, 11092026_v1, 13092026_v1]
 figma: Cameia · Mockups MVP
 revisado: 2026-09-14
 ---
@@ -153,7 +153,8 @@ Fuente: backlog 12092026_01, hoja «Criterios de aceptación», HU-2.2, CA-2.2.1
 
 **Validaciones del lado del cliente**
 
-- `name`: vacío o mayor a 120 caracteres bloquea sin llamar al servidor (CA-2.2.1 a CA-2.2.3). Llave
+- `name`: vacío o mayor a 255 caracteres bloquea sin llamar al servidor (CA-2.2.1 a CA-2.2.3,
+  límite confirmado por la respuesta oficial del PO del 13-sep — ver §8, C-01). Llave
   de error: `errors:codigos.PROFILE_NAME_INVALID` (ver §4).
 - `summary`: más de 2000 caracteres bloquea sin llamar al servidor (`maxLength` del campo) y muestra
   el contador de caracteres restantes (CA-2.3.3, `GLOSSARY.md` §2). El frame de Figma muestra el
@@ -270,7 +271,7 @@ misma pantalla.
 
 | Campo            | Tipo                   | Regla                                                       | Origen                                |
 | ---------------- | ---------------------- | ----------------------------------------------------------- | ------------------------------------- |
-| `name`           | string                 | 1-120 caracteres                                            | CA-2.2.1 a CA-2.2.3 (no 255 — ver §9) |
+| `name`           | string                 | 1-255 caracteres                                            | CA-2.2.1 a CA-2.2.3, confirmado por la respuesta oficial del PO del 13-sep (C-01) |
 | `summary`        | string                 | ≤ 2000 caracteres                                           | `GLOSSARY.md` §2                      |
 | `workExperience` | `WorkExperienceItem[]` (`id`, `company`, `position`, `description \| null`, `startDate`, `endDate \| null`, `employmentStatus`, `provenance`) | Opcional; gestión por ítem (POST/DELETE); `endDate` obligatoria y ≥ `startDate` si `employmentStatus=ENDED`, prohibida en cualquier otro estado (`WorkExperience.java`, backend real) | HU-2.4, J-01, CM-61 |
 | `education`      | `EducationItem[]` (`id`, `institution`, `degree`, `fieldOfStudy`, `level`, `startDate`, `endDate \| null`, `inProgress`, `provenance`) | Obligatorio ≥1 para finalizar; gestión por ítem (POST/DELETE); `level` del enum real; `endDate` prohibida si `inProgress=true` (`Education.java`, backend real); `fieldOfStudy` es el único campo NO obligatorio | HU-2.4, T-01, CM-61 |
@@ -297,7 +298,7 @@ confirmar (**C-06**, no afectado por CM-61).
 
 | Código                 | Cuándo ocurre                                      | Llave de i18n                                       |
 | ---------------------- | -------------------------------------------------- | --------------------------------------------------- |
-| `PROFILE_NAME_INVALID` | `name` vacío o mayor a 120 caracteres              | `errors:codigos.PROFILE_NAME_INVALID` — ya existe |
+| `PROFILE_NAME_INVALID` | `name` vacío o mayor a 255 caracteres              | `errors:codigos.PROFILE_NAME_INVALID` — ya existe |
 | `EDUCATION_REQUIRED`   | Finalizar sin al menos una formación académica     | `errors:codigos.EDUCATION_REQUIRED` — **a crear**   |
 | `NOT_FOUND`            | Perfil inexistente o de otro usuario (ver nota §3) | `errors:codigos.NOT_FOUND` — ya existe              |
 | `WORK_EXPERIENCE_DATE_INVALID` | Alta de experiencia con fechas inconsistentes (`ENDED` sin `endDate`, `endDate < startDate`, o `endDate` en un estado que no la admite) | `errors:codigos.WORK_EXPERIENCE_DATE_INVALID` — ya existe (CM-61) |
@@ -347,7 +348,7 @@ memoria, no un handler HTTP. El endpoint real de `PROFESSIONAL_ROLES` es depende
 
 | Criterio                                                           | Qué hace el frontend que el criterio no dice                                                           |
 | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| CA-2.2.1 a CA-2.2.3 (nombre 1-120)                                 | Bloquea sin llamar al servidor y repite la misma validación al guardar por `PATCH` (§4)                |
+| CA-2.2.1 a CA-2.2.3 (nombre 1-255)                                 | Bloquea sin llamar al servidor y repite la misma validación al guardar por `PATCH` (§4)                |
 | CA-2.4.1 (experiencia `CURRENT`/`UNKNOWN_END` sin fecha de fin)   | Oculta y limpia el campo «Fecha de fin» cuando cualquiera de los dos checkboxes está marcado, en vez de solo omitir el envío |
 | J-01 (gestión por ítem, no PATCH de colección)                    | `POST`/`DELETE` inmediato por ítem; sin `useFieldArray` — la lista visible es siempre la caché del servidor (SPEC.md §9, decisión D-A) |
 | HU-2.4 (educación obligatoria)                                     | Hoy solo se cumple visualmente en la barra de completitud (§3): el bloqueo real del botón «Finalizar» es de CM-65, que valida los 5 requisitos |
@@ -405,7 +406,7 @@ seguimiento de Frontend a la respuesta del PO del 11-sep).
 
 | Id   | Qué falta                                                                                                                                                                                                                                                                | De quién depende             | Desde                               |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------- | ----------------------------------- |
-| C-01 | Fuente documentable de los campos y límites que cita la respuesta del 11-sep (`skillName`, `target-roles`, `inProgress`, `ProblemDetail`, `name ≤ 255`), ninguno presente en el backlog del 6-sep                                                                        | Backend                      | sin respuesta del PO al 11-sep-2026 |
+| C-01 | ~~Fuente documentable de los campos y límites que cita la respuesta del 11-sep (`skillName`, `target-roles`, `inProgress`, `ProblemDetail`, `name ≤ 255`), ninguno presente en el backlog del 6-sep~~ — **parcialmente cerrado.** Respuesta oficial del PO del 13-sep (`docs/decisiones/13092026_v1_respuesta-oficial-frontend-C01-C09.md`, C-01) fija la fuente (código/OpenAPI de MicroPerfilPro, ya en `13092026_01_Backlog.xlsx`) y confirma `name ≤ 255` (aplicado en CM-61 este commit). El archivo `13092026_01_MicroPerfilPro_OpenAPI_actual.json` en sí no ha llegado a Frontend, así que los DTO siguen `PROVISIONAL` (§8 más abajo, §5) hasta tenerlo; `skillName`/`target-roles`/`inProgress` quedan documentados para CM-65/CM-69 | Backend                      | fuente confirmada 13-sep-2026; OpenAPI sin compartir |
 | C-02 | Si la identidad por cabecera `X-User-Id` es temporal (con ticket y fecha de retiro) o el diseño definitivo; Frontend seguirá enviando el token de Firebase mientras no se aclare                                                                                         | Backend / Arquitectura       | sin respuesta del PO al 11-sep-2026 |
 | C-03 | Si la pantalla de Selección de Método conserva el campo `name` (CA-2.2.1 a CA-2.2.3) y si crear el perfil en ese punto consume el cupo del plan gratuito antes de que el usuario guarde algo — no hay forma de descartar un perfil vacío, archivar es HU-2.12 (Sprint 3) | Product Owner                | sin respuesta del PO al 11-sep-2026 |
 | C-04 | Destino de HU-2.10 (sugerencia de roles con IA, Sprint 2) tras retirar `PRT-02.07`, la pantalla que usaba                                                                                                                                                                | Product Owner                | sin respuesta del PO al 11-sep-2026 |
@@ -577,9 +578,11 @@ global ya corriendo, es un segundo reset inocuo, no un conflicto.
 
 **Divergencias conscientes, registradas sin corregirlas (fuera del alcance de este archivo):**
 
-1. `GLOSSARY.md` línea 38 dice `name (≤ 255)`; esta spec usa 120 porque es lo que respalda el
-   backlog (CA-2.2.1 a CA-2.2.3). El 255 viene del memo del PO del 11-sep sin fuente verificada
-   (C-01) — manda el backlog.
+1. ~~`GLOSSARY.md` línea 38 dice `name (≤ 255)`; esta spec usa 120...`~~ — **resuelta.** La
+   respuesta oficial del PO del 13-sep (C-01) confirma `name ≤ 255` contra el código/OpenAPI real;
+   `NAME_MAX_LENGTH` pasó de 120 a 255 en este mismo commit (`profile.constants.ts`,
+   `profiles.handlers.ts`, `profile.json`, `GeneralInfoForm.test.tsx`). `GLOSSARY.md` línea 38 ya
+   no diverge.
 2. `src/i18n/locales/es-CO/profile.json` todavía dice `"habilidades.titulo": "Habilidades y
 expectativas"`, pese a que D-02 retiró las expectativas del alcance. Ese mismo archivo conserva,
 sin tocar en CM-53, la sección huérfana `informacionGeneral.campos` (`nombreCompleto`,

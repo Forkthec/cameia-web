@@ -50,7 +50,7 @@
 import { http, HttpResponse, type HttpHandler } from 'msw';
 import { MOCK_USER_ID } from './auth.handlers';
 
-const NAME_MAX_LENGTH = 120;
+const NAME_MAX_LENGTH = 255;
 const DESCRIPTION_MAX_LENGTH = 500;
 
 // Código de mock, no confirmado con backend; puede no coincidir cuando
@@ -150,7 +150,7 @@ function errorBody(code: string, message: string, details: MockErrorDetail[] = [
   return { code, message, details, timestamp: new Date().toISOString() };
 }
 
-/** CA-2.2.1 a CA-2.2.3 (backlog 6-sep): nombre vacío o mayor a 120 caracteres. 120, no 255 — ese número viene de un memo sin fuente verificada (consulta C-01). */
+/** CA-2.2.1 a CA-2.2.3: nombre vacío o mayor a 255 caracteres, confirmado por la respuesta oficial del PO del 13-sep (C-01) contra el código/OpenAPI de MicroPerfilPro. */
 function validateName(name: string): ReturnType<typeof errorBody> | undefined {
   const trimmed = name.trim();
   if (trimmed.length === 0 || trimmed.length > NAME_MAX_LENGTH) {

@@ -83,7 +83,7 @@ interface GeneralInfoFormProps {
   namePlaceholder: string;
   /** CA-2.3.5: `name` vacío. */
   nameErrorRequired: string;
-  /** CA-2.3.5: `name` mayor a 120 caracteres. */
+  /** CA-2.3.5: `name` mayor a 255 caracteres. */
   nameErrorTooLong: string;
   summaryLabel: string;
   /** Copia literal del frame: `Escribe aquí. Este campo crece con el contenido.` */
