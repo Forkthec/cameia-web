@@ -49,22 +49,29 @@ secciones hasta finalizarlo.
 ## 3. Comportamiento esperado
 
 `app/router/routes.ts` declara tres rutas para esta feature. Las subsecciones 2 a 4 **no son pasos
-de un asistente**: son las cuatro secciones (Información General, Formación académica, Experiencia
-Laboral, Expectativas Profesionales — esta última fuera del MVP, D-02) de **una sola página** en
+de un asistente**: son las cuatro secciones que dibuja el frame (Información General, Formación
+académica, Experiencia Laboral, Expectativas Profesionales) de **una sola página** en
 `/perfiles/:id/editar`, verificado contra el prototipo real de Figma en CM-53 (nodos `140:960` lg /
-`142:638` sm de `PRT-02.03 · Formulario de Perfil Profesional`). La página tiene un índice de
-secciones (`step-list` vertical en `lg`, acordeón en `sm`) y una barra de acciones **compartida
-entre las cuatro secciones**, con una `progress-bar` de completitud del perfil y dos botones:
-«Guardar borrador» (`variant=secondary`) y «Finalizar y Continuar» (`variant=primary`, deshabilitado
-hasta que las cuatro secciones cumplan sus requisitos). Ninguna sección tiene su propio botón de
-guardado ni su propio estado de carga de página — todo eso lo posee el armazón compartido, que
-sigue sin dueño (ver nota técnica en §9). Antes de esta verificación, `docs/ARCHITECTURE.md` §2, el
+`142:638` sm) y otra vez en CM-61 (nodos `132:173` lg / `142:638` sm de
+`PRT-02.03 · Formulario de Perfil Profesional`). **El índice de secciones y la barra de acciones
+compartida ya tienen dueño: CM-61 los construye** (`ProfileSectionsLayout`, `ProfileActionsBar`) —
+antes de esta subtarea, ninguna otra los poseía. El índice lista **solo 3 secciones**: Información
+General, Formación académica, Experiencia Laboral. «Expectativas Profesionales» **no se construye ni
+se lista**: está fuera del MVP (D-02) y el backlog manda sobre el diseño en comportamiento
+(`CLAUDE.md` §16) — ver decisión D-D en §9. `StepList` (desktop, ≥600px) / acordeón con
+`useDisclosure` (móvil, <600px) alternan por `useMediaQuery(DESKTOP_MEDIA_QUERY)`, resuelto una sola
+vez en `EditProfilePage`. La barra de acciones tiene una `progress-bar` de completitud del perfil
+(`max=5`, los 5 requisitos reales de finalización; CM-61 solo puede calcular 3 — ver decisión D-D) y
+dos botones: «Guardar borrador» (`variant=secondary`, envía únicamente `GeneralInfoForm` por el
+atributo HTML `form` — decisión D-C) y «Finalizar y Continuar» (`variant=primary`, **siempre
+deshabilitado hoy**: su validación de 5 requisitos y su endpoint de finalización son de CM-65/CM-69,
+que esta subtarea no construye). Antes de la verificación de CM-53, `docs/ARCHITECTURE.md` §2, el
 TSDoc de `WizardLayout.tsx` y una versión anterior de esta misma sección citaban un asistente
 paginado que el frame real no tiene — ya corregido en los tres lugares
-(`docs/bitacora-ia/hallazgo-figma-no-revisado-cm53.md`). **§3.3 y §3.4 abajo (CM-61, CM-65, todavía
-sin construir) conservan el lenguaje de «paso 2»/«paso 3» heredado de ese mismo error, sin
-verificar** — no se reescriben aquí por no ser el alcance de CM-53; quien abra esos tickets debe
-releerlas contra Figma antes de darlas por buenas.
+(`docs/bitacora-ia/hallazgo-figma-no-revisado-cm53.md`). **§3.4 abajo (CM-65, todavía sin construir)
+conserva el lenguaje de «paso 3» heredado de ese mismo error, sin verificar** — no se reescribe aquí
+por no ser el alcance de CM-61; quien abra ese ticket debe releerla contra Figma antes de darla por
+buena.
 
 **Nota transversal de "Sin permiso" para las cinco subsecciones:** las cinco viven detrás de
 `RequireAuth` (`CLAUDE.md` §11), que redirige a `/ingresar` antes de montar la página; ese caso no
@@ -128,27 +135,20 @@ Fuente: backlog 12092026_01, hoja «Criterios de aceptación», HU-2.2, CA-2.2.1
   «Información General» con «Resumen profesional». Captura `name` y `summary` del perfil ya creado.
   Al guardar, `summaryProvenance` se recalcula según CA-2.3.1/CA-2.3.2/CA-2.3.4 (ver §4); el cliente
   nunca lo envía.
-- **Alcance real entregado por CM-53: el organismo `GeneralInfoForm`, no la página.** El frame
-  incluye un índice de secciones, una `progress-bar` de completitud (que cuenta campos de las
-  cuatro secciones) y dos botones compartidos con «Finalizar y Continuar» — nada de eso depende
-  solo de esta sección, y construirlo ahora sería inventar el comportamiento de secciones que
-  CM-61/CM-65/CM-69 todavía no tienen. Por decisión explícita (13-sep-2026): CM-53 entrega
-  `GeneralInfoForm` listo para insertarse; `EditProfilePage.tsx` sigue siendo el placeholder de
-  `EmptyState` hasta que alguien arme el armazón completo. Los estados de Carga/Error/Sin permiso
-  de la tabla de abajo describen el comportamiento **previsto de la página**, no algo que CM-53
-  implemente todavía — `fetchProfile`/`useProfileQuery` y `updateGeneralInfo`/
-  `useUpdateProfileGeneralInfo` ya existen y los prueba su propia suite, listos para que la página
-  los consuma.
+- **CM-53 entregó el organismo `GeneralInfoForm`; CM-61 lo inserta en la página real**, dentro de
+  `ProfileSectionsLayout` junto a Formación académica y Experiencia Laboral, con la barra de
+  acciones compartida debajo (§3). `EditProfilePage.tsx` ya no es el placeholder de `EmptyState` —
+  ver §7. Los estados de la tabla de abajo son ahora comportamiento implementado, no previsto.
 - **No incluye el campo «Ubicación»** que el frame sí dibuja en esta sección: ningún CA de HU-2.3 lo
-  menciona, no existe en `GLOSSARY.md` ni en el contrato — bloqueo **C-10** (§8).
+  menciona, no existe en `GLOSSARY.md` ni en el contrato — bloqueo **C-10** (§8), sin resolver.
 
 **Estados**
 
 | Estado      | Qué muestra                                                                           |
 | ----------- | ------------------------------------------------------------------------------------- |
-| Carga       | Estado de carga mientras se obtiene el perfil por `id` antes de mostrar el formulario |
+| Carga       | `Spinner` mientras se obtiene el perfil por `id` antes de mostrar el formulario       |
 | Vacío       | No aplica: el perfil siempre existe en este punto (se creó en el método de configuración) |
-| Error       | Perfil inexistente → `errors:codigos.NOT_FOUND`; fallo de red → `errors:red`          |
+| Error       | Perfil inexistente → `errors:codigos.NOT_FOUND`; cualquier otro `ApiError` → `errors:generico`; fallo de red real (no `ApiError`) → `errors:red`, con botón «Reintentar» |
 | Sin permiso | Ver nota transversal arriba                                                           |
 
 **Validaciones del lado del cliente**
@@ -159,27 +159,61 @@ Fuente: backlog 12092026_01, hoja «Criterios de aceptación», HU-2.2, CA-2.2.1
   el contador de caracteres restantes (CA-2.3.3, `GLOSSARY.md` §2). El frame de Figma muestra el
   contador en 600, no 2000 — se mantiene 2000 por decisión explícita (bloqueo **C-11**, §8).
 
-### 3.3 · `/perfiles/:id/editar` (paso 2) — Experiencia laboral y educación · `PRT-02.03` · CM-61
+### 3.3 · `/perfiles/:id/editar` — Formación académica y Experiencia Laboral · `PRT-02.03` · CM-61
+
+Verificado en vivo contra Figma (CLAUDE.md §13): nodo `132:2467` (Formación académica) y `132:2503`
+(Experiencia Laboral) en `lg`; `142:670`/`142:675` en el acordeón `sm`. Fuente de comportamiento:
+memo del PO del 11-sep (J-01, «gestión por ítem POST/DELETE, puedes trabajar ambas secciones desde
+ya») y el backend real de `cameia-perfil` (`ProfileController.java`, `WorkExperience.java`,
+`Education.java`), compartido en la sesión que construyó este ticket — Jira (CM-18/CM-61) no tiene
+CA escritos.
 
 **Qué hace**
 
-- Gestiona experiencia laboral (opcional) y formación académica (obligatoria para poder finalizar)
-  por ítem (J-01: el ticket cubre ambas secciones).
+- Gestiona Experiencia laboral (opcional) y Formación académica (obligatoria para poder finalizar,
+  HU-2.4) **por ítem**: cada alta es un `POST` inmediato, cada baja un `DELETE` inmediato — nunca un
+  `PATCH` de colección (J-01; SPEC.md §9, decisión D-A). Ningún ítem tiene "borrador": se persiste
+  al agregarlo.
+- **Formación académica** (`EducationSection`): Nivel educativo (`<Select>`, enum real
+  `TECHNICAL`/`UNDERGRADUATE`/`POSTGRADUATE`), Título obtenido, Institución, Fecha de inicio, Año de
+  finalización (oculto si «En curso»), checkbox «En curso». «Campo de estudio» y «Fecha de inicio»
+  **no están dibujados en el frame** pero el backend real los exige (`fieldOfStudy` no obligatorio,
+  `startDate` sí) — se agregan, bloqueo **C-12** (§8).
+- **Experiencia Laboral** (`WorkExperienceSection`): Cargo, Empresa, Fecha de inicio, Fecha de fin
+  (oculta si cualquiera de los dos checkboxes está marcado), checkbox «Trabajo aquí actualmente»,
+  checkbox «No recuerdo la fecha exacta de finalización» (mutuamente excluyentes entre sí),
+  Descripción de funciones. `employmentStatus` (`CURRENT`/`UNKNOWN_END`/`ENDED`, el enum real del
+  backend) **nunca es un campo del formulario**: se deriva de los dos checkboxes en
+  `profile.mapper.ts` (SPEC.md §9, decisión D-F) — el organismo no conoce el contrato.
+- Fechas: el backend real almacena `java.time.YearMonth` (`"YYYY-MM"`, sin día) para ambas
+  entidades. Se usa `<Input type="date">` (selector nativo completo, fiel al frame) y se trunca el
+  día al enviar (`model/yearMonth.ts`) — bloqueo **C-14** (§8).
 
 **Estados**
 
 | Estado      | Qué muestra                                                                                                                               |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Carga       | Estado de carga mientras se obtienen las listas de experiencia y educación del perfil                                                     |
-| Vacío       | Ambas listas pueden estar vacías: experiencia sin ítems es válido; educación sin ítems bloquea la finalización (paso 4), no esta pantalla |
-| Error       | Fallo al guardar un ítem → `errors:generico`; fallo de red → `errors:red`                                                                 |
+| Carga       | Comparte el `Spinner` de §3.2: ambas secciones llegan en la misma respuesta de `GET /api/v1/profiles/:id` |
+| Vacío       | `EmptyState` propio por sección: ambas listas pueden estar vacías — experiencia sin ítems es válido; educación sin ítems bloquea la finalización (CM-65), no esta pantalla |
+| Error       | Alta/baja fallida → código específico si `errors:codigos` lo reconoce (`WORK_EXPERIENCE_DATE_INVALID`/`EDUCATION_DATE_INVALID`), si no el genérico de la sección; el formulario conserva lo escrito para reintentar |
 | Sin permiso | Ver nota transversal arriba                                                                                                               |
 
 **Validaciones del lado del cliente**
 
-- Una experiencia laboral en estado `ACTUAL` o `FIN_DESCONOCIDO` no lleva `fecha_fin` (CA-2.4.1).
+- Educación: nivel/título/institución/fecha de inicio obligatorios; «En curso» oculta y limpia la
+  fecha de finalización; fecha de fin anterior a la de inicio bloquea (salvaguarda de UX — el
+  backend real, `Education.java`, no exige esta regla, a diferencia de Experiencia Laboral).
+- Experiencia Laboral: cargo/empresa/fecha de inicio obligatorios; descripción ≤ 500 caracteres
+  (`WorkExperience.MAX_TEXT_LENGTH` real — el frame dibuja un contador en 1000, bloqueo **C-13**,
+  §8); sin ningún checkbox marcado, la fecha de fin es obligatoria y no puede ser anterior a la de
+  inicio (`WorkExperience.java`, regla real); con cualquiera marcado, la fecha de fin no se pide.
 
-### 3.4 · `/perfiles/:id/editar` (paso 3) — Habilidades y finalizar · `PRT-02.03` · CM-65
+### 3.4 · `/perfiles/:id/editar` — Habilidades y finalizar · `PRT-02.03` · CM-65
+
+**Corrección heredada de §3 (CM-61, 14-sep-2026):** esta subsección decía «(paso 3)», lenguaje de
+asistente por pasos que Figma nunca tuvo — se retira el rótulo. Sigue **sin construir**: quien abra
+CM-65 debe releer esta subsección completa contra Figma antes de darla por buena, igual que hizo
+CM-61 con §3.3. El resto del contenido no se reescribe: no es alcance de CM-61.
 
 **Qué hace**
 
@@ -238,8 +272,8 @@ misma pantalla.
 | ---------------- | ---------------------- | ----------------------------------------------------------- | ------------------------------------- |
 | `name`           | string                 | 1-120 caracteres                                            | CA-2.2.1 a CA-2.2.3 (no 255 — ver §9) |
 | `summary`        | string                 | ≤ 2000 caracteres                                           | `GLOSSARY.md` §2                      |
-| `workExperience` | `WorkExperienceItem[]` | Opcional; sin `fecha_fin` si `ACTUAL`/`FIN_DESCONOCIDO`     | CA-2.4.1                              |
-| `education`      | `EducationItem[]`      | Obligatorio ≥1 para finalizar; `level` del enum fijo        | HU-2.4, T-01                          |
+| `workExperience` | `WorkExperienceItem[]` (`id`, `company`, `position`, `description \| null`, `startDate`, `endDate \| null`, `employmentStatus`, `provenance`) | Opcional; gestión por ítem (POST/DELETE); `endDate` obligatoria y ≥ `startDate` si `employmentStatus=ENDED`, prohibida en cualquier otro estado (`WorkExperience.java`, backend real) | HU-2.4, J-01, CM-61 |
+| `education`      | `EducationItem[]` (`id`, `institution`, `degree`, `fieldOfStudy`, `level`, `startDate`, `endDate \| null`, `inProgress`, `provenance`) | Obligatorio ≥1 para finalizar; gestión por ítem (POST/DELETE); `level` del enum real; `endDate` prohibida si `inProgress=true` (`Education.java`, backend real); `fieldOfStudy` es el único campo NO obligatorio | HU-2.4, T-01, CM-61 |
 | `skills`         | `SkillItem[]`          | Texto libre (`skillName`) + `level`; sin catálogo           | HU-2.5, T-01, D-01                    |
 | `targetRoleIds`  | `string[]`             | Catálogo cerrado; máximo 5; sin prioridad ni reordenamiento | HU-2.11, D-01, J-03                   |
 | `summaryProvenance` | `'MANUAL' \| 'AI_SUGGESTED' \| 'AI_EDITED' \| null` | Lo calcula el backend/mock a partir del valor anterior; el cliente nunca lo envía en el `PATCH` | CA-2.3.1, CA-2.3.2, CA-2.3.4 |
@@ -251,22 +285,29 @@ Estados del perfil: `IN_PROGRESS → COMPLETED`, transición única, sin `PENDIN
 fuera del flujo manual y en Sprint 1 ningún perfil lo alcanza. Ver `docs/GLOSSARY.md` §3, sin
 repetir la tabla.
 
-`EducationLevel`, `SkillLevel`, catálogo de roles: ver `docs/GLOSSARY.md` §2 y
-`src/mocks/data/catalogs.ts`. `SkillLevel` tiene valores sin confirmar (**C-06**); los textos en
-español de `EducationLevel` están sin aprobar (**C-07**).
+`EducationLevel` (`TECHNICAL`/`UNDERGRADUATE`/`POSTGRADUATE`) y `EmploymentStatus`
+(`CURRENT`/`UNKNOWN_END`/`ENDED`) **ya están confirmados por el código real del backend** de
+`cameia-perfil` (`EducationLevel.java`, `EmploymentStatus.java`), compartido en la sesión que
+construyó CM-61 — no son un memo sin verificar. Los textos en español de `EducationLevel` siguen sin
+aprobación formal del PO (**C-07**, valores propuestos: Técnico/Pregrado/Posgrado). Catálogo de
+roles: ver `docs/GLOSSARY.md` §2 y `src/mocks/data/catalogs.ts`. `SkillLevel` sigue con valores sin
+confirmar (**C-06**, no afectado por CM-61).
 
 **Errores que el usuario puede ver**
 
 | Código                 | Cuándo ocurre                                      | Llave de i18n                                       |
 | ---------------------- | -------------------------------------------------- | --------------------------------------------------- |
-| `PROFILE_NAME_INVALID` | `name` vacío o mayor a 120 caracteres              | `errors:codigos.PROFILE_NAME_INVALID` — **a crear** |
+| `PROFILE_NAME_INVALID` | `name` vacío o mayor a 120 caracteres              | `errors:codigos.PROFILE_NAME_INVALID` — ya existe |
 | `EDUCATION_REQUIRED`   | Finalizar sin al menos una formación académica     | `errors:codigos.EDUCATION_REQUIRED` — **a crear**   |
 | `NOT_FOUND`            | Perfil inexistente o de otro usuario (ver nota §3) | `errors:codigos.NOT_FOUND` — ya existe              |
+| `WORK_EXPERIENCE_DATE_INVALID` | Alta de experiencia con fechas inconsistentes (`ENDED` sin `endDate`, `endDate < startDate`, o `endDate` en un estado que no la admite) | `errors:codigos.WORK_EXPERIENCE_DATE_INVALID` — ya existe (CM-61) |
+| `EDUCATION_DATE_INVALID` | Alta de educación con `inProgress=true` y `endDate` presente | `errors:codigos.EDUCATION_DATE_INVALID` — ya existe (CM-61) |
 
-`PROFILE_NAME_INVALID` y `EDUCATION_REQUIRED` son códigos de mock, no confirmados con backend
-(`profiles.handlers.ts` líneas 30-36); pueden no coincidir cuando exista el contrato real (C-01).
-`PROFILE_NAME_INVALID` ya tiene llave en `es-CO/errors.json` (CM-53); `EDUCATION_REQUIRED` sigue
-sin ella — la agrega CM-65, la subtarea dueña de la pantalla de finalizar.
+`PROFILE_NAME_INVALID`, `EDUCATION_REQUIRED`, `WORK_EXPERIENCE_DATE_INVALID` y
+`EDUCATION_DATE_INVALID` son códigos de mock, no confirmados con backend — el backend real
+(`ApiExceptionHandler.java`) responde 422 vía `ProblemDetail` (RFC 9457) sin un `code` propio
+todavía; pueden no coincidir cuando exista el contrato real (C-01). `EDUCATION_REQUIRED` sigue sin
+llave de i18n — la agrega CM-65, la subtarea dueña de la pantalla de finalizar.
 
 ## 5. Enlace HTTP · PROVISIONAL
 
@@ -277,9 +318,19 @@ sin OpenAPI; C-01 sin responder) · revisado el 11-sep-2026.
 | ------------------------ | ------------------------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | Crear                    | `POST /api/v1/profiles`              | Body opcional; sin `name` crea vacío (memo 11-sep); con `name`, se valida | 201 `ProfileRecord` · 400 `PROFILE_NAME_INVALID`                                      |
 | Obtener                  | `GET /api/v1/profiles/:id`           | Sin body                                                                  | 200 `ProfileRecord` · 404 `NOT_FOUND`                                                 |
-| Actualizar por secciones | `PATCH /api/v1/profiles/:id`         | Cualquier subconjunto de `ProfilePatchBody`                               | 200 `ProfileRecord` · 400 `PROFILE_NAME_INVALID` · 404 `NOT_FOUND`                    |
+| Actualizar información general | `PATCH /api/v1/profiles/:id`   | `name`/`summary` (CM-61: **ya no acepta** `workExperience`/`education` — gestión por ítem, ver abajo) | 200 `ProfileRecord` · 400 `PROFILE_NAME_INVALID` · 404 `NOT_FOUND`                    |
+| Agregar experiencia laboral | `POST /api/v1/profiles/:id/work-experiences` | `AddWorkExperienceRequestDto` (real: `company`, `position`, `description`, `startDate`, `endDate`, `employmentStatus`, `provenance`) | 201 `ProfileRecord` · 400 `VALIDATION_ERROR` · 404 `NOT_FOUND` · 422 `WORK_EXPERIENCE_DATE_INVALID` |
+| Eliminar experiencia laboral | `DELETE /api/v1/profiles/:id/work-experiences/:workExperienceId` | Sin body | 200 `ProfileRecord` · 404 `NOT_FOUND` |
+| Agregar educación | `POST /api/v1/profiles/:id/educations` | `AddEducationRequestDto` (real: `institution`, `degree`, `fieldOfStudy`, `level`, `startDate`, `endDate`, `inProgress`, `provenance`) | 201 `ProfileRecord` · 400 `VALIDATION_ERROR` · 404 `NOT_FOUND` · 422 `EDUCATION_DATE_INVALID` |
+| Eliminar educación | `DELETE /api/v1/profiles/:id/educations/:educationId` | Sin body | 200 `ProfileRecord` · 404 `NOT_FOUND` |
 | Finalizar                | `POST /api/v1/profiles/:id/finalize` | Sin body                                                                  | 200 `ProfileRecord` (status `COMPLETED`) · 422 `EDUCATION_REQUIRED` · 404 `NOT_FOUND` |
 | Listar                   | `GET /api/v1/profiles`               | Sin body                                                                  | 200 `ProfileRecord[]`, filtrado por `ownerId`                                         |
+
+Los 4 endpoints de experiencia/educación replican los DTO reales de `cameia-perfil`
+(`AddWorkExperienceRequest.java`, `AddEducationRequest.java`, compartidos en la sesión que construyó
+CM-61) — no son una referencia inventada como el resto de este enlace mientras C-01 sigue abierto.
+`provenance` siempre viaja `'MANUAL'` en un alta manual (`MANUAL_PROVENANCE`,
+`model/profile.constants.ts`).
 
 El `PATCH` nunca recibe `provenance`: `profiles.handlers.ts` deriva
 `summaryProvenance`/`summaryProvenanceOrigin` del valor almacenado y del nuevo `summary` (vaciar el
@@ -297,8 +348,9 @@ memoria, no un handler HTTP. El endpoint real de `PROFESSIONAL_ROLES` es depende
 | Criterio                                                           | Qué hace el frontend que el criterio no dice                                                           |
 | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
 | CA-2.2.1 a CA-2.2.3 (nombre 1-120)                                 | Bloquea sin llamar al servidor y repite la misma validación al guardar por `PATCH` (§4)                |
-| CA-2.4.1 (experiencia `ACTUAL`/`FIN_DESCONOCIDO` sin fecha de fin) | Omite el campo `fecha_fin` del formulario en vez de enviarlo vacío                                     |
-| HU-2.4 (educación obligatoria)                                     | Bloquea el botón «Finalizar» en el cliente antes de llamar a `finalize`, no solo tras la respuesta 422 |
+| CA-2.4.1 (experiencia `CURRENT`/`UNKNOWN_END` sin fecha de fin)   | Oculta y limpia el campo «Fecha de fin» cuando cualquiera de los dos checkboxes está marcado, en vez de solo omitir el envío |
+| J-01 (gestión por ítem, no PATCH de colección)                    | `POST`/`DELETE` inmediato por ítem; sin `useFieldArray` — la lista visible es siempre la caché del servidor (SPEC.md §9, decisión D-A) |
+| HU-2.4 (educación obligatoria)                                     | Hoy solo se cumple visualmente en la barra de completitud (§3): el bloqueo real del botón «Finalizar» es de CM-65, que valida los 5 requisitos |
 | HU-2.5 (verificar ≥1 rol objetivo)                                 | Redirige a §3.5 cuando no hay ningún rol, en vez de solo deshabilitar el botón                         |
 | HU-2.11, D-01, J-03 (roles: catálogo, sin prioridad ni reorden)    | El formulario nunca ofrece una acción de reordenar ni un campo de prioridad                            |
 | CA-2.11.3 (bloqueo del último rol solo en `COMPLETED`)             | Conservado tal cual; ver §3.5                                                                          |
@@ -309,28 +361,41 @@ memoria, no un handler HTTP. El endpoint real de `PROFESSIONAL_ROLES` es depende
 
 | Archivo                                                                                        | Qué implementa                                                                                                              | Prueba                                                                                              |
 | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `src/mocks/handlers/profiles.handlers.ts`                                                       | Infraestructura de apoyo: ciclo completo de mocks del perfil (crear, obtener por id, actualizar, finalizar, listar); deriva `summaryProvenance`/`summaryProvenanceOrigin` en el `PATCH` (CA-2.3.1, CA-2.3.2, CA-2.3.4) | `src/mocks/handlers/profiles.handlers.test.ts`                                                     |
+| `src/mocks/handlers/profiles.handlers.ts`                                                       | Infraestructura de apoyo: ciclo completo de mocks del perfil; deriva `summaryProvenance`/`summaryProvenanceOrigin` en el `PATCH` (CA-2.3.1/2/4); CM-61 agrega 4 handlers por ítem (POST/DELETE de experiencia y educación) con las reglas reales de `WorkExperience.java`/`Education.java` | `src/mocks/handlers/profiles.handlers.test.ts`                                                     |
 | `src/features/professional-profile/organisms/ProfileMethodSelector/ProfileMethodSelector.tsx`  | §3.1 (CM-46): las dos tarjetas excluyentes y la guarda contra doble creación mientras la mutación está en curso            | `src/features/professional-profile/organisms/ProfileMethodSelector/ProfileMethodSelector.test.tsx` |
 | `src/features/professional-profile/pages/NewProfilePage.tsx`                                    | §3.1: la ruta «/perfiles/nuevo» — crea el perfil sin cuerpo al elegir «Llenado Manual» y navega al formulario con el id devuelto | `src/features/professional-profile/pages/NewProfilePage.test.tsx`                            |
-| `src/features/professional-profile/model/profile.constants.ts`                                  | §3.2 (CM-53): límites `NAME_MAX_LENGTH`/`SUMMARY_MAX_LENGTH`                                                               | cubierto por las pruebas de `GeneralInfoForm` y `EditProfilePage`                                    |
-| `src/features/professional-profile/model/profile.types.ts`                                      | §3.2 (CM-53): tipos de dominio `Profile`, `SummaryProvenance`                                                              | cubierto por las pruebas de `GeneralInfoForm` y `EditProfilePage`                                    |
+| `src/features/professional-profile/model/profile.constants.ts`                                  | §3.2/§3.3: límites y constantes de negocio; CM-61 agrega `DESCRIPTION_MAX_LENGTH`, `EDUCATION_LEVELS`, `MANUAL_PROVENANCE`, `PROFILE_COMPLETENESS_MAX`, ids de formulario, `DESKTOP_MEDIA_QUERY` | cubierto por las pruebas de los organismos y `EditProfilePage`                                    |
+| `src/features/professional-profile/model/profile.types.ts`                                      | §3.2/§3.3: tipos de dominio; CM-61 agrega `EducationItem`, `WorkExperienceItem`, `EducationLevel`, `EmploymentStatus`, `DataProvenance`, `YearMonth` (valores confirmados contra el backend real) | cubierto por las pruebas de los organismos y `EditProfilePage`                                    |
+| `src/features/professional-profile/model/yearMonth.ts`                                          | §3.3 (CM-61): `toYearMonth`/`formatYearMonth` — trunca la fecha del selector nativo a `YearMonth` (bloqueo C-14)            | `src/features/professional-profile/model/yearMonth.test.ts`                                          |
+| `src/features/professional-profile/model/profileCompleteness.ts`                                | §3 (CM-61): `getSectionStatuses`/`getCompletenessValue` para el índice de secciones y la barra de completitud (decisión D-D) | `src/features/professional-profile/model/profileCompleteness.test.ts`                                |
 | `src/features/professional-profile/schemas/generalInfo.schema.ts`                                | §3.2 (CM-53): validación zod de `name`/`summary`, sin mensajes de texto (CLAUDE.md §3.2)                                   | `src/features/professional-profile/organisms/GeneralInfoForm/GeneralInfoForm.test.tsx`             |
-| `src/features/professional-profile/organisms/GeneralInfoForm/GeneralInfoForm.tsx`                | §3.2 (CM-53): el formulario de Información General — react-hook-form + zod, `<Controller>` (Input no acepta `ref`)         | `src/features/professional-profile/organisms/GeneralInfoForm/GeneralInfoForm.test.tsx`             |
-| `src/features/professional-profile/api/profile.dto.ts`                                          | §3.2 (CM-53): forma cruda del `ProfileRecord` que necesita esta sección                                                    | cubierto por `useProfileQuery.test.tsx`/`useUpdateProfileGeneralInfo.test.tsx` (integración vía MSW) |
-| `src/features/professional-profile/api/profile.mapper.ts`                                       | §3.2 (CM-53): `ProfileDto → Profile`                                                                                       | cubierto por `useProfileQuery.test.tsx`/`useUpdateProfileGeneralInfo.test.tsx` (integración vía MSW) |
-| `src/features/professional-profile/api/profile.api.ts`                                          | §3.2 (CM-53): `fetchProfile`/`updateGeneralInfo` contra el mock                                                             | cubierto por `useProfileQuery.test.tsx`/`useUpdateProfileGeneralInfo.test.tsx` (integración vía MSW) |
-| `src/features/professional-profile/hooks/useProfileQuery.ts`                                    | §3.2 (CM-53): `useQuery` del perfil por id, listo para que la página lo consuma cuando exista                              | `src/features/professional-profile/hooks/useProfileQuery.test.tsx`                                   |
+| `src/features/professional-profile/schemas/education.schema.ts`                                 | §3.3 (CM-61): validación zod de un ítem de Formación académica, con `.superRefine` para "en curso" y fecha de fin           | `src/features/professional-profile/organisms/EducationSection/EducationSection.test.tsx`             |
+| `src/features/professional-profile/schemas/workExperience.schema.ts`                             | §3.3 (CM-61): validación zod de un ítem de Experiencia Laboral, con `.superRefine` para los checkboxes excluyentes          | `src/features/professional-profile/organisms/WorkExperienceSection/WorkExperienceSection.test.tsx`   |
+| `src/design-system/atoms/Select/Select.tsx`                                                     | Átomo nuevo (SPEC.md §9, decisión D-B): `<select>` nativo con la misma API que `Input`, para "Nivel educativo" — primer átomo nuevo del design system desde CM-100 | `src/design-system/atoms/Select/Select.test.tsx`                                                     |
+| `src/features/professional-profile/organisms/GeneralInfoForm/GeneralInfoForm.tsx`                | §3.2 (CM-53): el formulario de Información General; CM-61 agrega `showSectionTitle` (decisión D-G)                         | `src/features/professional-profile/organisms/GeneralInfoForm/GeneralInfoForm.test.tsx`             |
+| `src/features/professional-profile/organisms/EducationSection/EducationSection.tsx`              | §3.3 (CM-61): lista + alta/baja de Formación académica por ítem                                                             | `src/features/professional-profile/organisms/EducationSection/EducationSection.test.tsx`             |
+| `src/features/professional-profile/organisms/WorkExperienceSection/WorkExperienceSection.tsx`    | §3.3 (CM-61): lista + alta/baja de Experiencia Laboral por ítem; deriva `employmentStatus` en la UI (checkboxes excluyentes) | `src/features/professional-profile/organisms/WorkExperienceSection/WorkExperienceSection.test.tsx`   |
+| `src/features/professional-profile/organisms/ProfileSectionsLayout/ProfileSectionsLayout.tsx`    | §3 (CM-61): índice de secciones — `StepList` en desktop, acordeón (`useDisclosure` por ítem) en móvil                       | `src/features/professional-profile/organisms/ProfileSectionsLayout/ProfileSectionsLayout.test.tsx`   |
+| `src/features/professional-profile/organisms/ProfileActionsBar/ProfileActionsBar.tsx`            | §3 (CM-61): barra de acciones compartida — completitud, «Guardar borrador», «Finalizar y Continuar» (siempre deshabilitado hoy) | `src/features/professional-profile/organisms/ProfileActionsBar/ProfileActionsBar.test.tsx`           |
+| `src/features/professional-profile/api/profile.dto.ts`                                          | §3.2/§3.3: forma cruda del `ProfileRecord`; CM-61 agrega `EducationDto`, `WorkExperienceDto` y los dos `Add*RequestDto` (campos reales del backend) | cubierto por los hooks de datos (integración vía MSW)                                                |
+| `src/features/professional-profile/api/profile.mapper.ts`                                       | §3.2/§3.3: `ProfileDto → Profile`; CM-61 agrega `toAddEducationRequest`/`toAddWorkExperienceRequest` (deriva `employmentStatus`, trunca fecha — decisión D-F) | `src/features/professional-profile/api/profile.mapper.test.ts`                                       |
+| `src/features/professional-profile/api/profile.api.ts`                                          | §3.2/§3.3: `fetchProfile`/`updateGeneralInfo`; CM-61 agrega `addEducation`/`removeEducation`/`addWorkExperience`/`removeWorkExperience` | cubierto por los hooks de datos (integración vía MSW)                                                |
+| `src/features/professional-profile/hooks/useProfileQuery.ts`                                    | §3.2 (CM-53): `useQuery` del perfil por id, consumido por `EditProfilePage` desde CM-61                                    | `src/features/professional-profile/hooks/useProfileQuery.test.tsx`                                   |
 | `src/features/professional-profile/hooks/useUpdateProfileGeneralInfo.ts`                        | §3.2 (CM-53): `useMutation` del guardado, escribe la respuesta directo en la caché de `useProfileQuery`                     | `src/features/professional-profile/hooks/useUpdateProfileGeneralInfo.test.tsx`                       |
-| `src/features/professional-profile/routes.tsx`                                                  | Mapea la ruta «/perfiles/nuevo» bajo `professionalProfileShellRoutes` (se anida en AppShell, ver §9)                       | `src/app/router/index.test.tsx` (features no puede importar RequireAuth, ver §9)                    |
-| `src/test/setup.ts`                                                                              | Infraestructura de apoyo: reinicia `src/mocks/handlers/profiles.handlers.ts` (función `resetProfiles`) antes de cada prueba de toda la suite, ver §9 | —                                                                        |
+| `src/features/professional-profile/hooks/useAddEducation.ts`                                    | §3.3 (CM-61): `useMutation` de alta de educación, mismo patrón de caché que `useUpdateProfileGeneralInfo`                   | `src/features/professional-profile/hooks/useAddEducation.test.tsx`                                   |
+| `src/features/professional-profile/hooks/useRemoveEducation.ts`                                 | §3.3 (CM-61): `useMutation` de baja de educación                                                                            | `src/features/professional-profile/hooks/useRemoveEducation.test.tsx`                                |
+| `src/features/professional-profile/hooks/useAddWorkExperience.ts`                                | §3.3 (CM-61): `useMutation` de alta de experiencia laboral                                                                  | `src/features/professional-profile/hooks/useAddWorkExperience.test.tsx`                              |
+| `src/features/professional-profile/hooks/useRemoveWorkExperience.ts`                             | §3.3 (CM-61): `useMutation` de baja de experiencia laboral                                                                  | `src/features/professional-profile/hooks/useRemoveWorkExperience.test.tsx`                           |
+| `src/features/professional-profile/pages/EditProfilePage.tsx`                                   | §3, §3.2, §3.3 (CM-61): el armazón real de la ruta de edición del perfil — ya no `WizardLayout`/`EmptyState`                | `src/features/professional-profile/pages/EditProfilePage.test.tsx`                                   |
+| `src/features/professional-profile/routes.tsx`                                                  | Mapea las 3 rutas de esta feature bajo `professionalProfileShellRoutes`, incluida la de edición del perfil (CM-61 la muda desde `professionalProfileWizardRoutes`, retirada — decisión D-E) | `src/app/router/index.test.tsx` (features no puede importar RequireAuth, ver §9)                    |
+| `src/utils/buttonLoadingProps.ts`                                                                | Infraestructura de apoyo (CM-61): arma el par `{loading, loadingLabel}` que `Button` exige, evitando repetir el condicional en 5 sitios | `src/utils/buttonLoadingProps.test.ts`                                                                |
+| `src/test/setup.ts`                                                                              | Infraestructura de apoyo: reinicia los mocks antes de cada prueba; CM-61 agrega el stub de `window.matchMedia` (ver §9)      | —                                                                        |
+| `src/test/matchMedia.ts`                                                                         | Infraestructura de apoyo (CM-61): stub controlable de `window.matchMedia` — jsdom 30 no lo implementa (ver §9)              | cubierto indirectamente por `EditProfilePage.test.tsx` y `ProfileSectionsLayout.test.tsx`             |
 | `src/test/msw.ts`                                                                                | Infraestructura de apoyo: instala handlers puntuales de MSW desde una prueba de feature, ver §9                             | —                                                                                                  |
 
-`EditProfilePage.tsx` y `ProfileRolesPage.tsx` siguen siendo placeholders con `EmptyState`, sin
-lógica de formulario — `EditProfilePage.tsx` no se toca en CM-53 (ver nota de §3 y §9: se construyó
-y se revirtió tras verificar que el armazón real de PRT-02.03 no es un asistente por pasos).
-`NewProfilePage.tsx` sigue siendo la única página real de esta feature. `WizardLayout.tsx` tampoco
-cambia: la prop `primaryActionFormId` que CM-53 le agregó se revirtió por no tener ningún consumidor
-una vez descartado su uso en esta pantalla (`docs/bitacora-ia/hallazgo-figma-no-revisado-cm53.md`).
+`ProfileRolesPage.tsx` sigue siendo placeholder con `EmptyState` — fuera del alcance de CM-61 (ver
+§3.5, bloqueada por C-04). `WizardLayout.tsx` no cambia: conserva a `interview-setup` como único
+consumidor.
 
 ## 8. Bloqueos
 
@@ -350,6 +415,10 @@ seguimiento de Frontend a la respuesta del PO del 11-sep).
 | C-09 | Origen documentable de `preferredModality` — cero ocurrencias en el backlog, `GLOSSARY.md` o los tres memos de decisiones; no se implementa hasta que exista                                                                                                             | Backend / Product Owner      | detectado 13-sep-2026, CM-53        |
 | C-10 | El frame real de PRT-02.03 (nodo `140:960`/`142:638`) dibuja un campo «Ubicación» en la sección Información General que ningún CA de HU-2.3 menciona, que no está en `GLOSSARY.md` ni en el contrato de mocks — ¿entra a HU-2.3, es de otra HU, o el frame quedó desactualizado? No se construye hasta confirmar | Product Owner                | detectado 14-sep-2026, CM-53        |
 | C-11 | El mismo frame muestra el contador de `summary` en «0 / 600 caracteres»; `GLOSSARY.md` §2, HU-2.5 (backlog 12-sep) y el memo del PO del 11-sep dicen 2000. CM-53 mantuvo 2000 por decisión explícita del usuario, pero uno de los dos artefactos (el frame o el glosario) está desactualizado y nadie lo ha corregido | Product Owner / Diseño       | detectado 14-sep-2026, CM-53        |
+| C-12 | El frame de «Formación académica» (nodo `132:2467`) no dibuja «Campo de estudio» ni «Fecha de inicio», pero el backend real (`AddEducationRequest`/`Education.java`) exige `startDate` (obligatoria) y acepta `fieldOfStudy` (opcional, sin validar). Se agregan ambos campos al formulario porque el contrato real manda en comportamiento (CLAUDE.md §16) — ¿el frame quedó desactualizado, o el equipo de diseño decidió omitirlos a propósito? | Product Owner / Diseño       | detectado 14-sep-2026, CM-61        |
+| C-13 | El contador de «Descripción de funciones» del frame muestra «0 / 1000 caracteres»; el backend real (`WorkExperience.MAX_TEXT_LENGTH`) limita a 500. Se usa 500 (el backend rechazaría cualquier valor mayor con un 422), mismo criterio que C-11 | Product Owner / Diseño       | detectado 14-sep-2026, CM-61        |
+| C-14 | El backend real almacena `java.time.YearMonth` (`"YYYY-MM"`, sin día) para las fechas de experiencia y educación; el frame dibuja un selector `dd/mm/aaaa` completo. Se usa `<Input type="date">` (fiel al frame) y se trunca el día al enviar (`model/yearMonth.ts`) — el día que el usuario elige se descarta silenciosamente. ¿Debería el control pedir explícitamente solo mes/año? | Product Owner / Diseño       | detectado 14-sep-2026, CM-61        |
+| C-15 | El frame usa un componente `select` (nodo `32:150`, confirmado real) para «Nivel educativo» y un ícono `calendar` en los campos de fecha; ninguno de los dos existía en `design-system` antes de CM-61. Se construyó el átomo `Select`; el ícono de calendario no hizo falta (`<input type="date">` nativo ya trae el suyo del navegador) — ¿debería `design-system/icons/registry.tsx` tener un `calendar` propio para otros usos futuros? | Diseño                        | detectado 14-sep-2026, CM-61        |
 
 ## 9. Notas
 
@@ -418,6 +487,36 @@ global ya corriendo, es un segundo reset inocuo, no un conflicto.
    contenido y el índice lateral usa una etiqueta aparte (14px). Ver el TSDoc de cabecera de
    `GeneralInfoForm.tsx` para el detalle completo.
 
+**Decisiones de diseño, PRT-02.03 (CM-61, verificadas 14-sep-2026 — nodos `132:173` lg /
+`142:638` sm, `32:150` select, `189:1114` nav-header).**
+
+- **D-A — Sin `useFieldArray`.** La colección visible (`items`) es estado de servidor (cada
+  `POST`/`DELETE` devuelve el `ProfileResponse` completo), nunca duplicado dentro de `useForm`
+  (`CLAUDE.md` §3.6). Cada organismo tiene: una lista que viene de props + un formulario de **un
+  solo ítem** que se resetea cuando `items.length` crece.
+- **D-B — Átomo nuevo `design-system/atoms/Select/`.** Verificado que `32:150` es un componente
+  real de Figma con sus 5 estados (closed/open/selected/error/disabled), no una invención. Primer
+  átomo nuevo del design system desde CM-100.
+- **D-C — «Guardar borrador» solo envía `GeneralInfoForm`.** Experiencia y educación se persisten
+  al vuelo por ítem; no tienen «borrador» que guardar.
+- **D-D — `progress-bar` con `max=5` fijo, `value` = solo los 3 requisitos que CM-61 puede
+  calcular** (nombre, resumen, ≥1 educación). Los otros 2 (habilidad, rol objetivo) los suma CM-65
+  sin tocar la constante `PROFILE_COMPLETENESS_MAX`. Con `max=3` el usuario vería «3 de 3» junto a
+  un botón «Finalizar» muerto — engañoso. El índice de secciones lista **solo 3 ítems**:
+  «Expectativas Profesionales» no se construye (D-02) y por tanto no se incluye ni deshabilitada.
+- **D-E — La ruta `/perfiles/:id/editar` se mudó a `professionalProfileShellRoutes`** (hereda
+  `AppShell`): verificado que `189:1114` (`nav-header`) es el header real de la app en `lg`, no un
+  armazón propio de esta pantalla. `professionalProfileWizardRoutes` quedó vacío y se retiró (ver
+  nota técnica 12 abajo).
+- **D-F — Fechas y `employmentStatus` se derivan en el mapper.** El formulario de Experiencia
+  Laboral guarda dos booleanos (`isCurrent`/`unknownEnd`, mutuamente excluyentes en la UI); la
+  derivación a `CURRENT`/`UNKNOWN_END`/`ENDED` y el truncado a `YearMonth` ocurren en
+  `profile.mapper.ts` — los organismos no conocen el contrato real.
+- **D-G — `showSectionTitle?: boolean`** (default `true`) en `GeneralInfoForm` y los dos
+  organismos nuevos: en el acordeón móvil el encabezado del disparador ya es el título; en
+  desktop lo pinta el organismo. Resuelve la advertencia que ya documentaba el TSDoc de
+  `GeneralInfoForm.tsx` desde CM-53.
+
 **Notas técnicas de esta implementación (no son divergencias de diseño).**
 
 4. `NewProfilePage.tsx` tipa `{ id: string }` en el propio archivo de la página en vez de crear ya
@@ -456,6 +555,25 @@ global ya corriendo, es un segundo reset inocuo, no un conflicto.
     (`docs/bitacora-ia/hallazgo-figma-no-revisado-cm53.md`). `GeneralInfoForm` (§3.2) se conserva,
     reescrito para la fidelidad real del frame; `WizardLayout.tsx` y `EditProfilePage.tsx` quedan
     exactamente como estaban en `develop` antes de CM-53.
+12. `professionalProfileWizardRoutes` (CM-61) se elimina de `routes.tsx` y del barril: al mudar
+    `/perfiles/:id/editar` a `professionalProfileShellRoutes` (decisión D-E), quedó vacío — un
+    `RouteObject[]` vacío es código muerto (`CLAUDE.md` §13). `app/router/index.tsx` y su test se
+    actualizan en el mismo commit.
+13. `src/test/setup.ts` instala un stub de `window.matchMedia` (`src/test/matchMedia.ts`), no
+    implementado por jsdom 30: verificado ejecutando el entorno de pruebas directo, cualquier
+    componente que llamara `useMediaQuery` (`ProfileSectionsLayout`, `EditProfilePage`) revienta
+    con «matchMedia is not a function» sin él. Por defecto no coincide con ninguna media query
+    (mobile-first); `setViewportMatches`/`resetViewportMatches` fuerzan y reinician el resultado
+    por prueba.
+14. `Button.loading` exige el literal `true` (obliga `loadingLabel` junto a él); cinco sitios
+    nuevos necesitaban pasar un booleano en tiempo de ejecución (`mutation.isPending`). Se
+    resolvió con `src/utils/buttonLoadingProps.ts`, que arma el par de props correcto, en vez de
+    repetir el condicional cinco veces.
+15. `EducationSection`/`WorkExperienceSection` usan `watch()` de react-hook-form (no un
+    `<Controller>` aislado) para `inProgress`/`isCurrent`/`unknownEnd`: esos valores deciden si se
+    renderiza OTRO campo (`endDate`), no solo el suyo propio. `eslint-plugin-react-hooks` avisa que
+    React Compiler no puede memoizar `watch()` — informativo, no bloquea `pnpm lint` (documentado
+    también en el propio código, junto a cada llamada).
 
 **Divergencias conscientes, registradas sin corregirlas (fuera del alcance de este archivo):**
 
