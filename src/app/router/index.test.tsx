@@ -3,11 +3,12 @@
  * sobre `createMemoryRouter` en vez de `createBrowserRouter` (ver comentario
  * en `index.tsx`). Verifica el criterio de aceptación pedido: la app navega
  * entre rutas y una ruta inexistente muestra el 404. Incluye `/perfiles/nuevo`
- * (CM-46): al mudarse de `professionalProfileWizardRoutes` a
- * `professionalProfileShellRoutes`, esta es la prueba que demuestra que
- * `RequireAuth` la sigue protegiendo y que ahora renderiza dentro de
- * `AppShell` — `NewProfilePage.test.tsx` no puede probarlo porque `features`
- * no puede importar `RequireAuth` (docs/ARCHITECTURE.md §4).
+ * (CM-46) y `/perfiles/:id/editar` (CM-61): ambas se mudaron de
+ * `professionalProfileWizardRoutes` (retirada, SPEC.md §9 decisión D-E) a
+ * `professionalProfileShellRoutes`, así que esta es la prueba que demuestra
+ * que `RequireAuth` las sigue protegiendo y que ahora renderizan dentro de
+ * `AppShell` — ninguna feature puede probarlo por su cuenta porque
+ * `features` no puede importar `RequireAuth` (docs/ARCHITECTURE.md §4).
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
@@ -15,6 +16,7 @@ import { I18nextProvider } from 'react-i18next';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
 import i18n from '@/i18n';
+import { httpClient } from '@/services/http/httpClient';
 import { useAuthStore } from '@/stores/auth.store';
 import { routeConfig } from './index';
 
@@ -106,6 +108,32 @@ describe('routeConfig', () => {
 
     expect(
       await screen.findByRole('heading', { name: '¿Cómo quieres completarlo?' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('navigation', { name: 'Navegación principal' }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('"/perfiles/:id/editar" sin sesión redirige a /ingresar', async () => {
+    await waitUntilReady();
+    useAuthStore.setState({ isLoading: false, isAuthenticated: false });
+
+    renderAt('/perfiles/profile-1/editar');
+
+    expect(await screen.findByText('Pantalla pendiente · CM-40')).toBeInTheDocument();
+  });
+
+  it('"/perfiles/:id/editar" con sesión renderiza el formulario dentro de AppShell', async () => {
+    await waitUntilReady();
+    useAuthStore.setState({ isLoading: false, isAuthenticated: true });
+    const created = await httpClient.post<{ id: string }>('/api/v1/profiles', {
+      name: 'Ana María Pérez',
+    });
+
+    renderAt(`/perfiles/${created.id}/editar`);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Editar perfil profesional' }),
     ).toBeInTheDocument();
     expect(
       screen.getAllByRole('navigation', { name: 'Navegación principal' }).length,

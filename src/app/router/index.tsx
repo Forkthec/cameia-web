@@ -19,10 +19,7 @@ import { homeRoutes } from '@/features/home';
 import { interviewSessionRoutes } from '@/features/interview-session';
 import { interviewSetupRoutes } from '@/features/interview-setup';
 import { landingRoutes } from '@/features/landing';
-import {
-  professionalProfileShellRoutes,
-  professionalProfileWizardRoutes,
-} from '@/features/professional-profile';
+import { professionalProfileShellRoutes } from '@/features/professional-profile';
 import { AppShell } from '@/layouts/AppShell';
 import { NotFoundPage } from './NotFoundPage';
 import { RouteErrorBoundary } from './RouteErrorBoundary';
@@ -46,7 +43,6 @@ export const routeConfig: RouteObject[] = [
             element: <AppShell progressEnabled={featureFlags.PROGRESS} />,
             children: [...homeRoutes, ...professionalProfileShellRoutes],
           },
-          ...professionalProfileWizardRoutes,
           ...interviewSetupRoutes,
           ...interviewSessionRoutes,
         ],

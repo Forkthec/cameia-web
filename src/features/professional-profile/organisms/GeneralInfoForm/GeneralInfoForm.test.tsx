@@ -2,7 +2,7 @@
  * Comportamiento observable de `GeneralInfoForm` (HU-2.3, CA-2.3.3,
  * CA-2.3.5): que muestra el encabezado de sección y los valores iniciales,
  * que la ayuda del nombre es la copia literal del frame, que bloquea el
- * envío sin llamar a `onSubmit` cuando `name` queda vacío o supera 120
+ * envío sin llamar a `onSubmit` cuando `name` queda vacío o supera 255
  * caracteres, que el campo de resumen no deja escribir más de 2000
  * caracteres (`maxLength`) y que el contador refleja el conteo real, y que
  * un envío válido llega a `onSubmit` con los valores actuales.
@@ -22,7 +22,7 @@ const baseProps = {
   nameHelperText: 'Por ejemplo: "Analista de datos" o "Producto senior".',
   namePlaceholder: 'Escribe aquí',
   nameErrorRequired: 'Ingresa un nombre para el perfil.',
-  nameErrorTooLong: 'El nombre no puede superar los 120 caracteres.',
+  nameErrorTooLong: 'El nombre no puede superar los 255 caracteres.',
   summaryLabel: 'Resumen profesional',
   summaryPlaceholder: 'Escribe aquí. Este campo crece con el contenido.',
   summaryErrorTooLong: 'El resumen no puede superar los 2000 caracteres.',
@@ -38,6 +38,12 @@ describe('GeneralInfoForm', () => {
     expect(screen.getByLabelText('Resumen profesional')).toHaveValue(
       'Desarrolladora backend con experiencia en Java.',
     );
+  });
+
+  it('showSectionTitle=false no renderiza el encabezado de sección (acordeón sm)', () => {
+    render(<GeneralInfoForm {...baseProps} showSectionTitle={false} />);
+
+    expect(screen.queryByRole('heading', { name: 'Información General' })).not.toBeInTheDocument();
   });
 
   it('muestra la ayuda literal del nombre mientras no hay error', () => {
@@ -71,22 +77,22 @@ describe('GeneralInfoForm', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it('name mayor a 120 caracteres bloquea el envío', async () => {
+  it('name mayor a 255 caracteres bloquea el envío', async () => {
     const onSubmit = vi.fn();
     render(<GeneralInfoForm {...baseProps} onSubmit={onSubmit} />);
 
     const nameInput = screen.getByLabelText('Nombre del perfil');
-    // `maxLength` en el campo ya impide teclear o pegar más de 120
+    // `maxLength` en el campo ya impide teclear o pegar más de 255
     // caracteres — por eso esta prueba no usa userEvent.type (lo respeta y
     // trunca) sino fireEvent.change, para verificar la red de seguridad de
     // zod cuando el valor llega igual (p. ej. por un estado externo).
-    fireEvent.change(nameInput, { target: { value: 'a'.repeat(121) } });
+    fireEvent.change(nameInput, { target: { value: 'a'.repeat(256) } });
     // Ver nota arriba sobre por qué se accede al <form> por id.
     const form = document.getElementById('general-info-form') as HTMLFormElement;
     form.requestSubmit();
 
     expect(
-      await screen.findByText('El nombre no puede superar los 120 caracteres.'),
+      await screen.findByText('El nombre no puede superar los 255 caracteres.'),
     ).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
   });

@@ -1,9 +1,10 @@
 /**
  * Simula el ciclo completo del Perfil Profesional (CLAUDE.md §8, «Todo
  * endpoint tiene su handler equivalente en `mocks/handlers/`») sobre un
- * array en memoria: crear, obtener por id, actualizar por secciones,
- * finalizar y listar. Nada persiste entre ejecuciones del proceso — solo
- * dentro de la sesión de mocks activa (dev o una corrida de pruebas).
+ * array en memoria: crear, obtener por id, actualizar información general,
+ * agregar/eliminar experiencia laboral y educación por ítem, finalizar y
+ * listar. Nada persiste entre ejecuciones del proceso — solo dentro de la
+ * sesión de mocks activa (dev o una corrida de pruebas).
  *
  * CM-53: el `PATCH` deriva `summaryProvenance`/`summaryProvenanceOrigin` a
  * partir del valor anterior de `summary` (CA-2.3.1, CA-2.3.2, CA-2.3.4,
@@ -12,13 +13,30 @@
  * porque el mock es la única capa contra la que corre el frontend
  * mientras C-01 sigue sin respuesta.
  *
+ * CM-61: la gestión de experiencia laboral y educación es por ítem
+ * (`POST`/`DELETE`, nunca un `PATCH` de colección) — confirmado tanto por
+ * el memo del PO del 11-sep ("gestión por ítem POST/DELETE") como por el
+ * backend real de `cameia-perfil` (`ProfileController.java`,
+ * `AddWorkExperienceRequest`, `AddEducationRequest`, `WorkExperience.java`,
+ * `Education.java`), compartido en la sesión que escribió este archivo. Las
+ * reglas de fecha/estado que este mock valida son las reglas de dominio
+ * reales de esas dos clases, no invenciones: `WorkExperience.java` exige
+ * `endDate` cuando `employmentStatus=ENDED` (y que no sea anterior a
+ * `startDate`) y prohíbe `endDate` en cualquier otro estado;
+ * `Education.java` prohíbe `endDate` cuando `inProgress=true`. `fieldOfStudy`
+ * no se valida en `Education.java` (ni `@NotBlank` en el DTO ni
+ * `requireNonBlankMax` en el dominio) — por eso aquí tampoco es obligatorio,
+ * a diferencia de `institution`/`degree`, que el dominio real sí exige.
+ *
  * El array en memoria y `resetProfiles()` son estado compartido entre
  * archivos de prueba; cualquier prueba futura que consuma estos handlers
  * (incluidas las de `professional-profile`) debe llamar `resetProfiles()`
  * en su propio `beforeEach`, o va a heredar datos de la prueba anterior.
  *
- * Sin contrato real todavía (§12 abierta 1, consulta C-01): las rutas y la
- * forma del cuerpo son una referencia razonable, no un contrato — igual que
+ * Sin contrato HTTP oficial todavía (§12 abierta 1, consulta C-01): la
+ * forma del cuerpo replica el DTO real de `cameia-perfil` donde se conoce
+ * (experiencia, educación); el resto sigue siendo una referencia razonable,
+ * no un contrato, igual que
  * `docs/referencias/03092026_v1_familias-endpoints-sprint-1.md`, que las
  * inspira pero está desactualizado frente al backlog del 6-sep y al memo
  * del PO del 11-sep.
@@ -32,7 +50,8 @@
 import { http, HttpResponse, type HttpHandler } from 'msw';
 import { MOCK_USER_ID } from './auth.handlers';
 
-const NAME_MAX_LENGTH = 120;
+const NAME_MAX_LENGTH = 255;
+const DESCRIPTION_MAX_LENGTH = 500;
 
 // Código de mock, no confirmado con backend; puede no coincidir cuando
 // exista el contrato real.
@@ -42,12 +61,34 @@ const PROFILE_NAME_INVALID = 'PROFILE_NAME_INVALID';
 // exista el contrato real.
 const EDUCATION_REQUIRED = 'EDUCATION_REQUIRED';
 
+// Reutiliza el código genérico que ya existe en errors.json (§errors.codigos).
+const VALIDATION_ERROR = 'VALIDATION_ERROR';
+
+// Códigos nuevos de CM-61, PROVISIONALES — el backend real (ApiExceptionHandler.java)
+// responde 422 vía ProblemDetail con título "Valor no válido" para ambos
+// casos, sin un `code` propio todavía (bloqueo, mismo origen que C-01).
+const WORK_EXPERIENCE_DATE_INVALID = 'WORK_EXPERIENCE_DATE_INVALID';
+const EDUCATION_DATE_INVALID = 'EDUCATION_DATE_INVALID';
+
+const EDUCATION_LEVELS = ['TECHNICAL', 'UNDERGRADUATE', 'POSTGRADUATE'] as const;
+const EMPLOYMENT_STATUSES = ['CURRENT', 'UNKNOWN_END', 'ENDED'] as const;
+const DATA_PROVENANCES = ['MANUAL', 'AI_SUGGESTED', 'AI_EDITED'] as const;
+
+type EducationLevel = (typeof EDUCATION_LEVELS)[number];
+type EmploymentStatus = (typeof EMPLOYMENT_STATUSES)[number];
+type DataProvenance = (typeof DATA_PROVENANCES)[number];
+
+/** `"YYYY-MM"` — el backend real almacena `java.time.YearMonth`, sin día. */
 interface EducationItem {
   id: string;
   institution: string;
-  program: string;
-  level: string;
+  degree: string;
+  fieldOfStudy: string;
+  level: EducationLevel;
+  startDate: string;
+  endDate: string | null;
   inProgress: boolean;
+  provenance: DataProvenance;
 }
 
 interface SkillItem {
@@ -59,8 +100,12 @@ interface SkillItem {
 interface WorkExperienceItem {
   id: string;
   company: string;
-  role: string;
-  current: boolean;
+  position: string;
+  description: string | null;
+  startDate: string;
+  endDate: string | null;
+  employmentStatus: EmploymentStatus;
+  provenance: DataProvenance;
 }
 
 type ProfileStatus = 'IN_PROGRESS' | 'COMPLETED';
@@ -87,11 +132,10 @@ interface ProfileRecord {
   targetRoleIds: string[];
 }
 
+/** CM-61: `workExperience`/`education` ya NO viajan por aquí — la gestión es por ítem (ver TSDoc de cabecera). */
 interface ProfilePatchBody {
   name?: string;
   summary?: string;
-  workExperience?: WorkExperienceItem[];
-  education?: EducationItem[];
   skills?: SkillItem[];
   targetRoleIds?: string[];
 }
@@ -106,7 +150,7 @@ function errorBody(code: string, message: string, details: MockErrorDetail[] = [
   return { code, message, details, timestamp: new Date().toISOString() };
 }
 
-/** CA-2.2.1 a CA-2.2.3 (backlog 6-sep): nombre vacío o mayor a 120 caracteres. 120, no 255 — ese número viene de un memo sin fuente verificada (consulta C-01). */
+/** CA-2.2.1 a CA-2.2.3: nombre vacío o mayor a 255 caracteres, confirmado por la respuesta oficial del PO del 13-sep (C-01) contra el código/OpenAPI de MicroPerfilPro. */
 function validateName(name: string): ReturnType<typeof errorBody> | undefined {
   const trimmed = name.trim();
   if (trimmed.length === 0 || trimmed.length > NAME_MAX_LENGTH) {
@@ -128,17 +172,30 @@ async function safeJson(request: Request): Promise<Record<string, unknown> | und
   }
 }
 
+/** `"YYYY-MM"`, el único formato que el backend real acepta para `YearMonth` (sin día). */
+function isYearMonth(value: unknown): value is string {
+  return typeof value === 'string' && /^\d{4}-\d{2}$/.test(value);
+}
+
+function isNonBlankString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
 let profiles: ProfileRecord[] = [];
 let nextId = 1;
+let nextWorkExperienceId = 1;
+let nextEducationId = 1;
 
 /**
- * Vacía el array en memoria y reinicia el contador de ids. Ver la nota de
+ * Vacía el array en memoria y reinicia los contadores de id. Ver la nota de
  * cabecera de este archivo sobre por qué toda prueba que use estos handlers
  * debe llamarla en su propio `beforeEach`.
  */
 export function resetProfiles(): void {
   profiles = [];
   nextId = 1;
+  nextWorkExperienceId = 1;
+  nextEducationId = 1;
 }
 
 /**
@@ -186,6 +243,10 @@ function createEmptyProfile(name: string): ProfileRecord {
   };
 }
 
+function findProfile(id: string): ProfileRecord | undefined {
+  return profiles.find((item) => item.id === id);
+}
+
 export const profilesHandlers: HttpHandler[] = [
   http.post('*/api/v1/profiles', async ({ request }) => {
     const body = await safeJson(request);
@@ -207,7 +268,7 @@ export const profilesHandlers: HttpHandler[] = [
   http.patch<{ id: string }, ProfilePatchBody>(
     '*/api/v1/profiles/:id',
     async ({ request, params }) => {
-      const profile = profiles.find((item) => item.id === params.id);
+      const profile = findProfile(params.id);
       if (!profile) {
         return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
       }
@@ -251,12 +312,6 @@ export const profilesHandlers: HttpHandler[] = [
       // Casteos explícitos, no `unknown` a ciegas: este mock confía en la
       // forma que le manda quien construye la feature, no valida cada
       // campo de cada item (no es el contrato real, es la capa de mocks).
-      if (Array.isArray(body.workExperience)) {
-        profile.workExperience = body.workExperience as WorkExperienceItem[];
-      }
-      if (Array.isArray(body.education)) {
-        profile.education = body.education as EducationItem[];
-      }
       if (Array.isArray(body.skills)) {
         profile.skills = body.skills as SkillItem[];
       }
@@ -268,8 +323,185 @@ export const profilesHandlers: HttpHandler[] = [
     },
   ),
 
+  // CM-61: alta de experiencia laboral. Reglas de `WorkExperience.java`
+  // (backend real): `startDate` obligatoria; `employmentStatus=ENDED`
+  // exige `endDate` >= `startDate`; cualquier otro estado prohíbe `endDate`.
+  http.post<{ id: string }>(
+    '*/api/v1/profiles/:id/work-experiences',
+    async ({ request, params }) => {
+      const profile = findProfile(params.id);
+      if (!profile) {
+        return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+      }
+
+      const body = (await safeJson(request)) ?? {};
+      const { company, position, description, startDate, endDate, employmentStatus, provenance } =
+        body;
+
+      if (
+        !isNonBlankString(company) ||
+        !isNonBlankString(position) ||
+        !isYearMonth(startDate) ||
+        !EMPLOYMENT_STATUSES.includes(employmentStatus as EmploymentStatus) ||
+        !DATA_PROVENANCES.includes(provenance as DataProvenance) ||
+        (description !== undefined && description !== null && typeof description !== 'string') ||
+        (typeof description === 'string' && description.length > DESCRIPTION_MAX_LENGTH)
+      ) {
+        return HttpResponse.json(
+          errorBody(VALIDATION_ERROR, 'Revisa los datos de la experiencia laboral.'),
+          { status: 400 },
+        );
+      }
+
+      const status = employmentStatus as EmploymentStatus;
+      const hasEndDate = endDate !== undefined && endDate !== null && endDate !== '';
+
+      if (status === 'ENDED') {
+        if (!isYearMonth(endDate)) {
+          return HttpResponse.json(
+            errorBody(
+              WORK_EXPERIENCE_DATE_INVALID,
+              'La fecha de fin es obligatoria si ya no trabajas ahí.',
+            ),
+            { status: 422 },
+          );
+        }
+        if (endDate < startDate) {
+          return HttpResponse.json(
+            errorBody(
+              WORK_EXPERIENCE_DATE_INVALID,
+              'La fecha de fin no puede ser anterior a la de inicio.',
+            ),
+            { status: 422 },
+          );
+        }
+      } else if (hasEndDate) {
+        return HttpResponse.json(
+          errorBody(
+            WORK_EXPERIENCE_DATE_INVALID,
+            'No puedes indicar una fecha de fin en este estado.',
+          ),
+          { status: 422 },
+        );
+      }
+
+      const item: WorkExperienceItem = {
+        id: `work-experience-${nextWorkExperienceId++}`,
+        company,
+        position,
+        description: typeof description === 'string' ? description : null,
+        startDate,
+        endDate: status === 'ENDED' ? (endDate as string) : null,
+        employmentStatus: status,
+        provenance: provenance as DataProvenance,
+      };
+      profile.workExperience.push(item);
+      return HttpResponse.json(profile, { status: 201 });
+    },
+  ),
+
+  http.delete<{ id: string; workExperienceId: string }>(
+    '*/api/v1/profiles/:id/work-experiences/:workExperienceId',
+    ({ params }) => {
+      const profile = findProfile(params.id);
+      if (!profile) {
+        return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+      }
+      const index = profile.workExperience.findIndex((item) => item.id === params.workExperienceId);
+      if (index === -1) {
+        return HttpResponse.json(errorBody('NOT_FOUND', 'Experiencia laboral no encontrada.'), {
+          status: 404,
+        });
+      }
+      profile.workExperience.splice(index, 1);
+      return HttpResponse.json(profile, { status: 200 });
+    },
+  ),
+
+  // CM-61: alta de educación. Reglas de `Education.java` (backend real):
+  // `institution`/`degree`/`startDate` obligatorias; `fieldOfStudy` NO se
+  // valida (a diferencia de los otros dos); `inProgress=true` prohíbe `endDate`.
+  http.post<{ id: string }>('*/api/v1/profiles/:id/educations', async ({ request, params }) => {
+    const profile = findProfile(params.id);
+    if (!profile) {
+      return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+    }
+
+    const body = (await safeJson(request)) ?? {};
+    const { institution, degree, fieldOfStudy, level, startDate, endDate, inProgress, provenance } =
+      body;
+
+    if (
+      !isNonBlankString(institution) ||
+      !isNonBlankString(degree) ||
+      !EDUCATION_LEVELS.includes(level as EducationLevel) ||
+      !isYearMonth(startDate) ||
+      typeof inProgress !== 'boolean' ||
+      !DATA_PROVENANCES.includes(provenance as DataProvenance) ||
+      (fieldOfStudy !== undefined && fieldOfStudy !== null && typeof fieldOfStudy !== 'string')
+    ) {
+      return HttpResponse.json(
+        errorBody(VALIDATION_ERROR, 'Revisa los datos de la formación académica.'),
+        {
+          status: 400,
+        },
+      );
+    }
+
+    const hasEndDate = endDate !== undefined && endDate !== null && endDate !== '';
+    if (inProgress && hasEndDate) {
+      return HttpResponse.json(
+        errorBody(
+          EDUCATION_DATE_INVALID,
+          'Una formación en curso no puede tener fecha de finalización.',
+        ),
+        { status: 422 },
+      );
+    }
+    if (hasEndDate && !isYearMonth(endDate)) {
+      return HttpResponse.json(
+        errorBody(VALIDATION_ERROR, 'La fecha de finalización no es válida.'),
+        {
+          status: 400,
+        },
+      );
+    }
+
+    const item: EducationItem = {
+      id: `education-${nextEducationId++}`,
+      institution,
+      degree,
+      fieldOfStudy: typeof fieldOfStudy === 'string' ? fieldOfStudy : '',
+      level: level as EducationLevel,
+      startDate,
+      endDate: !inProgress && hasEndDate ? endDate : null,
+      inProgress,
+      provenance: provenance as DataProvenance,
+    };
+    profile.education.push(item);
+    return HttpResponse.json(profile, { status: 201 });
+  }),
+
+  http.delete<{ id: string; educationId: string }>(
+    '*/api/v1/profiles/:id/educations/:educationId',
+    ({ params }) => {
+      const profile = findProfile(params.id);
+      if (!profile) {
+        return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+      }
+      const index = profile.education.findIndex((item) => item.id === params.educationId);
+      if (index === -1) {
+        return HttpResponse.json(errorBody('NOT_FOUND', 'Educación no encontrada.'), {
+          status: 404,
+        });
+      }
+      profile.education.splice(index, 1);
+      return HttpResponse.json(profile, { status: 200 });
+    },
+  ),
+
   http.post('*/api/v1/profiles/:id/finalize', ({ params }) => {
-    const profile = profiles.find((item) => item.id === params.id);
+    const profile = findProfile(params.id as string);
     if (!profile) {
       return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
     }
@@ -303,7 +535,7 @@ export const profilesHandlers: HttpHandler[] = [
   // `ownerId`, igual que PATCH/finalize (nota transversal de SPEC.md §3,
   // C-01: el mock no distingue "no existe" de "no es tuyo").
   http.get('*/api/v1/profiles/:id', ({ params }) => {
-    const profile = profiles.find((item) => item.id === params.id);
+    const profile = findProfile(params.id as string);
     if (!profile) {
       return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
     }

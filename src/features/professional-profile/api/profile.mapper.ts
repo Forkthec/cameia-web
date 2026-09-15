@@ -1,13 +1,62 @@
 /**
- * Cortafuegos entre el contrato crudo (`ProfileDto`) y el modelo de UI
- * (`Profile`) — CLAUDE.md §8: todo lo que el backend pueda cambiar se
- * detiene aquí, nunca llega directo a un componente. Hoy es una copia
- * campo a campo porque el mock y el modelo de dominio coinciden en
- * nombre, pero es el único sitio que se toca si eso deja de ser cierto
- * cuando exista el contrato real (bloqueo C-01).
+ * Cortafuegos entre el contrato crudo (`ProfileDto` y compañía) y el modelo
+ * de UI (`Profile`) — CLAUDE.md §8: todo lo que el backend pueda cambiar se
+ * detiene aquí, nunca llega directo a un componente.
+ *
+ * CM-61 agrega la dirección inversa (UI → contrato): `toAddEducationRequest`
+ * y `toAddWorkExperienceRequest` traducen los valores del formulario al
+ * body real que exige el backend — es aquí, y no en los organismos, donde
+ * vive la derivación de `employmentStatus` a partir de los dos checkboxes
+ * (`isCurrent`/`unknownEnd`) y el truncado de fecha a `YearMonth`
+ * (`model/yearMonth.ts`, bloqueo C-14): los organismos no conocen el
+ * contrato, solo edición de UI (SPEC.md §9, decisión D-F).
  */
-import type { Profile } from '../model/profile.types';
-import type { ProfileDto } from './profile.dto';
+import { MANUAL_PROVENANCE } from '../model/profile.constants';
+import type {
+  DataProvenance,
+  EducationItem,
+  EducationLevel,
+  EmploymentStatus,
+  Profile,
+  WorkExperienceItem,
+} from '../model/profile.types';
+import { toYearMonth } from '../model/yearMonth';
+import type { EducationFormValues } from '../schemas/education.schema';
+import type { WorkExperienceFormValues } from '../schemas/workExperience.schema';
+import type {
+  AddEducationRequestDto,
+  AddWorkExperienceRequestDto,
+  EducationDto,
+  ProfileDto,
+  WorkExperienceDto,
+} from './profile.dto';
+
+function toEducationItem(dto: EducationDto): EducationItem {
+  return {
+    id: dto.id,
+    institution: dto.institution,
+    degree: dto.degree,
+    fieldOfStudy: dto.fieldOfStudy,
+    level: dto.level as EducationLevel,
+    startDate: dto.startDate,
+    endDate: dto.endDate,
+    inProgress: dto.inProgress,
+    provenance: dto.provenance as DataProvenance,
+  };
+}
+
+function toWorkExperienceItem(dto: WorkExperienceDto): WorkExperienceItem {
+  return {
+    id: dto.id,
+    company: dto.company,
+    position: dto.position,
+    description: dto.description,
+    startDate: dto.startDate,
+    endDate: dto.endDate,
+    employmentStatus: dto.employmentStatus as EmploymentStatus,
+    provenance: dto.provenance as DataProvenance,
+  };
+}
 
 export function toProfile(dto: ProfileDto): Profile {
   return {
@@ -16,5 +65,53 @@ export function toProfile(dto: ProfileDto): Profile {
     name: dto.name,
     summary: dto.summary,
     summaryProvenance: dto.summaryProvenance,
+    education: dto.education.map(toEducationItem),
+    workExperience: dto.workExperience.map(toWorkExperienceItem),
+  };
+}
+
+/**
+ * `endDate` viaja `null` tanto si la formación sigue en curso como si el
+ * campo se dejó vacío — el backend real (`Education.java`) trata ambos
+ * casos igual: solo prohíbe `endDate` cuando `inProgress` es `true`.
+ */
+export function toAddEducationRequest(values: EducationFormValues): AddEducationRequestDto {
+  return {
+    institution: values.institution.trim(),
+    degree: values.degree.trim(),
+    fieldOfStudy: values.fieldOfStudy.trim(),
+    level: values.level,
+    startDate: toYearMonth(values.startDate),
+    endDate: !values.inProgress && values.endDate.length > 0 ? toYearMonth(values.endDate) : null,
+    inProgress: values.inProgress,
+    provenance: MANUAL_PROVENANCE,
+  };
+}
+
+/**
+ * Deriva `employmentStatus` de los dos checkboxes reales del frame: ninguno
+ * marcado es `ENDED` (con `endDate`), "Trabajo aquí actualmente" es
+ * `CURRENT`, "No recuerdo la fecha exacta de finalización" es
+ * `UNKNOWN_END` — ambos sin `endDate` (regla de dominio real,
+ * `WorkExperience.java`).
+ */
+export function toAddWorkExperienceRequest(
+  values: WorkExperienceFormValues,
+): AddWorkExperienceRequestDto {
+  const employmentStatus: EmploymentStatus = values.isCurrent
+    ? 'CURRENT'
+    : values.unknownEnd
+      ? 'UNKNOWN_END'
+      : 'ENDED';
+  const trimmedDescription = values.description.trim();
+
+  return {
+    company: values.company.trim(),
+    position: values.position.trim(),
+    description: trimmedDescription.length > 0 ? trimmedDescription : null,
+    startDate: toYearMonth(values.startDate),
+    endDate: employmentStatus === 'ENDED' ? toYearMonth(values.endDate) : null,
+    employmentStatus,
+    provenance: MANUAL_PROVENANCE,
   };
 }

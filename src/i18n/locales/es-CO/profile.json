@@ -1,7 +1,4 @@
 {
-  "asistente": {
-    "progreso": "Progreso del formulario de perfil"
-  },
   "informacionGeneral": {
     "titulo": "Información general",
     "campos": {
@@ -10,6 +7,16 @@
       "ciudad": "Ciudad"
     }
   },
+  "formulario": {
+    "titulo": "Editar perfil profesional",
+    "indiceSecciones": "Secciones del perfil",
+    "completitud": {
+      "etiqueta": "Completitud del Perfil Profesional",
+      "fraccion": "{{value}} de {{max}} requisitos completos"
+    },
+    "finalizar": "Finalizar y Continuar",
+    "finalizarBloqueado": "Todavía no puedes finalizar: agrega al menos una habilidad y un rol objetivo."
+  },
   "general": {
     "tituloSeccion": "Información General",
     "nombre": {
@@ -17,7 +24,7 @@
       "placeholder": "Escribe aquí",
       "ayuda": "Por ejemplo: \"Analista de datos\" o \"Producto senior\".",
       "errorRequerido": "Ingresa un nombre para el perfil.",
-      "errorLongitud": "El nombre no puede superar los 120 caracteres."
+      "errorLongitud": "El nombre no puede superar los 255 caracteres."
     },
     "resumen": {
       "etiqueta": "Resumen profesional",
@@ -29,10 +36,97 @@
     "guardandoBorrador": "Guardando…",
     "confirmacionGuardado": "Cambios guardados."
   },
+  "educacion": {
+    "titulo": "Formación académica",
+    "nivel": {
+      "etiqueta": "Nivel educativo",
+      "placeholder": "Selecciona una opción",
+      "errorRequerido": "Elige un nivel educativo.",
+      "TECHNICAL": "Técnico",
+      "UNDERGRADUATE": "Pregrado",
+      "POSTGRADUATE": "Posgrado"
+    },
+    "tituloObtenido": {
+      "etiqueta": "Título obtenido",
+      "placeholder": "Escribe aquí",
+      "errorRequerido": "Ingresa el título obtenido."
+    },
+    "campoEstudio": {
+      "etiqueta": "Campo de estudio",
+      "placeholder": "Escribe aquí"
+    },
+    "institucion": {
+      "etiqueta": "Institución",
+      "placeholder": "Escribe aquí",
+      "errorRequerido": "Ingresa la institución."
+    },
+    "fechaInicio": {
+      "etiqueta": "Fecha de inicio",
+      "errorRequerido": "Ingresa la fecha de inicio."
+    },
+    "fechaFin": {
+      "etiqueta": "Año de finalización",
+      "errorAnterior": "La fecha de finalización no puede ser anterior a la de inicio."
+    },
+    "enCurso": "En curso",
+    "agregar": "Agregar formación",
+    "agregando": "Agregando…",
+    "eliminar": "Eliminar {{titulo}}",
+    "eliminando": "Eliminando…",
+    "periodo": "{{inicio}} - {{fin}}",
+    "periodoEnCurso": "{{inicio}} - en curso",
+    "vacio": {
+      "titulo": "Todavía no agregas formación académica",
+      "descripcion": "Agrega al menos una para poder finalizar tu perfil."
+    },
+    "confirmacionAgregada": "Formación agregada.",
+    "confirmacionEliminada": "Formación eliminada.",
+    "errorAgregar": "No se pudo agregar la formación académica.",
+    "errorEliminar": "No se pudo eliminar la formación académica."
+  },
   "experiencia": {
-    "titulo": "Experiencia laboral y educación",
-    "agregarExperiencia": "Agregar experiencia",
-    "agregarEducacion": "Agregar educación"
+    "titulo": "Experiencia Laboral",
+    "cargo": {
+      "etiqueta": "Cargo",
+      "placeholder": "Escribe aquí",
+      "errorRequerido": "Ingresa el cargo."
+    },
+    "empresa": {
+      "etiqueta": "Empresa",
+      "placeholder": "Escribe aquí",
+      "errorRequerido": "Ingresa la empresa."
+    },
+    "fechaInicio": {
+      "etiqueta": "Fecha de inicio",
+      "errorRequerido": "Ingresa la fecha de inicio."
+    },
+    "fechaFin": {
+      "etiqueta": "Fecha de fin",
+      "errorRequerido": "Ingresa la fecha de fin.",
+      "errorAnterior": "La fecha de fin no puede ser anterior a la de inicio."
+    },
+    "actual": "Trabajo aquí actualmente",
+    "finDesconocido": "No recuerdo la fecha exacta de finalización",
+    "descripcion": {
+      "etiqueta": "Descripción de funciones",
+      "placeholder": "Escribe aquí. Este campo crece con el contenido.",
+      "contador": "{{count}} / {{max}} caracteres"
+    },
+    "agregar": "Agregar experiencia",
+    "agregando": "Agregando…",
+    "eliminar": "Eliminar {{cargo}}",
+    "eliminando": "Eliminando…",
+    "periodo": "{{inicio}} - {{fin}}",
+    "periodoActual": "{{inicio}} - actual",
+    "periodoFinDesconocido": "{{inicio}} - fin desconocido",
+    "vacio": {
+      "titulo": "Todavía no agregas experiencia laboral",
+      "descripcion": "Es opcional; no es un requisito para finalizar tu perfil."
+    },
+    "confirmacionAgregada": "Experiencia agregada.",
+    "confirmacionEliminada": "Experiencia eliminada.",
+    "errorAgregar": "No se pudo agregar la experiencia laboral.",
+    "errorEliminar": "No se pudo eliminar la experiencia laboral."
   },
   "habilidades": {
     "titulo": "Habilidades y expectativas",
