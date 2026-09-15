@@ -5,6 +5,8 @@
     "NOT_FOUND": "No encontramos lo que buscabas.",
     "VALIDATION_ERROR": "Revisa los datos ingresados.",
     "UNAUTHORIZED": "Tu sesión expiró. Vuelve a iniciar sesión.",
-    "PROFILE_NAME_INVALID": "El nombre del perfil no es válido."
+    "PROFILE_NAME_INVALID": "El nombre del perfil no es válido.",
+    "WORK_EXPERIENCE_DATE_INVALID": "Revisa las fechas de la experiencia laboral.",
+    "EDUCATION_DATE_INVALID": "Revisa las fechas de la formación académica."
   }
 }
