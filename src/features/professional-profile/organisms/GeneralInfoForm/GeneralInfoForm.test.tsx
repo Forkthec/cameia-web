@@ -40,6 +40,12 @@ describe('GeneralInfoForm', () => {
     );
   });
 
+  it('showSectionTitle=false no renderiza el encabezado de sección (acordeón sm)', () => {
+    render(<GeneralInfoForm {...baseProps} showSectionTitle={false} />);
+
+    expect(screen.queryByRole('heading', { name: 'Información General' })).not.toBeInTheDocument();
+  });
+
   it('muestra la ayuda literal del nombre mientras no hay error', () => {
     render(<GeneralInfoForm {...baseProps} />);
 

@@ -15,17 +15,15 @@
  * (`styles/index.css:152-166`), que coincide exacto con el `text/h2-sm` de
  * Figma (21px/700/-1.5).
  *
- * **Advertencia para quien arme el armazón compartido:** en `sm`, Figma
- * dibuja el título «Información General» **una sola vez**, como el
- * encabezado del acordeón (`142:667`) — no hay un `<h2>` interno duplicado
- * dentro del contenido expandido. En `lg`, en cambio, el título sí vive
- * dentro del contenido (`140:979`), separado de la etiqueta del índice
- * lateral (`175:1392`, 14px, distinta). Si el acordeón de `sm` monta este
- * organismo completo (con su propio `<h2>`) además de renderizar su propio
- * encabezado de disparador, el título queda duplicado. No se resuelve aquí
- * —depende de cómo se construya ese acordeón, fuera del alcance de CM-53—
- * pero queda registrado para que no se repita el mismo error de no revisar
- * Figma antes de ensamblarlo.
+ * **`showSectionTitle` (CM-61):** en `sm`, Figma dibuja el título
+ * «Información General» **una sola vez**, como el encabezado del acordeón
+ * (`142:667`) — no hay un `<h2>` interno duplicado dentro del contenido
+ * expandido. En `lg`, en cambio, el título sí vive dentro del contenido
+ * (`140:979`), separado de la etiqueta del índice lateral (`175:1392`, 14px,
+ * distinta). `ProfileSectionsLayout` (el armazón que CM-61 construye)
+ * resuelve esto pasando `showSectionTitle={isDesktop}`: en el acordeón móvil
+ * el encabezado del propio disparador ya es el título, así que este `<h2>`
+ * se omite para no duplicarlo.
  *
  * Deliberadamente NO incluye el campo «Ubicación» que sí aparece en el
  * frame: ningún CA de HU-2.3 lo pide, no existe en `GLOSSARY.md` ni en el
@@ -73,6 +71,8 @@ interface GeneralInfoFormProps {
   summary: string;
   /** «Información General» — encabezado de la sección (nodo `140:979` del frame). */
   sectionTitle: string;
+  /** `false` en el acordeón `sm`, donde el encabezado del propio disparador ya es el título (CM-61). */
+  showSectionTitle?: boolean;
   /** `true` mientras la mutación de guardado está en curso: deshabilita los campos. */
   isSaving?: boolean;
   onSubmit: (values: GeneralInfoFormValues) => void;
@@ -100,6 +100,7 @@ export function GeneralInfoForm({
   name,
   summary,
   sectionTitle,
+  showSectionTitle = true,
   isSaving = false,
   onSubmit,
   nameLabel,
@@ -159,7 +160,9 @@ export function GeneralInfoForm({
       {/* seccion-informacion-general (nodo 140:978): encabezado + resumen.
           El campo "Ubicación" del frame se omite a propósito — bloqueo C-10. */}
       <div className="gap-space-4 flex flex-col">
-        <h2 className="text-h2 font-display text-text-primary">{sectionTitle}</h2>
+        {showSectionTitle ? (
+          <h2 className="text-h2 font-display text-text-primary">{sectionTitle}</h2>
+        ) : null}
         <Controller
           control={control}
           name="summary"
