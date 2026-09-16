@@ -1,13 +1,14 @@
 /**
- * Comportamiento observable de `EditProfilePage` (PRT-02.03, CM-61): estado
- * de carga mientras se obtiene el perfil, error distinguiendo `NOT_FOUND`
- * del genérico con reintento, estado vacío de Educación/Experiencia con la
- * barra de completitud en su valor bajo, el recorrido completo de agregar y
- * eliminar una formación académica (página → hook → MSW → caché), que
- * alterna `StepList`/acordeón según el breakpoint, que "Guardar borrador"
- * solo envía Información General (nunca dispara un alta de ítem), y que
- * "Finalizar y Continuar" existe pero está siempre deshabilitado (CM-65/
- * CM-69, fuera de este alcance).
+ * Comportamiento observable de `EditProfilePage` (PRT-02.03, CM-61/CM-69):
+ * estado de carga mientras se obtienen el perfil y el catálogo de roles
+ * profesionales, error distinguiendo `NOT_FOUND` del genérico con reintento,
+ * estado vacío de Educación/Experiencia/Roles Objetivo con la barra de
+ * completitud en su valor bajo, el recorrido completo de agregar y eliminar
+ * una formación académica y un rol objetivo (página → hook → MSW → caché),
+ * que alterna `StepList`/acordeón según el breakpoint, que "Guardar
+ * borrador" solo envía Información General (nunca dispara un alta de ítem),
+ * y que "Finalizar y Continuar" existe pero está siempre deshabilitado
+ * (CM-65, fuera de este alcance).
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -97,6 +98,7 @@ describe('EditProfilePage', () => {
 
     expect(await screen.findByText('Todavía no agregas formación académica')).toBeInTheDocument();
     expect(screen.getByText('Todavía no agregas experiencia laboral')).toBeInTheDocument();
+    expect(screen.getByText('Todavía no agregas roles objetivo')).toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '0');
   });
 
@@ -144,6 +146,29 @@ describe('EditProfilePage', () => {
 
     await waitFor(() =>
       expect(screen.queryByText('Ingeniería de Sistemas')).not.toBeInTheDocument(),
+    );
+  });
+
+  it('agregar un rol objetivo lo muestra en la lista, y eliminarlo lo retira', async () => {
+    await waitUntilReady();
+    setViewportMatches(true);
+    const user = userEvent.setup();
+    const created = await createProfile();
+
+    renderPage(created.id);
+    await screen.findByRole('heading', { name: 'Editar perfil profesional' });
+    const targetRolesSection = within(screen.getByRole('region', { name: 'Roles objetivo' }));
+
+    await user.click(targetRolesSection.getByRole('combobox', { name: 'Agregar rol objetivo' }));
+    await user.click(screen.getByRole('option', { name: 'Desarrollador Backend' }));
+
+    expect(await screen.findByText('Desarrollador Backend')).toBeInTheDocument();
+    expect(screen.getByText('Rol objetivo agregado.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Eliminar Desarrollador Backend' }));
+
+    await waitFor(() =>
+      expect(screen.queryByText('Desarrollador Backend')).not.toBeInTheDocument(),
     );
   });
 

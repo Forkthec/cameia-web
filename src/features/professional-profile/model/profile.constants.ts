@@ -30,9 +30,14 @@
  *
  * `PROFILE_COMPLETENESS_MAX` son los 5 requisitos reales de finalización
  * (HU-2.5): nombre, resumen, ≥1 educación, ≥1 habilidad, ≥1 rol objetivo.
- * CM-61 solo puede calcular 3; se fija en 5 desde ya para que la fracción de
- * la barra de completitud ("3 de 5") no mienta sobre cuánto falta cuando
- * CM-65/CM-69 sumen los otros dos (SPEC.md §9, decisión D-D).
+ * CM-61 solo podía calcular 3; CM-69 suma el cuarto (≥1 rol objetivo). Se
+ * fijó en 5 desde CM-61 para que la fracción de la barra de completitud
+ * ("3 de 5") no mintiera sobre cuánto faltaba (SPEC.md §9, decisión D-D).
+ *
+ * `MAX_TARGET_ROLES` (CM-69) confirmado contra el código real
+ * (`ProfileController.java#addTargetRole`, 422 al alcanzarlo) y contra el
+ * memo del PO del 13-sep (C-05): máximo 5 roles objetivo por perfil, sin
+ * prioridad ni reordenamiento.
  *
  * `DESKTOP_MEDIA_QUERY` duplica `--breakpoint-md: 600px` de
  * `styles/index.css`: `design-system`/`features` no pueden leer una
@@ -53,10 +58,12 @@ export const EDUCATION_LEVELS: readonly EducationLevel[] = [
   'POSTGRADUATE',
 ] as const;
 
-/** Todo ítem agregado a mano desde este formulario lleva esta procedencia (CA-2.3.1, extendido a experiencia/educación). */
+/** Todo ítem agregado a mano desde este formulario lleva esta procedencia (CA-2.3.1, extendido a experiencia/educación/roles objetivo). */
 export const MANUAL_PROVENANCE: DataProvenance = 'MANUAL';
 
 export const PROFILE_COMPLETENESS_MAX = 5;
+
+export const MAX_TARGET_ROLES = 5;
 
 export const GENERAL_INFO_FORM_ID = 'general-info-form';
 export const EDUCATION_FORM_ID = 'education-form';

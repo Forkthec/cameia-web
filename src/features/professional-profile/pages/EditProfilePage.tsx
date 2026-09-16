@@ -18,13 +18,19 @@
  * es la única capa de esta feature que decide el breakpoint.
  *
  * "Guardar borrador" solo envía `GeneralInfoForm` (por el atributo HTML
- * `form`, `GENERAL_INFO_FORM_ID`): Educación y Experiencia Laboral se
- * persisten al vuelo por ítem, sin borrador que guardar (decisión D-C).
- * "Finalizar y Continuar" se renderiza fiel a Figma pero SIEMPRE
- * deshabilitado hoy — su validación de 5 requisitos y su endpoint de
- * finalización son de CM-65/CM-69, que esta subtarea no construye.
+ * `form`, `GENERAL_INFO_FORM_ID`): Educación, Experiencia Laboral y Roles
+ * Objetivo se persisten al vuelo por ítem, sin borrador que guardar
+ * (decisión D-C). "Finalizar y Continuar" se renderiza fiel a Figma pero
+ * SIEMPRE deshabilitado hoy — su validación de 5 requisitos y su endpoint
+ * de finalización son de CM-65, que esta subtarea no construye (CM-69 solo
+ * suma el cuarto requisito al cálculo de completitud).
  *
- * Es la única capa de esta feature que llama `useTranslation`: los cuatro
+ * CM-69 agrega `useProfessionalRolesQuery`: el catálogo cerrado de roles TI
+ * es la única dependencia de datos de esta página que no cuelga de
+ * `useProfileQuery`, así que el estado de carga/error inicial ahora
+ * considera ambas peticiones.
+ *
+ * Es la única capa de esta feature que llama `useTranslation`: los
  * organismos que ensambla siguen el patrón de `GeneralInfoForm` (texto por
  * props obligatorias, sin `useTranslation` propio — CLAUDE.md §14.7).
  */
@@ -36,10 +42,14 @@ import { AlertInline } from '@/design-system/molecules/AlertInline';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { ApiError } from '@/services/http/ApiError';
 import { useAddEducation } from '../hooks/useAddEducation';
+import { useAddTargetRole } from '../hooks/useAddTargetRole';
 import { useAddWorkExperience } from '../hooks/useAddWorkExperience';
+import { useProfessionalRolesQuery } from '../hooks/useProfessionalRolesQuery';
 import { useProfileQuery } from '../hooks/useProfileQuery';
 import { useRemoveEducation } from '../hooks/useRemoveEducation';
+import { useRemoveTargetRole } from '../hooks/useRemoveTargetRole';
 import { useRemoveWorkExperience } from '../hooks/useRemoveWorkExperience';
+import { useSubstituteTargetRole } from '../hooks/useSubstituteTargetRole';
 import { useUpdateProfileGeneralInfo } from '../hooks/useUpdateProfileGeneralInfo';
 import {
   DESKTOP_MEDIA_QUERY,
@@ -55,6 +65,7 @@ import { EducationSection } from '../organisms/EducationSection';
 import { GeneralInfoForm } from '../organisms/GeneralInfoForm';
 import { ProfileActionsBar } from '../organisms/ProfileActionsBar';
 import { ProfileSectionsLayout, type ProfileSection } from '../organisms/ProfileSectionsLayout';
+import { TargetRolesSection } from '../organisms/TargetRolesSection';
 import { WorkExperienceSection } from '../organisms/WorkExperienceSection';
 
 export function EditProfilePage() {
@@ -64,13 +75,17 @@ export function EditProfilePage() {
   const isDesktop = useMediaQuery(DESKTOP_MEDIA_QUERY);
 
   const profileQuery = useProfileQuery(profileId);
+  const professionalRolesQuery = useProfessionalRolesQuery();
   const updateGeneralInfo = useUpdateProfileGeneralInfo(profileId);
   const addEducation = useAddEducation(profileId);
   const removeEducation = useRemoveEducation(profileId);
   const addWorkExperience = useAddWorkExperience(profileId);
   const removeWorkExperience = useRemoveWorkExperience(profileId);
+  const addTargetRole = useAddTargetRole(profileId);
+  const substituteTargetRole = useSubstituteTargetRole(profileId);
+  const removeTargetRole = useRemoveTargetRole(profileId);
 
-  if (profileQuery.isPending) {
+  if (profileQuery.isPending || professionalRolesQuery.isPending) {
     return (
       <div className="py-space-9 flex justify-center">
         <Spinner label={t('common:estados.cargando')} hideLabel={false} />
@@ -78,11 +93,13 @@ export function EditProfilePage() {
     );
   }
 
-  if (profileQuery.isError) {
+  if (profileQuery.isError || professionalRolesQuery.isError) {
     // Un ApiError real (mapErrorResponse) distingue NOT_FOUND de cualquier
     // otro fallo del servidor; algo que no es ApiError (p. ej. el fetch
-    // rechazado por falta de conexión) es un fallo de red real.
-    const error = profileQuery.error;
+    // rechazado por falta de conexión) es un fallo de red real. El catálogo
+    // de roles (CM-69) no tiene un NOT_FOUND propio — solo el perfil lo
+    // distingue.
+    const error = profileQuery.error ?? professionalRolesQuery.error;
     const message =
       error instanceof ApiError
         ? error.code === 'NOT_FOUND'
@@ -95,7 +112,10 @@ export function EditProfilePage() {
         <AlertInline variant="error">{message}</AlertInline>
         <Button
           variant="secondary"
-          onClick={() => void profileQuery.refetch()}
+          onClick={() => {
+            void profileQuery.refetch();
+            void professionalRolesQuery.refetch();
+          }}
           className="self-start"
         >
           {t('common:acciones.reintentar')}
@@ -105,6 +125,7 @@ export function EditProfilePage() {
   }
 
   const profile = profileQuery.data;
+  const professionalRoles = professionalRolesQuery.data;
   const sectionStatuses = getSectionStatuses(profile);
   const completenessValue = getCompletenessValue(profile);
 
@@ -280,6 +301,70 @@ export function EditProfilePage() {
           }
           confirmationMessage={
             addWorkExperience.isSuccess ? t('profile:experiencia.confirmacionAgregada') : undefined
+          }
+        />
+      ),
+    },
+    {
+      id: 'target-roles',
+      label: t('profile:rolesObjetivo.titulo'),
+      status: sectionStatuses['target-roles'],
+      content: (
+        <TargetRolesSection
+          items={profile.targetRoles}
+          catalog={professionalRoles}
+          onAdd={(professionalRoleId) => addTargetRole.mutate(professionalRoleId)}
+          onSubstitute={(roleId, professionalRoleId) =>
+            substituteTargetRole.mutate({ roleId, professionalRoleId })
+          }
+          onRemove={(roleId) => removeTargetRole.mutate(roleId)}
+          isAdding={addTargetRole.isPending}
+          substitutingId={
+            substituteTargetRole.isPending ? (substituteTargetRole.variables?.roleId ?? null) : null
+          }
+          removingId={removeTargetRole.isPending ? (removeTargetRole.variables ?? null) : null}
+          isProfileCompleted={profile.status === 'COMPLETED'}
+          showSectionTitle={isDesktop}
+          sectionTitle={t('profile:rolesObjetivo.titulo')}
+          addLabel={t('profile:rolesObjetivo.agregar.etiqueta')}
+          addPlaceholder={t('profile:rolesObjetivo.agregar.placeholder')}
+          addingLabel={t('profile:rolesObjetivo.agregar.agregando')}
+          noResultsLabel={t('profile:rolesObjetivo.agregar.sinResultados')}
+          maxReachedMessage={t('profile:rolesObjetivo.agregar.tope')}
+          substituteFieldLabel={t('profile:rolesObjetivo.sustituir.etiqueta')}
+          substitutePlaceholder={t('profile:rolesObjetivo.sustituir.placeholder')}
+          substituteItemLabel={(roleName) =>
+            t('profile:rolesObjetivo.sustituir.accion', { rol: roleName })
+          }
+          substitutingItemLabel={t('profile:rolesObjetivo.sustituir.sustituyendo')}
+          removeItemLabel={(roleName) => t('profile:rolesObjetivo.eliminar', { rol: roleName })}
+          removingItemLabel={t('profile:rolesObjetivo.eliminando')}
+          removeLastRoleBlockedHint={t('profile:rolesObjetivo.eliminarUltimoBloqueado')}
+          emptyStateTitle={t('profile:rolesObjetivo.vacio.titulo')}
+          emptyStateDescription={t('profile:rolesObjetivo.vacio.descripcion')}
+          addErrorMessage={
+            addTargetRole.isError
+              ? getItemErrorMessage(addTargetRole.error, t('profile:rolesObjetivo.errorAgregar'))
+              : undefined
+          }
+          substituteErrorMessage={
+            substituteTargetRole.isError
+              ? getItemErrorMessage(
+                  substituteTargetRole.error,
+                  t('profile:rolesObjetivo.errorSustituir'),
+                )
+              : undefined
+          }
+          removeErrorMessage={
+            removeTargetRole.isError
+              ? getItemErrorMessage(
+                  removeTargetRole.error,
+                  t('profile:rolesObjetivo.errorEliminar'),
+                )
+              : undefined
+          }
+          confirmationMessage={
+            addTargetRole.isSuccess ? t('profile:rolesObjetivo.confirmacionAgregado') : undefined
           }
         />
       ),

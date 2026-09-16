@@ -1,10 +1,10 @@
 // PROVISIONAL — pendiente de OpenAPI (CLAUDE.md §8, bloqueo C-01).
 /**
  * Forma cruda del `ProfileRecord` que devuelve `src/mocks/handlers/profiles.handlers.ts`
- * (CM-53, extendido en CM-61 con `education`/`workExperience`). `skills`/
- * `targetRoleIds` existen en el mock pero son de CM-65/CM-69, así que
- * quedan fuera de este DTO hasta que esos tickets los necesiten
- * (ARCHITECTURE.md §5, regla de crecimiento) — el `mapper` no los toca.
+ * (CM-53, extendido en CM-61 con `education`/`workExperience`, en CM-69 con
+ * `targetRoles`). `skills` existe en el mock pero es de CM-65, así que queda
+ * fuera de este DTO hasta que ese ticket lo necesite (ARCHITECTURE.md §5,
+ * regla de crecimiento) — el `mapper` no lo toca.
  *
  * `EducationDto`/`WorkExperienceDto` y sus dos `Add*RequestDto` replican
  * los campos reales del backend (`AddEducationRequest`/
@@ -12,6 +12,15 @@
  * `ProfileResponse.WorkExperienceItem` en `cameia-perfil`), compartidos en
  * la sesión que escribió este archivo — no son una referencia inventada
  * como el resto de este DTO mientras C-01 sigue abierto.
+ *
+ * `TargetRoleDto`/`AddTargetRoleRequestDto`/`UpdateTargetRoleRequestDto`
+ * (CM-69) replican igual los campos reales de `ProfileController.java`
+ * (parámetros de `AddTargetRoleCommand`/`UpdateTargetRoleCommand`).
+ * `ProfessionalRoleDto` es la única excepción: `ProfessionalRoleResponse.java`
+ * no se compartió, solo su uso (`ProfessionalRoleResponse.from(role)`) — se
+ * asume `{ id, name }`, la misma forma que ya usa el catálogo estático de
+ * `src/mocks/data/catalogs.ts`, documentado como supuesto razonable, no
+ * contrato confirmado.
  */
 export interface EducationDto {
   id: string;
@@ -38,6 +47,13 @@ export interface WorkExperienceDto {
   provenance: string;
 }
 
+/** Rol objetivo ya asociado al perfil. `id` es el identificador propio del Rol Objetivo (ver `TargetRoleItem` en `model/profile.types.ts`). */
+export interface TargetRoleDto {
+  id: string;
+  professionalRoleId: string;
+  provenance: string;
+}
+
 export interface ProfileDto {
   id: string;
   status: 'IN_PROGRESS' | 'COMPLETED';
@@ -46,6 +62,7 @@ export interface ProfileDto {
   summaryProvenance: 'MANUAL' | 'AI_SUGGESTED' | 'AI_EDITED' | null;
   education: EducationDto[];
   workExperience: WorkExperienceDto[];
+  targetRoles: TargetRoleDto[];
 }
 
 /** Body real de `POST /api/v1/profiles/:id/educations` (`AddEducationRequest.java`). */
@@ -69,4 +86,22 @@ export interface AddWorkExperienceRequestDto {
   endDate: string | null;
   employmentStatus: string;
   provenance: string;
+}
+
+/** Body real de `POST /api/v1/profiles/:id/target-roles` (parámetros de `AddTargetRoleCommand`, `ProfileController.java`). */
+export interface AddTargetRoleRequestDto {
+  professionalRoleId: string;
+  provenance: string;
+}
+
+/** Body real de `PATCH /api/v1/profiles/:id/target-roles/:roleId` — sustituye el rol referenciado conservando el id del Rol Objetivo (`UpdateTargetRoleCommand`, `ProfileController.java`). */
+export interface UpdateTargetRoleRequestDto {
+  professionalRoleId: string;
+}
+
+// PROVISIONAL — forma exacta de `ProfessionalRoleResponse.java` sin confirmar (ver TSDoc de cabecera).
+/** Catálogo cerrado de roles TI, `GET /api/v1/professional-roles` (`ProfessionalRoleController.java`, CM-23). */
+export interface ProfessionalRoleDto {
+  id: string;
+  name: string;
 }

@@ -4,8 +4,11 @@
  * archivo simula —creación en `IN_PROGRESS`, validación de nombre,
  * educación obligatoria para finalizar, transición única a `COMPLETED`,
  * alta/baja por ítem de experiencia laboral y educación (CM-61) con las
- * reglas reales de `WorkExperience.java`/`Education.java`— sigan
- * funcionando juntas, tal como las consume `professional-profile`.
+ * reglas reales de `WorkExperience.java`/`Education.java`, y alta/sustituir/
+ * baja por ítem de roles objetivo (CM-69) con las reglas reales de
+ * `ProfileController.java` (catálogo cerrado, máximo 5, sin duplicados,
+ * sustituir conserva el id)— sigan funcionando juntas, tal como las
+ * consume `professional-profile`.
  *
  * No vive en ninguna feature porque no prueba una feature: prueba la capa
  * de infraestructura de mocks en sí misma, igual que
@@ -409,5 +412,195 @@ describe('profilesHandlers', () => {
 
     expect(error).toBeInstanceOf(ApiError);
     expect((error as ApiError).code).toBe('VALIDATION_ERROR');
+  });
+
+  // CM-69: alta de rol objetivo válido — catálogo cerrado (`PROFESSIONAL_ROLES`).
+  it('agregar un rol objetivo válido lo devuelve dentro del perfil', async () => {
+    const created = await httpClient.post<ProfileResponse>('/api/v1/profiles', {
+      name: 'Perfil de prueba',
+    });
+
+    const updated = await httpClient.post<ProfileResponse & { targetRoles: unknown[] }>(
+      `/api/v1/profiles/${created.id}/target-roles`,
+      { professionalRoleId: 'backend-developer', provenance: 'MANUAL' },
+    );
+
+    expect(updated.targetRoles).toHaveLength(1);
+  });
+
+  it('un rol profesional fuera del catálogo falla con VALIDATION_ERROR', async () => {
+    const created = await httpClient.post<ProfileResponse>('/api/v1/profiles', {
+      name: 'Perfil de prueba',
+    });
+
+    const error = await httpClient
+      .post(`/api/v1/profiles/${created.id}/target-roles`, {
+        professionalRoleId: 'no-existe-en-el-catalogo',
+        provenance: 'MANUAL',
+      })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).code).toBe('VALIDATION_ERROR');
+  });
+
+  // `ProfileController.java#addTargetRole`: 409 si el rol ya está asociado.
+  it('agregar un rol objetivo repetido falla con 409', async () => {
+    const created = await httpClient.post<ProfileResponse>('/api/v1/profiles', {
+      name: 'Perfil de prueba',
+    });
+    await httpClient.post(`/api/v1/profiles/${created.id}/target-roles`, {
+      professionalRoleId: 'backend-developer',
+      provenance: 'MANUAL',
+    });
+
+    const error = await httpClient
+      .post(`/api/v1/profiles/${created.id}/target-roles`, {
+        professionalRoleId: 'backend-developer',
+        provenance: 'MANUAL',
+      })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).httpStatus).toBe(409);
+  });
+
+  // Memo del PO del 13-sep, C-05: máximo 5 roles objetivo por perfil.
+  it('el sexto rol objetivo falla con 422', async () => {
+    const created = await httpClient.post<ProfileResponse>('/api/v1/profiles', {
+      name: 'Perfil de prueba',
+    });
+    const roleIds = [
+      'backend-developer',
+      'frontend-developer',
+      'fullstack-developer',
+      'data-engineer',
+      'data-scientist',
+    ];
+    for (const professionalRoleId of roleIds) {
+      await httpClient.post(`/api/v1/profiles/${created.id}/target-roles`, {
+        professionalRoleId,
+        provenance: 'MANUAL',
+      });
+    }
+
+    const error = await httpClient
+      .post(`/api/v1/profiles/${created.id}/target-roles`, {
+        professionalRoleId: 'qa-analyst',
+        provenance: 'MANUAL',
+      })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).httpStatus).toBe(422);
+  });
+
+  // C-05: sustituir es un PATCH real que conserva el id del Rol Objetivo.
+  it('sustituir un rol objetivo conserva su id y cambia el rol profesional', async () => {
+    const created = await httpClient.post<ProfileResponse>('/api/v1/profiles', {
+      name: 'Perfil de prueba',
+    });
+    const withRole = await httpClient.post<
+      ProfileResponse & { targetRoles: { id: string; professionalRoleId: string }[] }
+    >(`/api/v1/profiles/${created.id}/target-roles`, {
+      professionalRoleId: 'backend-developer',
+      provenance: 'MANUAL',
+    });
+    const roleId = withRole.targetRoles[0]?.id;
+    if (!roleId) throw new Error('El perfil sembrado no tiene rol objetivo.');
+
+    const updated = await httpClient.patch<
+      ProfileResponse & { targetRoles: { id: string; professionalRoleId: string }[] }
+    >(`/api/v1/profiles/${created.id}/target-roles/${roleId}`, {
+      professionalRoleId: 'frontend-developer',
+    });
+
+    expect(updated.targetRoles).toHaveLength(1);
+    expect(updated.targetRoles[0]).toMatchObject({
+      id: roleId,
+      professionalRoleId: 'frontend-developer',
+    });
+  });
+
+  it('sustituir por un rol ya presente en el perfil falla con 409', async () => {
+    const created = await httpClient.post<ProfileResponse>('/api/v1/profiles', {
+      name: 'Perfil de prueba',
+    });
+    await httpClient.post(`/api/v1/profiles/${created.id}/target-roles`, {
+      professionalRoleId: 'frontend-developer',
+      provenance: 'MANUAL',
+    });
+    const withRole = await httpClient.post<ProfileResponse & { targetRoles: { id: string }[] }>(
+      `/api/v1/profiles/${created.id}/target-roles`,
+      {
+        professionalRoleId: 'backend-developer',
+        provenance: 'MANUAL',
+      },
+    );
+    const roleId = withRole.targetRoles.at(-1)?.id;
+    if (!roleId) throw new Error('El perfil sembrado no tiene rol objetivo.');
+
+    const error = await httpClient
+      .patch(`/api/v1/profiles/${created.id}/target-roles/${roleId}`, {
+        professionalRoleId: 'frontend-developer',
+      })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).httpStatus).toBe(409);
+  });
+
+  it('eliminar un rol objetivo lo retira del perfil', async () => {
+    const created = await httpClient.post<ProfileResponse>('/api/v1/profiles', {
+      name: 'Perfil de prueba',
+    });
+    const withRole = await httpClient.post<ProfileResponse & { targetRoles: { id: string }[] }>(
+      `/api/v1/profiles/${created.id}/target-roles`,
+      {
+        professionalRoleId: 'backend-developer',
+        provenance: 'MANUAL',
+      },
+    );
+    const roleId = withRole.targetRoles[0]?.id;
+    if (!roleId) throw new Error('El perfil sembrado no tiene rol objetivo.');
+
+    const updated = await httpClient.del<ProfileResponse & { targetRoles: unknown[] }>(
+      `/api/v1/profiles/${created.id}/target-roles/${roleId}`,
+    );
+
+    expect(updated.targetRoles).toHaveLength(0);
+  });
+
+  // `ProfileController.java#removeTargetRole`: el último rol solo se
+  // bloquea con el perfil ya COMPLETED — IN_PROGRESS sí puede quedar sin roles.
+  it('eliminar el único rol objetivo de un perfil COMPLETED falla con 422', async () => {
+    const seeded = seedProfileForTests({
+      status: 'COMPLETED',
+      targetRoles: [
+        { id: 'target-role-1', professionalRoleId: 'backend-developer', provenance: 'MANUAL' },
+      ],
+    });
+
+    const error = await httpClient
+      .del(`/api/v1/profiles/${seeded.id}/target-roles/target-role-1`)
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).httpStatus).toBe(422);
+  });
+
+  it('eliminar el único rol objetivo de un perfil IN_PROGRESS sí se permite', async () => {
+    const seeded = seedProfileForTests({
+      status: 'IN_PROGRESS',
+      targetRoles: [
+        { id: 'target-role-1', professionalRoleId: 'backend-developer', provenance: 'MANUAL' },
+      ],
+    });
+
+    const updated = await httpClient.del<ProfileResponse & { targetRoles: unknown[] }>(
+      `/api/v1/profiles/${seeded.id}/target-roles/target-role-1`,
+    );
+
+    expect(updated.targetRoles).toHaveLength(0);
   });
 });
