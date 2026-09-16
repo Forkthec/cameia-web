@@ -55,8 +55,8 @@ describe('profilesHandlers', () => {
     expect(profile.status).toBe('IN_PROGRESS');
   });
 
-  // CM-65, bloqueo C-16: el endpoint real es `.../completion`, no
-  // `.../finalize` — confirmado por `ProfileController.java#completeProfile`.
+  // CM-65: el endpoint real es `.../completion`, no `.../finalize` —
+  // confirmado por `ProfileController.java#completeProfile`.
   it('finalizar un perfil vacío falla listando los 5 requisitos incumplidos', async () => {
     // Sin body: el mock crea el perfil con name='' (un `name: ''` explícito
     // sí se rechaza en la creación — CA-2.2.1 — la ausencia de body no).

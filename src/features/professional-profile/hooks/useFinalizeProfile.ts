@@ -1,10 +1,10 @@
 /**
  * Finalizar el perfil (HU-2.5, CM-65): `POST /api/v1/profiles/:id/completion`
  * — no `.../finalize`, el nombre que el mock simulaba antes de conocer el
- * código real de `ProfileController.java#completeProfile` (bloqueo C-16,
- * `SPEC.md` §8). Sin body; en éxito el perfil pasa a `COMPLETED` y se
- * escribe directo en la caché de `useProfileQuery`, sin invalidar — mismo
- * patrón que el resto de mutaciones de esta feature.
+ * código real de `ProfileController.java#completeProfile` (`SPEC.md` §5).
+ * Sin body; en éxito el perfil pasa a `COMPLETED` y se escribe directo en
+ * la caché de `useProfileQuery`, sin invalidar — mismo patrón que el resto
+ * de mutaciones de esta feature.
  *
  * Un 422 (perfil incompleto) también es un `ApiError` normal: el llamador
  * lo distingue con `error.code === 'PROFILE_INCOMPLETE'` y lee

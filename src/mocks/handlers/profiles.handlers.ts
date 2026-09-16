@@ -33,9 +33,9 @@
  * `ProfileController.java` (`AddSkillCommand`) — reemplaza el `PATCH`
  * masivo de `skills` que este archivo simulaba antes de conocer el
  * contrato. `POST /api/v1/profiles/:id/completion` (no `.../finalize`,
- * como este archivo simulaba desde CM-61 — bloqueo C-16 de `SPEC.md` §8)
- * valida los 5 requisitos reales en orden y devuelve **todos** los
- * incumplidos en `details`, nunca solo el primero.
+ * como este archivo simulaba desde CM-61 hasta esta corrección — ver
+ * `SPEC.md` §5) valida los 5 requisitos reales en orden y devuelve
+ * **todos** los incumplidos en `details`, nunca solo el primero.
  *
  * `ProfileRecord.targetRoles` (antes `targetRoleIds: string[]`) se modela
  * igual que en la rama independiente de CM-69 (Roles Objetivo), que sí
@@ -589,8 +589,8 @@ export const profilesHandlers: HttpHandler[] = [
     },
   ),
 
-  // CM-65: `POST .../completion`, no `.../finalize` (bloqueo C-16, ver TSDoc
-  // de cabecera) — confirmado por `ProfileController.java#completeProfile`.
+  // CM-65: `POST .../completion`, no `.../finalize` (ver TSDoc de cabecera y
+  // `SPEC.md` §5) — confirmado por `ProfileController.java#completeProfile`.
   // Valida los 5 requisitos reales EN ORDEN pero acumula TODOS los
   // incumplidos antes de responder, nunca solo el primero.
   http.post('*/api/v1/profiles/:id/completion', ({ params }) => {

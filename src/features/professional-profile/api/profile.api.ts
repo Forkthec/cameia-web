@@ -11,7 +11,7 @@
  * `finalizeProfile` (CM-65) llama a `POST /api/v1/profiles/:id/completion`
  * — no `.../finalize`, que es el nombre que el mock simulaba desde CM-61
  * antes de conocer el código real de `ProfileController.java#completeProfile`
- * (bloqueo C-16 de `SPEC.md` §8). Cuando el perfil no cumple los 5
+ * (`SPEC.md` §5). Cuando el perfil no cumple los 5
  * requisitos, el backend real responde 422 con "la lista de requisitos
  * faltantes" — este mock la transporta en `ApiError.details` (un
  * `ApiErrorDetail` por requisito incumplido, mismo mecanismo que ya usa
