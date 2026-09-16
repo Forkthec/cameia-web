@@ -42,7 +42,7 @@ necesita una tabla, o cada persona la cruza a su manera.
 | Formación en curso         | `inProgress`          | `inProgress` (booleano) | `profile:educacion.enCurso`          | —                                              |
 | Nivel educativo            | `EducationLevel`      | pendiente               | `profile:educacion.nivel.<CODIGO>`   | `TECHNICAL` · `UNDERGRADUATE` · `POSTGRADUATE` |
 | Habilidad                  | `Skill`               | `skillName`             | `profile:habilidades.*`              | —                                              |
-| Nivel de habilidad         | `SkillLevel`          | `level`                 | `profile:habilidades.nivel.<CODIGO>` | pendiente (C-06)                               |
+| Nivel de habilidad         | `SkillLevel`          | `level`                 | `profile:habilidades.nivel.<CODIGO>` | `BASIC` · `INTERMEDIATE` · `ADVANCED`          |
 | Rol Objetivo               | `TargetRole`          | `target-roles`          | `profile:rolesObjetivo.*`            | —                                              |
 | Rol profesional (catálogo) | `ProfessionalRole`    | pendiente               | `profile:rolesObjetivo.catalogo`     | —                                              |
 | Procedencia del resumen    | `summaryProvenance`   | `summaryProvenance` (mock, CM-53) | sin llave — no se muestra al usuario | `MANUAL` · `AI_SUGGESTED` · `AI_EDITED` |
@@ -110,7 +110,6 @@ deshabilitado, con la etiqueta «Próximamente».
 | Qué                                             | Bloqueado por                           |
 | ----------------------------------------------- | --------------------------------------- |
 | Nombres de los campos del contrato del perfil   | C-01 · falta la documentación de la API |
-| Valores del nivel de habilidad                  | C-06                                    |
 | Textos en español de los niveles educativos     | C-07                                    |
 | Si los enumerados de Entrevistas pasan a inglés | C-08                                    |
 | Catálogo de tono y personalidad                 | Spike HU-4.1 · CM-21                    |
