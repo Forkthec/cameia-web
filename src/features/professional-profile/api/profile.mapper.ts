@@ -10,6 +10,12 @@
  * (`isCurrent`/`unknownEnd`) y el truncado de fecha a `YearMonth`
  * (`model/yearMonth.ts`, bloqueo C-14): los organismos no conocen el
  * contrato, solo edición de UI (SPEC.md §9, decisión D-F).
+ *
+ * CM-69 agrega Roles Objetivo: a diferencia de educación/experiencia, no hay
+ * formulario que traducir — `TargetRolesSection` ya trabaja con
+ * `professionalRoleId` (el catálogo es cerrado, sin texto libre), así que
+ * `toAddTargetRoleRequest`/`toUpdateTargetRoleRequest` solo añaden la
+ * procedencia (`MANUAL_PROVENANCE`), sin derivar nada.
  */
 import { MANUAL_PROVENANCE } from '../model/profile.constants';
 import type {
@@ -17,7 +23,9 @@ import type {
   EducationItem,
   EducationLevel,
   EmploymentStatus,
+  ProfessionalRole,
   Profile,
+  TargetRoleItem,
   WorkExperienceItem,
 } from '../model/profile.types';
 import { toYearMonth } from '../model/yearMonth';
@@ -25,9 +33,13 @@ import type { EducationFormValues } from '../schemas/education.schema';
 import type { WorkExperienceFormValues } from '../schemas/workExperience.schema';
 import type {
   AddEducationRequestDto,
+  AddTargetRoleRequestDto,
   AddWorkExperienceRequestDto,
   EducationDto,
+  ProfessionalRoleDto,
   ProfileDto,
+  TargetRoleDto,
+  UpdateTargetRoleRequestDto,
   WorkExperienceDto,
 } from './profile.dto';
 
@@ -58,6 +70,18 @@ function toWorkExperienceItem(dto: WorkExperienceDto): WorkExperienceItem {
   };
 }
 
+function toTargetRoleItem(dto: TargetRoleDto): TargetRoleItem {
+  return {
+    id: dto.id,
+    professionalRoleId: dto.professionalRoleId,
+    provenance: dto.provenance as DataProvenance,
+  };
+}
+
+export function toProfessionalRole(dto: ProfessionalRoleDto): ProfessionalRole {
+  return { id: dto.id, name: dto.name };
+}
+
 export function toProfile(dto: ProfileDto): Profile {
   return {
     id: dto.id,
@@ -67,6 +91,7 @@ export function toProfile(dto: ProfileDto): Profile {
     summaryProvenance: dto.summaryProvenance,
     education: dto.education.map(toEducationItem),
     workExperience: dto.workExperience.map(toWorkExperienceItem),
+    targetRoles: dto.targetRoles.map(toTargetRoleItem),
   };
 }
 
@@ -114,4 +139,13 @@ export function toAddWorkExperienceRequest(
     employmentStatus,
     provenance: MANUAL_PROVENANCE,
   };
+}
+
+/** No hay Rol Objetivo `AI_SUGGESTED` real en Sprint 1 (memo del PO del 13-sep, C-05): toda alta manual lleva `MANUAL_PROVENANCE`. */
+export function toAddTargetRoleRequest(professionalRoleId: string): AddTargetRoleRequestDto {
+  return { professionalRoleId, provenance: MANUAL_PROVENANCE };
+}
+
+export function toUpdateTargetRoleRequest(professionalRoleId: string): UpdateTargetRoleRequestDto {
+  return { professionalRoleId };
 }

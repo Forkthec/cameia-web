@@ -1,8 +1,8 @@
 /**
  * Tipos de dominio del Perfil Profesional. Nacieron acotados a Información
  * General (CM-53); CM-61 agrega Formación académica y Experiencia Laboral
- * (HU-2.4). Habilidades y Roles Objetivo siguen sin modelar: son de
- * CM-65/CM-69 y se agregan cuando esos tickets los necesiten
+ * (HU-2.4); CM-69 agrega Roles Objetivo (HU-2.11). Habilidades siguen sin
+ * modelar: son de CM-65 y se agregan cuando ese ticket las necesite
  * (ARCHITECTURE.md §5, regla de crecimiento).
  *
  * `SummaryProvenance` incluye `AI_SUGGESTED`, que en Sprint 1 es
@@ -19,6 +19,12 @@
  * `YearMonth` documenta el formato real del backend (`java.time.YearMonth`,
  * `"YYYY-MM"`, sin día) para que quien lo use no lo confunda con una fecha
  * completa — la conversión vive en `model/yearMonth.ts` (bloqueo C-14).
+ *
+ * `ProfessionalRole`/`TargetRoleItem` (CM-69) confirmados contra el código
+ * real de `cameia-perfil` (`ProfessionalRoleController.java`,
+ * `ProfileController.java`), compartido en la sesión que escribió este
+ * archivo — no contra el memo del PO del 13-sep, que no llega a este nivel
+ * de detalle de nombres de campo.
  */
 export type ProfileStatus = 'IN_PROGRESS' | 'COMPLETED';
 
@@ -69,6 +75,25 @@ export interface WorkExperienceItem {
   provenance: DataProvenance;
 }
 
+/** Catálogo cerrado de roles TI (backend real: `ProfessionalRoleController.java`, CM-23). El usuario elige de aquí, nunca escribe libre. */
+export interface ProfessionalRole {
+  id: string;
+  name: string;
+}
+
+/**
+ * Rol objetivo ya asociado al perfil (HU-2.11). `id` es el identificador
+ * propio del Rol Objetivo — distinto de `professionalRoleId` — porque
+ * sustituir el catálogo referenciado (`PATCH .../target-roles/{roleId}`)
+ * conserva este id en vez de crear un ítem nuevo (backend real:
+ * `ProfileController.java#updateTargetRole`; memo del PO del 13-sep, C-05).
+ */
+export interface TargetRoleItem {
+  id: string;
+  professionalRoleId: string;
+  provenance: DataProvenance;
+}
+
 export interface Profile {
   id: string;
   status: ProfileStatus;
@@ -77,4 +102,5 @@ export interface Profile {
   summaryProvenance: SummaryProvenance;
   education: EducationItem[];
   workExperience: WorkExperienceItem[];
+  targetRoles: TargetRoleItem[];
 }

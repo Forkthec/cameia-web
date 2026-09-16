@@ -1,8 +1,9 @@
 /**
  * Protege el cálculo del índice de secciones y de la barra de completitud
- * (SPEC.md §9, decisión D-D): solo los 3 requisitos que CM-61 puede evaluar
- * hoy cuentan, "Experiencia Laboral" nunca aparece como completa, y el valor
- * nunca supera lo que el perfil realmente cumple.
+ * (SPEC.md §9, decisión D-D): los 4 requisitos que ya se pueden evaluar
+ * cuentan (nombre, resumen, ≥1 educación, ≥1 rol objetivo — CM-69),
+ * "Experiencia Laboral" nunca aparece como completa, y el valor nunca supera
+ * lo que el perfil realmente cumple.
  */
 import { describe, expect, it } from 'vitest';
 import type { Profile } from './profile.types';
@@ -17,6 +18,7 @@ function buildProfile(overrides: Partial<Profile> = {}): Profile {
     summaryProvenance: null,
     education: [],
     workExperience: [],
+    targetRoles: [],
     ...overrides,
   };
 }
@@ -67,6 +69,41 @@ describe('getCompletenessValue', () => {
 
     expect(getCompletenessValue(buildProfile({ education }))).toBe(1);
   });
+
+  it('agregar un rol objetivo suma el cuarto punto', () => {
+    const profile = buildProfile({
+      name: 'Ana',
+      summary: 'Backend.',
+      education: [
+        {
+          id: 'edu-1',
+          institution: 'Universidad del Cauca',
+          degree: 'Ingeniería',
+          fieldOfStudy: 'Sistemas',
+          level: 'UNDERGRADUATE',
+          startDate: '2018-01',
+          endDate: '2023-12',
+          inProgress: false,
+          provenance: 'MANUAL',
+        },
+      ],
+      targetRoles: [
+        { id: 'target-role-1', professionalRoleId: 'backend-developer', provenance: 'MANUAL' },
+      ],
+    });
+
+    expect(getCompletenessValue(profile)).toBe(4);
+  });
+
+  it('varios roles objetivo no superan el punto único que representan', () => {
+    const targetRoles = Array.from({ length: 3 }, (_, index) => ({
+      id: `target-role-${index}`,
+      professionalRoleId: `role-${index}`,
+      provenance: 'MANUAL' as const,
+    }));
+
+    expect(getCompletenessValue(buildProfile({ targetRoles }))).toBe(1);
+  });
 });
 
 describe('getSectionStatuses', () => {
@@ -75,6 +112,7 @@ describe('getSectionStatuses', () => {
       'general-info': 'current',
       education: 'upcoming',
       'work-experience': 'upcoming',
+      'target-roles': 'upcoming',
     });
   });
 
@@ -83,6 +121,31 @@ describe('getSectionStatuses', () => {
 
     expect(statuses['general-info']).toBe('complete');
     expect(statuses.education).toBe('current');
+  });
+
+  it('agregar una educación avanza Roles Objetivo a current', () => {
+    const statuses = getSectionStatuses(
+      buildProfile({
+        name: 'Ana',
+        summary: 'Backend.',
+        education: [
+          {
+            id: 'edu-1',
+            institution: 'Universidad del Cauca',
+            degree: 'Ingeniería',
+            fieldOfStudy: 'Sistemas',
+            level: 'UNDERGRADUATE',
+            startDate: '2018-01',
+            endDate: '2023-12',
+            inProgress: false,
+            provenance: 'MANUAL',
+          },
+        ],
+      }),
+    );
+
+    expect(statuses.education).toBe('complete');
+    expect(statuses['target-roles']).toBe('current');
   });
 
   it('Experiencia Laboral nunca pasa de upcoming, ni con el perfil completo', () => {
