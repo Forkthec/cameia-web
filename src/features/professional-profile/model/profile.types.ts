@@ -1,10 +1,12 @@
 /**
  * Tipos de dominio del Perfil Profesional. Nacieron acotados a Información
  * General (CM-53); CM-61 agrega Formación académica y Experiencia Laboral
- * (HU-2.4); CM-65 agrega Habilidades (HU-2.5) y una referencia de solo
- * lectura a Roles Objetivo (necesaria para verificar el 5º requisito de
- * finalización, sin construir su gestión — eso es CM-69, rama independiente
- * en paralelo, ver TSDoc de `Profile.targetRoles` más abajo).
+ * (HU-2.4); CM-65 agrega Habilidades (HU-2.5); CM-69 agrega Roles Objetivo
+ * (HU-2.11) — CM-65 y CM-69 se construyeron en ramas independientes en
+ * paralelo, cada una con una referencia de solo lectura al recurso de la
+ * otra (necesaria para calcular los 5 requisitos de finalización sin
+ * construir la gestión completa); esta es la versión ya fusionada de
+ * ambas, con Habilidades y Roles Objetivo reales al mismo tiempo.
  *
  * `SummaryProvenance` incluye `AI_SUGGESTED`, que en Sprint 1 es
  * inalcanzable desde la interfaz (nace de HU-2.6–2.10, Sprint 2): se modela
@@ -24,7 +26,10 @@
  * `SkillLevel` = `BASIC`/`INTERMEDIATE`/`ADVANCED`, confirmado por el memo
  * del PO del 13-sep (C-06) y por el código real de `ProfileController.java`
  * (parámetros de `AddSkillCommand`), compartidos en la sesión que construyó
- * CM-65 — no un valor inventado.
+ * CM-65 — no un valor inventado. `ProfessionalRole`/`TargetRoleItem` (CM-69)
+ * confirmados contra el código real de `cameia-perfil`
+ * (`ProfessionalRoleController.java`, `ProfileController.java`), compartido
+ * en la sesión que escribió ese ticket.
  */
 export type ProfileStatus = 'IN_PROGRESS' | 'COMPLETED';
 
@@ -85,14 +90,18 @@ export interface SkillItem {
   provenance: DataProvenance;
 }
 
+/** Catálogo cerrado de roles TI (backend real: `ProfessionalRoleController.java`, CM-23). El usuario elige de aquí, nunca escribe libre. */
+export interface ProfessionalRole {
+  id: string;
+  name: string;
+}
+
 /**
- * Rol objetivo ya asociado al perfil (HU-2.11). Modelado igual que en
- * CM-69 (rama independiente en paralelo, `ProfileController.java`): CM-65
- * solo necesita contar `targetRoles.length` para el 5º requisito de
- * finalización y no construye su gestión (agregar/sustituir/eliminar) —
- * eso es exclusivamente CM-69. Se modela con la forma real del backend, no
- * con un `string[]` simplificado, para que ambas ramas coincidan en este
- * campo al fusionarse.
+ * Rol objetivo ya asociado al perfil (HU-2.11). `id` es el identificador
+ * propio del Rol Objetivo — distinto de `professionalRoleId` — porque
+ * sustituir el catálogo referenciado (`PATCH .../target-roles/{roleId}`)
+ * conserva este id en vez de crear un ítem nuevo (backend real:
+ * `ProfileController.java#updateTargetRole`; memo del PO del 13-sep, C-05).
  */
 export interface TargetRoleItem {
   id: string;

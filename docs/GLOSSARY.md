@@ -43,8 +43,8 @@ necesita una tabla, o cada persona la cruza a su manera.
 | Nivel educativo            | `EducationLevel`      | pendiente               | `profile:educacion.nivel.<CODIGO>`   | `TECHNICAL` · `UNDERGRADUATE` · `POSTGRADUATE` |
 | Habilidad                  | `Skill`               | `skillName`             | `profile:habilidades.*`              | —                                              |
 | Nivel de habilidad         | `SkillLevel`          | `level`                 | `profile:habilidades.nivel.<CODIGO>` | `BASIC` · `INTERMEDIATE` · `ADVANCED`          |
-| Rol Objetivo               | `TargetRole`          | `target-roles`          | `profile:rolesObjetivo.*`            | —                                              |
-| Rol profesional (catálogo) | `ProfessionalRole`    | pendiente               | `profile:rolesObjetivo.catalogo`     | —                                              |
+| Rol Objetivo               | `TargetRole`          | `targetRoles[].professionalRoleId` (confirmado, CM-69: `ProfileController.java`) | `profile:rolesObjetivo.*`            | —                                              |
+| Rol profesional (catálogo) | `ProfessionalRole`    | `id`/`name`, `GET /api/v1/professional-roles` (confirmado, CM-69: `ProfessionalRoleController.java`, CM-23) | `profile:rolesObjetivo.catalogo`     | —                                              |
 | Procedencia del resumen    | `summaryProvenance`   | `summaryProvenance` (mock, CM-53) | sin llave — no se muestra al usuario | `MANUAL` · `AI_SUGGESTED` · `AI_EDITED` |
 
 **Retirados del alcance.** `seniority` sale del contrato y queda como deuda sin uso. Las expectativas

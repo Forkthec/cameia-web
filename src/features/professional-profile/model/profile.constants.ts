@@ -35,12 +35,16 @@
  *
  * `PROFILE_COMPLETENESS_MAX` son los 5 requisitos reales de finalización
  * (HU-2.5): nombre, resumen, ≥1 educación, ≥1 habilidad, ≥1 rol objetivo.
- * CM-61 solo podía calcular 3; CM-65 suma el cuarto (≥1 habilidad). El
- * quinto (≥1 rol objetivo) lo suma CM-69, en una rama independiente en
- * paralelo — esta rama sola nunca llega a 5 (ver
- * `model/profileCompleteness.ts`, nota de reconciliación con CM-69). Se
- * fijó en 5 desde CM-61 para que la fracción de la barra de completitud no
- * mintiera sobre cuánto faltaba (SPEC.md §9, decisión D-D).
+ * CM-61 solo podía calcular 3; CM-65 sumó el cuarto (≥1 habilidad) y CM-69
+ * el quinto (≥1 rol objetivo), en ramas independientes en paralelo — ya
+ * fusionadas, `getCompletenessValue` cuenta los 5 juntos. Se fijó en 5
+ * desde CM-61 para que la fracción de la barra de completitud no mintiera
+ * sobre cuánto faltaba (SPEC.md §9, decisión D-D).
+ *
+ * `MAX_TARGET_ROLES` (CM-69) confirmado contra el código real
+ * (`ProfileController.java#addTargetRole`, 422 al alcanzarlo) y contra el
+ * memo del PO del 13-sep (C-05): máximo 5 roles objetivo por perfil, sin
+ * prioridad ni reordenamiento.
  *
  * `DESKTOP_MEDIA_QUERY` duplica `--breakpoint-md: 600px` de
  * `styles/index.css`: `design-system`/`features` no pueden leer una
@@ -64,10 +68,12 @@ export const EDUCATION_LEVELS: readonly EducationLevel[] = [
 
 export const SKILL_LEVELS: readonly SkillLevel[] = ['BASIC', 'INTERMEDIATE', 'ADVANCED'] as const;
 
-/** Todo ítem agregado a mano desde este formulario lleva esta procedencia (CA-2.3.1, extendido a experiencia/educación/habilidades). */
+/** Todo ítem agregado a mano desde este formulario lleva esta procedencia (CA-2.3.1, extendido a experiencia/educación/habilidades/roles objetivo). */
 export const MANUAL_PROVENANCE: DataProvenance = 'MANUAL';
 
 export const PROFILE_COMPLETENESS_MAX = 5;
+
+export const MAX_TARGET_ROLES = 5;
 
 export const GENERAL_INFO_FORM_ID = 'general-info-form';
 export const EDUCATION_FORM_ID = 'education-form';

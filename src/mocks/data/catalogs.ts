@@ -26,8 +26,9 @@ export type SkillLevel = (typeof SKILL_LEVELS)[number];
 /**
  * Roles profesionales — SÍ es catálogo cerrado (backlog 6-sep, HU-2.11): el
  * usuario selecciona de aquí, nunca escribe libre. Ejemplo realista para el
- * dominio de la aplicación (entrevistas, tecnología, áreas afines);
- * pendiente el endpoint real de lectura (T-01).
+ * dominio de la aplicación (entrevistas, tecnología, áreas afines).
+ * `GET /api/v1/professional-roles` (`mocks/handlers/professionalRoles.handlers.ts`,
+ * CM-69) ya simula el endpoint real (`ProfessionalRoleController.java`, CM-23).
  */
 export interface ProfessionalRole {
   id: string;

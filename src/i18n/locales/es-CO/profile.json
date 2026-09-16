@@ -169,7 +169,33 @@
     "errorEliminar": "No se pudo eliminar la habilidad."
   },
   "rolesObjetivo": {
-    "titulo": "Roles objetivo"
+    "titulo": "Roles objetivo",
+    "agregar": {
+      "etiqueta": "Agregar rol objetivo",
+      "placeholder": "Busca un rol en el catálogo",
+      "agregando": "Agregando rol objetivo…",
+      "sinResultados": "No encontramos ese rol en el catálogo.",
+      "tope": "Ya tienes el máximo de 5 roles objetivo."
+    },
+    "sustituir": {
+      "etiqueta": "Elige el nuevo rol objetivo",
+      "placeholder": "Selecciona una opción",
+      "accion": "Sustituir {{rol}}",
+      "sustituyendo": "Sustituyendo…"
+    },
+    "eliminar": "Eliminar {{rol}}",
+    "eliminando": "Eliminando…",
+    "eliminarUltimoBloqueado": "No puedes quedarte sin roles objetivo con el perfil activo.",
+    "vacio": {
+      "titulo": "Todavía no agregas roles objetivo",
+      "descripcion": "Agrega al menos uno para poder finalizar tu perfil."
+    },
+    "confirmacionAgregado": "Rol objetivo agregado.",
+    "confirmacionSustituido": "Rol objetivo sustituido.",
+    "confirmacionEliminado": "Rol objetivo eliminado.",
+    "errorAgregar": "No se pudo agregar el rol objetivo.",
+    "errorSustituir": "No se pudo sustituir el rol objetivo.",
+    "errorEliminar": "No se pudo eliminar el rol objetivo."
   },
   "metodo": {
     "titulo": "¿Cómo quieres completarlo?",

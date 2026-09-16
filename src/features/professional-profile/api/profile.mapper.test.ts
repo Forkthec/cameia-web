@@ -1,10 +1,10 @@
 /**
  * Protege las dos derivaciones que CM-61 agrega al mapper: truncado de
  * fecha a `YearMonth` y la traducción de los dos checkboxes de Experiencia
- * Laboral (`isCurrent`/`unknownEnd`) al `employmentStatus` real
- * (SPEC.md §9, decisión D-F). CM-65 agrega Habilidades: sin derivación real,
- * solo protege que la procedencia manual se fije siempre
- * (`MANUAL_PROVENANCE`). No repite la cobertura de `toProfile`, ya
+ * Laboral (`isCurrent`/`unknownEnd`) al `employmentStatus` real (SPEC.md
+ * §9, decisión D-F). CM-65 (Habilidades) y CM-69 (Roles Objetivo) no
+ * derivan nada real: solo protegen que la procedencia manual se fije
+ * siempre (`MANUAL_PROVENANCE`). No repite la cobertura de `toProfile`, ya
  * protegida indirectamente por `useProfileQuery.test.tsx` contra MSW.
  */
 import { describe, expect, it } from 'vitest';
@@ -14,7 +14,9 @@ import { EMPTY_WORK_EXPERIENCE_VALUES } from '../schemas/workExperience.schema';
 import {
   toAddEducationRequest,
   toAddSkillRequest,
+  toAddTargetRoleRequest,
   toAddWorkExperienceRequest,
+  toUpdateTargetRoleRequest,
 } from './profile.mapper';
 
 describe('toAddEducationRequest', () => {
@@ -123,5 +125,22 @@ describe('toAddSkillRequest', () => {
     });
 
     expect(request).toEqual({ skillName: 'React', level: 'ADVANCED', provenance: 'MANUAL' });
+  });
+});
+
+describe('toAddTargetRoleRequest', () => {
+  it('siempre fija la procedencia MANUAL', () => {
+    expect(toAddTargetRoleRequest('backend-developer')).toEqual({
+      professionalRoleId: 'backend-developer',
+      provenance: 'MANUAL',
+    });
+  });
+});
+
+describe('toUpdateTargetRoleRequest', () => {
+  it('solo lleva el nuevo rol profesional, sin procedencia', () => {
+    expect(toUpdateTargetRoleRequest('frontend-developer')).toEqual({
+      professionalRoleId: 'frontend-developer',
+    });
   });
 });

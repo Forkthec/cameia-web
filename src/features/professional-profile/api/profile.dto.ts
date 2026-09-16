@@ -2,7 +2,9 @@
 /**
  * Forma cruda del `ProfileRecord` que devuelve `src/mocks/handlers/profiles.handlers.ts`
  * (CM-53, extendido en CM-61 con `education`/`workExperience`, en CM-65 con
- * `skills` y con `targetRoles` de solo lectura).
+ * `skills` y en CM-69 con `targetRoles`). CM-65 y CM-69 se construyeron en
+ * ramas independientes en paralelo; esta es la versión ya fusionada, con
+ * ambos campos reales al mismo tiempo.
  *
  * `EducationDto`/`WorkExperienceDto` y sus dos `Add*RequestDto` replican
  * los campos reales del backend (`AddEducationRequest`/
@@ -11,13 +13,15 @@
  * la sesión que escribió este archivo — no son una referencia inventada
  * como el resto de este DTO mientras C-01 sigue abierto.
  *
- * `SkillDto`/`AddSkillRequestDto` (CM-65) replican igual los campos reales
- * de `ProfileController.java` (parámetros de `AddSkillCommand`).
- * `TargetRoleDto` (forma, no gestión) se modela idéntico a como lo hace
- * CM-69 — rama independiente en paralelo que sí construye su alta/
- * sustitución/baja — para que ambas ramas coincidan en este campo al
- * fusionarse; esta rama solo lo lee (cuenta `targetRoles.length` para el 5º
- * requisito de finalización).
+ * `SkillDto`/`AddSkillRequestDto` (CM-65) y `TargetRoleDto`/
+ * `AddTargetRoleRequestDto`/`UpdateTargetRoleRequestDto` (CM-69) replican
+ * igual los campos reales de `ProfileController.java` (parámetros de
+ * `AddSkillCommand`/`AddTargetRoleCommand`/`UpdateTargetRoleCommand`).
+ * `ProfessionalRoleDto` es la única excepción: `ProfessionalRoleResponse.java`
+ * no se compartió, solo su uso (`ProfessionalRoleResponse.from(role)`) — se
+ * asume `{ id, name }`, la misma forma que ya usa el catálogo estático de
+ * `src/mocks/data/catalogs.ts`, documentado como supuesto razonable, no
+ * contrato confirmado.
  */
 export interface EducationDto {
   id: string;
@@ -52,7 +56,7 @@ export interface SkillDto {
   provenance: string;
 }
 
-/** Ver TSDoc de cabecera: forma compartida con CM-69, esta rama solo la lee. */
+/** Rol objetivo ya asociado al perfil. `id` es el identificador propio del Rol Objetivo (ver `TargetRoleItem` en `model/profile.types.ts`). */
 export interface TargetRoleDto {
   id: string;
   professionalRoleId: string;
@@ -99,4 +103,22 @@ export interface AddSkillRequestDto {
   skillName: string;
   level: string;
   provenance: string;
+}
+
+/** Body real de `POST /api/v1/profiles/:id/target-roles` (parámetros de `AddTargetRoleCommand`, `ProfileController.java`). */
+export interface AddTargetRoleRequestDto {
+  professionalRoleId: string;
+  provenance: string;
+}
+
+/** Body real de `PATCH /api/v1/profiles/:id/target-roles/:roleId` — sustituye el rol referenciado conservando el id del Rol Objetivo (`UpdateTargetRoleCommand`, `ProfileController.java`). */
+export interface UpdateTargetRoleRequestDto {
+  professionalRoleId: string;
+}
+
+// PROVISIONAL — forma exacta de `ProfessionalRoleResponse.java` sin confirmar (ver TSDoc de cabecera).
+/** Catálogo cerrado de roles TI, `GET /api/v1/professional-roles` (`ProfessionalRoleController.java`, CM-23). */
+export interface ProfessionalRoleDto {
+  id: string;
+  name: string;
 }

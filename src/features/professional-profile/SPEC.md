@@ -31,11 +31,10 @@ secciones hasta finalizarlo.
   HU-2.4, J-01).
 - Habilidades (texto libre + nivel) y finalizar (PRT-02.03, HU-2.5) — ver §3.4.
 - Roles Objetivo: consultar, agregar, sustituir y eliminar, de catálogo cerrado, sin prioridad ni
-  reordenamiento (HU-2.11, D-01, J-03) — ver §3.5. El PO autorizó construirlo sin esperar C-04
-  (HU-2.10 sigue viva para Sprint 2, ver el memo del 13-sep); se construye en **CM-69, una rama
-  independiente en paralelo a esta** (ambas parten de `develop`, no una de la otra). Esta subsección
-  del archivo puede seguir leyéndose "BLOQUEADA" en esta rama hasta que ambas se fusionen: no es
-  alcance de CM-65 corregirla.
+  reordenamiento (HU-2.11, D-01, J-03) — ver §3.5. **Ya no bloqueada**: el PO autorizó construir la
+  gestión manual sin esperar la respuesta completa de C-04 (HU-2.10 sigue viva para Sprint 2, pero
+  ya no condiciona esta subtarea — decisión H, §9). Ambas subtareas (CM-65, CM-69) se construyeron
+  en ramas independientes desde `develop` y ya están fusionadas en esta.
 
 **No entra, y es deliberado:**
 
@@ -61,21 +60,22 @@ académica, Experiencia Laboral, Expectativas Profesionales) de **una sola pági
 compartida ya tienen dueño: CM-61 los construye** (`ProfileSectionsLayout`, `ProfileActionsBar`) —
 antes de esta subtarea, ninguna otra los poseía. El índice listaba 3 secciones en CM-61
 (Información General, Formación académica, Experiencia Laboral); CM-65 agrega la cuarta,
-**Habilidades** (§3.4) — la quinta, Roles Objetivo, la agrega CM-69 en una rama independiente en
-paralelo. «Expectativas Profesionales» **no se construye ni se lista**: está fuera del MVP (D-02) y
-el backlog manda sobre el diseño en comportamiento (`CLAUDE.md` §16) — ver decisión D-D en §9.
-`StepList` (desktop, ≥600px) / acordeón con `useDisclosure` (móvil, <600px) alternan por
-`useMediaQuery(DESKTOP_MEDIA_QUERY)`, resuelto una sola vez en `EditProfilePage`. La barra de
-acciones tiene una `progress-bar` de completitud del perfil (`max=5`, los 5 requisitos reales de
-finalización; CM-61 solo podía calcular 3, CM-65 suma el cuarto — ver decisión D-D) y dos botones:
-«Guardar borrador» (`variant=secondary`, envía únicamente `GeneralInfoForm` por el atributo HTML
-`form` — decisión D-C) y «Finalizar y Continuar» (`variant=primary`, **CM-65 ya lo conecta a
-`POST /api/v1/profiles/:id/completion`** — sigue deshabilitado en esta rama porque
-`getCompletenessValue` nunca ve el 5º requisito, ≥1 rol objetivo, que solo existe en la rama
-independiente de CM-69; se habilita de verdad cuando ambas ramas se fusionen). Antes de la
-verificación de CM-53, `docs/ARCHITECTURE.md` §2, el TSDoc de `WizardLayout.tsx` y una versión
-anterior de esta misma sección citaban un asistente paginado que el frame real no tiene — ya
-corregido en los tres lugares (`docs/bitacora-ia/hallazgo-figma-no-revisado-cm53.md`).
+**Habilidades** (§3.4), y CM-69 agrega la quinta, **Roles Objetivo** (§3.5) — ambas en ramas
+independientes desde `develop`, ya fusionadas en esta. «Expectativas Profesionales» **no se
+construye ni se lista**: está fuera del MVP (D-02) y el backlog manda sobre el diseño en
+comportamiento (`CLAUDE.md` §16) — ver decisión D-D en §9. `StepList` (desktop, ≥600px) / acordeón
+con `useDisclosure` (móvil, <600px) alternan por `useMediaQuery(DESKTOP_MEDIA_QUERY)`, resuelto una
+sola vez en `EditProfilePage`. La barra de acciones tiene una `progress-bar` de completitud del
+perfil (`max=5`, los 5 requisitos reales de finalización; CM-61 solo podía calcular 3, CM-65 suma el
+cuarto y CM-69 el quinto — ver decisión D-D) y dos botones: «Guardar borrador»
+(`variant=secondary`, envía únicamente `GeneralInfoForm` por el atributo HTML `form` — decisión
+D-C) y «Finalizar y Continuar» (`variant=primary`, conectado a
+`POST /api/v1/profiles/:id/completion` — ahora se habilita de verdad cuando
+`getCompletenessValue` llega a 5, con Habilidades y Roles Objetivo ya fusionados en el mismo
+formulario). Antes de la verificación de CM-53, `docs/ARCHITECTURE.md` §2, el TSDoc de
+`WizardLayout.tsx` y una versión anterior de esta misma sección citaban un asistente paginado que
+el frame real no tiene — ya corregido en los tres lugares
+(`docs/bitacora-ia/hallazgo-figma-no-revisado-cm53.md`).
 
 **Nota transversal de "Sin permiso" para las cinco subsecciones:** las cinco viven detrás de
 `RequireAuth` (`CLAUDE.md` §11), que redirige a `/ingresar` antes de montar la página; ese caso no
@@ -262,34 +262,60 @@ construido por `EducationSection`/`WorkExperienceSection` (CM-61, §3.3).
   o el perfil ya esté `COMPLETED` — salvaguarda de cliente; el backend real también lo rechaza (422
   incompleto, 409 ya completado).
 
-### 3.5 · `/perfiles/:id/roles` — Roles Objetivo · `PRT-02.07` · CM-69 · **BLOQUEADA**
+### 3.5 · `/perfiles/:id/editar` — Sección «Roles Objetivo» · `PRT-02.03` · CM-69
 
-**Comportamiento decidido (destino, D-01):** los Roles Objetivo se gestionan completamente **dentro
-del formulario del Perfil Profesional** — agregar, sustituir y eliminar, de un catálogo controlado,
-sin prioridad ni reordenamiento (J-03 retiró «priorizar» del alcance de CM-69; CA-2.11.6 se retira).
-`PRT-02.07` como pantalla separada **sale del MVP** (D-01, `CLAUDE.md` §11).
+**Ya no bloqueada (decisión H, §9).** El PO autorizó construir la gestión manual completa dentro del
+formulario sin esperar la respuesta final de C-04: HU-2.10 (sugerencia de roles por IA) sigue viva
+para Sprint 2, pero ahora se integrará *dentro de este mismo formulario* cuando llegue, no en
+`PRT-02.07`. Esa pantalla y su ruta (`ProfileRolesPage.tsx`, `/perfiles/:id/roles`) **no se tocan ni
+se borran en este commit** — siguen existiendo como placeholder de `EmptyState`, tal como ya
+describían `CLAUDE.md` §12 (abierta 10) y §17: se retiran solo si el PO confirma explícitamente que
+esa integración futura no las necesita.
 
-**Diseño provisional, mientras C-04 y la consulta de seguimiento del 11-sep no se respondan:**
-etiquetas de solo lectura dentro del formulario de PRT-02.03 (paso 4), con un enlace a esta pantalla
-(`PRT-02.07`, `ProfileRolesPage.tsx`), donde ocurre hoy la gestión real. `ProfileRolesPage.tsx` y la
-ruta `/perfiles/:id/roles` **no se borran** hasta tener respuesta a C-04 (`CLAUDE.md` §17). Esta
-subsección queda marcada **BLOQUEADA** hasta entonces: no se implementa la gestión completa dentro
-del formulario sin saber qué pasa con HU-2.10 (sugerencia de roles por IA, Sprint 2), que usaba esta
-misma pantalla.
+El Figma vinculado a esta tarea es guía visual desactualizada, no fuente de comportamiento ni de
+diseño vinculante para esta subsección (instrucción explícita del PO): el patrón real que manda es
+el ya construido por `EducationSection`/`WorkExperienceSection` (CM-61, §3.3), verificado en vivo
+contra Figma en su momento.
+
+**Qué hace**
+
+- Gestiona Roles Objetivo **por ítem**, igual que Educación/Experiencia: cada alta es un `POST`
+  inmediato, cada sustitución un `PATCH` inmediato, cada baja un `DELETE` inmediato — nunca un
+  `PATCH` de colección (decisión D-A, extendida aquí a Roles Objetivo). Máximo 5 roles por perfil
+  (`MAX_TARGET_ROLES`), solo del catálogo cerrado (`GET /api/v1/professional-roles`,
+  `useProfessionalRolesQuery`): el usuario nunca escribe el nombre a mano (CA-2.11.7).
+- **Agregar** (`TargetRolesSection`): reutiliza `design-system/molecules/Combobox` (construido en
+  CM-61 anticipando exactamente este uso — su propio TSDoc ya decía «para roles objetivo, CM-69»).
+  El catálogo ofrecido excluye los roles ya asociados al perfil; elegir una opción dispara el `POST`
+  de inmediato. Al llegar al tope de 5, el selector se oculta y se muestra un aviso en su lugar.
+- **Sustituir** (decisión H1, memo del PO del 13-sep C-05, confirmado por el código real de
+  `ProfileController.java#updateTargetRole`): es una acción propia, un `PATCH` que conserva el `id`
+  del Rol Objetivo — nunca "eliminar y agregar". Cada ítem de la lista tiene su propio control que
+  revela un `Select` de un solo valor, acotado a los roles todavía no usados; elegir una opción
+  dispara el `PATCH` de inmediato. El selector nunca ofrece un rol ya presente en otro ítem del
+  mismo perfil (regla de cliente hoy; el backend real también la refuerza con `409`).
+- **Eliminar**: bloqueado únicamente cuando es el último rol objetivo y el perfil ya está
+  `COMPLETED` (CA-2.11.3, confirmado por `ProfileController.java#removeTargetRole`) — con el perfil
+  todavía `IN_PROGRESS`, sí se puede quedar sin roles.
+- Sin prioridad ni reordenamiento (J-03; CA-2.11.6 retirado).
 
 **Estados**
 
-| Estado      | Qué muestra                                                                                            |
-| ----------- | ------------------------------------------------------------------------------------------------------ |
-| Carga       | Estado de carga mientras se obtiene `PROFESSIONAL_ROLES` (catálogo) y los roles ya asociados al perfil |
-| Vacío       | Sin roles asociados: mensaje invitando a agregar el primero                                            |
-| Error       | Fallo de red al leer el catálogo → `errors:red`                                                        |
-| Sin permiso | Ver nota transversal arriba                                                                            |
+| Estado      | Qué muestra                                                                                                |
+| ----------- | ----------------------------------------------------------------------------------------------------------- |
+| Carga       | Comparte el `Spinner` inicial de la página: bloquea el render hasta que `useProfileQuery` **y** `useProfessionalRolesQuery` resuelvan |
+| Vacío       | `EmptyState` propio: sin roles asociados, invita a agregar el primero — no bloquea mostrar la pantalla, solo finalizar (CM-65) |
+| Error       | Alta/sustitución/baja fallida → código específico si `errors:codigos` lo reconoce (`TARGET_ROLE_DUPLICATE`/`TARGET_ROLE_MAX_REACHED`/`TARGET_ROLE_LAST_CANNOT_REMOVE`), si no el genérico de la sección; fallo al cargar el catálogo comparte la pantalla de error inicial de la página |
+| Sin permiso | Ver nota transversal arriba                                                                                |
 
 **Validaciones del lado del cliente**
 
-- Máximo 5 roles por perfil (HU-2.11). Solo roles del catálogo cerrado: el usuario no escribe el
-  nombre a mano (CA-2.11.7).
+- No ofrecer en el selector (agregar o sustituir) un rol ya presente en el perfil — salvaguarda de
+  UX; el backend real también lo rechaza con `409` (`TARGET_ROLE_DUPLICATE`).
+- Ocultar el selector de alta al llegar a 5 roles — salvaguarda de UX; el backend real también lo
+  rechaza con `422` (`TARGET_ROLE_MAX_REACHED`).
+- Deshabilitar "Eliminar" en el único rol restante cuando el perfil es `COMPLETED` — salvaguarda de
+  UX; el backend real también lo rechaza con `422` (`TARGET_ROLE_LAST_CANNOT_REMOVE`).
 
 ## 4. Contrato observable
 
@@ -302,7 +328,7 @@ misma pantalla.
 | `workExperience` | `WorkExperienceItem[]` (`id`, `company`, `position`, `description \| null`, `startDate`, `endDate \| null`, `employmentStatus`, `provenance`) | Opcional; gestión por ítem (POST/DELETE); `endDate` obligatoria y ≥ `startDate` si `employmentStatus=ENDED`, prohibida en cualquier otro estado (`WorkExperience.java`, backend real) | HU-2.4, J-01, CM-61 |
 | `education`      | `EducationItem[]` (`id`, `institution`, `degree`, `fieldOfStudy`, `level`, `startDate`, `endDate \| null`, `inProgress`, `provenance`) | Obligatorio ≥1 para finalizar; gestión por ítem (POST/DELETE); `level` del enum real; `endDate` prohibida si `inProgress=true` (`Education.java`, backend real); `fieldOfStudy` es el único campo NO obligatorio | HU-2.4, T-01, CM-61 |
 | `skills`         | `SkillItem[]` (`id`, `skillName`, `level`, `provenance`) | Texto libre (`skillName`, 1-255) + `level`; sin catálogo; gestión por ítem (POST/DELETE); duplicado (mismo texto normalizado) rechazado con `409` | HU-2.5, C-06, CM-65 |
-| `targetRoles`    | `TargetRoleItem[]` (`id`, `professionalRoleId`, `provenance`) — **de solo lectura en esta rama** | Catálogo cerrado; máximo 5; sin prioridad ni reordenamiento. Esta rama solo cuenta `targetRoles.length` para el 5º requisito de finalización — su gestión (agregar/sustituir/eliminar) es de **CM-69, rama independiente en paralelo**; ambas ramas modelan el campo igual para reconciliarse sin conflicto al fusionarse | HU-2.11, D-01, J-03 |
+| `targetRoles`    | `TargetRoleItem[]` (`id`, `professionalRoleId`, `provenance`) | Catálogo cerrado; máximo 5 (`MAX_TARGET_ROLES`); sin duplicados; sin prioridad ni reordenamiento; gestión por ítem (POST/PATCH/DELETE); sustituir conserva el `id` del Rol Objetivo | HU-2.11, D-01, J-03, C-05, CM-69 |
 | `summaryProvenance` | `'MANUAL' \| 'AI_SUGGESTED' \| 'AI_EDITED' \| null` | Lo calcula el backend/mock a partir del valor anterior; el cliente nunca lo envía en el `PATCH` | CA-2.3.1, CA-2.3.2, CA-2.3.4 |
 | `summaryProvenanceOrigin` | `string \| null` | Se conserva solo en la transición `AI_SUGGESTED → AI_EDITED`; nulo en cualquier otro caso, incluida la creación manual | CA-2.3.2 |
 
@@ -317,10 +343,11 @@ repetir la tabla.
 `cameia-perfil` (`EducationLevel.java`, `EmploymentStatus.java`), compartido en la sesión que
 construyó CM-61 — no son un memo sin verificar. Los textos en español de `EducationLevel` siguen sin
 aprobación formal del PO (**C-07**, valores propuestos: Técnico/Pregrado/Posgrado). Catálogo de
-roles: ver `docs/GLOSSARY.md` §2 y `src/mocks/data/catalogs.ts`. `SkillLevel` = `BASIC`/
-`INTERMEDIATE`/`ADVANCED` — **cierra C-06**, confirmado por el memo del PO del 13-sep y por el
-código real de `ProfileController.java` (parámetros de `AddSkillCommand`), compartidos en la sesión
-que construyó CM-65.
+roles: ver `docs/GLOSSARY.md` §2 y `src/mocks/data/catalogs.ts` (`PROFESSIONAL_ROLES`, ahora también
+expuesto por `GET /api/v1/professional-roles`, §5). `SkillLevel` = `BASIC`/`INTERMEDIATE`/
+`ADVANCED` — **cierra C-06**, confirmado por el memo del PO del 13-sep y por el código real de
+`ProfileController.java` (parámetros de `AddSkillCommand`), compartidos en la sesión que construyó
+CM-65.
 
 **Errores que el usuario puede ver**
 
@@ -331,6 +358,9 @@ que construyó CM-65.
 | `WORK_EXPERIENCE_DATE_INVALID` | Alta de experiencia con fechas inconsistentes (`ENDED` sin `endDate`, `endDate < startDate`, o `endDate` en un estado que no la admite) | `errors:codigos.WORK_EXPERIENCE_DATE_INVALID` — ya existe (CM-61) |
 | `EDUCATION_DATE_INVALID` | Alta de educación con `inProgress=true` y `endDate` presente | `errors:codigos.EDUCATION_DATE_INVALID` — ya existe (CM-61) |
 | `SKILL_DUPLICATE`     | Alta de habilidad con texto ya presente (sin distinguir mayúsculas ni espacios) | `errors:codigos.SKILL_DUPLICATE` — ya existe (CM-65) |
+| `TARGET_ROLE_DUPLICATE` | Agregar o sustituir con un rol profesional ya presente en el perfil (case exacto: comparación por `id` de catálogo) | `errors:codigos.TARGET_ROLE_DUPLICATE` — ya existe (CM-69) |
+| `TARGET_ROLE_MAX_REACHED` | Agregar un sexto rol objetivo | `errors:codigos.TARGET_ROLE_MAX_REACHED` — ya existe (CM-69) |
+| `TARGET_ROLE_LAST_CANNOT_REMOVE` | Eliminar el único rol objetivo de un perfil ya `COMPLETED` | `errors:codigos.TARGET_ROLE_LAST_CANNOT_REMOVE` — ya existe (CM-69) |
 | `PROFILE_INCOMPLETE`  | Finalizar sin cumplir uno o más de los 5 requisitos | No tiene llave propia: cada campo de `error.details` se traduce contra `profile:formulario.requisitos.*` (ver §3.4) — nunca el `message` crudo del backend |
 | `PROFILE_ALREADY_COMPLETED` | Finalizar un perfil que ya está `COMPLETED` | `errors:generico` (caso residual, no alcanzable desde la interfaz mientras el botón se deshabilita al completar) |
 
@@ -340,11 +370,12 @@ que construyó CM-65.
 lo sustituye por completo, no lo complementa.
 
 `PROFILE_NAME_INVALID`, `WORK_EXPERIENCE_DATE_INVALID`, `EDUCATION_DATE_INVALID`,
-`SKILL_DUPLICATE`, `PROFILE_INCOMPLETE` y `PROFILE_ALREADY_COMPLETED` son códigos de mock, no
-confirmados con backend — el backend real (`ApiExceptionHandler.java`) responde vía `ProblemDetail`
-(RFC 9457) sin un `code` propio todavía en los que se conocen (`ProfileController.java` sí confirma
-los **status HTTP** de Habilidades y Finalización — 400/404/409/422 — solo no el `code` del cuerpo);
-pueden no coincidir cuando exista el contrato real (C-01).
+`SKILL_DUPLICATE`, `PROFILE_INCOMPLETE`, `PROFILE_ALREADY_COMPLETED` y los tres códigos de Roles
+Objetivo son códigos de mock, no confirmados con backend — el backend real
+(`ApiExceptionHandler.java`) responde vía `ProblemDetail` (RFC 9457) sin un `code` propio todavía en
+los que se conocen (`ProfileController.java` sí confirma los **status HTTP** de Habilidades,
+Finalización y Roles Objetivo — 400/404/409/422 — solo no el `code` del cuerpo); pueden no coincidir
+cuando exista el contrato real (C-01).
 
 ## 5. Enlace HTTP · PROVISIONAL
 
@@ -362,6 +393,10 @@ sin OpenAPI; C-01 sin responder) · revisado el 11-sep-2026.
 | Eliminar educación | `DELETE /api/v1/profiles/:id/educations/:educationId` | Sin body | 200 `ProfileRecord` · 404 `NOT_FOUND` |
 | Agregar habilidad | `POST /api/v1/profiles/:id/skills` | `AddSkillRequestDto` (real: `skillName`, `level`, `provenance`) | 201 `ProfileRecord` · 400 `VALIDATION_ERROR` · 404 `NOT_FOUND` · 409 `SKILL_DUPLICATE` |
 | Eliminar habilidad | `DELETE /api/v1/profiles/:id/skills/:skillId` | Sin body | 200 `ProfileRecord` · 404 `NOT_FOUND` |
+| Agregar rol objetivo | `POST /api/v1/profiles/:id/target-roles` | `AddTargetRoleRequestDto` (real: `professionalRoleId`, `provenance`) | 201 `ProfileRecord` · 400 `VALIDATION_ERROR` · 404 `NOT_FOUND` · 409 `TARGET_ROLE_DUPLICATE` · 422 `TARGET_ROLE_MAX_REACHED` |
+| Sustituir rol objetivo | `PATCH /api/v1/profiles/:id/target-roles/:roleId` | `UpdateTargetRoleRequestDto` (real: `professionalRoleId`) | 200 `ProfileRecord` · 400 `VALIDATION_ERROR` · 404 `NOT_FOUND` · 409 `TARGET_ROLE_DUPLICATE` |
+| Eliminar rol objetivo | `DELETE /api/v1/profiles/:id/target-roles/:roleId` | Sin body | 200 `ProfileRecord` · 404 `NOT_FOUND` · 422 `TARGET_ROLE_LAST_CANNOT_REMOVE` |
+| Catálogo de roles profesionales | `GET /api/v1/professional-roles` | Sin body | 200 `ProfessionalRoleDto[]` |
 | Finalizar                | `POST /api/v1/profiles/:id/completion` | Sin body                                                                  | 201 `ProfileRecord` (status `COMPLETED`) · 404 `NOT_FOUND` · 409 `PROFILE_ALREADY_COMPLETED` · 422 `PROFILE_INCOMPLETE` (todos los requisitos incumplidos en `details`) |
 | Listar                   | `GET /api/v1/profiles`               | Sin body                                                                  | 200 `ProfileRecord[]`, filtrado por `ownerId`                                         |
 
@@ -373,12 +408,17 @@ CM-61) — no son una referencia inventada como el resto de este enlace mientras
 
 Los 2 endpoints de Habilidades y el de Finalizar (CM-65) replican igual el código real de
 `cameia-perfil` (`ProfileController.java#addSkill/removeSkill/completeProfile`), compartido en la
-sesión que construyó este ticket. **Corrección de esta sesión respecto a lo que el mock simulaba
+sesión que construyó ese ticket. **Corrección de esa sesión respecto a lo que el mock simulaba
 desde CM-61:** el endpoint real de finalización **no es** `.../finalize` sino `.../completion` — la
 fila de arriba ya lo refleja; `.../finalize` deja de existir en `profiles.handlers.ts`. Existe
 además `POST /api/v1/profiles/:id/review-requests` en el backend real (transición a `IN_REVIEW`),
 que no se simula ni se usa: `GLOSSARY.md` §3 y `CLAUDE.md` §12 ya establecen que `IN_REVIEW` está
 fuera del flujo manual en Sprint 1.
+
+Los 3 endpoints de Roles Objetivo y el catálogo de roles profesionales (CM-69) replican igual el
+código real de `cameia-perfil` (`ProfileController.java#addTargetRole/updateTargetRole/removeTargetRole`,
+`ProfessionalRoleController.java`), compartido en la sesión que construyó ese ticket — mismo nivel
+de confianza que los 4 anteriores, superior al resto de este enlace mientras C-01 sigue abierto.
 
 El `PATCH` nunca recibe `provenance`: `profiles.handlers.ts` deriva
 `summaryProvenance`/`summaryProvenanceOrigin` del valor almacenado y del nuevo `summary` (vaciar el
@@ -387,9 +427,12 @@ campo limpia los tres en conjunto — CA-2.3.4; editar un resumen `AI_SUGGESTED`
 — CA-2.3.1). Es responsabilidad del backend real cuando exista (C-01); aquí la sostiene el mock
 porque es la única capa contra la que corre el frontend mientras tanto (CM-53).
 
-No existe endpoint de catálogo de roles: `src/mocks/data/catalogs.ts` es un módulo de datos en
-memoria, no un handler HTTP. El endpoint real de `PROFESSIONAL_ROLES` es dependencia de Backend
-(T-01, `docs/decisiones/11092026_v2_…`).
+**Resuelto por CM-69:** ya existe endpoint de catálogo de roles (`GET /api/v1/professional-roles`,
+tabla de arriba) — `src/mocks/data/catalogs.ts` sigue siendo el módulo de datos en memoria
+(`PROFESSIONAL_ROLES`), pero ahora un handler HTTP dedicado
+(`src/mocks/handlers/professionalRoles.handlers.ts`) lo expone, replicando el endpoint real ya
+construido en Backend (`ProfessionalRoleController.java`, CM-23, T-01 cerrado para este catálogo
+específico).
 
 ## 6. Criterios de aceptación
 
@@ -398,25 +441,27 @@ memoria, no un handler HTTP. El endpoint real de `PROFESSIONAL_ROLES` es depende
 | CA-2.2.1 a CA-2.2.3 (nombre 1-255)                                 | Bloquea sin llamar al servidor y repite la misma validación al guardar por `PATCH` (§4)                |
 | CA-2.4.1 (experiencia `CURRENT`/`UNKNOWN_END` sin fecha de fin)   | Oculta y limpia el campo «Fecha de fin» cuando cualquiera de los dos checkboxes está marcado, en vez de solo omitir el envío |
 | J-01 (gestión por ítem, no PATCH de colección)                    | `POST`/`DELETE` inmediato por ítem; sin `useFieldArray` — la lista visible es siempre la caché del servidor (SPEC.md §9, decisión D-A) |
-| HU-2.4 (educación obligatoria)                                     | El botón «Finalizar» ya valida los 5 requisitos server-side (`POST .../completion`, CM-65); en esta rama nunca se ve habilitado porque falta el 5º (CM-69, en paralelo) |
+| HU-2.4 (educación obligatoria)                                     | El botón «Finalizar» ya valida los 5 requisitos server-side (`POST .../completion`, CM-65) |
 | HU-2.5 (habilidades: texto libre + nivel)                          | `SkillsSection` gestiona por ítem, sin catálogo; duplicado (texto normalizado) bloqueado en cliente y en servidor |
 | HU-2.5 (finalizar muestra todos los requisitos incumplidos)        | `error.details` se traduce campo por campo (`profile:formulario.requisitos.*`) y se listan todos a la vez, nunca solo el primero |
-| HU-2.11, D-01, J-03 (roles: catálogo, sin prioridad ni reorden)    | Fuera del alcance de CM-65: `Profile.targetRoles` solo se lee para contar el 5º requisito, su gestión la construye CM-69 |
-| CA-2.11.3 (bloqueo del último rol solo en `COMPLETED`)             | Conservado tal cual; ver §3.5                                                                          |
-| CA-2.11.7 (solo roles del catálogo)                                | El selector no admite texto libre, solo selección de `PROFESSIONAL_ROLES`                              |
+| HU-2.11, D-01, J-03 (roles: catálogo, sin prioridad ni reorden)    | El formulario nunca ofrece una acción de reordenar ni un campo de prioridad; `TargetRolesSection` no tiene drag-and-drop ni input numérico de orden |
+| C-05 (sustituir es un `PATCH` real, conserva el `id`)              | `useSubstituteTargetRole` llama al `PATCH` por ítem; nunca compone un `DELETE` + `POST`                |
+| CA-2.11.3 (bloqueo del último rol solo en `COMPLETED`)             | `TargetRolesSection` deshabilita "Eliminar" solo cuando `items.length === 1` y `isProfileCompleted`; con `IN_PROGRESS` sí se permite quedar sin roles |
+| CA-2.11.7 (solo roles del catálogo)                                | El selector (`Combobox`/`Select`) no admite texto libre, solo selección de `PROFESSIONAL_ROLES` vía `useProfessionalRolesQuery` |
 | CA-2.11.6 (reordenamiento/prioridad)                               | Retirado (D-01); no se implementa                                                                      |
 
 ## 7. Estado de implementación
 
 | Archivo                                                                                        | Qué implementa                                                                                                              | Prueba                                                                                              |
 | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `src/mocks/handlers/profiles.handlers.ts`                                                       | Infraestructura de apoyo: ciclo completo de mocks del perfil; deriva `summaryProvenance`/`summaryProvenanceOrigin` en el `PATCH` (CA-2.3.1/2/4); CM-61 agrega 4 handlers por ítem (POST/DELETE de experiencia y educación); CM-65 agrega 2 handlers por ítem de habilidades y reemplaza el endpoint de finalización por el real (ver §5) | `src/mocks/handlers/profiles.handlers.test.ts`                                                     |
+| `src/mocks/handlers/profiles.handlers.ts`                                                       | Infraestructura de apoyo: ciclo completo de mocks del perfil; deriva `summaryProvenance`/`summaryProvenanceOrigin` en el `PATCH` (CA-2.3.1/2/4); CM-61 agrega 4 handlers por ítem (POST/DELETE de experiencia y educación) con las reglas reales de `WorkExperience.java`/`Education.java`; CM-65 agrega 2 handlers por ítem de habilidades y reemplaza el endpoint de finalización por el real (ver §5); CM-69 agrega 3 handlers por ítem de Roles Objetivo (POST/PATCH/DELETE) con las reglas reales de `ProfileController.java`, reemplazando el `PATCH` masivo de `targetRoleIds` que solo existía por no conocer el contrato | `src/mocks/handlers/profiles.handlers.test.ts`                                                     |
+| `src/mocks/handlers/professionalRoles.handlers.ts`                                              | CM-69: simula el catálogo real de roles TI vía GET (ver §5), a partir de `src/mocks/data/catalogs.ts` | `src/mocks/handlers/professionalRoles.handlers.test.ts`                                             |
 | `src/features/professional-profile/organisms/ProfileMethodSelector/ProfileMethodSelector.tsx`  | §3.1 (CM-46): las dos tarjetas excluyentes y la guarda contra doble creación mientras la mutación está en curso            | `src/features/professional-profile/organisms/ProfileMethodSelector/ProfileMethodSelector.test.tsx` |
 | `src/features/professional-profile/pages/NewProfilePage.tsx`                                    | §3.1: la ruta «/perfiles/nuevo» — crea el perfil sin cuerpo al elegir «Llenado Manual» y navega al formulario con el id devuelto | `src/features/professional-profile/pages/NewProfilePage.test.tsx`                            |
-| `src/features/professional-profile/model/profile.constants.ts`                                  | §3.2/§3.3/§3.4: límites y constantes de negocio; CM-61 agrega `DESCRIPTION_MAX_LENGTH`, `EDUCATION_LEVELS`, `MANUAL_PROVENANCE`, `PROFILE_COMPLETENESS_MAX`, ids de formulario, `DESKTOP_MEDIA_QUERY`; CM-65 agrega `SKILL_LEVELS`, `SKILL_NAME_MAX_LENGTH`, `SKILLS_FORM_ID` | cubierto por las pruebas de los organismos y `EditProfilePage`                                    |
-| `src/features/professional-profile/model/profile.types.ts`                                      | §3.2/§3.3/§3.4: tipos de dominio; CM-61 agrega `EducationItem`, `WorkExperienceItem`, `EducationLevel`, `EmploymentStatus`, `DataProvenance`, `YearMonth` (valores confirmados contra el backend real); CM-65 agrega `SkillItem`, `SkillLevel`, y `TargetRoleItem` de solo lectura (mismo modelo que la rama independiente de CM-69, para reconciliarse sin conflicto) | cubierto por las pruebas de los organismos y `EditProfilePage`                                    |
+| `src/features/professional-profile/model/profile.constants.ts`                                  | §3.2/§3.3/§3.4/§3.5: límites y constantes de negocio; CM-61 agrega `DESCRIPTION_MAX_LENGTH`, `EDUCATION_LEVELS`, `MANUAL_PROVENANCE`, `PROFILE_COMPLETENESS_MAX`, ids de formulario, `DESKTOP_MEDIA_QUERY`; CM-65 agrega `SKILL_LEVELS`, `SKILL_NAME_MAX_LENGTH`, `SKILLS_FORM_ID`; CM-69 agrega `MAX_TARGET_ROLES` | cubierto por las pruebas de los organismos y `EditProfilePage`                                    |
+| `src/features/professional-profile/model/profile.types.ts`                                      | §3.2/§3.3/§3.4/§3.5: tipos de dominio; CM-61 agrega `EducationItem`, `WorkExperienceItem`, `EducationLevel`, `EmploymentStatus`, `DataProvenance`, `YearMonth` (valores confirmados contra el backend real); CM-65 agrega `SkillItem`, `SkillLevel`; CM-69 agrega `ProfessionalRole`, `TargetRoleItem` (mismo nivel de confianza) | cubierto por las pruebas de los organismos y `EditProfilePage`                                    |
 | `src/features/professional-profile/model/yearMonth.ts`                                          | §3.3 (CM-61): `toYearMonth`/`formatYearMonth` — trunca la fecha del selector nativo a `YearMonth` (bloqueo C-14)            | `src/features/professional-profile/model/yearMonth.test.ts`                                          |
-| `src/features/professional-profile/model/profileCompleteness.ts`                                | §3 (CM-61): `getSectionStatuses`/`getCompletenessValue` para el índice de secciones y la barra de completitud (decisión D-D); CM-65 suma el cuarto requisito (≥1 habilidad) y la sección `skills` al índice | `src/features/professional-profile/model/profileCompleteness.test.ts`                                |
+| `src/features/professional-profile/model/profileCompleteness.ts`                                | §3 (CM-61): `getSectionStatuses`/`getCompletenessValue` para el índice de secciones y la barra de completitud (decisión D-D); CM-65 suma el cuarto requisito (≥1 habilidad) y la sección `skills`; CM-69 suma el quinto (≥1 rol objetivo) y la sección `target-roles` al índice | `src/features/professional-profile/model/profileCompleteness.test.ts`                                |
 | `src/features/professional-profile/model/missingRequirements.ts`                                | §3.4 (CM-65): `getMissingRequirementFields` — lee `error.details` de un `422 PROFILE_INCOMPLETE`, función pura separada de `EditProfilePage.tsx` para poder probarla sin renderizar | `src/features/professional-profile/model/missingRequirements.test.ts`                                |
 | `src/features/professional-profile/schemas/generalInfo.schema.ts`                                | §3.2 (CM-53): validación zod de `name`/`summary`, sin mensajes de texto (CLAUDE.md §3.2)                                   | `src/features/professional-profile/organisms/GeneralInfoForm/GeneralInfoForm.test.tsx`             |
 | `src/features/professional-profile/schemas/education.schema.ts`                                 | §3.3 (CM-61): validación zod de un ítem de Formación académica, con `.superRefine` para "en curso" y fecha de fin           | `src/features/professional-profile/organisms/EducationSection/EducationSection.test.tsx`             |
@@ -429,9 +474,10 @@ memoria, no un handler HTTP. El endpoint real de `PROFESSIONAL_ROLES` es depende
 | `src/features/professional-profile/organisms/SkillsSection/SkillsSection.tsx`                    | §3.4 (CM-65): lista + alta/baja de Habilidades por ítem, mostradas como `Chip`; duplicado bloqueado con `setError` manual   | `src/features/professional-profile/organisms/SkillsSection/SkillsSection.test.tsx`                   |
 | `src/features/professional-profile/organisms/ProfileSectionsLayout/ProfileSectionsLayout.tsx`    | §3 (CM-61): índice de secciones — `StepList` en desktop, acordeón (`useDisclosure` por ítem) en móvil                       | `src/features/professional-profile/organisms/ProfileSectionsLayout/ProfileSectionsLayout.test.tsx`   |
 | `src/features/professional-profile/organisms/ProfileActionsBar/ProfileActionsBar.tsx`            | §3 (CM-61): barra de acciones compartida — completitud, «Guardar borrador», «Finalizar y Continuar»; CM-65 conecta `onFinish`/`isFinalizing` al endpoint real | `src/features/professional-profile/organisms/ProfileActionsBar/ProfileActionsBar.test.tsx`           |
-| `src/features/professional-profile/api/profile.dto.ts`                                          | §3.2/§3.3/§3.4: forma cruda del `ProfileRecord`; CM-61 agrega `EducationDto`, `WorkExperienceDto` y los dos `Add*RequestDto`; CM-65 agrega `SkillDto`, `AddSkillRequestDto` (campos reales) y `TargetRoleDto` (forma, solo lectura) | cubierto por los hooks de datos (integración vía MSW)                                                |
-| `src/features/professional-profile/api/profile.mapper.ts`                                       | §3.2/§3.3/§3.4: `ProfileDto → Profile`; CM-61 agrega `toAddEducationRequest`/`toAddWorkExperienceRequest` (deriva `employmentStatus`, trunca fecha — decisión D-F); CM-65 agrega `toAddSkillRequest` (sin derivación, solo fija `MANUAL_PROVENANCE`) | `src/features/professional-profile/api/profile.mapper.test.ts`                                       |
-| `src/features/professional-profile/api/profile.api.ts`                                          | §3.2/§3.3/§3.4: `fetchProfile`/`updateGeneralInfo`; CM-61 agrega `addEducation`/`removeEducation`/`addWorkExperience`/`removeWorkExperience`; CM-65 agrega `addSkill`/`removeSkill`/`finalizeProfile` (endpoint real de finalización, ver §5) | cubierto por los hooks de datos (integración vía MSW)                                                |
+| `src/features/professional-profile/organisms/TargetRolesSection/TargetRolesSection.tsx`          | §3.5 (CM-69): lista + alta/sustitución/baja de Roles Objetivo por ítem; reutiliza `Combobox` (alta) y `Select` (sustitución), sin átomo nuevo | `src/features/professional-profile/organisms/TargetRolesSection/TargetRolesSection.test.tsx`         |
+| `src/features/professional-profile/api/profile.dto.ts`                                          | §3.2/§3.3/§3.4/§3.5: forma cruda del `ProfileRecord`; CM-61 agrega `EducationDto`, `WorkExperienceDto` y los dos `Add*RequestDto` (campos reales del backend); CM-65 agrega `SkillDto`, `AddSkillRequestDto` (campos reales); CM-69 agrega `TargetRoleDto`, `AddTargetRoleRequestDto`, `UpdateTargetRoleRequestDto` (campos reales) y `ProfessionalRoleDto` (forma exacta sin confirmar) | cubierto por los hooks de datos (integración vía MSW)                                                |
+| `src/features/professional-profile/api/profile.mapper.ts`                                       | §3.2/§3.3/§3.4/§3.5: `ProfileDto → Profile`; CM-61 agrega `toAddEducationRequest`/`toAddWorkExperienceRequest` (deriva `employmentStatus`, trunca fecha — decisión D-F); CM-65 agrega `toAddSkillRequest` (sin derivación, solo fija `MANUAL_PROVENANCE`); CM-69 agrega `toProfessionalRole`, `toAddTargetRoleRequest`, `toUpdateTargetRoleRequest` (sin derivación real, solo fijan `MANUAL_PROVENANCE`) | `src/features/professional-profile/api/profile.mapper.test.ts`                                       |
+| `src/features/professional-profile/api/profile.api.ts`                                          | §3.2/§3.3/§3.4/§3.5: `fetchProfile`/`updateGeneralInfo`; CM-61 agrega `addEducation`/`removeEducation`/`addWorkExperience`/`removeWorkExperience`; CM-65 agrega `addSkill`/`removeSkill`/`finalizeProfile` (endpoint real de finalización, ver §5); CM-69 agrega `addTargetRole`/`substituteTargetRole`/`removeTargetRole`/`fetchProfessionalRoles` | cubierto por los hooks de datos (integración vía MSW)                                                |
 | `src/features/professional-profile/hooks/useProfileQuery.ts`                                    | §3.2 (CM-53): `useQuery` del perfil por id, consumido por `EditProfilePage` desde CM-61                                    | `src/features/professional-profile/hooks/useProfileQuery.test.tsx`                                   |
 | `src/features/professional-profile/hooks/useUpdateProfileGeneralInfo.ts`                        | §3.2 (CM-53): `useMutation` del guardado, escribe la respuesta directo en la caché de `useProfileQuery`                     | `src/features/professional-profile/hooks/useUpdateProfileGeneralInfo.test.tsx`                       |
 | `src/features/professional-profile/hooks/useAddEducation.ts`                                    | §3.3 (CM-61): `useMutation` de alta de educación, mismo patrón de caché que `useUpdateProfileGeneralInfo`                   | `src/features/professional-profile/hooks/useAddEducation.test.tsx`                                   |
@@ -441,16 +487,22 @@ memoria, no un handler HTTP. El endpoint real de `PROFESSIONAL_ROLES` es depende
 | `src/features/professional-profile/hooks/useAddSkill.ts`                                         | §3.4 (CM-65): `useMutation` de alta de habilidad                                                                            | `src/features/professional-profile/hooks/useAddSkill.test.tsx`                                       |
 | `src/features/professional-profile/hooks/useRemoveSkill.ts`                                      | §3.4 (CM-65): `useMutation` de baja de habilidad                                                                            | `src/features/professional-profile/hooks/useRemoveSkill.test.tsx`                                    |
 | `src/features/professional-profile/hooks/useFinalizeProfile.ts`                                  | §3.4 (CM-65): `useMutation` de finalización (endpoint real, ver §5); el caso de éxito se prueba con un handler de MSW puntual, no con `seedProfileForTests` (`features` no puede importar `mocks`) | `src/features/professional-profile/hooks/useFinalizeProfile.test.tsx`                                |
-| `src/features/professional-profile/pages/EditProfilePage.tsx`                                   | §3, §3.2, §3.3, §3.4 (CM-61/CM-65): el armazón real de la ruta de edición del perfil — ya no `WizardLayout`/`EmptyState`; CM-65 agrega la cuarta sección y conecta «Finalizar y Continuar» al endpoint real | `src/features/professional-profile/pages/EditProfilePage.test.tsx`                                   |
+| `src/features/professional-profile/hooks/useAddTargetRole.ts`                                    | §3.5 (CM-69): `useMutation` de alta de rol objetivo                                                                         | `src/features/professional-profile/hooks/useAddTargetRole.test.tsx`                                  |
+| `src/features/professional-profile/hooks/useSubstituteTargetRole.ts`                             | §3.5 (CM-69): `useMutation` de sustitución de rol objetivo (`PATCH`, conserva el `id`)                                      | `src/features/professional-profile/hooks/useSubstituteTargetRole.test.tsx`                           |
+| `src/features/professional-profile/hooks/useRemoveTargetRole.ts`                                 | §3.5 (CM-69): `useMutation` de baja de rol objetivo                                                                         | `src/features/professional-profile/hooks/useRemoveTargetRole.test.tsx`                               |
+| `src/features/professional-profile/hooks/useProfessionalRolesQuery.ts`                           | §3.5 (CM-69): `useQuery` del catálogo cerrado de roles TI, llave `['professional-roles']`                                   | `src/features/professional-profile/hooks/useProfessionalRolesQuery.test.tsx`                         |
+| `src/features/professional-profile/pages/EditProfilePage.tsx`                                   | §3, §3.2, §3.3, §3.4, §3.5 (CM-61/CM-65/CM-69): el armazón real de la ruta de edición del perfil — ya no `WizardLayout`/`EmptyState`; CM-65 agrega la cuarta sección y conecta «Finalizar y Continuar» al endpoint real; CM-69 agrega la quinta sección y el estado de carga/error del catálogo | `src/features/professional-profile/pages/EditProfilePage.test.tsx`                                   |
 | `src/features/professional-profile/routes.tsx`                                                  | Mapea las 3 rutas de esta feature bajo `professionalProfileShellRoutes`, incluida la de edición del perfil (CM-61 la muda desde `professionalProfileWizardRoutes`, retirada — decisión D-E) | `src/app/router/index.test.tsx` (features no puede importar RequireAuth, ver §9)                    |
 | `src/utils/buttonLoadingProps.ts`                                                                | Infraestructura de apoyo (CM-61): arma el par `{loading, loadingLabel}` que `Button` exige, evitando repetir el condicional en 5 sitios | `src/utils/buttonLoadingProps.test.ts`                                                                |
 | `src/test/setup.ts`                                                                              | Infraestructura de apoyo: reinicia los mocks antes de cada prueba; CM-61 agrega el stub de `window.matchMedia` (ver §9)      | —                                                                        |
 | `src/test/matchMedia.ts`                                                                         | Infraestructura de apoyo (CM-61): stub controlable de `window.matchMedia` — jsdom 30 no lo implementa (ver §9)              | cubierto indirectamente por `EditProfilePage.test.tsx` y `ProfileSectionsLayout.test.tsx`             |
 | `src/test/msw.ts`                                                                                | Infraestructura de apoyo: instala handlers puntuales de MSW desde una prueba de feature, ver §9                             | —                                                                                                  |
 
-`ProfileRolesPage.tsx` sigue siendo placeholder con `EmptyState` — fuera del alcance de CM-61 (ver
-§3.5, bloqueada por C-04). `WizardLayout.tsx` no cambia: conserva a `interview-setup` como único
-consumidor.
+`ProfileRolesPage.tsx` sigue siendo placeholder con `EmptyState` — deliberadamente sin tocar en
+CM-69 (ver §3.5): la gestión real de Roles Objetivo ya vive dentro de `EditProfilePage`, pero esa
+pantalla y su ruta se conservan hasta que el PO confirme que no las necesita para la futura
+integración de HU-2.10 (Sprint 2). `WizardLayout.tsx` no cambia: conserva a `interview-setup` como
+único consumidor.
 
 ## 8. Bloqueos
 
@@ -463,8 +515,8 @@ seguimiento de Frontend a la respuesta del PO del 11-sep).
 | C-01 | ~~Fuente documentable de los campos y límites que cita la respuesta del 11-sep (`skillName`, `target-roles`, `inProgress`, `ProblemDetail`, `name ≤ 255`), ninguno presente en el backlog del 6-sep~~ — **parcialmente cerrado.** Respuesta oficial del PO del 13-sep (`docs/decisiones/13092026_v1_respuesta-oficial-frontend-C01-C09.md`, C-01) fija la fuente (código/OpenAPI de MicroPerfilPro, ya en `13092026_01_Backlog.xlsx`) y confirma `name ≤ 255` (aplicado en CM-61 este commit). El archivo `13092026_01_MicroPerfilPro_OpenAPI_actual.json` en sí no ha llegado a Frontend, así que los DTO siguen `PROVISIONAL` (§8 más abajo, §5) hasta tenerlo; `skillName`/`target-roles`/`inProgress` quedan documentados para CM-65/CM-69 | Backend                      | fuente confirmada 13-sep-2026; OpenAPI sin compartir |
 | C-02 | Si la identidad por cabecera `X-User-Id` es temporal (con ticket y fecha de retiro) o el diseño definitivo; Frontend seguirá enviando el token de Firebase mientras no se aclare                                                                                         | Backend / Arquitectura       | sin respuesta del PO al 11-sep-2026 |
 | C-03 | Si la pantalla de Selección de Método conserva el campo `name` (CA-2.2.1 a CA-2.2.3) y si crear el perfil en ese punto consume el cupo del plan gratuito antes de que el usuario guarde algo — no hay forma de descartar un perfil vacío, archivar es HU-2.12 (Sprint 3) | Product Owner                | sin respuesta del PO al 11-sep-2026 |
-| C-04 | Destino de HU-2.10 (sugerencia de roles con IA, Sprint 2) tras retirar `PRT-02.07`, la pantalla que usaba                                                                                                                                                                | Product Owner                | sin respuesta del PO al 11-sep-2026 |
-| C-05 | Si CM-69 se mantiene como ticket propio para la sección de roles dentro del formulario o su alcance se absorbe en CM-65; si «sustituir» sigue siendo una acción distinta sin sugerencias de IA                                                                           | Product Owner / Scrum Master | sin respuesta del PO al 11-sep-2026 |
+| C-04 | ~~Destino de HU-2.10 (sugerencia de roles con IA, Sprint 2) tras retirar `PRT-02.07`, la pantalla que usaba~~ — **parcialmente cerrado, 13-sep-2026.** El memo oficial del PO confirma que HU-2.10 no se elimina (sigue en Sprint 2) y que se integrará *dentro* del formulario de PRT-02.03 cuando llegue, no en una pantalla aparte; con eso ya no bloquea CM-69 (decisión H, §9). Sigue sin decisión explícita sobre si `ProfileRolesPage.tsx`/`/perfiles/:id/roles` se retiran cuando llegue esa integración — se conservan hasta entonces (`CLAUDE.md` §12 abierta 10) | Product Owner                | parcialmente resuelto 13-sep-2026    |
+| C-05 | ~~Si CM-69 se mantiene como ticket propio para la sección de roles dentro del formulario o su alcance se absorbe en CM-65; si «sustituir» sigue siendo una acción distinta sin sugerencias de IA~~ — **cerrado, 13-sep-2026.** El memo oficial del PO confirma que CM-69 sigue siendo ticket propio, y que «sustituir» es un `PATCH` real que conserva el `id` del Rol Objetivo (nunca «eliminar y agregar») — confirmado además por el código real de `ProfileController.java#updateTargetRole`, compartido en la sesión que construyó CM-69 | Product Owner / Scrum Master | resuelto 13-sep-2026, CM-69          |
 | C-06 | ~~Valores de `SkillLevel`; criterio de duplicado con texto libre («Java» vs «java»); límite de caracteres por habilidad y máximo por perfil~~ — **cerrado, 13-sep-2026 (CM-65).** `SkillLevel` = `BASIC`/`INTERMEDIATE`/`ADVANCED` (memo del PO y código real de `ProfileController.java`, confirmados en la sesión que construyó CM-65); duplicado = mismo texto ignorando mayúsculas y espacios, rechazado por el backend real con `409` (implementado también en cliente); `skillName` 1-255 caracteres; sin máximo de habilidades por perfil | Product Owner / Backend      | resuelto 13-sep-2026, CM-65         |
 | C-07 | Si la lista `TECHNICAL`/`UNDERGRADUATE`/`POSTGRADUATE` (sin tecnólogo, agrupando especialización/maestría/doctorado) es intencional; textos en español a mostrar; confirmar que se pierde el estado «interrumpida» de una formación                                      | Product Owner                | sin respuesta del PO al 11-sep-2026 |
 | C-09 | Origen documentable de `preferredModality` — cero ocurrencias en el backlog, `GLOSSARY.md` o los tres memos de decisiones; no se implementa hasta que exista                                                                                                             | Backend / Product Owner      | detectado 13-sep-2026, CM-53        |
@@ -474,6 +526,7 @@ seguimiento de Frontend a la respuesta del PO del 11-sep).
 | C-13 | El contador de «Descripción de funciones» del frame muestra «0 / 1000 caracteres»; el backend real (`WorkExperience.MAX_TEXT_LENGTH`) limita a 500. Se usa 500 (el backend rechazaría cualquier valor mayor con un 422), mismo criterio que C-11 | Product Owner / Diseño       | detectado 14-sep-2026, CM-61        |
 | C-14 | El backend real almacena `java.time.YearMonth` (`"YYYY-MM"`, sin día) para las fechas de experiencia y educación; el frame dibuja un selector `dd/mm/aaaa` completo. Se usa `<Input type="date">` (fiel al frame) y se trunca el día al enviar (`model/yearMonth.ts`) — el día que el usuario elige se descarta silenciosamente. ¿Debería el control pedir explícitamente solo mes/año? | Product Owner / Diseño       | detectado 14-sep-2026, CM-61        |
 | C-15 | El frame usa un componente `select` (nodo `32:150`, confirmado real) para «Nivel educativo» y un ícono `calendar` en los campos de fecha; ninguno de los dos existía en `design-system` antes de CM-61. Se construyó el átomo `Select`; el ícono de calendario no hizo falta (`<input type="date">` nativo ya trae el suyo del navegador) — ¿debería `design-system/icons/registry.tsx` tener un `calendar` propio para otros usos futuros? | Diseño                        | detectado 14-sep-2026, CM-61        |
+| C-16 | ~~El endpoint real de finalización no es `POST /api/v1/profiles/:id/finalize` (como lo simulaba el mock desde CM-61) sino `POST /api/v1/profiles/:id/completion`~~ — **cerrado, 15-sep-2026 (CM-65).** Confirmado por `ProfileController.java#completeProfile` (detectado en la sesión que construyó CM-69, corregido en la que construyó CM-65, dueña de la pantalla de finalizar — §5 ya lo refleja). Existe además `POST /api/v1/profiles/:id/review-requests` (transición a `IN_REVIEW`), que no aplica en Sprint 1 (`GLOSSARY.md` §3) | Frontend                     | resuelto 15-sep-2026, CM-65         |
 
 ## 9. Notas
 
@@ -591,20 +644,51 @@ guía visual únicamente, ver nota de §3.4).**
   respecto a lo que el mock simulaba desde CM-61, confirmada por el código real de
   `ProfileController.java#completeProfile`, compartido en la sesión que construyó CM-65 — no un
   memo sin verificar. El nombre `.../finalize` no persiste en ningún lugar del contrato (§5).
-- **I3 — `Profile.targetRoles` existe en el tipo de esta rama, de solo lectura.** CM-65 necesita
-  contar `targetRoles.length` para el 5º requisito de finalización (HU-2.5 ya lo pedía: "verificar
-  que exista al menos un rol objetivo"), pero no construye su gestión — eso es CM-69, una rama
-  independiente en paralelo (ambas parten de `develop`, no una de la otra). Se modela con la misma
-  forma exacta que usa CM-69 (`TargetRoleItem { id, professionalRoleId, provenance }`, no un
-  `string[]` simplificado) para que ambas ramas coincidan en este campo y no generen conflicto de
-  tipos al fusionarse — la reconciliación real pendiente es unir `getCompletenessValue`/
-  `getSectionStatuses` (que hoy cada rama calcula por separado, 4 de 5 cada una) en una sola función
-  que sume los 5 requisitos juntos.
+- **I3 — `Profile.targetRoles` se modeló desde el principio con la misma forma exacta que usa
+  CM-69** (`TargetRoleItem { id, professionalRoleId, provenance }`, no un `string[]`
+  simplificado), aunque CM-65 y CM-69 se construyeron en ramas independientes desde `develop`: esa
+  coincidencia deliberada de forma es lo que permitió fusionar ambas sin conflicto de tipos.
+  `getCompletenessValue`/`getSectionStatuses` (que cada rama calculaba por separado, 4 de 5 cada
+  una) ya están unificadas en una sola función que suma los 5 requisitos juntos (ver §3, §9 más
+  abajo — decisión H2).
 - **I4 — El caso de éxito de `useFinalizeProfile` se prueba con un handler de MSW puntual, no con
-  `seedProfileForTests`.** `features` no puede importar `mocks` (`docs/ARCHITECTURE.md` §4) y, sin
-  los endpoints de Roles Objetivo de CM-69, esta rama no tiene forma pública de construir un perfil
-  que cumpla los 5 requisitos reales. El caso de éxito del endpoint completo sí se prueba con
-  `seedProfileForTests` en `mocks/handlers/profiles.handlers.test.ts` (infraestructura, no feature).
+  `seedProfileForTests`.** `features` no puede importar `mocks` (`docs/ARCHITECTURE.md` §4). El
+  caso de éxito del endpoint completo también se prueba con `seedProfileForTests` en
+  `mocks/handlers/profiles.handlers.test.ts` (infraestructura, no feature), y desde que CM-69 está
+  fusionada, `EditProfilePage.test.tsx` agrega además un caso end-to-end que construye los 5
+  requisitos reales a través de la UI (incluida la sección de Roles Objetivo) y confirma que
+  «Finalizar y Continuar» se habilita y completa el perfil de verdad.
+
+**Decisiones de diseño, PRT-02.03 (CM-69, 15-sep-2026 — Figma desactualizado para esta subtarea,
+guía visual únicamente, ver nota de §3.5).**
+
+- **Decisión H — Ya no bloqueada por C-04.** El PO autorizó construir la gestión manual completa de
+  Roles Objetivo dentro del formulario sin esperar la respuesta final de C-04: HU-2.10 sigue viva
+  para Sprint 2 pero ya no condiciona esta subtarea, y `PRT-02.07`/`ProfileRolesPage.tsx` se
+  conservan sin tocar (ver §3.5 y `CLAUDE.md` §12 abierta 10).
+- **H1 — «Sustituir» es un `PATCH` real, nunca «eliminar y agregar».** Confirmado por el memo del PO
+  del 13-sep (C-05) y por el código real de `ProfileController.java#updateTargetRole`: conserva el
+  `id` del Rol Objetivo. `TargetRolesSection` le da su propio control por ítem (un `Select` de un
+  solo valor), separado del selector de alta.
+- **H2 — `targetRoles: TargetRoleItem[]` reemplaza el `targetRoleIds: string[]` que solo existía en
+  el mock.** El backend real expone cada Rol Objetivo como su propio recurso con su propio `id`
+  (necesario para `PATCH`/`DELETE` por id) — no un arreglo plano de ids de catálogo. `profile.dto.ts`,
+  `profile.mapper.ts` y `profiles.handlers.ts` se actualizan juntos en este commit.
+- **H3 — Gestión por ítem (POST/PATCH/DELETE), igual que Educación/Experiencia (decisión D-A).**
+  Confirmado como el patrón real por `ProfileController.java`: nunca un `PATCH` de colección. Los
+  mocks reemplazan el `PATCH` masivo de `targetRoleIds` que solo existía por no conocer el contrato.
+- **H4 — Reutiliza `Combobox` para "agregar" sin construir ningún átomo nuevo.** `Combobox`
+  (`design-system/molecules/Combobox`) ya fue construido en CM-61 anticipando este uso exacto (su
+  propio TSDoc lo decía) y ya renderiza sus seleccionados como `Chip` removible. Se usa con
+  `selected` siempre vacío (los roles persistidos se muestran en la lista propia del organismo, no
+  como chips del combobox): elegir una opción dispara `onAdd` de inmediato, nunca "quitar" desde ese
+  control.
+- **H5 — Reutiliza `Select` (átomo de CM-61, decisión D-B) para "sustituir" por ítem**, acotado a los
+  roles todavía no usados por el resto del perfil (más el propio, para poder cancelar sin cambiar
+  nada). Ningún átomo/molécula nuevo de `design-system` fue necesario para esta subtarea.
+- **H6 — `GET /api/v1/professional-roles` (catálogo) vive en un handler de mocks separado**
+  (`professionalRoles.handlers.ts`), no dentro de `profiles.handlers.ts`: es un recurso propio, no
+  un dato del perfil — mismo criterio que separar `auth.handlers.ts` de `profiles.handlers.ts`.
 
 **Notas técnicas de esta implementación (no son divergencias de diseño).**
 
@@ -669,10 +753,19 @@ guía visual únicamente, ver nota de §3.4).**
     todos los usos existentes de este organismo (solo `EditProfilePage.tsx`) también.
 17. `EditProfilePage.tsx` (CM-65) extrae `getMissingRequirementFields` a
     `model/missingRequirements.ts` en vez de dejarlo como una función interna de la página: es la
-    única forma de probar la lectura de `error.details` sin depender de que el botón "Finalizar"
-    esté habilitado (que en esta rama nunca lo está — decisión I4). La traducción de cada campo a
-    texto visible (`profile:formulario.requisitos.*`) sigue en la página, la única capa con
-    `useTranslation` (CLAUDE.md §14.7).
+    única forma de probar la lectura de `error.details` sin depender de renderizar la página. La
+    traducción de cada campo a texto visible (`profile:formulario.requisitos.*`) sigue en la
+    página, la única capa con `useTranslation` (CLAUDE.md §14.7).
+18. `EditProfilePage.tsx` (CM-69) gatea el render inicial con `profileQuery.isPending ||
+    professionalRolesQuery.isPending` (y el error, con el `||` equivalente): es la primera vez que
+    esta página depende de una segunda petición además del perfil. El catálogo no tiene un
+    `NOT_FOUND` propio, así que el mensaje de error prioriza `profileQuery.error` y solo cae al del
+    catálogo si el perfil sí cargó pero el catálogo falló.
+19. `TargetRolesSection` no usa `TARGET_ROLES_FORM_ID` ni ningún `<form>`: a diferencia de
+    Educación/Experiencia (que sí tienen un formulario de alta con botón «Agregar»), aquí "agregar"
+    es elegir una opción de `Combobox`, que dispara la mutación de inmediato — no hay nada que
+    enviar por submit. Se evaluó agregar la constante de todos modos por paridad con las otras dos
+    secciones, pero se descartó por ser código muerto (`CLAUDE.md` §13).
 
 **Divergencias conscientes, registradas sin corregirlas (fuera del alcance de este archivo):**
 

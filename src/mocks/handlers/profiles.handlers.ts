@@ -37,13 +37,18 @@
  * `SPEC.md` §5) valida los 5 requisitos reales en orden y devuelve
  * **todos** los incumplidos en `details`, nunca solo el primero.
  *
- * `ProfileRecord.targetRoles` (antes `targetRoleIds: string[]`) se modela
- * igual que en la rama independiente de CM-69 (Roles Objetivo), que sí
- * construye su alta/sustitución/baja por ítem — esta rama solo lee
- * `targetRoles.length` para el 5º requisito de finalización, sin exponer
- * ningún endpoint de gestión. Ambas ramas parten de `develop` en paralelo
- * (no una de la otra): quien fusione la segunda debe reconciliar este
- * archivo con los 3 handlers de Roles Objetivo que CM-69 agrega.
+ * CM-69: Roles Objetivo también es gestión por ítem (`POST`/`PATCH`/
+ * `DELETE`), confirmado contra el código real de `ProfileController.java`
+ * (`addTargetRole`, `updateTargetRole`, `removeTargetRole`) y contra el memo
+ * del PO del 13-sep (C-05: "sustituir" es un `PATCH` real, no
+ * "eliminar+agregar", y conserva el id del Rol Objetivo). Reemplaza el
+ * `targetRoleIds: string[]` que este archivo simulaba antes de conocer el
+ * contrato real: el backend expone cada Rol Objetivo como su propio
+ * recurso, con su propio id, no como un arreglo plano de ids de catálogo.
+ *
+ * CM-65 y CM-69 se construyeron en ramas independientes en paralelo, cada
+ * una con una referencia de solo lectura al recurso de la otra; este
+ * archivo ya está fusionado con ambos conjuntos de handlers reales.
  *
  * El array en memoria y `resetProfiles()` son estado compartido entre
  * archivos de prueba; cualquier prueba futura que consuma estos handlers
@@ -66,11 +71,13 @@
  */
 import { http, HttpResponse, type HttpHandler } from 'msw';
 import { MOCK_USER_ID } from './auth.handlers';
+import { PROFESSIONAL_ROLES } from '../data/catalogs';
 
 const NAME_MAX_LENGTH = 255;
 const SUMMARY_MAX_LENGTH = 2000;
 const DESCRIPTION_MAX_LENGTH = 500;
 const SKILL_NAME_MAX_LENGTH = 255;
+const MAX_TARGET_ROLES = 5;
 
 // Código de mock, no confirmado con backend; puede no coincidir cuando
 // exista el contrato real.
@@ -98,6 +105,12 @@ const SKILL_DUPLICATE = 'SKILL_DUPLICATE';
 // `api/profile.api.ts`).
 const PROFILE_INCOMPLETE = 'PROFILE_INCOMPLETE';
 const PROFILE_ALREADY_COMPLETED = 'PROFILE_ALREADY_COMPLETED';
+
+// Códigos nuevos de CM-69, PROVISIONALES — mismo motivo: `ProfileController.java`
+// confirma los status HTTP (404/409/422) pero no un `code` de `ProblemDetail` propio.
+const TARGET_ROLE_DUPLICATE = 'TARGET_ROLE_DUPLICATE';
+const TARGET_ROLE_MAX_REACHED = 'TARGET_ROLE_MAX_REACHED';
+const TARGET_ROLE_LAST_CANNOT_REMOVE = 'TARGET_ROLE_LAST_CANNOT_REMOVE';
 
 const EDUCATION_LEVELS = ['TECHNICAL', 'UNDERGRADUATE', 'POSTGRADUATE'] as const;
 const EMPLOYMENT_STATUSES = ['CURRENT', 'UNKNOWN_END', 'ENDED'] as const;
@@ -129,7 +142,7 @@ interface SkillItem {
   provenance: DataProvenance;
 }
 
-/** Modelado igual que en la rama de CM-69 (ver TSDoc de cabecera): esta rama solo lee `targetRoles.length`. */
+/** `id` es el identificador propio del Rol Objetivo — `PATCH` lo conserva al sustituir `professionalRoleId` (ver TSDoc de cabecera, C-05). */
 interface TargetRoleItem {
   id: string;
   professionalRoleId: string;
@@ -171,7 +184,7 @@ interface ProfileRecord {
   targetRoles: TargetRoleItem[];
 }
 
-/** CM-61/CM-65: `workExperience`/`education`/`skills` ya NO viajan por aquí — la gestión es por ítem (ver TSDoc de cabecera). */
+/** CM-61/CM-65/CM-69: `workExperience`/`education`/`skills`/`targetRoles` ya NO viajan por aquí — la gestión de las cuatro es por ítem (ver TSDoc de cabecera). */
 interface ProfilePatchBody {
   name?: string;
   summary?: string;
@@ -223,6 +236,7 @@ let nextId = 1;
 let nextWorkExperienceId = 1;
 let nextEducationId = 1;
 let nextSkillId = 1;
+let nextTargetRoleId = 1;
 
 /**
  * Vacía el array en memoria y reinicia los contadores de id. Ver la nota de
@@ -235,6 +249,7 @@ export function resetProfiles(): void {
   nextWorkExperienceId = 1;
   nextEducationId = 1;
   nextSkillId = 1;
+  nextTargetRoleId = 1;
 }
 
 /**
@@ -589,6 +604,130 @@ export const profilesHandlers: HttpHandler[] = [
     },
   ),
 
+  // CM-69: alta de rol objetivo. Reglas reales (`ProfileController.java#addTargetRole`):
+  // `professionalRoleId` debe existir en el catálogo cerrado; 409 si ya
+  // está asociado al perfil; 422 al llegar al máximo (5, sin prioridad ni
+  // reordenamiento — memo del PO del 13-sep, C-05).
+  http.post<{ id: string }>('*/api/v1/profiles/:id/target-roles', async ({ request, params }) => {
+    const profile = findProfile(params.id);
+    if (!profile) {
+      return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+    }
+
+    const body = (await safeJson(request)) ?? {};
+    const { professionalRoleId, provenance } = body;
+
+    if (
+      !isNonBlankString(professionalRoleId) ||
+      !PROFESSIONAL_ROLES.some((role) => role.id === professionalRoleId) ||
+      !DATA_PROVENANCES.includes(provenance as DataProvenance)
+    ) {
+      return HttpResponse.json(errorBody(VALIDATION_ERROR, 'Revisa el rol objetivo enviado.'), {
+        status: 400,
+      });
+    }
+
+    if (profile.targetRoles.length >= MAX_TARGET_ROLES) {
+      return HttpResponse.json(
+        errorBody(
+          TARGET_ROLE_MAX_REACHED,
+          `Ya tienes el máximo de ${MAX_TARGET_ROLES} roles objetivo.`,
+        ),
+        { status: 422 },
+      );
+    }
+
+    if (profile.targetRoles.some((role) => role.professionalRoleId === professionalRoleId)) {
+      return HttpResponse.json(
+        errorBody(TARGET_ROLE_DUPLICATE, 'Ese rol objetivo ya está en tu perfil.'),
+        { status: 409 },
+      );
+    }
+
+    const item: TargetRoleItem = {
+      id: `target-role-${nextTargetRoleId++}`,
+      professionalRoleId,
+      provenance: provenance as DataProvenance,
+    };
+    profile.targetRoles.push(item);
+    return HttpResponse.json(profile, { status: 201 });
+  }),
+
+  // CM-69: sustituir el rol profesional referenciado, conservando el id del
+  // Rol Objetivo (`ProfileController.java#updateTargetRole`, C-05) — nunca
+  // "eliminar y agregar".
+  http.patch<{ id: string; roleId: string }>(
+    '*/api/v1/profiles/:id/target-roles/:roleId',
+    async ({ request, params }) => {
+      const profile = findProfile(params.id);
+      if (!profile) {
+        return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+      }
+      const item = profile.targetRoles.find((role) => role.id === params.roleId);
+      if (!item) {
+        return HttpResponse.json(errorBody('NOT_FOUND', 'Rol objetivo no encontrado.'), {
+          status: 404,
+        });
+      }
+
+      const body = (await safeJson(request)) ?? {};
+      const { professionalRoleId } = body;
+
+      if (
+        !isNonBlankString(professionalRoleId) ||
+        !PROFESSIONAL_ROLES.some((role) => role.id === professionalRoleId)
+      ) {
+        return HttpResponse.json(errorBody(VALIDATION_ERROR, 'Revisa el rol objetivo enviado.'), {
+          status: 400,
+        });
+      }
+
+      if (
+        profile.targetRoles.some(
+          (role) => role.id !== item.id && role.professionalRoleId === professionalRoleId,
+        )
+      ) {
+        return HttpResponse.json(
+          errorBody(TARGET_ROLE_DUPLICATE, 'Ese rol objetivo ya está en tu perfil.'),
+          { status: 409 },
+        );
+      }
+
+      item.professionalRoleId = professionalRoleId;
+      return HttpResponse.json(profile, { status: 200 });
+    },
+  ),
+
+  // CM-69: eliminar solo se bloquea cuando es el último rol objetivo de un
+  // perfil ya `COMPLETED` (`ProfileController.java#removeTargetRole`) — con
+  // el perfil todavía `IN_PROGRESS` sí se puede quedar sin roles.
+  http.delete<{ id: string; roleId: string }>(
+    '*/api/v1/profiles/:id/target-roles/:roleId',
+    ({ params }) => {
+      const profile = findProfile(params.id);
+      if (!profile) {
+        return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+      }
+      const index = profile.targetRoles.findIndex((role) => role.id === params.roleId);
+      if (index === -1) {
+        return HttpResponse.json(errorBody('NOT_FOUND', 'Rol objetivo no encontrado.'), {
+          status: 404,
+        });
+      }
+      if (profile.targetRoles.length === 1 && profile.status === 'COMPLETED') {
+        return HttpResponse.json(
+          errorBody(
+            TARGET_ROLE_LAST_CANNOT_REMOVE,
+            'No puedes quedarte sin roles objetivo con el perfil activo.',
+          ),
+          { status: 422 },
+        );
+      }
+      profile.targetRoles.splice(index, 1);
+      return HttpResponse.json(profile, { status: 200 });
+    },
+  ),
+
   // CM-65: `POST .../completion`, no `.../finalize` (ver TSDoc de cabecera y
   // `SPEC.md` §5) — confirmado por `ProfileController.java#completeProfile`.
   // Valida los 5 requisitos reales EN ORDEN pero acumula TODOS los
@@ -638,7 +777,7 @@ export const profilesHandlers: HttpHandler[] = [
 
   // CM-53: SPEC.md §3.2 ya asumía este endpoint (estado de carga "mientras
   // se obtiene el perfil por id") antes de que existiera. Sin filtro por
-  // `ownerId`, igual que PATCH/finalize (nota transversal de SPEC.md §3,
+  // `ownerId`, igual que PATCH/completion (nota transversal de SPEC.md §3,
   // C-01: el mock no distingue "no existe" de "no es tuyo").
   http.get('*/api/v1/profiles/:id', ({ params }) => {
     const profile = findProfile(params.id as string);
