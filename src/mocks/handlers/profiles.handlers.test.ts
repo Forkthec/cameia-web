@@ -2,10 +2,12 @@
  * Prueba de humo del ciclo completo de Perfil Profesional contra los mocks
  * de `profiles.handlers.ts`: protege que las reglas de negocio que ese
  * archivo simula —creación en `IN_PROGRESS`, validación de nombre,
- * educación obligatoria para finalizar, transición única a `COMPLETED`,
- * alta/baja por ítem de experiencia laboral y educación (CM-61) con las
- * reglas reales de `WorkExperience.java`/`Education.java`— sigan
- * funcionando juntas, tal como las consume `professional-profile`.
+ * transición única a `COMPLETED`, alta/baja por ítem de experiencia laboral,
+ * educación (CM-61) y habilidades (CM-65) con las reglas reales de
+ * `WorkExperience.java`/`Education.java`/`ProfileController.java`, y
+ * finalización (`POST .../completion`, CM-65) validando los 5 requisitos
+ * reales a la vez— sigan funcionando juntas, tal como las consume
+ * `professional-profile`.
  *
  * No vive en ninguna feature porque no prueba una feature: prueba la capa
  * de infraestructura de mocks en sí misma, igual que
@@ -53,46 +55,88 @@ describe('profilesHandlers', () => {
     expect(profile.status).toBe('IN_PROGRESS');
   });
 
-  it('finalizar sin educación falla', async () => {
-    const profile = await httpClient.post<ProfileResponse>('/api/v1/profiles', {
-      name: 'Perfil de prueba',
-    });
+  // CM-65, bloqueo C-16: el endpoint real es `.../completion`, no
+  // `.../finalize` — confirmado por `ProfileController.java#completeProfile`.
+  it('finalizar un perfil vacío falla listando los 5 requisitos incumplidos', async () => {
+    // Sin body: el mock crea el perfil con name='' (un `name: ''` explícito
+    // sí se rechaza en la creación — CA-2.2.1 — la ausencia de body no).
+    const profile = await httpClient.post<ProfileResponse>('/api/v1/profiles');
 
-    // HU-2.4 (backlog 6-sep): la educación es obligatoria para activar el
-    // perfil; sin al menos una, finalizar debe rechazarse.
     const error = await httpClient
-      .post(`/api/v1/profiles/${profile.id}/finalize`)
+      .post(`/api/v1/profiles/${profile.id}/completion`)
       .catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ApiError);
     expect((error as ApiError).isValidation()).toBe(true);
+    const fields = (error as ApiError).details.map((detail) => detail.field);
+    expect(fields).toEqual(['name', 'summary', 'education', 'skills', 'targetRoles']);
   });
 
-  it('agregar educación y finalizar entra en COMPLETED', async () => {
+  it('finalizar con solo educación sigue listando los 4 requisitos restantes, no solo uno', async () => {
     const profile = await httpClient.post<ProfileResponse>('/api/v1/profiles', {
       name: 'Perfil de prueba',
     });
-
-    // CM-61: la gestión es por ítem (POST), nunca por PATCH de colección
-    // (memo del PO del 11-sep, confirmado contra `ProfileController.java`).
     await httpClient.post(`/api/v1/profiles/${profile.id}/educations`, {
       institution: 'Universidad del Cauca',
       degree: 'Ingeniería de Sistemas',
-      fieldOfStudy: 'Sistemas',
       level: 'UNDERGRADUATE',
       startDate: '2018-01',
-      endDate: '2023-12',
       inProgress: false,
       provenance: 'MANUAL',
     });
 
+    const error = await httpClient
+      .post(`/api/v1/profiles/${profile.id}/completion`)
+      .catch((e: unknown) => e);
+
+    const fields = (error as ApiError).details.map((detail) => detail.field);
+    expect(fields).toEqual(['summary', 'skills', 'targetRoles']);
+  });
+
+  it('cumplir los 5 requisitos y finalizar entra en COMPLETED', async () => {
+    // `targetRoles` es de solo lectura en esta rama (CM-69, en paralelo,
+    // construye su alta real) — se siembra directo para poder probar la
+    // finalización completa sin esa gestión.
+    const seeded = seedProfileForTests({
+      name: 'Ana María Pérez',
+      summary: 'Desarrolladora backend con experiencia en Node.js.',
+      targetRoles: [
+        { id: 'target-role-1', professionalRoleId: 'backend-developer', provenance: 'MANUAL' },
+      ],
+    });
+    await httpClient.post(`/api/v1/profiles/${seeded.id}/educations`, {
+      institution: 'Universidad del Cauca',
+      degree: 'Ingeniería de Sistemas',
+      level: 'UNDERGRADUATE',
+      startDate: '2018-01',
+      inProgress: false,
+      provenance: 'MANUAL',
+    });
+    await httpClient.post(`/api/v1/profiles/${seeded.id}/skills`, {
+      skillName: 'Node.js',
+      level: 'ADVANCED',
+      provenance: 'MANUAL',
+    });
+
     // GLOSSARY.md §3: transición única IN_PROGRESS → COMPLETED, sin pasar
-    // por IN_REVIEW (nadie lo alcanza en el flujo manual).
+    // por IN_REVIEW (nadie lo alcanza en el flujo manual). El backend real
+    // responde 201 (`ProfileController.java#completeProfile`).
     const finalized = await httpClient.post<ProfileResponse>(
-      `/api/v1/profiles/${profile.id}/finalize`,
+      `/api/v1/profiles/${seeded.id}/completion`,
     );
 
     expect(finalized.status).toBe('COMPLETED');
+  });
+
+  it('finalizar un perfil ya COMPLETED falla con 409', async () => {
+    const seeded = seedProfileForTests({ status: 'COMPLETED' });
+
+    const error = await httpClient
+      .post(`/api/v1/profiles/${seeded.id}/completion`)
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).httpStatus).toBe(409);
   });
 
   // CM-53 (HU-2.3): obtener perfil por id — SPEC.md §3.2 ya asumía este
@@ -409,5 +453,91 @@ describe('profilesHandlers', () => {
 
     expect(error).toBeInstanceOf(ApiError);
     expect((error as ApiError).code).toBe('VALIDATION_ERROR');
+  });
+
+  // CM-65: alta de habilidad válida — texto libre, sin catálogo.
+  it('agregar una habilidad válida la devuelve dentro del perfil', async () => {
+    const created = await httpClient.post<ProfileResponse>('/api/v1/profiles', {
+      name: 'Perfil de prueba',
+    });
+
+    const updated = await httpClient.post<ProfileResponse & { skills: unknown[] }>(
+      `/api/v1/profiles/${created.id}/skills`,
+      { skillName: 'React', level: 'ADVANCED', provenance: 'MANUAL' },
+    );
+
+    expect(updated.skills).toHaveLength(1);
+  });
+
+  it('un nivel de habilidad fuera del enum falla con VALIDATION_ERROR', async () => {
+    const created = await httpClient.post<ProfileResponse>('/api/v1/profiles', {
+      name: 'Perfil de prueba',
+    });
+
+    const error = await httpClient
+      .post(`/api/v1/profiles/${created.id}/skills`, {
+        skillName: 'React',
+        level: 'EXPERTO',
+        provenance: 'MANUAL',
+      })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).code).toBe('VALIDATION_ERROR');
+  });
+
+  // `ProfileController.java#addSkill`: 409 si el texto ya existe, sin
+  // distinguir mayúsculas ni espacios (memo del PO del 13-sep, C-06).
+  it('una habilidad duplicada, ignorando mayúsculas y espacios, falla con 409', async () => {
+    const created = await httpClient.post<ProfileResponse>('/api/v1/profiles', {
+      name: 'Perfil de prueba',
+    });
+    await httpClient.post(`/api/v1/profiles/${created.id}/skills`, {
+      skillName: 'React',
+      level: 'ADVANCED',
+      provenance: 'MANUAL',
+    });
+
+    const error = await httpClient
+      .post(`/api/v1/profiles/${created.id}/skills`, {
+        skillName: '  react  ',
+        level: 'BASIC',
+        provenance: 'MANUAL',
+      })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).httpStatus).toBe(409);
+  });
+
+  it('eliminar una habilidad la retira del perfil', async () => {
+    const created = await httpClient.post<ProfileResponse>('/api/v1/profiles', {
+      name: 'Perfil de prueba',
+    });
+    const withSkill = await httpClient.post<ProfileResponse & { skills: { id: string }[] }>(
+      `/api/v1/profiles/${created.id}/skills`,
+      { skillName: 'React', level: 'ADVANCED', provenance: 'MANUAL' },
+    );
+    const skillId = withSkill.skills[0]?.id;
+    if (!skillId) throw new Error('El perfil sembrado no tiene habilidad.');
+
+    const updated = await httpClient.del<ProfileResponse & { skills: unknown[] }>(
+      `/api/v1/profiles/${created.id}/skills/${skillId}`,
+    );
+
+    expect(updated.skills).toHaveLength(0);
+  });
+
+  it('eliminar una habilidad inexistente falla con NOT_FOUND', async () => {
+    const created = await httpClient.post<ProfileResponse>('/api/v1/profiles', {
+      name: 'Perfil de prueba',
+    });
+
+    const error = await httpClient
+      .del(`/api/v1/profiles/${created.id}/skills/no-existe`)
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).code).toBe('NOT_FOUND');
   });
 });

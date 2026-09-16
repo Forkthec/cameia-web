@@ -28,6 +28,23 @@
  * `requireNonBlankMax` en el dominio) — por eso aquí tampoco es obligatorio,
  * a diferencia de `institution`/`degree`, que el dominio real sí exige.
  *
+ * CM-65: Habilidades es gestión por ítem (`POST`/`DELETE`), igual que
+ * experiencia/educación, confirmado por el código real de
+ * `ProfileController.java` (`AddSkillCommand`) — reemplaza el `PATCH`
+ * masivo de `skills` que este archivo simulaba antes de conocer el
+ * contrato. `POST /api/v1/profiles/:id/completion` (no `.../finalize`,
+ * como este archivo simulaba desde CM-61 — bloqueo C-16 de `SPEC.md` §8)
+ * valida los 5 requisitos reales en orden y devuelve **todos** los
+ * incumplidos en `details`, nunca solo el primero.
+ *
+ * `ProfileRecord.targetRoles` (antes `targetRoleIds: string[]`) se modela
+ * igual que en la rama independiente de CM-69 (Roles Objetivo), que sí
+ * construye su alta/sustitución/baja por ítem — esta rama solo lee
+ * `targetRoles.length` para el 5º requisito de finalización, sin exponer
+ * ningún endpoint de gestión. Ambas ramas parten de `develop` en paralelo
+ * (no una de la otra): quien fusione la segunda debe reconciliar este
+ * archivo con los 3 handlers de Roles Objetivo que CM-69 agrega.
+ *
  * El array en memoria y `resetProfiles()` son estado compartido entre
  * archivos de prueba; cualquier prueba futura que consuma estos handlers
  * (incluidas las de `professional-profile`) debe llamar `resetProfiles()`
@@ -51,15 +68,13 @@ import { http, HttpResponse, type HttpHandler } from 'msw';
 import { MOCK_USER_ID } from './auth.handlers';
 
 const NAME_MAX_LENGTH = 255;
+const SUMMARY_MAX_LENGTH = 2000;
 const DESCRIPTION_MAX_LENGTH = 500;
+const SKILL_NAME_MAX_LENGTH = 255;
 
 // Código de mock, no confirmado con backend; puede no coincidir cuando
 // exista el contrato real.
 const PROFILE_NAME_INVALID = 'PROFILE_NAME_INVALID';
-
-// Código de mock, no confirmado con backend; puede no coincidir cuando
-// exista el contrato real.
-const EDUCATION_REQUIRED = 'EDUCATION_REQUIRED';
 
 // Reutiliza el código genérico que ya existe en errors.json (§errors.codigos).
 const VALIDATION_ERROR = 'VALIDATION_ERROR';
@@ -70,12 +85,28 @@ const VALIDATION_ERROR = 'VALIDATION_ERROR';
 const WORK_EXPERIENCE_DATE_INVALID = 'WORK_EXPERIENCE_DATE_INVALID';
 const EDUCATION_DATE_INVALID = 'EDUCATION_DATE_INVALID';
 
+// Código nuevo de CM-65, PROVISIONAL — el backend real (`ProfileController.java`)
+// confirma el status 409 para "habilidad ya asociada" pero no un `code` propio.
+const SKILL_DUPLICATE = 'SKILL_DUPLICATE';
+
+// Códigos nuevos de CM-65, PROVISIONALES — reemplazan `EDUCATION_REQUIRED`
+// (código de mock de CM-61 para el `/finalize` que este archivo ya no
+// simula): `ProfileController.java#completeProfile` confirma 422 con "la
+// lista de campos faltantes", pero no el `code`/forma exacta del cuerpo —
+// se transporta como `details` (un `ApiErrorDetail` por requisito), no como
+// un `missingRequirements` aparte (ver TSDoc de `finalizeProfile` en
+// `api/profile.api.ts`).
+const PROFILE_INCOMPLETE = 'PROFILE_INCOMPLETE';
+const PROFILE_ALREADY_COMPLETED = 'PROFILE_ALREADY_COMPLETED';
+
 const EDUCATION_LEVELS = ['TECHNICAL', 'UNDERGRADUATE', 'POSTGRADUATE'] as const;
 const EMPLOYMENT_STATUSES = ['CURRENT', 'UNKNOWN_END', 'ENDED'] as const;
+const SKILL_LEVELS = ['BASIC', 'INTERMEDIATE', 'ADVANCED'] as const;
 const DATA_PROVENANCES = ['MANUAL', 'AI_SUGGESTED', 'AI_EDITED'] as const;
 
 type EducationLevel = (typeof EDUCATION_LEVELS)[number];
 type EmploymentStatus = (typeof EMPLOYMENT_STATUSES)[number];
+type SkillLevel = (typeof SKILL_LEVELS)[number];
 type DataProvenance = (typeof DATA_PROVENANCES)[number];
 
 /** `"YYYY-MM"` — el backend real almacena `java.time.YearMonth`, sin día. */
@@ -94,7 +125,15 @@ interface EducationItem {
 interface SkillItem {
   id: string;
   skillName: string;
-  level: string;
+  level: SkillLevel;
+  provenance: DataProvenance;
+}
+
+/** Modelado igual que en la rama de CM-69 (ver TSDoc de cabecera): esta rama solo lee `targetRoles.length`. */
+interface TargetRoleItem {
+  id: string;
+  professionalRoleId: string;
+  provenance: DataProvenance;
 }
 
 interface WorkExperienceItem {
@@ -129,15 +168,13 @@ interface ProfileRecord {
   workExperience: WorkExperienceItem[];
   education: EducationItem[];
   skills: SkillItem[];
-  targetRoleIds: string[];
+  targetRoles: TargetRoleItem[];
 }
 
-/** CM-61: `workExperience`/`education` ya NO viajan por aquí — la gestión es por ítem (ver TSDoc de cabecera). */
+/** CM-61/CM-65: `workExperience`/`education`/`skills` ya NO viajan por aquí — la gestión es por ítem (ver TSDoc de cabecera). */
 interface ProfilePatchBody {
   name?: string;
   summary?: string;
-  skills?: SkillItem[];
-  targetRoleIds?: string[];
 }
 
 interface MockErrorDetail {
@@ -185,6 +222,7 @@ let profiles: ProfileRecord[] = [];
 let nextId = 1;
 let nextWorkExperienceId = 1;
 let nextEducationId = 1;
+let nextSkillId = 1;
 
 /**
  * Vacía el array en memoria y reinicia los contadores de id. Ver la nota de
@@ -196,6 +234,7 @@ export function resetProfiles(): void {
   nextId = 1;
   nextWorkExperienceId = 1;
   nextEducationId = 1;
+  nextSkillId = 1;
 }
 
 /**
@@ -219,7 +258,7 @@ export function seedProfileForTests(overrides: Partial<ProfileRecord> = {}): Pro
     workExperience: [],
     education: [],
     skills: [],
-    targetRoleIds: [],
+    targetRoles: [],
     ...overrides,
   };
   profiles.push(profile);
@@ -239,7 +278,7 @@ function createEmptyProfile(name: string): ProfileRecord {
     workExperience: [],
     education: [],
     skills: [],
-    targetRoleIds: [],
+    targetRoles: [],
   };
 }
 
@@ -308,15 +347,6 @@ export const profilesHandlers: HttpHandler[] = [
           profile.summaryProvenance = 'MANUAL';
           profile.summaryProvenanceOrigin = null;
         }
-      }
-      // Casteos explícitos, no `unknown` a ciegas: este mock confía en la
-      // forma que le manda quien construye la feature, no valida cada
-      // campo de cada item (no es el contrato real, es la capa de mocks).
-      if (Array.isArray(body.skills)) {
-        profile.skills = body.skills as SkillItem[];
-      }
-      if (Array.isArray(body.targetRoleIds)) {
-        profile.targetRoleIds = body.targetRoleIds as string[];
       }
 
       return HttpResponse.json(profile, { status: 200 });
@@ -500,27 +530,103 @@ export const profilesHandlers: HttpHandler[] = [
     },
   ),
 
-  http.post('*/api/v1/profiles/:id/finalize', ({ params }) => {
+  // CM-65: alta de habilidad. Reglas reales (`ProfileController.java#addSkill`):
+  // `skillName` 1-255, texto libre, sin catálogo; `level` del enum real;
+  // 409 si ya existe una habilidad con el mismo texto (sin distinguir
+  // mayúsculas ni espacios — memo del PO del 13-sep, C-06).
+  http.post<{ id: string }>('*/api/v1/profiles/:id/skills', async ({ request, params }) => {
+    const profile = findProfile(params.id);
+    if (!profile) {
+      return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+    }
+
+    const body = (await safeJson(request)) ?? {};
+    const { skillName, level, provenance } = body;
+
+    if (
+      !isNonBlankString(skillName) ||
+      skillName.trim().length > SKILL_NAME_MAX_LENGTH ||
+      !SKILL_LEVELS.includes(level as SkillLevel) ||
+      !DATA_PROVENANCES.includes(provenance as DataProvenance)
+    ) {
+      return HttpResponse.json(errorBody(VALIDATION_ERROR, 'Revisa los datos de la habilidad.'), {
+        status: 400,
+      });
+    }
+
+    const normalized = skillName.trim().toLowerCase();
+    if (profile.skills.some((skill) => skill.skillName.trim().toLowerCase() === normalized)) {
+      return HttpResponse.json(errorBody(SKILL_DUPLICATE, 'Esa habilidad ya está en tu perfil.'), {
+        status: 409,
+      });
+    }
+
+    const item: SkillItem = {
+      id: `skill-${nextSkillId++}`,
+      skillName: skillName.trim(),
+      level: level as SkillLevel,
+      provenance: provenance as DataProvenance,
+    };
+    profile.skills.push(item);
+    return HttpResponse.json(profile, { status: 201 });
+  }),
+
+  http.delete<{ id: string; skillId: string }>(
+    '*/api/v1/profiles/:id/skills/:skillId',
+    ({ params }) => {
+      const profile = findProfile(params.id);
+      if (!profile) {
+        return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+      }
+      const index = profile.skills.findIndex((skill) => skill.id === params.skillId);
+      if (index === -1) {
+        return HttpResponse.json(errorBody('NOT_FOUND', 'Habilidad no encontrada.'), {
+          status: 404,
+        });
+      }
+      profile.skills.splice(index, 1);
+      return HttpResponse.json(profile, { status: 200 });
+    },
+  ),
+
+  // CM-65: `POST .../completion`, no `.../finalize` (bloqueo C-16, ver TSDoc
+  // de cabecera) — confirmado por `ProfileController.java#completeProfile`.
+  // Valida los 5 requisitos reales EN ORDEN pero acumula TODOS los
+  // incumplidos antes de responder, nunca solo el primero.
+  http.post('*/api/v1/profiles/:id/completion', ({ params }) => {
     const profile = findProfile(params.id as string);
     if (!profile) {
       return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
     }
 
-    if (profile.education.length === 0) {
-      // HU-2.4 (backlog 6-sep): la educación es obligatoria para activar el perfil.
+    if (profile.status === 'COMPLETED') {
       return HttpResponse.json(
-        errorBody(
-          EDUCATION_REQUIRED,
-          'Agrega al menos una formación académica antes de finalizar.',
-        ),
+        errorBody(PROFILE_ALREADY_COMPLETED, 'Este perfil ya está activo.'),
+        { status: 409 },
+      );
+    }
+
+    const missing: MockErrorDetail[] = [];
+    if (profile.name.trim().length === 0) missing.push({ field: 'name', code: 'REQUIRED' });
+    if (profile.summary.trim().length === 0 || profile.summary.length > SUMMARY_MAX_LENGTH) {
+      missing.push({ field: 'summary', code: 'REQUIRED' });
+    }
+    if (profile.education.length === 0) missing.push({ field: 'education', code: 'REQUIRED' });
+    if (profile.skills.length === 0) missing.push({ field: 'skills', code: 'REQUIRED' });
+    if (profile.targetRoles.length === 0) missing.push({ field: 'targetRoles', code: 'REQUIRED' });
+
+    if (missing.length > 0) {
+      return HttpResponse.json(
+        errorBody(PROFILE_INCOMPLETE, 'Todavía no cumples los requisitos para finalizar.', missing),
         { status: 422 },
       );
     }
 
     // GLOSSARY.md §3: transición única IN_PROGRESS → COMPLETED. Nadie pasa
-    // por IN_REVIEW en el flujo manual.
+    // por IN_REVIEW en el flujo manual. El backend real responde 201, no
+    // 200 (`ProfileController.java#completeProfile`).
     profile.status = 'COMPLETED';
-    return HttpResponse.json(profile, { status: 200 });
+    return HttpResponse.json(profile, { status: 201 });
   }),
 
   http.get('*/api/v1/profiles', () => {
