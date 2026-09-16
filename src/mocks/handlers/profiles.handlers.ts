@@ -28,6 +28,17 @@
  * `requireNonBlankMax` en el dominio) — por eso aquí tampoco es obligatorio,
  * a diferencia de `institution`/`degree`, que el dominio real sí exige.
  *
+ * CM-69: Roles Objetivo también es gestión por ítem (`POST`/`PATCH`/
+ * `DELETE`), confirmado contra el código real de `ProfileController.java`
+ * (`addTargetRole`, `updateTargetRole`, `removeTargetRole`) y contra el memo
+ * del PO del 13-sep (C-05: "sustituir" es un `PATCH` real, no
+ * "eliminar+agregar", y conserva el id del Rol Objetivo). Reemplaza el
+ * `targetRoleIds: string[]` que este archivo simulaba antes de conocer el
+ * contrato real: el backend expone cada Rol Objetivo como su propio
+ * recurso, con su propio id, no como un arreglo plano de ids de catálogo.
+ * `skills` (CM-65) sigue sin su equivalente por ítem todavía — se resuelve
+ * cuando ese ticket lo necesite.
+ *
  * El array en memoria y `resetProfiles()` son estado compartido entre
  * archivos de prueba; cualquier prueba futura que consuma estos handlers
  * (incluidas las de `professional-profile`) debe llamar `resetProfiles()`
@@ -49,9 +60,11 @@
  */
 import { http, HttpResponse, type HttpHandler } from 'msw';
 import { MOCK_USER_ID } from './auth.handlers';
+import { PROFESSIONAL_ROLES } from '../data/catalogs';
 
 const NAME_MAX_LENGTH = 255;
 const DESCRIPTION_MAX_LENGTH = 500;
+const MAX_TARGET_ROLES = 5;
 
 // Código de mock, no confirmado con backend; puede no coincidir cuando
 // exista el contrato real.
@@ -69,6 +82,12 @@ const VALIDATION_ERROR = 'VALIDATION_ERROR';
 // casos, sin un `code` propio todavía (bloqueo, mismo origen que C-01).
 const WORK_EXPERIENCE_DATE_INVALID = 'WORK_EXPERIENCE_DATE_INVALID';
 const EDUCATION_DATE_INVALID = 'EDUCATION_DATE_INVALID';
+
+// Códigos nuevos de CM-69, PROVISIONALES — mismo motivo: `ProfileController.java`
+// confirma los status HTTP (404/409/422) pero no un `code` de `ProblemDetail` propio.
+const TARGET_ROLE_DUPLICATE = 'TARGET_ROLE_DUPLICATE';
+const TARGET_ROLE_MAX_REACHED = 'TARGET_ROLE_MAX_REACHED';
+const TARGET_ROLE_LAST_CANNOT_REMOVE = 'TARGET_ROLE_LAST_CANNOT_REMOVE';
 
 const EDUCATION_LEVELS = ['TECHNICAL', 'UNDERGRADUATE', 'POSTGRADUATE'] as const;
 const EMPLOYMENT_STATUSES = ['CURRENT', 'UNKNOWN_END', 'ENDED'] as const;
@@ -95,6 +114,13 @@ interface SkillItem {
   id: string;
   skillName: string;
   level: string;
+}
+
+/** `id` es el identificador propio del Rol Objetivo — `PATCH` lo conserva al sustituir `professionalRoleId` (ver TSDoc de cabecera, C-05). */
+interface TargetRoleItem {
+  id: string;
+  professionalRoleId: string;
+  provenance: DataProvenance;
 }
 
 interface WorkExperienceItem {
@@ -129,15 +155,14 @@ interface ProfileRecord {
   workExperience: WorkExperienceItem[];
   education: EducationItem[];
   skills: SkillItem[];
-  targetRoleIds: string[];
+  targetRoles: TargetRoleItem[];
 }
 
-/** CM-61: `workExperience`/`education` ya NO viajan por aquí — la gestión es por ítem (ver TSDoc de cabecera). */
+/** CM-61/CM-69: `workExperience`/`education`/`targetRoles` ya NO viajan por aquí — la gestión es por ítem (ver TSDoc de cabecera). `skills` (CM-65) es la única que sigue por `PATCH` masivo hasta que ese ticket la migre. */
 interface ProfilePatchBody {
   name?: string;
   summary?: string;
   skills?: SkillItem[];
-  targetRoleIds?: string[];
 }
 
 interface MockErrorDetail {
@@ -185,6 +210,7 @@ let profiles: ProfileRecord[] = [];
 let nextId = 1;
 let nextWorkExperienceId = 1;
 let nextEducationId = 1;
+let nextTargetRoleId = 1;
 
 /**
  * Vacía el array en memoria y reinicia los contadores de id. Ver la nota de
@@ -196,6 +222,7 @@ export function resetProfiles(): void {
   nextId = 1;
   nextWorkExperienceId = 1;
   nextEducationId = 1;
+  nextTargetRoleId = 1;
 }
 
 /**
@@ -219,7 +246,7 @@ export function seedProfileForTests(overrides: Partial<ProfileRecord> = {}): Pro
     workExperience: [],
     education: [],
     skills: [],
-    targetRoleIds: [],
+    targetRoles: [],
     ...overrides,
   };
   profiles.push(profile);
@@ -239,7 +266,7 @@ function createEmptyProfile(name: string): ProfileRecord {
     workExperience: [],
     education: [],
     skills: [],
-    targetRoleIds: [],
+    targetRoles: [],
   };
 }
 
@@ -309,14 +336,14 @@ export const profilesHandlers: HttpHandler[] = [
           profile.summaryProvenanceOrigin = null;
         }
       }
-      // Casteos explícitos, no `unknown` a ciegas: este mock confía en la
+      // Casteo explícito, no `unknown` a ciegas: este mock confía en la
       // forma que le manda quien construye la feature, no valida cada
       // campo de cada item (no es el contrato real, es la capa de mocks).
+      // `skills` es la única que sigue por este `PATCH` masivo (CM-65 la
+      // migra a POST/DELETE por ítem, igual que ya hizo CM-69 con
+      // `targetRoles` — ver los handlers dedicados más abajo).
       if (Array.isArray(body.skills)) {
         profile.skills = body.skills as SkillItem[];
-      }
-      if (Array.isArray(body.targetRoleIds)) {
-        profile.targetRoleIds = body.targetRoleIds as string[];
       }
 
       return HttpResponse.json(profile, { status: 200 });
@@ -496,6 +523,130 @@ export const profilesHandlers: HttpHandler[] = [
         });
       }
       profile.education.splice(index, 1);
+      return HttpResponse.json(profile, { status: 200 });
+    },
+  ),
+
+  // CM-69: alta de rol objetivo. Reglas reales (`ProfileController.java#addTargetRole`):
+  // `professionalRoleId` debe existir en el catálogo cerrado; 409 si ya
+  // está asociado al perfil; 422 al llegar al máximo (5, sin prioridad ni
+  // reordenamiento — memo del PO del 13-sep, C-05).
+  http.post<{ id: string }>('*/api/v1/profiles/:id/target-roles', async ({ request, params }) => {
+    const profile = findProfile(params.id);
+    if (!profile) {
+      return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+    }
+
+    const body = (await safeJson(request)) ?? {};
+    const { professionalRoleId, provenance } = body;
+
+    if (
+      !isNonBlankString(professionalRoleId) ||
+      !PROFESSIONAL_ROLES.some((role) => role.id === professionalRoleId) ||
+      !DATA_PROVENANCES.includes(provenance as DataProvenance)
+    ) {
+      return HttpResponse.json(errorBody(VALIDATION_ERROR, 'Revisa el rol objetivo enviado.'), {
+        status: 400,
+      });
+    }
+
+    if (profile.targetRoles.length >= MAX_TARGET_ROLES) {
+      return HttpResponse.json(
+        errorBody(
+          TARGET_ROLE_MAX_REACHED,
+          `Ya tienes el máximo de ${MAX_TARGET_ROLES} roles objetivo.`,
+        ),
+        { status: 422 },
+      );
+    }
+
+    if (profile.targetRoles.some((role) => role.professionalRoleId === professionalRoleId)) {
+      return HttpResponse.json(
+        errorBody(TARGET_ROLE_DUPLICATE, 'Ese rol objetivo ya está en tu perfil.'),
+        { status: 409 },
+      );
+    }
+
+    const item: TargetRoleItem = {
+      id: `target-role-${nextTargetRoleId++}`,
+      professionalRoleId,
+      provenance: provenance as DataProvenance,
+    };
+    profile.targetRoles.push(item);
+    return HttpResponse.json(profile, { status: 201 });
+  }),
+
+  // CM-69: sustituir el rol profesional referenciado, conservando el id del
+  // Rol Objetivo (`ProfileController.java#updateTargetRole`, C-05) — nunca
+  // "eliminar y agregar".
+  http.patch<{ id: string; roleId: string }>(
+    '*/api/v1/profiles/:id/target-roles/:roleId',
+    async ({ request, params }) => {
+      const profile = findProfile(params.id);
+      if (!profile) {
+        return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+      }
+      const item = profile.targetRoles.find((role) => role.id === params.roleId);
+      if (!item) {
+        return HttpResponse.json(errorBody('NOT_FOUND', 'Rol objetivo no encontrado.'), {
+          status: 404,
+        });
+      }
+
+      const body = (await safeJson(request)) ?? {};
+      const { professionalRoleId } = body;
+
+      if (
+        !isNonBlankString(professionalRoleId) ||
+        !PROFESSIONAL_ROLES.some((role) => role.id === professionalRoleId)
+      ) {
+        return HttpResponse.json(errorBody(VALIDATION_ERROR, 'Revisa el rol objetivo enviado.'), {
+          status: 400,
+        });
+      }
+
+      if (
+        profile.targetRoles.some(
+          (role) => role.id !== item.id && role.professionalRoleId === professionalRoleId,
+        )
+      ) {
+        return HttpResponse.json(
+          errorBody(TARGET_ROLE_DUPLICATE, 'Ese rol objetivo ya está en tu perfil.'),
+          { status: 409 },
+        );
+      }
+
+      item.professionalRoleId = professionalRoleId;
+      return HttpResponse.json(profile, { status: 200 });
+    },
+  ),
+
+  // CM-69: eliminar solo se bloquea cuando es el último rol objetivo de un
+  // perfil ya `COMPLETED` (`ProfileController.java#removeTargetRole`) — con
+  // el perfil todavía `IN_PROGRESS` sí se puede quedar sin roles.
+  http.delete<{ id: string; roleId: string }>(
+    '*/api/v1/profiles/:id/target-roles/:roleId',
+    ({ params }) => {
+      const profile = findProfile(params.id);
+      if (!profile) {
+        return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+      }
+      const index = profile.targetRoles.findIndex((role) => role.id === params.roleId);
+      if (index === -1) {
+        return HttpResponse.json(errorBody('NOT_FOUND', 'Rol objetivo no encontrado.'), {
+          status: 404,
+        });
+      }
+      if (profile.targetRoles.length === 1 && profile.status === 'COMPLETED') {
+        return HttpResponse.json(
+          errorBody(
+            TARGET_ROLE_LAST_CANNOT_REMOVE,
+            'No puedes quedarte sin roles objetivo con el perfil activo.',
+          ),
+          { status: 422 },
+        );
+      }
+      profile.targetRoles.splice(index, 1);
       return HttpResponse.json(profile, { status: 200 });
     },
   ),

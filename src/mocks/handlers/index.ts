@@ -5,5 +5,6 @@
  */
 import { authHandlers } from './auth.handlers';
 import { profilesHandlers } from './profiles.handlers';
+import { professionalRolesHandlers } from './professionalRoles.handlers';
 
-export const handlers = [...authHandlers, ...profilesHandlers];
+export const handlers = [...authHandlers, ...profilesHandlers, ...professionalRolesHandlers];
