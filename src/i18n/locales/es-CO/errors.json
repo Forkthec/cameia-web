@@ -7,6 +7,7 @@
     "UNAUTHORIZED": "Tu sesión expiró. Vuelve a iniciar sesión.",
     "PROFILE_NAME_INVALID": "El nombre del perfil no es válido.",
     "WORK_EXPERIENCE_DATE_INVALID": "Revisa las fechas de la experiencia laboral.",
-    "EDUCATION_DATE_INVALID": "Revisa las fechas de la formación académica."
+    "EDUCATION_DATE_INVALID": "Revisa las fechas de la formación académica.",
+    "SKILL_DUPLICATE": "Esa habilidad ya está en tu perfil."
   }
 }

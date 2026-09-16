@@ -15,7 +15,18 @@
       "fraccion": "{{value}} de {{max}} requisitos completos"
     },
     "finalizar": "Finalizar y Continuar",
-    "finalizarBloqueado": "Todavía no puedes finalizar: agrega al menos una habilidad y un rol objetivo."
+    "finalizando": "Finalizando…",
+    "finalizarBloqueado": "Todavía no puedes finalizar: completa los requisitos pendientes.",
+    "confirmacionFinalizado": "Tu perfil ya está activo.",
+    "errorFinalizarIncompleto": "Todavía no cumples estos requisitos:",
+    "errorFinalizarGenerico": "No se pudo finalizar el perfil. Inténtalo de nuevo.",
+    "requisitos": {
+      "name": "Nombre del perfil",
+      "summary": "Resumen profesional",
+      "education": "Formación académica",
+      "skills": "Habilidades",
+      "targetRoles": "Roles objetivo"
+    }
   },
   "general": {
     "tituloSeccion": "Información General",
@@ -129,8 +140,33 @@
     "errorEliminar": "No se pudo eliminar la experiencia laboral."
   },
   "habilidades": {
-    "titulo": "Habilidades y expectativas",
-    "agregarHabilidad": "Agregar habilidad"
+    "titulo": "Habilidades",
+    "nombre": {
+      "etiqueta": "Habilidad",
+      "placeholder": "Escribe aquí",
+      "errorRequerido": "Ingresa una habilidad.",
+      "errorLongitud": "La habilidad no puede superar los 255 caracteres.",
+      "errorDuplicado": "Esa habilidad ya está en tu perfil."
+    },
+    "nivel": {
+      "etiqueta": "Nivel",
+      "placeholder": "Selecciona una opción",
+      "errorRequerido": "Elige un nivel.",
+      "BASIC": "Básico",
+      "INTERMEDIATE": "Intermedio",
+      "ADVANCED": "Avanzado"
+    },
+    "chip": "{{nombre}} · {{nivel}}",
+    "agregar": "Agregar habilidad",
+    "agregando": "Agregando…",
+    "quitar": "Quitar {{nombre}}",
+    "vacio": {
+      "titulo": "Todavía no agregas habilidades",
+      "descripcion": "Agrega al menos una para poder finalizar tu perfil."
+    },
+    "confirmacionAgregada": "Habilidad agregada.",
+    "errorAgregar": "No se pudo agregar la habilidad.",
+    "errorEliminar": "No se pudo eliminar la habilidad."
   },
   "rolesObjetivo": {
     "titulo": "Roles objetivo"

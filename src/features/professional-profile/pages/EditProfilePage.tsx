@@ -1,10 +1,10 @@
 /**
  * `/perfiles/:id/editar` — Formulario de Perfil Profesional (PRT-02.03,
- * CM-53/CM-61): el armazón compartido (índice de secciones + barra de
+ * CM-53/CM-61/CM-65): el armazón compartido (índice de secciones + barra de
  * acciones) que CM-53 dejó explícitamente sin dueño y CM-61 construye, con
- * las tres secciones que ya existen hoy (Información General, Formación
- * académica, Experiencia Laboral). "Expectativas Profesionales" no se
- * lista: fuera del MVP (decisión D-02), SPEC.md §9 decisión D-D.
+ * las secciones que ya existen hoy (Información General, Formación
+ * académica, Experiencia Laboral, Habilidades). "Expectativas Profesionales"
+ * no se lista: fuera del MVP (decisión D-02), SPEC.md §9 decisión D-D.
  *
  * Vive dentro de `AppShell` (la ruta se mudó de
  * `professionalProfileWizardRoutes` a `professionalProfileShellRoutes` —
@@ -18,13 +18,19 @@
  * es la única capa de esta feature que decide el breakpoint.
  *
  * "Guardar borrador" solo envía `GeneralInfoForm` (por el atributo HTML
- * `form`, `GENERAL_INFO_FORM_ID`): Educación y Experiencia Laboral se
- * persisten al vuelo por ítem, sin borrador que guardar (decisión D-C).
- * "Finalizar y Continuar" se renderiza fiel a Figma pero SIEMPRE
- * deshabilitado hoy — su validación de 5 requisitos y su endpoint de
- * finalización son de CM-65/CM-69, que esta subtarea no construye.
+ * `form`, `GENERAL_INFO_FORM_ID`): Educación, Experiencia Laboral y
+ * Habilidades se persisten al vuelo por ítem, sin borrador que guardar
+ * (decisión D-C). "Finalizar y Continuar" (CM-65) ya llama a
+ * `useFinalizeProfile` — sigue deshabilitado en esta rama porque
+ * `getCompletenessValue` nunca llega a los 5 requisitos reales aquí (falta
+ * ≥1 rol objetivo, que construye CM-69 en una rama independiente en
+ * paralelo — ver `model/profileCompleteness.ts`). Un `422 PROFILE_INCOMPLETE`
+ * (si de todos modos se alcanza a intentar) muestra **todos** los
+ * requisitos incumplidos a la vez, nunca solo el primero — el frontend
+ * nunca renderiza el mensaje crudo del backend (`CLAUDE.md` §8), solo el
+ * código de cada requisito traducido.
  *
- * Es la única capa de esta feature que llama `useTranslation`: los cuatro
+ * Es la única capa de esta feature que llama `useTranslation`: los
  * organismos que ensambla siguen el patrón de `GeneralInfoForm` (texto por
  * props obligatorias, sin `useTranslation` propio — CLAUDE.md §14.7).
  */
@@ -36,9 +42,12 @@ import { AlertInline } from '@/design-system/molecules/AlertInline';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { ApiError } from '@/services/http/ApiError';
 import { useAddEducation } from '../hooks/useAddEducation';
+import { useAddSkill } from '../hooks/useAddSkill';
 import { useAddWorkExperience } from '../hooks/useAddWorkExperience';
+import { useFinalizeProfile } from '../hooks/useFinalizeProfile';
 import { useProfileQuery } from '../hooks/useProfileQuery';
 import { useRemoveEducation } from '../hooks/useRemoveEducation';
+import { useRemoveSkill } from '../hooks/useRemoveSkill';
 import { useRemoveWorkExperience } from '../hooks/useRemoveWorkExperience';
 import { useUpdateProfileGeneralInfo } from '../hooks/useUpdateProfileGeneralInfo';
 import {
@@ -46,8 +55,10 @@ import {
   EDUCATION_FORM_ID,
   GENERAL_INFO_FORM_ID,
   PROFILE_COMPLETENESS_MAX,
+  SKILLS_FORM_ID,
   WORK_EXPERIENCE_FORM_ID,
 } from '../model/profile.constants';
+import { getMissingRequirementFields } from '../model/missingRequirements';
 import { getCompletenessValue, getSectionStatuses } from '../model/profileCompleteness';
 import type { EducationItem, WorkExperienceItem } from '../model/profile.types';
 import { formatYearMonth } from '../model/yearMonth';
@@ -55,6 +66,7 @@ import { EducationSection } from '../organisms/EducationSection';
 import { GeneralInfoForm } from '../organisms/GeneralInfoForm';
 import { ProfileActionsBar } from '../organisms/ProfileActionsBar';
 import { ProfileSectionsLayout, type ProfileSection } from '../organisms/ProfileSectionsLayout';
+import { SkillsSection } from '../organisms/SkillsSection';
 import { WorkExperienceSection } from '../organisms/WorkExperienceSection';
 
 export function EditProfilePage() {
@@ -69,6 +81,9 @@ export function EditProfilePage() {
   const removeEducation = useRemoveEducation(profileId);
   const addWorkExperience = useAddWorkExperience(profileId);
   const removeWorkExperience = useRemoveWorkExperience(profileId);
+  const addSkill = useAddSkill(profileId);
+  const removeSkill = useRemoveSkill(profileId);
+  const finalizeProfile = useFinalizeProfile(profileId);
 
   if (profileQuery.isPending) {
     return (
@@ -119,6 +134,20 @@ export function EditProfilePage() {
       return t(`errors:codigos.${error.code}`);
     }
     return fallback;
+  }
+
+  /**
+   * `getMissingRequirementFields` ya aísla la lectura de `error.details`
+   * (probada aparte, sin renderizar); aquí solo se traduce cada campo
+   * contra `profile:formulario.requisitos.*` — un `field` que esta rama no
+   * reconozca (p. ej. si el contrato real usa otros nombres) se omite en
+   * vez de mostrar el texto crudo del backend (CLAUDE.md §8).
+   */
+  function getMissingRequirementsLabels(error: unknown): string[] | undefined {
+    return getMissingRequirementFields(error)
+      ?.map((field) => `profile:formulario.requisitos.${field}`)
+      .filter((key) => i18n.exists(key))
+      .map((key) => t(key));
   }
 
   const formatEducationPeriod = (item: EducationItem) =>
@@ -284,6 +313,57 @@ export function EditProfilePage() {
         />
       ),
     },
+    {
+      id: 'skills',
+      label: t('profile:habilidades.titulo'),
+      status: sectionStatuses.skills,
+      content: (
+        <SkillsSection
+          formId={SKILLS_FORM_ID}
+          items={profile.skills}
+          onAdd={(values) => addSkill.mutate(values)}
+          onRemove={(skillId) => removeSkill.mutate(skillId)}
+          isAdding={addSkill.isPending}
+          showSectionTitle={isDesktop}
+          sectionTitle={t('profile:habilidades.titulo')}
+          skillNameLabel={t('profile:habilidades.nombre.etiqueta')}
+          skillNamePlaceholder={t('profile:habilidades.nombre.placeholder')}
+          skillNameErrorRequired={t('profile:habilidades.nombre.errorRequerido')}
+          skillNameErrorTooLong={t('profile:habilidades.nombre.errorLongitud')}
+          skillNameErrorDuplicate={t('profile:habilidades.nombre.errorDuplicado')}
+          levelLabel={t('profile:habilidades.nivel.etiqueta')}
+          levelPlaceholder={t('profile:habilidades.nivel.placeholder')}
+          levelOptions={[
+            { value: 'BASIC', label: t('profile:habilidades.nivel.BASIC') },
+            { value: 'INTERMEDIATE', label: t('profile:habilidades.nivel.INTERMEDIATE') },
+            { value: 'ADVANCED', label: t('profile:habilidades.nivel.ADVANCED') },
+          ]}
+          levelErrorRequired={t('profile:habilidades.nivel.errorRequerido')}
+          formatItemLabel={(item) =>
+            t('profile:habilidades.chip', {
+              nombre: item.skillName,
+              nivel: t(`profile:habilidades.nivel.${item.level}`),
+            })
+          }
+          addButtonLabel={t('profile:habilidades.agregar')}
+          addingButtonLabel={t('profile:habilidades.agregando')}
+          removeItemLabel={(item) => t('profile:habilidades.quitar', { nombre: item.skillName })}
+          emptyStateTitle={t('profile:habilidades.vacio.titulo')}
+          emptyStateDescription={t('profile:habilidades.vacio.descripcion')}
+          addErrorMessage={
+            addSkill.isError
+              ? getItemErrorMessage(addSkill.error, t('profile:habilidades.errorAgregar'))
+              : undefined
+          }
+          removeErrorMessage={
+            removeSkill.isError ? t('profile:habilidades.errorEliminar') : undefined
+          }
+          confirmationMessage={
+            addSkill.isSuccess ? t('profile:habilidades.confirmacionAgregada') : undefined
+          }
+        />
+      ),
+    },
   ];
 
   return (
@@ -300,6 +380,33 @@ export function EditProfilePage() {
         <AlertInline variant="success">{t('profile:general.confirmacionGuardado')}</AlertInline>
       ) : null}
 
+      {finalizeProfile.isSuccess ? (
+        <AlertInline variant="success">
+          {t('profile:formulario.confirmacionFinalizado')}
+        </AlertInline>
+      ) : null}
+      {finalizeProfile.isError
+        ? (() => {
+            const missingLabels = getMissingRequirementsLabels(finalizeProfile.error);
+            return (
+              <AlertInline variant="error">
+                {missingLabels && missingLabels.length > 0 ? (
+                  <>
+                    {t('profile:formulario.errorFinalizarIncompleto')}
+                    <ul className="pl-space-5 list-disc">
+                      {missingLabels.map((label) => (
+                        <li key={label}>{label}</li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  t('profile:formulario.errorFinalizarGenerico')
+                )}
+              </AlertInline>
+            );
+          })()
+        : null}
+
       <ProfileActionsBar
         draftFormId={GENERAL_INFO_FORM_ID}
         completenessValue={completenessValue}
@@ -313,8 +420,13 @@ export function EditProfilePage() {
         savingDraftLabel={t('profile:general.guardandoBorrador')}
         isSavingDraft={updateGeneralInfo.isPending}
         finishLabel={t('profile:formulario.finalizar')}
-        isFinishDisabled
+        onFinish={() => finalizeProfile.mutate()}
+        isFinishDisabled={
+          profile.status === 'COMPLETED' || completenessValue < PROFILE_COMPLETENESS_MAX
+        }
         finishDisabledHint={t('profile:formulario.finalizarBloqueado')}
+        isFinalizing={finalizeProfile.isPending}
+        finalizingLabel={t('profile:formulario.finalizando')}
       />
     </div>
   );

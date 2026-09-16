@@ -2,12 +2,14 @@
  * Comportamiento observable de `ProfileActionsBar` (PRT-02.03): "Guardar
  * borrador" está enlazado al formulario de Información General por el
  * atributo HTML `form` (no por `onClick`), muestra el gerundio mientras
- * guarda, "Finalizar y Continuar" está deshabilitado con su explicación
- * asociada por `aria-describedby`, y la barra de progreso expone el valor y
- * el máximo reales.
+ * guarda, "Finalizar y Continuar" llama a `onFinish` cuando está habilitado,
+ * se deshabilita con su explicación asociada por `aria-describedby` cuando
+ * no lo está, muestra el gerundio mientras finaliza (CM-65), y la barra de
+ * progreso expone el valor y el máximo reales.
  */
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
 import { ProfileActionsBar } from './ProfileActionsBar';
 
 const baseProps = {
@@ -19,8 +21,10 @@ const baseProps = {
   saveDraftLabel: 'Guardar borrador',
   savingDraftLabel: 'Guardando…',
   finishLabel: 'Finalizar y Continuar',
+  onFinish: () => {},
   isFinishDisabled: true,
   finishDisabledHint: 'Agrega al menos una habilidad y un rol objetivo para poder finalizar.',
+  finalizingLabel: 'Finalizando…',
 };
 
 describe('ProfileActionsBar', () => {
@@ -58,5 +62,21 @@ describe('ProfileActionsBar', () => {
     });
     expect(progressbar).toHaveAttribute('aria-valuenow', '2');
     expect(progressbar).toHaveAttribute('aria-valuemax', '5');
+  });
+
+  it('habilitado, un clic en "Finalizar y Continuar" llama a onFinish', async () => {
+    const user = userEvent.setup();
+    const onFinish = vi.fn();
+    render(<ProfileActionsBar {...baseProps} isFinishDisabled={false} onFinish={onFinish} />);
+
+    await user.click(screen.getByRole('button', { name: 'Finalizar y Continuar' }));
+
+    expect(onFinish).toHaveBeenCalledOnce();
+  });
+
+  it('mientras finaliza, muestra el gerundio y queda deshabilitado', () => {
+    render(<ProfileActionsBar {...baseProps} isFinishDisabled={false} isFinalizing />);
+
+    expect(screen.getByRole('button', { name: 'Finalizando…' })).toBeDisabled();
   });
 });

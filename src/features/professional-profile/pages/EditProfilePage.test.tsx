@@ -1,13 +1,15 @@
 /**
- * Comportamiento observable de `EditProfilePage` (PRT-02.03, CM-61): estado
- * de carga mientras se obtiene el perfil, error distinguiendo `NOT_FOUND`
- * del genérico con reintento, estado vacío de Educación/Experiencia con la
- * barra de completitud en su valor bajo, el recorrido completo de agregar y
- * eliminar una formación académica (página → hook → MSW → caché), que
- * alterna `StepList`/acordeón según el breakpoint, que "Guardar borrador"
- * solo envía Información General (nunca dispara un alta de ítem), y que
- * "Finalizar y Continuar" existe pero está siempre deshabilitado (CM-65/
- * CM-69, fuera de este alcance).
+ * Comportamiento observable de `EditProfilePage` (PRT-02.03, CM-61/CM-65):
+ * estado de carga mientras se obtiene el perfil, error distinguiendo
+ * `NOT_FOUND` del genérico con reintento, estado vacío de Educación/
+ * Experiencia/Habilidades con la barra de completitud en su valor bajo, el
+ * recorrido completo de agregar y eliminar una formación académica y una
+ * habilidad (página → hook → MSW → caché), que alterna `StepList`/acordeón
+ * según el breakpoint, que "Guardar borrador" solo envía Información
+ * General (nunca dispara un alta de ítem), y que "Finalizar y Continuar"
+ * ya llama al endpoint real pero sigue deshabilitado en esta rama (falta
+ * ≥1 rol objetivo, CM-69 en paralelo) — un intento igual muestra todos los
+ * requisitos incumplidos a la vez.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -97,6 +99,7 @@ describe('EditProfilePage', () => {
 
     expect(await screen.findByText('Todavía no agregas formación académica')).toBeInTheDocument();
     expect(screen.getByText('Todavía no agregas experiencia laboral')).toBeInTheDocument();
+    expect(screen.getByText('Todavía no agregas habilidades')).toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '0');
   });
 
@@ -147,6 +150,28 @@ describe('EditProfilePage', () => {
     );
   });
 
+  it('agregar una habilidad la muestra como chip, y quitarla la retira', async () => {
+    await waitUntilReady();
+    setViewportMatches(true);
+    const user = userEvent.setup();
+    const created = await createProfile();
+
+    renderPage(created.id);
+    await screen.findByRole('heading', { name: 'Editar perfil profesional' });
+    const skillsSection = within(screen.getByRole('region', { name: 'Habilidades' }));
+
+    await user.type(skillsSection.getByLabelText('Habilidad'), 'React');
+    await user.selectOptions(skillsSection.getByLabelText('Nivel'), 'ADVANCED');
+    await user.click(skillsSection.getByRole('button', { name: 'Agregar habilidad' }));
+
+    expect(await screen.findByText('React · Avanzado')).toBeInTheDocument();
+    expect(screen.getByText('Habilidad agregada.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Quitar React' }));
+
+    await waitFor(() => expect(screen.queryByText('React · Avanzado')).not.toBeInTheDocument());
+  });
+
   it('"Guardar borrador" solo envía Información General, sin disparar ningún alta de ítem', async () => {
     await waitUntilReady();
     setViewportMatches(true);
@@ -175,7 +200,14 @@ describe('EditProfilePage', () => {
     expect(educationPosts).toBe(0);
   });
 
-  it('"Finalizar y Continuar" existe pero está siempre deshabilitado', async () => {
+  // Esta rama nunca calcula el 5º requisito (≥1 rol objetivo, CM-69 en
+  // paralelo — ver `model/profileCompleteness.ts`), así que el botón real
+  // queda deshabilitado incluso con nombre, resumen, educación y
+  // habilidades completos. El manejo del 422 (todos los requisitos
+  // incumplidos a la vez) se prueba en `useFinalizeProfile.test.tsx` y en
+  // `missingRequirements.test.ts`, donde sí se puede forzar la respuesta
+  // del backend sin depender de que este botón se habilite.
+  it('"Finalizar y Continuar" existe pero está siempre deshabilitado en esta rama', async () => {
     await waitUntilReady();
     const created = await createProfile();
 
