@@ -23,16 +23,24 @@
  * `SPEC.md` §8, mismo criterio que ya aplicó C-11 (contador 600 vs 2000 de
  * GeneralInfoForm): el contrato real manda sobre el número que dibuja Figma.
  *
- * `EDUCATION_LEVELS` y `MANUAL_PROVENANCE` son los valores literales del
- * contrato real (`EducationLevel.java`, `DataProvenance.java`), no un
- * catálogo consultado por HTTP — a diferencia de los roles profesionales
+ * `EDUCATION_LEVELS`, `SKILL_LEVELS` y `MANUAL_PROVENANCE` son los valores
+ * literales del contrato real (`EducationLevel.java`, `SkillLevel` según
+ * `AddSkillCommand` de `ProfileController.java`, `DataProvenance.java`), no
+ * un catálogo consultado por HTTP — a diferencia de los roles profesionales
  * (HU-2.11), que sí vienen de un endpoint.
+ *
+ * `SKILL_NAME_MAX_LENGTH` (CM-65) viene del memo del PO del 13-sep (C-06) y
+ * del código real (`AddSkillRequest`, `ProfileController.java`): 1-255
+ * caracteres, sin catálogo. Sin máximo de habilidades por perfil.
  *
  * `PROFILE_COMPLETENESS_MAX` son los 5 requisitos reales de finalización
  * (HU-2.5): nombre, resumen, ≥1 educación, ≥1 habilidad, ≥1 rol objetivo.
- * CM-61 solo puede calcular 3; se fija en 5 desde ya para que la fracción de
- * la barra de completitud ("3 de 5") no mienta sobre cuánto falta cuando
- * CM-65/CM-69 sumen los otros dos (SPEC.md §9, decisión D-D).
+ * CM-61 solo podía calcular 3; CM-65 suma el cuarto (≥1 habilidad). El
+ * quinto (≥1 rol objetivo) lo suma CM-69, en una rama independiente en
+ * paralelo — esta rama sola nunca llega a 5 (ver
+ * `model/profileCompleteness.ts`, nota de reconciliación con CM-69). Se
+ * fijó en 5 desde CM-61 para que la fracción de la barra de completitud no
+ * mintiera sobre cuánto faltaba (SPEC.md §9, decisión D-D).
  *
  * `DESKTOP_MEDIA_QUERY` duplica `--breakpoint-md: 600px` de
  * `styles/index.css`: `design-system`/`features` no pueden leer una
@@ -40,12 +48,13 @@
  * se repite aquí con el comentario del porqué, igual que ya hace
  * `stores/uiPreferences.store.ts` con `SUPPORTED_LANGUAGES`.
  */
-import type { DataProvenance, EducationLevel } from './profile.types';
+import type { DataProvenance, EducationLevel, SkillLevel } from './profile.types';
 
 export const NAME_MAX_LENGTH = 255;
 export const SUMMARY_MAX_LENGTH = 2000;
 
 export const DESCRIPTION_MAX_LENGTH = 500;
+export const SKILL_NAME_MAX_LENGTH = 255;
 
 export const EDUCATION_LEVELS: readonly EducationLevel[] = [
   'TECHNICAL',
@@ -53,7 +62,9 @@ export const EDUCATION_LEVELS: readonly EducationLevel[] = [
   'POSTGRADUATE',
 ] as const;
 
-/** Todo ítem agregado a mano desde este formulario lleva esta procedencia (CA-2.3.1, extendido a experiencia/educación). */
+export const SKILL_LEVELS: readonly SkillLevel[] = ['BASIC', 'INTERMEDIATE', 'ADVANCED'] as const;
+
+/** Todo ítem agregado a mano desde este formulario lleva esta procedencia (CA-2.3.1, extendido a experiencia/educación/habilidades). */
 export const MANUAL_PROVENANCE: DataProvenance = 'MANUAL';
 
 export const PROFILE_COMPLETENESS_MAX = 5;
@@ -61,6 +72,7 @@ export const PROFILE_COMPLETENESS_MAX = 5;
 export const GENERAL_INFO_FORM_ID = 'general-info-form';
 export const EDUCATION_FORM_ID = 'education-form';
 export const WORK_EXPERIENCE_FORM_ID = 'work-experience-form';
+export const SKILLS_FORM_ID = 'skills-form';
 
 /** Ver la nota de cabecera: mismo valor que `--breakpoint-md` de `styles/index.css`, repetido a propósito. */
 export const DESKTOP_MEDIA_QUERY = '(min-width: 600px)';

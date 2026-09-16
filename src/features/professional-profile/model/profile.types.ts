@@ -1,9 +1,10 @@
 /**
  * Tipos de dominio del Perfil Profesional. Nacieron acotados a Información
  * General (CM-53); CM-61 agrega Formación académica y Experiencia Laboral
- * (HU-2.4). Habilidades y Roles Objetivo siguen sin modelar: son de
- * CM-65/CM-69 y se agregan cuando esos tickets los necesiten
- * (ARCHITECTURE.md §5, regla de crecimiento).
+ * (HU-2.4); CM-65 agrega Habilidades (HU-2.5) y una referencia de solo
+ * lectura a Roles Objetivo (necesaria para verificar el 5º requisito de
+ * finalización, sin construir su gestión — eso es CM-69, rama independiente
+ * en paralelo, ver TSDoc de `Profile.targetRoles` más abajo).
  *
  * `SummaryProvenance` incluye `AI_SUGGESTED`, que en Sprint 1 es
  * inalcanzable desde la interfaz (nace de HU-2.6–2.10, Sprint 2): se modela
@@ -19,6 +20,11 @@
  * `YearMonth` documenta el formato real del backend (`java.time.YearMonth`,
  * `"YYYY-MM"`, sin día) para que quien lo use no lo confunda con una fecha
  * completa — la conversión vive en `model/yearMonth.ts` (bloqueo C-14).
+ *
+ * `SkillLevel` = `BASIC`/`INTERMEDIATE`/`ADVANCED`, confirmado por el memo
+ * del PO del 13-sep (C-06) y por el código real de `ProfileController.java`
+ * (parámetros de `AddSkillCommand`), compartidos en la sesión que construyó
+ * CM-65 — no un valor inventado.
  */
 export type ProfileStatus = 'IN_PROGRESS' | 'COMPLETED';
 
@@ -69,6 +75,31 @@ export interface WorkExperienceItem {
   provenance: DataProvenance;
 }
 
+export type SkillLevel = 'BASIC' | 'INTERMEDIATE' | 'ADVANCED';
+
+/** Habilidad ya persistida (HU-2.5). `skillName` es texto libre, sin catálogo — a diferencia de Rol Objetivo (HU-2.11). */
+export interface SkillItem {
+  id: string;
+  skillName: string;
+  level: SkillLevel;
+  provenance: DataProvenance;
+}
+
+/**
+ * Rol objetivo ya asociado al perfil (HU-2.11). Modelado igual que en
+ * CM-69 (rama independiente en paralelo, `ProfileController.java`): CM-65
+ * solo necesita contar `targetRoles.length` para el 5º requisito de
+ * finalización y no construye su gestión (agregar/sustituir/eliminar) —
+ * eso es exclusivamente CM-69. Se modela con la forma real del backend, no
+ * con un `string[]` simplificado, para que ambas ramas coincidan en este
+ * campo al fusionarse.
+ */
+export interface TargetRoleItem {
+  id: string;
+  professionalRoleId: string;
+  provenance: DataProvenance;
+}
+
 export interface Profile {
   id: string;
   status: ProfileStatus;
@@ -77,4 +108,6 @@ export interface Profile {
   summaryProvenance: SummaryProvenance;
   education: EducationItem[];
   workExperience: WorkExperienceItem[];
+  skills: SkillItem[];
+  targetRoles: TargetRoleItem[];
 }

@@ -2,13 +2,20 @@
  * Protege las dos derivaciones que CM-61 agrega al mapper: truncado de
  * fecha a `YearMonth` y la traducción de los dos checkboxes de Experiencia
  * Laboral (`isCurrent`/`unknownEnd`) al `employmentStatus` real
- * (SPEC.md §9, decisión D-F). No repite la cobertura de `toProfile`, ya
+ * (SPEC.md §9, decisión D-F). CM-65 agrega Habilidades: sin derivación real,
+ * solo protege que la procedencia manual se fije siempre
+ * (`MANUAL_PROVENANCE`). No repite la cobertura de `toProfile`, ya
  * protegida indirectamente por `useProfileQuery.test.tsx` contra MSW.
  */
 import { describe, expect, it } from 'vitest';
 import { EMPTY_EDUCATION_VALUES } from '../schemas/education.schema';
+import { EMPTY_SKILL_VALUES } from '../schemas/skill.schema';
 import { EMPTY_WORK_EXPERIENCE_VALUES } from '../schemas/workExperience.schema';
-import { toAddEducationRequest, toAddWorkExperienceRequest } from './profile.mapper';
+import {
+  toAddEducationRequest,
+  toAddSkillRequest,
+  toAddWorkExperienceRequest,
+} from './profile.mapper';
 
 describe('toAddEducationRequest', () => {
   it('trunca las fechas a YYYY-MM y fuerza la procedencia MANUAL', () => {
@@ -104,5 +111,17 @@ describe('toAddWorkExperienceRequest', () => {
     });
 
     expect(request.description).toBeNull();
+  });
+});
+
+describe('toAddSkillRequest', () => {
+  it('recorta el texto y fuerza la procedencia MANUAL', () => {
+    const request = toAddSkillRequest({
+      ...EMPTY_SKILL_VALUES,
+      skillName: '  React  ',
+      level: 'ADVANCED',
+    });
+
+    expect(request).toEqual({ skillName: 'React', level: 'ADVANCED', provenance: 'MANUAL' });
   });
 });

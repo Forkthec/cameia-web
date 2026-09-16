@@ -10,6 +10,10 @@
  * (`isCurrent`/`unknownEnd`) y el truncado de fecha a `YearMonth`
  * (`model/yearMonth.ts`, bloqueo C-14): los organismos no conocen el
  * contrato, solo edición de UI (SPEC.md §9, decisión D-F).
+ *
+ * CM-65 agrega Habilidades: `toAddSkillRequest` solo recorta y fija la
+ * procedencia, sin derivar nada — no hay catálogo que traducir. `TargetRole`
+ * se mapea (solo lectura) con la misma forma que usa CM-69.
  */
 import { MANUAL_PROVENANCE } from '../model/profile.constants';
 import type {
@@ -18,16 +22,23 @@ import type {
   EducationLevel,
   EmploymentStatus,
   Profile,
+  SkillItem,
+  SkillLevel,
+  TargetRoleItem,
   WorkExperienceItem,
 } from '../model/profile.types';
 import { toYearMonth } from '../model/yearMonth';
 import type { EducationFormValues } from '../schemas/education.schema';
+import type { SkillFormValues } from '../schemas/skill.schema';
 import type { WorkExperienceFormValues } from '../schemas/workExperience.schema';
 import type {
   AddEducationRequestDto,
+  AddSkillRequestDto,
   AddWorkExperienceRequestDto,
   EducationDto,
   ProfileDto,
+  SkillDto,
+  TargetRoleDto,
   WorkExperienceDto,
 } from './profile.dto';
 
@@ -58,6 +69,23 @@ function toWorkExperienceItem(dto: WorkExperienceDto): WorkExperienceItem {
   };
 }
 
+function toSkillItem(dto: SkillDto): SkillItem {
+  return {
+    id: dto.id,
+    skillName: dto.skillName,
+    level: dto.level as SkillLevel,
+    provenance: dto.provenance as DataProvenance,
+  };
+}
+
+function toTargetRoleItem(dto: TargetRoleDto): TargetRoleItem {
+  return {
+    id: dto.id,
+    professionalRoleId: dto.professionalRoleId,
+    provenance: dto.provenance as DataProvenance,
+  };
+}
+
 export function toProfile(dto: ProfileDto): Profile {
   return {
     id: dto.id,
@@ -67,6 +95,8 @@ export function toProfile(dto: ProfileDto): Profile {
     summaryProvenance: dto.summaryProvenance,
     education: dto.education.map(toEducationItem),
     workExperience: dto.workExperience.map(toWorkExperienceItem),
+    skills: dto.skills.map(toSkillItem),
+    targetRoles: dto.targetRoles.map(toTargetRoleItem),
   };
 }
 
@@ -112,6 +142,14 @@ export function toAddWorkExperienceRequest(
     startDate: toYearMonth(values.startDate),
     endDate: employmentStatus === 'ENDED' ? toYearMonth(values.endDate) : null,
     employmentStatus,
+    provenance: MANUAL_PROVENANCE,
+  };
+}
+
+export function toAddSkillRequest(values: SkillFormValues): AddSkillRequestDto {
+  return {
+    skillName: values.skillName.trim(),
+    level: values.level,
     provenance: MANUAL_PROVENANCE,
   };
 }

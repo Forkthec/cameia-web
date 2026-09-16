@@ -1,8 +1,10 @@
 /**
  * Protege el cálculo del índice de secciones y de la barra de completitud
- * (SPEC.md §9, decisión D-D): solo los 3 requisitos que CM-61 puede evaluar
- * hoy cuentan, "Experiencia Laboral" nunca aparece como completa, y el valor
- * nunca supera lo que el perfil realmente cumple.
+ * (SPEC.md §9, decisión D-D): los 4 requisitos que esta rama puede evaluar
+ * cuentan (nombre, resumen, ≥1 educación, ≥1 habilidad — CM-65), "Experiencia
+ * Laboral" nunca aparece como completa, y el valor nunca supera lo que el
+ * perfil realmente cumple. El 5º requisito (≥1 rol objetivo) es de CM-69,
+ * rama independiente en paralelo — no se prueba aquí.
  */
 import { describe, expect, it } from 'vitest';
 import type { Profile } from './profile.types';
@@ -17,6 +19,8 @@ function buildProfile(overrides: Partial<Profile> = {}): Profile {
     summaryProvenance: null,
     education: [],
     workExperience: [],
+    skills: [],
+    targetRoles: [],
     ...overrides,
   };
 }
@@ -67,6 +71,40 @@ describe('getCompletenessValue', () => {
 
     expect(getCompletenessValue(buildProfile({ education }))).toBe(1);
   });
+
+  it('agregar una habilidad suma el cuarto punto', () => {
+    const profile = buildProfile({
+      name: 'Ana',
+      summary: 'Backend.',
+      education: [
+        {
+          id: 'edu-1',
+          institution: 'Universidad del Cauca',
+          degree: 'Ingeniería',
+          fieldOfStudy: 'Sistemas',
+          level: 'UNDERGRADUATE',
+          startDate: '2018-01',
+          endDate: '2023-12',
+          inProgress: false,
+          provenance: 'MANUAL',
+        },
+      ],
+      skills: [{ id: 'skill-1', skillName: 'React', level: 'ADVANCED', provenance: 'MANUAL' }],
+    });
+
+    expect(getCompletenessValue(profile)).toBe(4);
+  });
+
+  it('varias habilidades no superan el punto único que representan', () => {
+    const skills = Array.from({ length: 3 }, (_, index) => ({
+      id: `skill-${index}`,
+      skillName: `Habilidad ${index}`,
+      level: 'BASIC' as const,
+      provenance: 'MANUAL' as const,
+    }));
+
+    expect(getCompletenessValue(buildProfile({ skills }))).toBe(1);
+  });
 });
 
 describe('getSectionStatuses', () => {
@@ -75,6 +113,7 @@ describe('getSectionStatuses', () => {
       'general-info': 'current',
       education: 'upcoming',
       'work-experience': 'upcoming',
+      skills: 'upcoming',
     });
   });
 
@@ -83,6 +122,31 @@ describe('getSectionStatuses', () => {
 
     expect(statuses['general-info']).toBe('complete');
     expect(statuses.education).toBe('current');
+  });
+
+  it('agregar una educación avanza Habilidades a current', () => {
+    const statuses = getSectionStatuses(
+      buildProfile({
+        name: 'Ana',
+        summary: 'Backend.',
+        education: [
+          {
+            id: 'edu-1',
+            institution: 'Universidad del Cauca',
+            degree: 'Ingeniería',
+            fieldOfStudy: 'Sistemas',
+            level: 'UNDERGRADUATE',
+            startDate: '2018-01',
+            endDate: '2023-12',
+            inProgress: false,
+            provenance: 'MANUAL',
+          },
+        ],
+      }),
+    );
+
+    expect(statuses.education).toBe('complete');
+    expect(statuses.skills).toBe('current');
   });
 
   it('Experiencia Laboral nunca pasa de upcoming, ni con el perfil completo', () => {
