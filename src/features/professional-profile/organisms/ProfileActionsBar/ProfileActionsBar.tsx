@@ -10,12 +10,15 @@
  * "borrador" que guardar — solo Información General lo tiene (SPEC.md §9,
  * decisión D-C).
  *
- * "Finalizar y Continuar" se renderiza fiel a Figma pero SIEMPRE
- * deshabilitado hoy: su validación real (5 requisitos: nombre, resumen,
- * ≥1 educación, ≥1 habilidad, ≥1 rol objetivo) y su endpoint de
- * finalización son de CM-65/CM-69, que esta subtarea no construye.
- * `finishDisabledHint` explica el porqué y se enlaza por
- * `aria-describedby`, en vez de dejar un botón muerto sin contexto.
+ * "Finalizar y Continuar" (CM-65) ya llama a `onFinish` — deshabilitado
+ * mientras `isFinishDisabled` sea `true` (calculado por quien monta este
+ * organismo a partir de `getCompletenessValue`, `model/profileCompleteness.ts`)
+ * o mientras `isFinalizing` esté en curso. `finishDisabledHint` explica por
+ * qué está deshabilitado y se enlaza por `aria-describedby`, en vez de
+ * dejar un botón muerto sin contexto — sigue siendo necesario aunque ya
+ * exista el endpoint real, porque esta rama sola nunca ve completo el 5º
+ * requisito (≥1 rol objetivo, CM-69 en paralelo — ver
+ * `model/profileCompleteness.ts`).
  *
  * Sin `useTranslation` (CLAUDE.md §14.7): todo texto visible entra por prop
  * obligatoria.
@@ -39,9 +42,13 @@ interface ProfileActionsBarProps {
   savingDraftLabel: string;
   isSavingDraft?: boolean;
   finishLabel: string;
+  onFinish: () => void;
   isFinishDisabled: boolean;
-  /** Por qué "Finalizar y Continuar" está deshabilitado hoy (CM-65/CM-69 no construidos aún). */
+  /** Por qué "Finalizar y Continuar" está deshabilitado (requisitos incompletos). */
   finishDisabledHint: string;
+  /** `true` mientras el `POST .../completion` está en curso. */
+  isFinalizing?: boolean;
+  finalizingLabel: string;
   className?: string;
 }
 
@@ -55,8 +62,11 @@ export function ProfileActionsBar({
   savingDraftLabel,
   isSavingDraft = false,
   finishLabel,
+  onFinish,
   isFinishDisabled,
   finishDisabledHint,
+  isFinalizing = false,
+  finalizingLabel,
   className,
 }: ProfileActionsBarProps) {
   const finishHintId = useId();
@@ -96,9 +106,11 @@ export function ProfileActionsBar({
           type="button"
           variant="primary"
           size="lg"
-          disabled={isFinishDisabled}
+          onClick={onFinish}
+          disabled={isFinishDisabled || isFinalizing}
           aria-describedby={isFinishDisabled ? finishHintId : undefined}
           className="w-full md:w-auto"
+          {...buttonLoadingProps(isFinalizing, finalizingLabel)}
         >
           {finishLabel}
         </Button>

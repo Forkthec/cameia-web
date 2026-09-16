@@ -1,9 +1,12 @@
 /**
  * Tipos de dominio del Perfil Profesional. Nacieron acotados a Información
  * General (CM-53); CM-61 agrega Formación académica y Experiencia Laboral
- * (HU-2.4); CM-69 agrega Roles Objetivo (HU-2.11). Habilidades siguen sin
- * modelar: son de CM-65 y se agregan cuando ese ticket las necesite
- * (ARCHITECTURE.md §5, regla de crecimiento).
+ * (HU-2.4); CM-65 agrega Habilidades (HU-2.5); CM-69 agrega Roles Objetivo
+ * (HU-2.11) — CM-65 y CM-69 se construyeron en ramas independientes en
+ * paralelo, cada una con una referencia de solo lectura al recurso de la
+ * otra (necesaria para calcular los 5 requisitos de finalización sin
+ * construir la gestión completa); esta es la versión ya fusionada de
+ * ambas, con Habilidades y Roles Objetivo reales al mismo tiempo.
  *
  * `SummaryProvenance` incluye `AI_SUGGESTED`, que en Sprint 1 es
  * inalcanzable desde la interfaz (nace de HU-2.6–2.10, Sprint 2): se modela
@@ -20,11 +23,13 @@
  * `"YYYY-MM"`, sin día) para que quien lo use no lo confunda con una fecha
  * completa — la conversión vive en `model/yearMonth.ts` (bloqueo C-14).
  *
- * `ProfessionalRole`/`TargetRoleItem` (CM-69) confirmados contra el código
- * real de `cameia-perfil` (`ProfessionalRoleController.java`,
- * `ProfileController.java`), compartido en la sesión que escribió este
- * archivo — no contra el memo del PO del 13-sep, que no llega a este nivel
- * de detalle de nombres de campo.
+ * `SkillLevel` = `BASIC`/`INTERMEDIATE`/`ADVANCED`, confirmado por el memo
+ * del PO del 13-sep (C-06) y por el código real de `ProfileController.java`
+ * (parámetros de `AddSkillCommand`), compartidos en la sesión que construyó
+ * CM-65 — no un valor inventado. `ProfessionalRole`/`TargetRoleItem` (CM-69)
+ * confirmados contra el código real de `cameia-perfil`
+ * (`ProfessionalRoleController.java`, `ProfileController.java`), compartido
+ * en la sesión que escribió ese ticket.
  */
 export type ProfileStatus = 'IN_PROGRESS' | 'COMPLETED';
 
@@ -75,6 +80,16 @@ export interface WorkExperienceItem {
   provenance: DataProvenance;
 }
 
+export type SkillLevel = 'BASIC' | 'INTERMEDIATE' | 'ADVANCED';
+
+/** Habilidad ya persistida (HU-2.5). `skillName` es texto libre, sin catálogo — a diferencia de Rol Objetivo (HU-2.11). */
+export interface SkillItem {
+  id: string;
+  skillName: string;
+  level: SkillLevel;
+  provenance: DataProvenance;
+}
+
 /** Catálogo cerrado de roles TI (backend real: `ProfessionalRoleController.java`, CM-23). El usuario elige de aquí, nunca escribe libre. */
 export interface ProfessionalRole {
   id: string;
@@ -102,5 +117,6 @@ export interface Profile {
   summaryProvenance: SummaryProvenance;
   education: EducationItem[];
   workExperience: WorkExperienceItem[];
+  skills: SkillItem[];
   targetRoles: TargetRoleItem[];
 }

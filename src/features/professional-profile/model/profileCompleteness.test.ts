@@ -1,7 +1,7 @@
 /**
  * Protege el cálculo del índice de secciones y de la barra de completitud
- * (SPEC.md §9, decisión D-D): los 4 requisitos que ya se pueden evaluar
- * cuentan (nombre, resumen, ≥1 educación, ≥1 rol objetivo — CM-69),
+ * (SPEC.md §9, decisión D-D): los 5 requisitos reales cuentan (nombre,
+ * resumen, ≥1 educación, ≥1 habilidad — CM-65, ≥1 rol objetivo — CM-69),
  * "Experiencia Laboral" nunca aparece como completa, y el valor nunca supera
  * lo que el perfil realmente cumple.
  */
@@ -18,6 +18,7 @@ function buildProfile(overrides: Partial<Profile> = {}): Profile {
     summaryProvenance: null,
     education: [],
     workExperience: [],
+    skills: [],
     targetRoles: [],
     ...overrides,
   };
@@ -70,7 +71,7 @@ describe('getCompletenessValue', () => {
     expect(getCompletenessValue(buildProfile({ education }))).toBe(1);
   });
 
-  it('agregar un rol objetivo suma el cuarto punto', () => {
+  it('agregar una habilidad suma el cuarto punto', () => {
     const profile = buildProfile({
       name: 'Ana',
       summary: 'Backend.',
@@ -87,12 +88,47 @@ describe('getCompletenessValue', () => {
           provenance: 'MANUAL',
         },
       ],
+      skills: [{ id: 'skill-1', skillName: 'React', level: 'ADVANCED', provenance: 'MANUAL' }],
+    });
+
+    expect(getCompletenessValue(profile)).toBe(4);
+  });
+
+  it('varias habilidades no superan el punto único que representan', () => {
+    const skills = Array.from({ length: 3 }, (_, index) => ({
+      id: `skill-${index}`,
+      skillName: `Habilidad ${index}`,
+      level: 'BASIC' as const,
+      provenance: 'MANUAL' as const,
+    }));
+
+    expect(getCompletenessValue(buildProfile({ skills }))).toBe(1);
+  });
+
+  it('agregar un rol objetivo suma el quinto punto', () => {
+    const profile = buildProfile({
+      name: 'Ana',
+      summary: 'Backend.',
+      education: [
+        {
+          id: 'edu-1',
+          institution: 'Universidad del Cauca',
+          degree: 'Ingeniería',
+          fieldOfStudy: 'Sistemas',
+          level: 'UNDERGRADUATE',
+          startDate: '2018-01',
+          endDate: '2023-12',
+          inProgress: false,
+          provenance: 'MANUAL',
+        },
+      ],
+      skills: [{ id: 'skill-1', skillName: 'React', level: 'ADVANCED', provenance: 'MANUAL' }],
       targetRoles: [
         { id: 'target-role-1', professionalRoleId: 'backend-developer', provenance: 'MANUAL' },
       ],
     });
 
-    expect(getCompletenessValue(profile)).toBe(4);
+    expect(getCompletenessValue(profile)).toBe(5);
   });
 
   it('varios roles objetivo no superan el punto único que representan', () => {
@@ -112,6 +148,7 @@ describe('getSectionStatuses', () => {
       'general-info': 'current',
       education: 'upcoming',
       'work-experience': 'upcoming',
+      skills: 'upcoming',
       'target-roles': 'upcoming',
     });
   });
@@ -123,7 +160,7 @@ describe('getSectionStatuses', () => {
     expect(statuses.education).toBe('current');
   });
 
-  it('agregar una educación avanza Roles Objetivo a current', () => {
+  it('agregar una educación avanza Habilidades a current', () => {
     const statuses = getSectionStatuses(
       buildProfile({
         name: 'Ana',
@@ -145,6 +182,32 @@ describe('getSectionStatuses', () => {
     );
 
     expect(statuses.education).toBe('complete');
+    expect(statuses.skills).toBe('current');
+  });
+
+  it('agregar una habilidad avanza Roles Objetivo a current', () => {
+    const statuses = getSectionStatuses(
+      buildProfile({
+        name: 'Ana',
+        summary: 'Backend.',
+        education: [
+          {
+            id: 'edu-1',
+            institution: 'Universidad del Cauca',
+            degree: 'Ingeniería',
+            fieldOfStudy: 'Sistemas',
+            level: 'UNDERGRADUATE',
+            startDate: '2018-01',
+            endDate: '2023-12',
+            inProgress: false,
+            provenance: 'MANUAL',
+          },
+        ],
+        skills: [{ id: 'skill-1', skillName: 'React', level: 'ADVANCED', provenance: 'MANUAL' }],
+      }),
+    );
+
+    expect(statuses.skills).toBe('complete');
     expect(statuses['target-roles']).toBe('current');
   });
 
