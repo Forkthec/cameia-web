@@ -20,6 +20,11 @@ const buttonVariants = cva(
   [
     'inline-flex items-center justify-center gap-space-2 rounded-full font-body font-semibold',
     'transition-colors',
+    // Cursor de mano en todo botón habilitado: Tailwind (desde 4.x, igual que
+    // 3.4+) no lo pone por defecto — el `cursor: default` nativo del
+    // navegador se queda si no se agrega esta utilidad. `disabled:` de abajo
+    // gana en un botón deshabilitado por especificidad (clase + pseudoclase).
+    'cursor-pointer',
     'focus-visible:outline-none focus-visible:shadow-focus-ring',
     // Regla dura: nunca opacidad global para disabled. El color se define por
     // estado (variant + disabled), no atenuando todo el botón.
