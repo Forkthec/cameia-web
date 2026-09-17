@@ -83,7 +83,7 @@ jobs:
       # ya con la sesión temporal del paso anterior, para que el script de
       # despliegue pueda usarla.
       - name: Configurar gcloud
-        uses: google-github-actions/setup-gcloud@v2
+        uses: google-github-actions/setup-gcloud@v3
 
       - name: Desplegar
         run: .github/scripts/desplegar-hosting.sh ${{ vars.GCP_PROJECT_ID }} dist live
@@ -142,7 +142,7 @@ jobs:
       # ya con la sesión temporal del paso anterior, para que el script de
       # despliegue pueda usarla.
       - name: Configurar gcloud
-        uses: google-github-actions/setup-gcloud@v2
+        uses: google-github-actions/setup-gcloud@v3
 
       # develop → canal 'staging'. Se redespliega en cada push a develop, así
       # que la ventana de expiración se renueva en la práctica; la API de
