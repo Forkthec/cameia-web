@@ -23,5 +23,8 @@
   "pendiente": {
     "titulo": "Pantalla pendiente · {{ticket}}",
     "descripcion": "Todavía no se implementa esta historia ({{prt}})."
+  },
+  "marca": {
+    "nombre": "cameia"
   }
 }

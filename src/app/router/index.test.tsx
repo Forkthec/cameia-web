@@ -76,7 +76,7 @@ describe('routeConfig', () => {
 
     renderAt('/inicio');
 
-    expect(await screen.findByText('Pantalla pendiente · CM-40')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Inicia sesión' })).toBeInTheDocument();
   });
 
   it('una ruta protegida con sesión renderiza dentro de AppShell', async () => {
@@ -97,7 +97,7 @@ describe('routeConfig', () => {
 
     renderAt('/perfiles/nuevo');
 
-    expect(await screen.findByText('Pantalla pendiente · CM-40')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Inicia sesión' })).toBeInTheDocument();
   });
 
   it('"/perfiles/nuevo" con sesión renderiza el selector de método dentro de AppShell', async () => {
@@ -120,7 +120,7 @@ describe('routeConfig', () => {
 
     renderAt('/perfiles/profile-1/editar');
 
-    expect(await screen.findByText('Pantalla pendiente · CM-40')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Inicia sesión' })).toBeInTheDocument();
   });
 
   it('"/perfiles/:id/editar" con sesión renderiza el formulario dentro de AppShell', async () => {

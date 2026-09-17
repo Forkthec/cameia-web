@@ -4,14 +4,13 @@
  * archivo mediante `no-restricted-imports`.
  *
  * Expone el mapa {@link icons}, que traduce nombres semánticos de CAMEIA a un
- * componente de ícono concreto. Todos son temporales de Lucide mientras no
- * exista su SVG exportado de Figma (ver design-system/icons/svg/README.md):
- * migrar un ícono es cambiar su línea aquí, sin tocar `Icon.tsx` ni a quien
- * consuma `<Icon name="..." />`.
+ * componente de ícono concreto. La mayoría son temporales de Lucide mientras
+ * no exista su SVG exportado de Figma (ver design-system/icons/svg/README.md);
+ * `google` ya migró a su SVG real. Migrar un ícono es cambiar su línea aquí,
+ * sin tocar `Icon.tsx` ni a quien consuma `<Icon name="..." />`.
  */
 import {
   ArrowRight,
-  AtSign,
   Briefcase,
   ChartColumn,
   ChevronDown,
@@ -43,6 +42,7 @@ import {
   User,
   X,
 } from 'lucide-react';
+import { GoogleIcon } from './GoogleIcon';
 
 /**
  * Mapa de nombre semántico → componente de ícono.
@@ -83,8 +83,9 @@ export const icons = {
   'arrow-right': ArrowRight, // temporal · Lucide, reemplazar por SVG de Figma
   'loading-arc': LoaderCircle, // temporal · Lucide, reemplazar por SVG de Figma
   lock: Lock, // temporal · Lucide, reemplazar por SVG de Figma
-  // "google" no tiene equivalente real en Lucide: el set no incluye logos de
-  // marca (ni siquiera uno para "Chrome"). AtSign es un placeholder aún más
-  // temporal que el resto, a la espera del logo oficial de Google en SVG.
-  google: AtSign,
+  // "google" ya usa el SVG real exportado de Figma (icon/google, nodo
+  // 78:626), no un placeholder de Lucide: el set de Lucide no incluye logos
+  // de marca. Excepción explícita a R2 (4 colores fijos de marca de Google),
+  // documentada en el propio archivo de diseño.
+  google: GoogleIcon,
 } as const;
