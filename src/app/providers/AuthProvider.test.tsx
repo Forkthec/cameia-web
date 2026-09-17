@@ -68,7 +68,7 @@ describe('AuthProvider', () => {
     getIdTokenResultMock.mockResolvedValue({ claims: { plan: 'FREE' } });
 
     render(<AuthProvider>{null}</AuthProvider>);
-    capturedCallback?.({ uid: 'u1', email: 'a@b.com', displayName: 'Ada' });
+    capturedCallback?.({ uid: 'u1', email: 'a@b.com', displayName: 'Ada', emailVerified: true });
 
     await vi.waitFor(() => {
       expect(useAuthStore.getState().isAuthenticated).toBe(true);
@@ -77,6 +77,7 @@ describe('AuthProvider', () => {
       uid: 'u1',
       email: 'a@b.com',
       displayName: 'Ada',
+      emailVerified: true,
     });
     expect(useAuthStore.getState().plan).toBe('FREE');
   });

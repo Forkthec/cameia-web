@@ -22,6 +22,13 @@ export interface AuthUser {
   uid: string;
   email: string | null;
   displayName: string | null;
+  /**
+   * `userCredential.user.emailVerified` de Firebase. HU-1.3/CM-40 solo lo
+   * persiste para consumo futuro (CA-1.3.1) — el banner de correo sin
+   * verificar que ese criterio exige no se renderiza todavía en ninguna
+   * pantalla (Bloqueo B-03 de `features/auth/SPEC.md`).
+   */
+  emailVerified: boolean;
 }
 
 interface AuthState {

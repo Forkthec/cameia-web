@@ -25,9 +25,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // PROVISIONAL — pendiente de contrato del backend: nombre y forma del
         // custom claim de plan todavía no está publicado en ningún OpenAPI.
         const plan = typeof tokenResult.claims.plan === 'string' ? tokenResult.claims.plan : null;
-        useAuthStore
-          .getState()
-          .setUser({ uid: user.uid, email: user.email, displayName: user.displayName }, plan);
+        useAuthStore.getState().setUser(
+          {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            emailVerified: user.emailVerified,
+          },
+          plan,
+        );
       });
     });
 
