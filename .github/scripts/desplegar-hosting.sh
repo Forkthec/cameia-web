@@ -54,9 +54,21 @@ auth_curl() {
 
 # Paso 1 de 5: abrir una "versión" nueva. Es como un borrador del sitio:
 # todavía no lo ve nadie hasta que se publique al final (paso 5).
+#
+# firebase.json declara sus reglas de hosting con "source"/"destination", pero
+# la API de Hosting espera "glob"/"path" en Version.config.rewrites -- son dos
+# vocabularios distintos para lo mismo. La CLI oficial de Firebase hace esta
+# traducción sola; como aquí no se puede usar la CLI (ver cabecera del
+# archivo), hay que hacerla a mano. Sin esto, un archivo como firebase.json
+# con la regla de SPA (todo -> /index.html) queda escrito pero nunca se
+# aplica: cualquier ruta que el servidor no reconozca como archivo real
+# (ej. una ruta de React Router) recibe la página 404 propia de Firebase
+# Hosting en vez de servir la aplicación.
 echo "==> Creando version nueva en sites/${PROJECT_ID}"
+REWRITES_JSON="$(jq -c '[(.hosting.rewrites // [])[] | {glob: .source, path: .destination}]' firebase.json)"
+VERSION_CONFIG="$(jq -cn --argjson rewrites "$REWRITES_JSON" '{config: {rewrites: $rewrites}}')"
 VERSION_JSON="$(auth_curl -X POST -H "Content-Type: application/json" \
-  "${API}/sites/${PROJECT_ID}/versions" -d '{}')"
+  "${API}/sites/${PROJECT_ID}/versions" -d "$VERSION_CONFIG")"
 VERSION_NAME="$(echo "$VERSION_JSON" | jq -r '.name')"
 echo "    ${VERSION_NAME}"
 
