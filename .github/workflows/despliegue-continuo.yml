@@ -97,6 +97,7 @@ jobs:
     name: Desplegar a staging o vista previa (develop/PR)
     if: (github.event_name == 'push' && github.ref == 'refs/heads/develop') || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    environment: staging
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -113,10 +114,10 @@ jobs:
       - name: Instalar dependencias
         run: pnpm install --frozen-lockfile
 
-      # VITE_API_BASE_URL: sin valor todavía — el API Gateway no está desplegado
-      # (depende de que se active billing de GCP). Bloqueado por respuesta de
-      # Frontend, ver comunicaciones/11092026_frontend_variable-api-base-url.md.
-      # No se inventa un valor.
+      # VITE_API_BASE_URL viene de la variable del environment "staging" (Settings →
+      # Environments → staging), no de una variable de repositorio: así el job de
+      # producción de arriba no hereda por accidente la URL de staging cuando el
+      # Gateway de producción exista.
       - name: Build
         env:
           VITE_APP_NAME: ${{ vars.VITE_APP_NAME }}

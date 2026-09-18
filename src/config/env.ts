@@ -8,13 +8,14 @@ import { z } from 'zod';
 /**
  * Forma cruda de las variables de entorno, tal como llegan de Vite.
  *
- * VITE_API_BASE_URL es opcional aquí a propósito: el API Gateway todavía no
- * está desplegado (depende de Billing de GCP), así que exigirla siempre
- * dejaría el sitio en blanco en cualquier ambiente desplegado. El
- * `superRefine` de abajo la vuelve a exigir, pero solo en producción — ver
+ * VITE_API_BASE_URL es opcional aquí a propósito: el Gateway de producción
+ * todavía no existe, así que exigirla siempre dejaría el sitio en blanco en
+ * cualquier ambiente que aún no tenga backend. El `superRefine` de abajo la
+ * vuelve a exigir, pero solo en producción — ver
  * comunicaciones/11092026_frontend_variable-api-base-url.md (opción 1,
  * decidida por Frontend el 11-sep-2026, implementada por DevOps con permiso
- * de Frontend el 12-sep-2026).
+ * de Frontend el 12-sep-2026). En staging sí tiene valor real desde el
+ * environment "staging" de GitHub Actions.
  */
 const rawEnvSchema = z
   .object({
