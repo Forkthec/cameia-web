@@ -132,10 +132,10 @@ def validate(payload):
 
     # "IA" debe decir si/no y coincidir con el sufijo [IA-ASISTIDO] del título —
     # evita que el título diga una cosa y el campo declare otra.
-    ai_match = re.fullmatch(r"(si|no) — \S.*", fields.get("IA", ""))
+    ai_match = re.fullmatch(r"(sí|si|no) — \S.*", fields.get("IA", ""))
     if not ai_match:
-        errors.append("ia: usar si/no — alcance y registro real")
-    elif (ai_match[1] == "si") != assisted:
+        errors.append("ia: usar sí/no — alcance y registro real")
+    elif (ai_match[1] in ("sí", "si")) != assisted:
         errors.append("ia: titulo y declaracion deben coincidir con [IA-ASISTIDO]")
 
     # "Control humano": mientras el PR está en Draft puede decir "pendiente" (nadie
