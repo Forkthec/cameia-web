@@ -151,7 +151,32 @@ jobs:
       # 'live'. 30 días da margen amplio entre pushes.
       - name: Desplegar a staging (push a develop)
         if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-        run: .github/scripts/desplegar-hosting.sh ${{ vars.GCP_PROJECT_ID }} dist channel staging 2592000
+        id: staging
+        run: |
+          URL=$(.github/scripts/desplegar-hosting.sh ${{ vars.GCP_PROJECT_ID }} dist channel staging 2592000 | tail -n1)
+          echo "url=${URL}" >> "$GITHUB_OUTPUT"
+          echo "$URL"
+
+      # Smoke test (Anexo_Restricciones_Atributos_Calidad.pdf DPL-02: la promoción de un
+      # artefacto exige "SHA, digest, aprobación, smoke test y rollback" — aquí no hay
+      # digest OCI, pero el mismo principio aplica al canal de Hosting recién publicado).
+      # A diferencia de Cloud Run, un canal de Firebase Hosting es público por diseño
+      # (es justo su propósito), así que un curl real basta, sin necesidad de rodeos por
+      # ingress ni identidad.
+      - name: Smoke test — el canal de staging responde
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        run: |
+          for intento in 1 2 3 4 5; do
+            CODIGO=$(curl -s -o /dev/null -w "%{http_code}" "${{ steps.staging.outputs.url }}" || echo "000")
+            if [ "$CODIGO" = "200" ]; then
+              echo "Smoke test PASA: el canal de staging respondió 200 en el intento $intento."
+              exit 0
+            fi
+            echo "Intento $intento: el canal respondió $CODIGO, reintentando en 5s."
+            sleep 5
+          done
+          echo "::error::Smoke test FALLA: el canal de staging no respondió 200 tras publicarlo (última respuesta: $CODIGO)."
+          exit 1
 
       # Cada PR obtiene su propia URL de vista previa (expira sola en 7 días),
       # sin tocar staging ni producción — así se revisa un cambio antes de
