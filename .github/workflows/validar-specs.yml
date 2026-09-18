@@ -13,7 +13,7 @@ jobs:
     steps:
       # Descarga el código del PR — el script del paso siguiente vive en el repo.
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Fija la versión exacta de pnpm declarada en "packageManager" del package.json.
       - name: Habilitar pnpm vía corepack
