@@ -205,14 +205,16 @@ iteración.
 - Presenta el formulario completo, en el orden confirmado por Figma: Google (deshabilitado),
   divisor, Nombre(s) + Apellido(s) (dos campos, lado a lado en `lg`, apilados en `sm` —
   **no** un único campo "nombre completo"), Fecha de nacimiento, Correo electrónico, Celular
-  (opcional), Contraseña, Confirmar contraseña, Pronombres, botón "Registrarse".
+  (opcional, país + número), Contraseña (con medidor de fuerza), Confirmar contraseña, Pronombres,
+  botón "Registrarse".
 - Al enviar, valida en cliente (zod) y, si pasa, hace `POST /api/v1/users` **sin sesión** ("Caso
   B" del diagrama, ver §5 y `ADR-0006`).
 - Si el backend responde `201`: encadena, en este orden, `signIn()` (reutilizado de Login, con las
   mismas credenciales) → `sendEmailVerification()` (nueva) → actualiza el estado de sesión → abre
   el `Modal` de confirmación (Plan Gratis) → al cerrarlo, redirige a `/inicio`.
-- Si el backend responde `4xx`: mapea el código (provisional, ver §4/§5) a un mensaje. Para
-  correo duplicado, además del mensaje en el campo, muestra el bloque de dos acciones que dibuja
+- Si el backend responde `4xx`/`409`: discrimina por `httpStatus` + `errors[].field`
+  (`ADR-0007` — el `ProblemDetail` real no trae un código propio). Para correo duplicado (`409`,
+  sin `errors[]`), además del mensaje en el campo, muestra el bloque de dos acciones que dibuja
   Figma: "Iniciar sesión" (funcional, hacia `/ingresar`) y "Recuperar contraseña" (deshabilitado,
   mismo tratamiento que en Login — `HU-1.4` sigue fuera de alcance).
 - **Caso de borde, no dibujado en Figma, decisión de Frontend:** si el `POST` tiene éxito pero
@@ -233,12 +235,24 @@ iteración.
 
 - `nombre`, `apellido`: obligatorios.
 - `correo`: obligatorio, formato válido (la unicidad la valida el backend, `CA-1.1.1`).
-- `contraseña`: obligatoria. Sin regla de fuerza mínima impuesta por el cliente (ver Alcance).
+- `contraseña`: obligatoria, **replica `PasswordPolicy.java` real (confirmado 19-sep-2026,
+  seguimiento de CM-34)** — entre 12 y 64 caracteres (contados por *code point*, no por unidad
+  UTF-16) y fuera de una lista cerrada de 32 contraseñas comunes
+  (`features/auth/model/commonPasswords.ts`, copia literal de `PasswordPolicy.COMMON_PASSWORDS`).
+  Ya no es "sin regla de fuerza mínima" — eso describía la SPEC antes de tener el archivo real.
+  Bajo el campo se muestra un medidor de fuerza (`design-system/molecules/PasswordStrength`,
+  Figma nodo `33:251`) con una escala de 4 niveles que es **decisión de Frontend, no del backend**
+  (`PasswordPolicy.java` es binario, pasa o no pasa; ver Arquitectura).
 - `confirmarContraseña`: obligatoria, debe coincidir con `contraseña` — validación puramente de
   cliente, no se envía al backend.
 - `pronombres`: obligatorio, uno de `HE`/`SHE`/`THEY` (ver Arquitectura).
-- `celular`: opcional, sin validación de formato (ver Alcance).
-- `fechaNacimiento`: obligatoria, con cuatro causas de rechazo distintas (`CA-1.1.1`/`CA-1.1.3`):
+- `celular`: opcional; cuando se escribe un número, **valida formato E.164 real** vía
+  `libphonenumber-js` (`PhoneNumber.java`: `^\+[1-9][0-9]{7,14}$`, sin adivinar país — ver
+  Arquitectura, diferencia consciente con Figma).
+- `fechaNacimiento`: obligatoria, con cuatro causas de rechazo distintas (`CA-1.1.1`/`CA-1.1.3`).
+  **Pedido explícito del usuario, 19-sep-2026:** el `<input type="date">` lleva `max={hoy}` (UTC),
+  para que el propio selector nativo del navegador no deje elegir una fecha futura — antes solo se
+  atrapaba al enviar el formulario, con el usuario ya habiendo elegido una fecha imposible.
   - **Menor de 18 años (UTC):** usa `isAdult()` de `utils/calculateAge.ts` (ya la cubre). Mensaje
     "Debes ser mayor de edad" — **mismo texto que el helper permanente del campo**; Figma (nodo
     `73:535`) confirma que aquí el error solo cambia el color del borde, no el texto. Llave:
@@ -254,12 +268,18 @@ iteración.
   - **Formato inválido / vacío:** mensaje "Formato de fecha inválido" (no dibujado en Figma,
     patrón estándar). Llave: `auth:registro.errores.fechaNacimientoInvalida`.
   - **Rechazada por el backend (`InvalidBirthDateException`, confirmado en
-    `RegisterUserService.register()`):** no es una quinta causa nueva — es la misma causa de
-    "menor de edad" (o una política de edad del backend más estricta que la del cliente), solo que
-    el rechazo llega en la respuesta `4xx` del `POST` en vez de la validación de cliente. Mismo
-    tratamiento visual, mismo texto ("Debes ser mayor de edad"), mismo nodo Figma (`73:449`/
-    `75:1021`). Código provisional: `REGISTRO_FECHA_NACIMIENTO_INVALIDA` (sin confirmar por
-    `CM-35`, mismo estado que `REGISTRO_CORREO_DUPLICADO`, ver B-06).
+    `AgePolicy.java`/`RegisterUserService.register()`):** no es una quinta causa nueva — es la
+    misma causa de "menor de edad" (o una política de edad del backend más estricta que la del
+    cliente), solo que el rechazo llega en la respuesta `4xx` del `POST` en vez de la validación de
+    cliente. Mismo tratamiento visual, mismo texto ("Debes ser mayor de edad"), mismo nodo Figma
+    (`73:449`/`75:1021`). Se detecta por `httpStatus === 422 && errors[].field === 'birthDate'`
+    (`ADR-0007`) — no hay código propio. `AgePolicy.java` (real, confirmado 19-sep-2026) usa el
+    mismo orden y los mismos umbrales que ya implementa `utils/calculateAge.ts` (futura → `>110`
+    estricto → `<18` estricto), así que este camino del backend es inalcanzable en operación
+    normal: el cliente ya replica la política exacta. Solo queda como defensa en profundidad, y
+    como el backend no distingue las 3 causas por separado en el cuerpo (`BusinessExceptionHandler`
+    solo copia `error.getMessage()`, no el `Reason` enum), cualquier `422` de `birthDate` que sí
+    llegue muestra el mismo texto de "menor de edad" sin importar cuál de las tres fue.
 
 **Arquitectura y componentes**
 
@@ -318,6 +338,35 @@ iteración.
   el velo. **El copy de "Plan Gratis" no está dibujado en ningún frame conectado a Registro** — se
   usa el texto mínimo que exige el backlog, marcado pendiente de aprobación de Producto/Diseño
   (Bloqueo B-08).
+- **Componente nuevo, diferencia consciente con Figma (`CLAUDE.md` §16), aprobada explícitamente
+  por el usuario el 19-sep-2026:** `features/auth/organisms/PhoneField/` reemplaza el campo de
+  texto libre que dibuja Figma (nodo `73:449`, helper "Formato internacional, por ejemplo +57 300
+  000 0000") por un selector de país (`Select`, opciones de `libphonenumber-js`, nombre vía
+  `Intl.DisplayNames(['es'], {type:'region'})` — sin catálogo de países a mano ni dependencia
+  nueva para eso) + el número nacional (`Input`). Por defecto Colombia (`CO`, +57), único mercado
+  del producto (`CLAUDE.md` §1); el selector permite cambiarlo a cualquiera de los ~245 países que
+  conoce la librería. Sin bandera: el design system no tiene assets de bandera todavía. Vive en la
+  feature, no en `design-system/`: primer y único consumidor (`CLAUDE.md` §4).
+- **Nueva dependencia, aprobada explícitamente:** `libphonenumber-js@1.13.13` (`CLAUDE.md` §2) —
+  única forma confiable de validar/formatear indicativos internacionales.
+- `design-system/molecules/PasswordStrength/` **reescrito** (existía desde antes, sin ningún
+  consumidor, con una escala de 4 niveles inventada que no coincidía con Figma): el contrato real
+  del nodo `33:251` es `empty | weak | fair | good | strong` — `empty` sin relleno ni etiqueta;
+  `strong` usa el token `--success-text` (`--green-700`), ya existía en `semantic.css` sin
+  consumidor, no se agregó un token nuevo. `utils/passwordStrength.ts` calcula el nivel (longitud +
+  variedad de clases de caracteres) — decisión de Frontend, no replica `PasswordPolicy.java`
+  (binario), así que **no** se marca `// PROVISIONAL`.
+- **`design-system/atoms/Input`, `atoms/Select`, `molecules/PasswordField` ganan `forwardRef`**
+  (antes documentaban a propósito que no exponían `ref` — comentario retirado): sin esto,
+  `react-hook-form` no podía enfocar el primer campo con error al enviar (`shouldFocusError`,
+  activado por defecto, silenciosamente no hacía nada). Cambio aditivo, sin consumidor roto;
+  `RegisterForm` es el primero en pasar `ref={field.ref}` en cada `Controller`. El resto de
+  formularios de la app queda beneficiado para cuando se retoquen, no se retrofita todo en esta
+  iteración.
+- **`services/http/ApiError.ts`/`errorMap.ts` reescritos contra el contrato real** (`ADR-0007`,
+  seguimiento de este mismo CM-34): el `ProblemDetail` (RFC 7807) real de `BusinessExceptionHandler
+  .java` no tiene `code` propio — el error de Registro se lee por `httpStatus` + `errors[].field`,
+  ver §4.
 
 **Responsive**
 
@@ -351,10 +400,10 @@ variante `md`. En `lg`, Nombre(s)/Apellido(s) van lado a lado; en `sm` se apilan
 | Campo                | Tipo      | Regla                                                                              | Origen               |
 | --------------------- | --------- | ------------------------------------------------------------------------------------ | ---------------------- |
 | `correo`              | `string`  | Formato de correo válido, obligatorio                                               | `CA-1.3.1`, `CA-1.1.1` |
-| `contraseña`          | `string`  | Obligatorio; en Login sin regla de formato; en Registro sin mínimo de fuerza impuesto por el cliente | `CA-1.3.1`, `CA-1.1.1` |
+| `contraseña`          | `string`  | Obligatorio; en Login sin regla de formato; en Registro 12–64 *code points*, fuera de la lista de comunes (`PasswordPolicy.java`, confirmado) | `CA-1.3.1`, `CA-1.1.1` |
 | `nombre`, `apellido`  | `string`  | Obligatorios                                                                         | `CA-1.1.1`             |
-| `fechaNacimiento`     | `string` (fecha) | Obligatoria; ≥18 años UTC, no futura, no >110 años, formato válido; viaja al backend como `dd/MM/yyyy` (`register.mapper.ts`) | `CA-1.1.1`, `CA-1.1.3` |
-| `celular`             | `string`  | Opcional, sin validación de formato en esta iteración; campo del backend es `phoneNumber`     | `CA-1.1.1`             |
+| `fechaNacimiento`     | `string` (fecha) | Obligatoria; ≥18 años UTC, no futura, no >110 años, formato válido, `max` nativo = hoy; viaja al backend como `dd/MM/yyyy` (`register.mapper.ts`) | `CA-1.1.1`, `CA-1.1.3` |
+| `celular`             | `{paisIso, numeroNacional}` | Opcional; con número, formato E.164 real vía `libphonenumber-js` (`PhoneNumber.java`, confirmado); campo del backend es `phoneNumber` (E.164 completo) | `CA-1.1.1` |
 | `pronombres`          | `string` (código) | Obligatorio en cliente; uno de `HE`/`SHE`/`THEY` — **catálogo confirmado**, es el enum real `Pronoun` del backend; campo del backend es `pronoun` (singular), opcional del lado del backend | `tech.cameia.cuentas.domain.model.Pronoun`, revisado 19-sep-2026 |
 | `confirmarContraseña` | `string`  | Obligatorio, debe coincidir con `contraseña`; **no se envía al backend**             | Frontend               |
 | `emailVerified`       | `boolean` | Se lee de `userCredential.user.emailVerified` tras autenticar                       | `CA-1.3.1`, `GLOSSARY.md` |
@@ -375,7 +424,11 @@ export const PRONOUNS = ['HE', 'SHE', 'THEY'] as const;
 
 **Errores que el usuario puede ver**
 
-| Código                       | Cuándo ocurre                                                              | Llave de i18n                          |
+Registro discrimina por `httpStatus` + `errors[].field` (`ADR-0007` — el `ProblemDetail` real no
+trae un código propio); Login sigue discriminando por el código de `AuthError` (Firebase, sistema
+aparte de `ApiError`/`errorMap.ts`, sin cambios por `ADR-0007`).
+
+| Causa                       | Cuándo ocurre                                                              | Llave de i18n                          |
 | ------------------------------ | ------------------------------------------------------------------------- | ---------------------------------------- |
 | Campo vacío (Login)           | Validación de cliente                                                     | `auth:login.errores.<campo>Requerido`    |
 | Formato de correo inválido    | Validación de cliente                                                     | `auth:login.errores.correoInvalido` / `auth:registro.errores.correoInvalido` |
@@ -385,10 +438,11 @@ export const PRONOUNS = ['HE', 'SHE', 'THEY'] as const;
 | `AUTH_USER_DISABLED`          | `auth/user-disabled`                                                      | `errors:codigos.AUTH_USER_DISABLED`      |
 | Campo vacío / no coincide (Registro) | Validación de cliente (incluye `confirmarContraseña`)               | `auth:registro.errores.<campo>*`         |
 | Fecha de nacimiento (4 causas) | Ver §3, Registro · Validaciones                                          | `auth:registro.errores.fechaNacimiento*` |
-| Correo duplicado              | Respuesta `4xx` de `POST /api/v1/users` (`EmailAlreadyRegisteredException`) — **código exacto sin confirmar, `CM-35` en curso** | `errors:codigos.REGISTRO_CORREO_DUPLICADO` (provisional) |
-| Fecha de nacimiento rechazada por el backend | Respuesta `4xx` de `POST /api/v1/users` (`InvalidBirthDateException`) — mismo tratamiento visual que "menor de edad" de cliente, **código exacto sin confirmar, `CM-35` en curso** | `errors:codigos.REGISTRO_FECHA_NACIMIENTO_INVALIDA` (provisional) |
-| Contraseña rechazada por el backend (`WeakPasswordException`) | Respuesta `4xx` de `POST /api/v1/users` — sin copy específico todavía (B-12) | `errors:generico` |
-| Cualquier otro `4xx` de `POST /api/v1/users` | Fallback genérico                                          | `errors:generico`                        |
+| Correo duplicado              | `409` de `POST /api/v1/users` (`EmailAlreadyRegisteredException`, sin `errors[]`) — cualquier `409` de este endpoint solo puede significar esto | `auth:registro.correoDuplicado.mensaje` |
+| Fecha de nacimiento rechazada por el backend | `422` de `POST /api/v1/users` con `errors[].field === 'birthDate'` (`InvalidBirthDateException`) — mismo tratamiento visual que "menor de edad" de cliente; inalcanzable en operación normal (el cliente ya replica `AgePolicy.java`) | `auth:registro.campos.fechaNacimiento.helper` (reutilizada) |
+| Contraseña rechazada por el backend | `422` de `POST /api/v1/users` con `errors[].field === 'password'` (`WeakPasswordException`) — inalcanzable en operación normal (el cliente ya replica `PasswordPolicy.java` completa, incluida la lista de comunes) | `auth:registro.errores.contrasenaGenerica` |
+| Celular rechazado por el backend | `422` de `POST /api/v1/users` **sin** `errors[]` (`IllegalArgumentException` de `PhoneNumber.java` — su manejador, `valorInvalido()`, no etiqueta el campo) — inalcanzable en operación normal | `errors:generico` (no hay forma de asociarlo al campo `celular` específicamente) |
+| Cualquier otro `4xx`/`0` (red) de `POST /api/v1/users` | Fallback genérico o de red                                          | `errors:generico` / `errors:red`         |
 | Cualquier otro código `auth/*` no mapeado (Login) | Fallback                                              | `errors:generico`                        |
 
 ## 5. Enlace HTTP · PROVISIONAL
@@ -400,7 +454,7 @@ revisado el 18-sep-2026.
 | Operación         | Método y ruta                                                                 | Envía                                                                | Recibe |
 | ------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | -------- |
 | Inicio de sesión    | SDK Firebase Auth `signInWithEmailAndPassword` — no es HTTP a CAMEIA             | Correo y contraseña, directo a Firebase                                 | `UserCredential` |
-| **Registro**        | **`POST /api/v1/users`** — sin sesión ("Caso B"), Gateway descarta `Authorization`/`X-User-*` del cliente y firma internamente con OIDC (`ADR-0006`) | `firstName`, `lastName`, `birthDate` (`dd/MM/yyyy`), `email`, `password`, `pronoun?`, `phoneNumber?` — **nombres confirmados** contra `RegisterUserRequest.java` (19-sep-2026); el contrato completo sigue `// PROVISIONAL` porque `CM-35` no ha publicado el formato de error ni puede garantizar que estos nombres no cambien antes de cerrar el ticket | `201` con `{ id, firebaseUid, status, plan }` (`RegisteredUserResponse.java`, confirmado), o `4xx` con un código de error (formato exacto pendiente — se sigue el formato provisional `{code, message, details}` de `errorMap.ts` hasta que `CM-35` publique RFC 9457) |
+| **Registro**        | **`POST /api/v1/users`** — sin sesión ("Caso B"), Gateway descarta `Authorization`/`X-User-*` del cliente y firma internamente con OIDC (`ADR-0006`) | `firstName`, `lastName`, `birthDate` (`dd/MM/yyyy`), `email`, `password`, `pronoun?`, `phoneNumber?` — **nombres confirmados** contra `RegisterUserRequest.java` (19-sep-2026); el contrato completo sigue `// PROVISIONAL` porque `CM-35` no ha cerrado el ticket, aunque el formato de error **ya no es provisional** (`ADR-0007`) | `201` con `{ id, firebaseUid, status, plan }` (`RegisteredUserResponse.java`, confirmado), o `4xx`/`409` con `ProblemDetail` real (RFC 7807: `title`/`detail`/`status` + `errors: [{field, message}]` — `ADR-0007`, confirmado contra `BusinessExceptionHandler.java`) |
 | Verificación de correo (envío) | SDK Firebase Auth `sendEmailVerification()` — no es HTTP a CAMEIA, y no pasa por el Gateway | — | — |
 
 Notas:
@@ -415,11 +469,12 @@ Notas:
   real, solo cambian `register.dto.ts` y `register.mapper.ts` (`ADR-0003`).
 - **Confirmado 19-sep-2026** contra el código real de `cameia-cuentas` (adjuntado por el usuario:
   `UserRegistrationController`, `RegisterUserRequest`, `RegisteredUserResponse`,
-  `RegisterUserService`, `Pronoun`): los nombres de campo de esta tabla, la forma de la respuesta
-  `201`, y que `RegisterUserService.register()` puede lanzar tres excepciones de dominio distintas
-  (`EmailAlreadyRegisteredException`, `InvalidBirthDateException`, `WeakPasswordException` — ver
-  §3 y §4). El código exacto de error que acompaña a cada una en la respuesta `4xx` sigue sin
-  publicarse (B-06).
+  `RegisterUserService`, `Pronoun`, y en el seguimiento del mismo día:
+  `BusinessExceptionHandler.java`, `PasswordPolicy.java`, `PhoneNumber.java`, `AgePolicy.java`):
+  los nombres de campo de esta tabla, la forma de la respuesta `201`, la forma real del error
+  (`ProblemDetail`, `ADR-0007`), y que `RegisterUserService.register()` puede lanzar tres
+  excepciones de dominio distintas (`EmailAlreadyRegisteredException`, `InvalidBirthDateException`,
+  `WeakPasswordException` — ver §3 y §4), en ese orden.
 - **Hallazgo fuera de alcance de esta iteración:** existe también
   `AccountActivationController` (`POST /api/v1/users/me/verification`, exige `X-User-Id`) que
   activa la cuenta (`PENDING_VERIFICATION` → `ACTIVE`) tras la verificación del correo. Verificar
@@ -452,15 +507,21 @@ Notas:
 | `src/features/auth/pages/LoginPage.tsx` | Compone `AuthLayout` + `LoginForm` | `LoginPage.test.tsx` |
 | `src/features/auth/routes.tsx` | Ruta /ingresar → `LoginPage`; ruta /registro → `RegisterPage` | `src/app/router/index.test.tsx` |
 | `src/features/auth/model/pronouns.ts` | Catálogo `PRONOUNS` (`HE`/`SHE`/`THEY`, enum real del backend) | — |
-| `src/features/auth/schemas/register.schema.ts` | Validación zod de Registro, cuatro causas de `fechaNacimiento` + coincidencia de contraseñas | — |
-| `src/features/auth/api/register.dto.ts`, `register.mapper.ts`, `register.api.ts` | POST a /api/v1/users sin sesión, provisional | — |
-| `src/mocks/handlers/auth.handlers.ts` | Handler de POST a /api/v1/users (correo duplicado, fecha de nacimiento inválida) | `src/mocks/handlers/auth.handlers.test.ts` |
+| `src/features/auth/model/commonPasswords.ts` | Copia literal de `PasswordPolicy.COMMON_PASSWORDS` (32 entradas) | `commonPasswords.test.ts` |
+| `src/features/auth/schemas/register.schema.ts` | Validación zod de Registro: cuatro causas de `fechaNacimiento`, contraseña real (12-64 *code points* + comunes), celular E.164, coincidencia de contraseñas | — |
+| `src/features/auth/api/register.dto.ts`, `register.mapper.ts`, `register.api.ts` | POST a /api/v1/users sin sesión, provisional; celular a E.164 vía `libphonenumber-js` | — |
+| `src/mocks/handlers/auth.handlers.ts` | Handler de POST a /api/v1/users (edad, contraseña, correo duplicado, celular — mismo orden que `RegisterUserService.register()`, `ProblemDetail` real) | `src/mocks/handlers/auth.handlers.test.ts` |
 | `src/utils/calculateAge.ts` | Guardas `isFutureDate`/`isImplausiblyOld` | `calculateAge.test.ts` |
+| `src/utils/passwordStrength.ts` | `calculatePasswordStrength` (escala de 4 niveles, decisión de Frontend) | `passwordStrength.test.ts` |
 | `src/design-system/organisms/Modal/Modal.tsx` | Primer `Modal` del design system, `type=confirm` | `Modal.test.tsx` |
+| `src/design-system/molecules/PasswordStrength/PasswordStrength.tsx` | Reescrito al contrato real de Figma (5 niveles: empty, weak, fair, good, strong) | `PasswordStrength.test.tsx` |
+| `src/design-system/atoms/Input/Input.tsx`, `src/design-system/atoms/Select/Select.tsx`, `src/design-system/molecules/PasswordField/PasswordField.tsx` | `forwardRef` (foco automático de react-hook-form) | pruebas ya existentes + "reenvía el ref" |
+| `src/features/auth/organisms/PhoneField/PhoneField.tsx` | Selector de país + número nacional (celular internacional) | `PhoneField.test.tsx` |
 | `src/features/auth/organisms/RegisterForm/RegisterForm.tsx` | Formulario de Registro | `RegisterForm.test.tsx` |
-| `src/features/auth/hooks/useRegister.ts` | Orquesta `registerUser` → `signIn()` → `sendEmailVerification()`, caso de borde de sesión | `useRegister.test.tsx` |
+| `src/features/auth/hooks/useRegister.ts` | Orquesta `registerUser` → `signIn()` → `sendEmailVerification()`, caso de borde de sesión, `errorInfo` (`httpStatus`/`field`) | `useRegister.test.tsx` |
 | `src/features/auth/pages/RegisterPage.tsx` | Compone `AuthLayout` + `RegisterForm` + `Modal` | `RegisterPage.test.tsx` |
 | `src/services/firebase/auth.service.ts` | `sendEmailVerification()` nueva; `signUp()` retirado (`ADR-0006`) | — |
+| `src/services/http/ApiError.ts`, `errorMap.ts` | Reescritos contra `ProblemDetail` real (`ADR-0007`) | `errorMap.test.ts` |
 
 ## 8. Bloqueos
 
@@ -471,13 +532,15 @@ Notas:
 | B-03 | Dónde se renderiza el banner de correo no verificado (`CA-1.3.1`) | Decisión de Frontend | Abierto — `auth.store.ts` ya persiste `emailVerified`. |
 | B-04 | ~~Estado real de `services/firebase/*`, `auth.store.ts`, `AuthLayout.tsx`~~ | — | **Resuelto.** |
 | B-05 | ~~Breakpoints reales de `PRT-01.03`~~ | — | **Resuelto.** |
-| B-06 | Código exacto de error de `POST /api/v1/users` para cada excepción de dominio (`EmailAlreadyRegisteredException`, `InvalidBirthDateException`, `WeakPasswordException`) y formato de error definitivo (RFC 9457) — los **nombres de campo del request/response ya se confirmaron** contra el código real, 19-sep-2026 | Backend (`CM-35`, en curso) | Abierto — `register.dto.ts`/`register.mapper.ts` absorben el cambio cuando se publique. |
+| B-06 | ~~Código/formato exacto de error de `POST /api/v1/users`~~ | — | **Resuelto 19-sep-2026 (`ADR-0007`):** no hay código propio — `ProblemDetail` real (RFC 7807), `httpStatus` + `errors[].field`, confirmado contra `BusinessExceptionHandler.java`. |
 | B-07 | Confirmar que la contraseña recibida transitoriamente en `POST /api/v1/users` no se persiste en ningún punto intermedio | Backend / Arquitectura | Abierto — pregunta de seguridad, no bloquea construir el formulario. |
 | B-08 | Copy definitivo del `Modal` de confirmación de Plan Gratis — no hay instancia en Figma conectada a Registro | Producto / Diseño | Abierto — se usa el texto mínimo del backlog mientras tanto. |
 | B-09 | ~~El catálogo de códigos de `pronombres`~~ | — | **Resuelto 19-sep-2026:** coincide con el enum real `tech.cameia.cuentas.domain.model.Pronoun` (`HE`/`SHE`/`THEY`). El campo del backend es `pronoun` (singular) y opcional; la obligatoriedad es solo regla de cliente. |
 | B-10 | Discrepancia de nombre "pronombres" (backlog/UI) vs. "género" (documentación interna del componente Select en Figma) | Diseño | Abierto — no afecta el código, solo la documentación del componente en Figma. |
 | B-11 | Mensaje literal para la causa ">110 años" de `fechaNacimiento` — el backlog no da el texto exacto | Producto | Abierto — se usa un texto propuesto, marcado como tal. |
-| B-12 | Copy específico para contraseña rechazada por el backend (`WeakPasswordException`) — sin política de fuerza publicada ni texto de Producto | Backend / Producto | Abierto — cae al mensaje genérico (`errors:generico`) mientras tanto. |
+| B-12 | ~~Copy específico para contraseña rechazada por el backend~~ | — | **Resuelto 19-sep-2026:** `PasswordPolicy.java` real confirma la regla (12–64 caracteres, lista de 32 comunes) — el cliente la replica completa (`commonPasswords.ts`), así que este `422` pasa a ser inalcanzable en operación normal; el residual usa `auth:registro.errores.contrasenaGenerica`. |
+| B-13 | El selector de país de `PhoneField` no tiene bandera — el design system no tiene assets de bandera por país todavía | Diseño | Abierto — se lee por nombre + indicativo ("Colombia (+57)"); se agrega si Diseño produce el set de banderas más adelante. |
+| B-14 | Un `422` de celular rechazado por el backend (`PhoneNumber.java`, vía `IllegalArgumentException`) no trae `errors[].field` — `valorInvalido()` en `BusinessExceptionHandler.java` no lo etiqueta, a diferencia de `birthDate`/`password` | Backend | Abierto, no bloquea — cae al mensaje genérico de la página; inalcanzable en operación normal (el cliente ya valida E.164 antes de enviar). |
 
 ## 9. Notas
 
@@ -499,11 +562,20 @@ Notas:
   **no coincide con Figma**, que separa Nombre(s)/Apellido(s). Se reestructura, no se conserva la
   llave vieja sin uso (regla de "no código muerto" aplicada también a i18n).
 - `errors.json` no tenía ningún código específico de registro (`AUTH_EMAIL_TAKEN` y similares no
-  existen todavía, y de hecho ya no aplican bajo `ADR-0006` — los reemplaza el código provisional
-  de CAMEIA para correo duplicado).
+  existen todavía, y de hecho ya no aplican bajo `ADR-0006`). Tras `ADR-0007` (19-sep-2026), el
+  mensaje de correo duplicado ya no vive en `errors.json` como código compartido: es una llave
+  propia de `auth.json` (`registro.correoDuplicado.mensaje`), porque el backend real no envía
+  ningún código que justifique un catálogo compartido.
 - El tratamiento "visible pero deshabilitado" para Google y recuperación de contraseña se extiende
   sin cambios al bloque de dos acciones del error de correo duplicado en Registro — mismo patrón,
   no un precedente nuevo.
+- **Seguimiento de CM-34, 19-sep-2026:** un usuario probó `/registro` en vivo y recibió `422` — el
+  formulario dejaba pasar contraseñas y celulares que el backend real rechaza. La investigación
+  (con `PasswordPolicy.java`/`PhoneNumber.java`/`AgePolicy.java`/`BusinessExceptionHandler.java`
+  reales, adjuntados por el usuario) reveló algo más grande: el contrato de error que
+  `errorMap.ts` esperaba nunca coincidió con lo que el backend real envía (`ADR-0007`). Esta
+  sección y las anteriores ya reflejan el estado posterior a esa corrección — no quedó ningún dato
+  de esta SPEC describiendo el estado previo como si fuera el actual.
 
 ---
 

@@ -56,6 +56,7 @@ automáticamente y en la versión exacta indicada, sin importar qué hubiera ant
 | class-variance-authority         | 0.7.1   |
 | lucide-react                     | 1.38.0  |
 | react-helmet-async               | 3.0.0   |
+| libphonenumber-js                | 1.13.13 |
 
 ### devDependencies
 
@@ -98,6 +99,12 @@ automáticamente y en la versión exacta indicada, sin importar qué hubiera ant
 - **`@types/node` 24.x, no 26.x.** Los tipos deben corresponder al runtime.
 - **`@testing-library/dom@10.4.1` va declarado explícitamente.** Es peer de `@testing-library/react` y de `jest-dom`.
 - `eslint-plugin-jsx-a11y@6.10.2` emite un aviso de peer con ESLint 10. Es cosmético, se ignora.
+- **`libphonenumber-js@1.13.13`, autorizada explícitamente el 19-sep-2026 (CM-34, seguimiento).**
+  Necesaria para validar/formatear el celular internacional del Registro (`PhoneNumber.java` exige
+  E.164 estricto, sin adivinar país) sin mantener a mano un catálogo de ~245 indicativos. No trae
+  UI propia — el selector de país (`features/auth/organisms/PhoneField/`) se construye con los
+  átomos existentes (`Select`/`Input`), solo se usa la librería para datos
+  (`getCountries()`/`getCountryCallingCode()`) y validación (`isValidPhoneNumber`).
 - **`eslint-import-resolver-typescript@4.4.5` es la única excepción a esta lista, ya autorizada.**
   `eslint-plugin-boundaries` solo resuelve imports relativos con su resolver interno
   (`eslint-import-resolver-node`, que ya trae empaquetado); un import con el alias `@/` lo ve
@@ -264,16 +271,19 @@ Regla de anidado de radios: un hijo siempre lleva un radio menor que su contened
 
 - `services/http/httpClient.ts` es un envoltorio delgado de `fetch`. **No usamos axios.**
 - El cliente adjunta el ID Token de Firebase (`await getIdToken()`) en cada petición y maneja el refresh.
-- `services/http/errorMap.ts` traduce el cuerpo de error del backend a errores tipados de dominio.
-  **Objetivo acordado con backend:** Problem Details, **RFC 9457**, con extensiones propias (un
-  código estable, `correlationId` y el detalle de validación). **El frontend nunca renderiza
-  `title`, `detail` ni ningún mensaje crudo del backend**: usa el código estable como llave de
-  `errors:*`.
-  **PENDIENTE — no está implementado:** hoy `errorMap.ts` implementa el formato provisional
-  `{ code, message, details }` y lo declara en su primera línea (`// PROVISIONAL — … API-TBD-14`).
-  La migración a RFC 9457 es de un solo archivo y depende del contrato real (ADR-0003
-  §Consecuencias; `docs/decisiones/11092026_v2_…` «Cierre de TBD obsoletos», API-TBD-14). No se
-  afirma como hecho lo que no lo está.
+- `services/http/errorMap.ts` traduce el cuerpo de error del backend a un `ApiError` tipado.
+  **Contrato real, confirmado 19-sep-2026 (`ADR-0007`):** `ProblemDetail`, **RFC 7807** —
+  `title`/`detail`/`status` estándar del RFC, más la extensión propia `errors: [{field, message}]`.
+  Confirmado contra el código real de dos microservicios (`BusinessExceptionHandler.java` en
+  `cameia-cuentas`, `ApiExceptionHandler.java` en `cameia-perfil`) y ya cerrado por el PO desde el
+  11-sep-2026 (`docs/decisiones/11092026_v2_…`, «Cierre de TBD obsoletos», API-TBD-14) — el código
+  simplemente no se había actualizado hasta esta fecha.
+  **El backend no envía ningún código estable propio** (`codigoCameia`/`correlationId` de la
+  propuesta original en `docs/referencias/03092026_v1_reglas-codigo-backend-cameia.md` §7.1 no
+  llegaron a implementarse). **El frontend nunca renderiza `title`/`detail` crudos**: discrimina
+  por `httpStatus` + `errors[].field` (cuando el backend lo etiqueta; no todas las excepciones lo
+  hacen — p. ej. `EmailAlreadyRegisteredException`/`IllegalArgumentException` no traen `errors[]`),
+  nunca por un código inventado por el mock ni por el propio frontend.
 - Los DTO viven en `features/*/api/*.dto.ts` y se convierten a modelo de UI en `*.mapper.ts`.
   Ningún componente toca un DTO directamente.
 - Mientras no exista el OpenAPI del backend, los DTO se escriben a mano y se marcan con
@@ -555,7 +565,6 @@ borran: cada una tiene el paso que la resuelve. Evidencia en
 | Regla                                           | Qué falta en el código                                                                                       | Paso que lo resuelve                                                                |
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
 | §6 tamaños de botón 52/34 px                    | 4 literales en `Button.tsx`; `size="sm"` mide 34 px, por debajo del 44×44 de §10                             | decisión aparte, sin resolver                                                       |
-| §8 errores en formato RFC 9457                  | `errorMap.ts` implementa `{ code, message, details }` provisional                                            | cuando exista el contrato real                                                      |
 | §8 `*.dto.ts`, `*.mapper.ts` por feature        | `src/mocks/handlers/` ya existe (resuelto); ninguna feature tiene todavía `api/`, `*.dto.ts` ni `*.mapper.ts` | primera feature que necesite `api/`                                                 |
 | §15 TSDoc en línea 1 de todos los archivos      | 37 barriles, 45 pruebas y 8 fuentes sin cabecera en línea 1; 2 citas «§6» incorrectas; 1 comentario obsoleto | paso 3 (documentación)                                                              |
 | §11 PRT-02.07 fuera del MVP                     | `ProfileRolesPage.tsx` y la ruta `/perfiles/:id/roles` existen                                               | pendiente de **C-04** (§12 abierta 10); se retiran solo si la respuesta lo confirma |
