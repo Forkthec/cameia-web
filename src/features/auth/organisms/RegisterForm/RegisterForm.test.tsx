@@ -39,6 +39,8 @@ const baseProps = {
   duplicateEmailLoginLabel: 'Iniciar sesión',
   duplicateEmailRecoverLabel: 'Recuperar contraseña',
   celularPaisLabel: 'País',
+  celularBuscarPaisLabel: 'Buscar país',
+  celularSinResultadosLabel: 'No encontramos ese país.',
   celularNumeroLabel: 'Celular',
   celularNumeroPlaceholder: '300 000 0000',
   celularAyuda: 'Formato internacional, por ejemplo +57 300 000 0000',
@@ -141,8 +143,54 @@ describe('RegisterForm', () => {
   it('el campo de fecha de nacimiento no deja elegir un día posterior a hoy', () => {
     renderRegisterForm();
 
-    const today = new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     expect(screen.getByLabelText('Fecha de nacimiento')).toHaveAttribute('max', today);
+  });
+
+  it('el campo de fecha de nacimiento no deja elegir una fecha de más de 110 años', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-06T15:00:00Z'));
+
+    renderRegisterForm();
+
+    expect(screen.getByLabelText('Fecha de nacimiento')).toHaveAttribute('min', '1915-09-07');
+
+    vi.useRealTimers();
+  });
+
+  it('de noche en Colombia (UTC-5), el límite de fecha no se adelanta al día que ya rige en UTC', () => {
+    vi.stubEnv('TZ', 'America/Bogota');
+    vi.useFakeTimers();
+    // 8 p. m. del 19-sep-2026 en Bogotá = 1 a. m. del 20-sep-2026 en UTC.
+    vi.setSystemTime(new Date('2026-09-20T01:00:00Z'));
+
+    renderRegisterForm();
+
+    expect(screen.getByLabelText('Fecha de nacimiento')).toHaveAttribute('max', '2026-09-19');
+
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+  });
+
+  it('de noche en Colombia (UTC-5), elegir el día siguiente sí se marca como fecha futura', async () => {
+    vi.stubEnv('TZ', 'America/Bogota');
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    // 8 p. m. del 19-sep-2026 en Bogotá = 1 a. m. del 20-sep-2026 en UTC:
+    // "mañana" para la persona (20-sep) ya es "hoy" en UTC.
+    vi.setSystemTime(new Date('2026-09-20T01:00:00Z'));
+    const user = userEvent.setup();
+    renderRegisterForm();
+
+    fireEvent.change(screen.getByLabelText('Fecha de nacimiento'), {
+      target: { value: '2026-09-20' },
+    });
+    await user.click(screen.getByRole('button', { name: 'Registrarse' }));
+
+    expect(await screen.findByText('Fecha de nacimiento inválida')).toBeInTheDocument();
+
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
   });
 
   it('menor de edad reutiliza el mismo texto que el helper permanente', async () => {
@@ -243,8 +291,8 @@ describe('RegisterForm', () => {
   it('Colombia es el país por defecto del celular', () => {
     renderRegisterForm();
 
-    expect(screen.getByLabelText('País')).toHaveValue('CO');
-    expect(screen.getByLabelText('Celular')).toHaveAttribute('placeholder', '+57 300 000 0000');
+    expect(screen.getByRole('button', { name: 'País' })).toHaveTextContent('CO +57');
+    expect(screen.getByLabelText('Celular')).toHaveAttribute('placeholder', '300 000 0000');
   });
 
   it('un celular que no coincide con el país elegido bloquea el envío', async () => {

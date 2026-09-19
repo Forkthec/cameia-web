@@ -17,9 +17,16 @@
  * borde, nunca el texto) — se reutiliza también cuando el backend rechaza
  * la fecha (`birthDateRejectedByServer`, `InvalidBirthDateException`,
  * `SPEC.md` §3): es la misma causa, solo que detectada del otro lado. El
- * campo además lleva `max={hoy}` para que el selector nativo del navegador
- * no deje elegir una fecha futura (pedido explícito del usuario, no solo
- * capturado al enviar).
+ * campo además lleva `max={todayLocalIsoDate()}` para que el selector nativo
+ * del navegador no deje elegir una fecha futura (pedido explícito del
+ * usuario, no solo capturado al enviar) — `todayLocalIsoDate` (no
+ * `toISOString()`) porque Colombia es `UTC-5`: de noche, la fecha en UTC ya
+ * es la de mañana, y un `max` calculado así dejaba elegir esa fecha desde el
+ * selector nativo en móvil (segundo seguimiento de CM-34, hallazgo real del
+ * usuario). Mismo criterio en el otro extremo: `min={oldestPlausibleBirthDateIsoDate()}`
+ * (pedido explícito del usuario) no deja elegir, desde el propio calendario,
+ * una fecha que ya implica más de 110 años — el mismo límite que
+ * `isImplausiblyOld` valida al enviar.
  *
  * `duplicateEmailErrorMessage` fuerza el campo `correo` a estado de error y
  * revela el bloque de dos acciones que dibuja Figma para ese caso
@@ -38,6 +45,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { Link } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
+import { oldestPlausibleBirthDateIsoDate, todayLocalIsoDate } from '@/utils/calculateAge';
 import { cn } from '@/utils/cn';
 import { calculatePasswordStrength } from '@/utils/passwordStrength';
 import { Button } from '@/design-system/atoms/Button';
@@ -55,10 +63,6 @@ import {
   registerSchemaErrorCodes,
   type RegisterFormValues,
 } from '../../schemas/register.schema';
-
-function todayIsoDate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 interface RegisterFormProps {
   isSubmitting: boolean;
@@ -93,6 +97,8 @@ interface RegisterFormProps {
   duplicateEmailRecoverLabel: string;
 
   celularPaisLabel: string;
+  celularBuscarPaisLabel: string;
+  celularSinResultadosLabel: string;
   celularNumeroLabel: string;
   celularNumeroPlaceholder: string;
   celularAyuda: string;
@@ -157,6 +163,8 @@ export function RegisterForm({
   duplicateEmailLoginLabel,
   duplicateEmailRecoverLabel,
   celularPaisLabel,
+  celularBuscarPaisLabel,
+  celularSinResultadosLabel,
   celularNumeroLabel,
   celularNumeroPlaceholder,
   celularAyuda,
@@ -314,7 +322,8 @@ export function RegisterForm({
               <Input
                 ref={field.ref}
                 type="date"
-                max={todayIsoDate()}
+                max={todayLocalIsoDate()}
+                min={oldestPlausibleBirthDateIsoDate()}
                 value={field.value}
                 onChange={field.onChange}
                 onBlur={field.onBlur}
@@ -398,6 +407,8 @@ export function RegisterForm({
                 paisLabel={celularPaisLabel}
                 paisValue={paisField.value}
                 onPaisChange={paisField.onChange}
+                paisBuscarLabel={celularBuscarPaisLabel}
+                paisSinResultadosLabel={celularSinResultadosLabel}
                 numeroLabel={celularNumeroLabel}
                 numeroValue={numeroField.value}
                 onNumeroChange={numeroField.onChange}

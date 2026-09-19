@@ -61,10 +61,64 @@ export function isFutureDate(date: Date, referenceDate: Date = new Date()): bool
 }
 
 /**
+ * El día de hoy en el calendario **local** de quien usa la app, `yyyy-MM-dd`
+ * (mismo formato que produce `<input type="date">`). No usa
+ * `toISOString().slice(0, 10)`: esa conversión pasa por UTC, y Colombia es
+ * `UTC-5` (`CLAUDE.md` §1, único mercado del producto) — entre las 7 p. m. y
+ * la medianoche hora local, la fecha en UTC ya es la de mañana. Un `max` de
+ * `<input type="date">` calculado así deja elegir, y un `fechaNacimiento`
+ * validado contra `new Date()` sin normalizar deja pasar, una fecha que para
+ * la persona es claramente "mañana" (hallazgo real, seguimiento de CM-34:
+ * el selector nativo en móvil permitía elegir una fecha futura por la
+ * noche). Se usan los getters locales (`getFullYear`/`getMonth`/`getDate`)
+ * a propósito, lo opuesto a `calculateAge`/`isFutureDate` de este mismo
+ * archivo: ahí ambas fechas comparadas ya están ancladas a medianoche UTC
+ * (`parseBirthDate` en `register.schema.ts`), así que compararlas en UTC es
+ * lo consistente; aquí el punto de partida es la hora real de la persona, no
+ * una fecha ya normalizada.
+ */
+export function todayLocalIsoDate(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * @param birthDate fecha de nacimiento.
  * @param referenceDate fecha contra la que se evalúa; por defecto, ahora.
  * @returns `true` si `birthDate` implica más de 110 años cumplidos.
  */
 export function isImplausiblyOld(birthDate: Date, referenceDate: Date = new Date()): boolean {
   return calculateAge(birthDate, referenceDate) > MAX_PLAUSIBLE_AGE;
+}
+
+/**
+ * La fecha de nacimiento más antigua que `isImplausiblyOld` todavía acepta,
+ * en el calendario **local** de quien usa la app, `yyyy-MM-dd` — pedido
+ * explícito del usuario, mismo criterio que `todayLocalIsoDate`: si el
+ * selector nativo ya no deja elegir una fecha futura, tampoco tiene sentido
+ * que deje elegir una que ya es "más de 110 años" con solo mirar el
+ * calendario.
+ *
+ * No es simplemente "hace 110 años, mismo mes y día": ese valor exacto
+ * cumple 110 años (plausible, `isImplausiblyOld` lo acepta), así que el
+ * límite real es un día después de "hace 111 años" — un día antes, la
+ * persona ya cumplió 111 (mismo cálculo de cumpleaños que usa
+ * `calculateAge`, aplicado al revés). Usa los getters locales
+ * (`getFullYear`/`getMonth`/`getDate`) de `now`, no `toISOString()`, por la
+ * misma razón que `todayLocalIsoDate`.
+ */
+export function oldestPlausibleBirthDateIsoDate(): string {
+  const now = new Date();
+  const date = new Date(
+    now.getFullYear() - (MAX_PLAUSIBLE_AGE + 1),
+    now.getMonth(),
+    now.getDate() + 1,
+  );
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }

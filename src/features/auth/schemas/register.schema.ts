@@ -31,7 +31,7 @@
  */
 import { isValidPhoneNumber, type CountryCode } from 'libphonenumber-js';
 import { z } from 'zod';
-import { isAdult, isFutureDate, isImplausiblyOld } from '@/utils/calculateAge';
+import { isAdult, isFutureDate, isImplausiblyOld, todayLocalIsoDate } from '@/utils/calculateAge';
 import { isCommonPassword } from '../model/commonPasswords';
 
 const FECHA_NACIMIENTO_FORMATO_INVALIDO = 'FECHA_NACIMIENTO_FORMATO_INVALIDO';
@@ -75,6 +75,12 @@ export const registerSchema = z
   })
   .superRefine((values, ctx) => {
     const birthDate = parseBirthDate(values.fechaNacimiento);
+    // Ancla "hoy" a medianoche UTC del día local de la persona (seguimiento
+    // de CM-34: comparar contra `new Date()` sin normalizar dejaba pasar,
+    // por la noche en Colombia, una fecha que ya es "mañana" en UTC —
+    // ver `todayLocalIsoDate`). Mismo formato que `parseBirthDate`, así que
+    // ambos lados de la comparación quedan anclados a medianoche UTC.
+    const today = new Date(`${todayLocalIsoDate()}T00:00:00Z`);
 
     if (!birthDate) {
       ctx.addIssue({
@@ -82,7 +88,7 @@ export const registerSchema = z
         path: ['fechaNacimiento'],
         message: FECHA_NACIMIENTO_FORMATO_INVALIDO,
       });
-    } else if (isFutureDate(birthDate)) {
+    } else if (isFutureDate(birthDate, today)) {
       ctx.addIssue({ code: 'custom', path: ['fechaNacimiento'], message: FECHA_NACIMIENTO_FUTURA });
     } else if (isImplausiblyOld(birthDate)) {
       ctx.addIssue({

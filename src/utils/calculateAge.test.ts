@@ -7,9 +7,26 @@
  * `isFutureDate`/`isImplausiblyOld` (CM-34): las dos guardas de
  * `fechaNacimiento` que Login nunca necesitó, con su caso límite propio
  * (110 años cumplidos es plausible, 111 no).
+ *
+ * `todayLocalIsoDate` (segundo seguimiento de CM-34, hallazgo real del
+ * usuario en móvil): protege específicamente contra el bug de
+ * `toISOString()` — Colombia es `UTC-5`, así que de 7 p. m. a medianoche hora
+ * local, `toISOString()` ya devuelve la fecha de mañana en UTC.
+ *
+ * `oldestPlausibleBirthDateIsoDate` (pedido explícito del usuario): el
+ * mismo límite de `isImplausiblyOld` pero como fecha de calendario, para el
+ * `min` del selector nativo — un día después de "hace 111 años", no
+ * "hace 110 años" (esa fecha exacta todavía cumple 110, plausible).
  */
-import { describe, expect, it } from 'vitest';
-import { calculateAge, isAdult, isFutureDate, isImplausiblyOld } from './calculateAge';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  calculateAge,
+  isAdult,
+  isFutureDate,
+  isImplausiblyOld,
+  oldestPlausibleBirthDateIsoDate,
+  todayLocalIsoDate,
+} from './calculateAge';
 
 function utcDate(year: number, month: number, day: number): Date {
   return new Date(Date.UTC(year, month - 1, day));
@@ -69,5 +86,34 @@ describe('isImplausiblyOld', () => {
   it('111 años cumplidos ya no es plausible', () => {
     const birthDate = utcDate(1915, 9, 6);
     expect(isImplausiblyOld(birthDate, utcDate(2026, 9, 6))).toBe(true);
+  });
+});
+
+describe('todayLocalIsoDate', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+  });
+
+  it('de noche en Colombia (UTC-5), no se adelanta al día siguiente que ya rige en UTC', () => {
+    vi.stubEnv('TZ', 'America/Bogota');
+    vi.useFakeTimers();
+    // 8 p. m. del 19-sep-2026 en Bogotá = 1 a. m. del 20-sep-2026 en UTC.
+    vi.setSystemTime(new Date('2026-09-20T01:00:00Z'));
+
+    expect(todayLocalIsoDate()).toBe('2026-09-19');
+  });
+});
+
+describe('oldestPlausibleBirthDateIsoDate', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('el límite es un día después de "hace 111 años" (110 años cumplidos sigue siendo plausible)', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-06T15:00:00Z'));
+
+    expect(oldestPlausibleBirthDateIsoDate()).toBe('1915-09-07');
   });
 });

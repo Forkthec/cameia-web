@@ -75,6 +75,8 @@ export function RegisterPage() {
         duplicateEmailLoginLabel={t('registro.correoDuplicado.iniciarSesion')}
         duplicateEmailRecoverLabel={t('registro.correoDuplicado.recuperarContrasena')}
         celularPaisLabel={t('registro.celular.pais')}
+        celularBuscarPaisLabel={t('registro.celular.buscarPais')}
+        celularSinResultadosLabel={t('registro.celular.sinResultados')}
         celularNumeroLabel={t('registro.celular.numero')}
         celularNumeroPlaceholder={t('registro.celular.numeroPlaceholder')}
         celularAyuda={t('registro.celular.ayuda')}

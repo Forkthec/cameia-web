@@ -250,17 +250,34 @@ iteración.
   `libphonenumber-js` (`PhoneNumber.java`: `^\+[1-9][0-9]{7,14}$`, sin adivinar país — ver
   Arquitectura, diferencia consciente con Figma).
 - `fechaNacimiento`: obligatoria, con cuatro causas de rechazo distintas (`CA-1.1.1`/`CA-1.1.3`).
-  **Pedido explícito del usuario, 19-sep-2026:** el `<input type="date">` lleva `max={hoy}` (UTC),
-  para que el propio selector nativo del navegador no deje elegir una fecha futura — antes solo se
-  atrapaba al enviar el formulario, con el usuario ya habiendo elegido una fecha imposible.
+  **Pedido explícito del usuario, 19-sep-2026:** el `<input type="date">` lleva
+  `max={todayLocalIsoDate()}`, para que el propio selector nativo del navegador no deje elegir una
+  fecha futura — antes solo se atrapaba al enviar el formulario, con el usuario ya habiendo elegido
+  una fecha imposible.
+  - **Corrección posterior (misma sesión, hallazgo real del usuario en móvil):** el `max` se
+    calculaba con `new Date().toISOString().slice(0, 10)` — convierte a UTC, y Colombia es `UTC-5`
+    (`CLAUDE.md` §1): de 7 p. m. a medianoche hora local, esa conversión ya devuelve la fecha de
+    mañana, y el selector nativo en móvil dejaba elegirla. El mismo desfase afectaba la validación
+    de "fecha futura" (`isFutureDate(birthDate)` comparaba contra `new Date()` sin normalizar:
+    elegir "mañana" a esa hora no se marcaba como futuro, porque en UTC ya era "hoy"). Se agregó
+    `utils/calculateAge.ts#todayLocalIsoDate()` (getters locales, no `toISOString()`) y ambos puntos
+    —el `max` del input y la comparación de `.superRefine` en `register.schema.ts`— lo usan como
+    referencia de "hoy".
+  - **Tercera corrección, mismo pedido aplicado al otro extremo (pedido explícito del usuario):**
+    igual que no tiene sentido elegir una fecha futura, tampoco tiene sentido dejar elegir desde el
+    calendario una fecha que ya implica más de 110 años. El `<input>` gana
+    `min={oldestPlausibleBirthDateIsoDate()}` — el mismo límite que ya valida `isImplausiblyOld`,
+    expresado como fecha de calendario: un día después de "hace 111 años" (esa fecha exacta cumple
+    110, todavía plausible), no "hace 110 años" tal cual.
   - **Menor de 18 años (UTC):** usa `isAdult()` de `utils/calculateAge.ts` (ya la cubre). Mensaje
     "Debes ser mayor de edad" — **mismo texto que el helper permanente del campo**; Figma (nodo
     `73:535`) confirma que aquí el error solo cambia el color del borde, no el texto. Llave:
     `auth:registro.campos.fechaNacimiento.helper` (reutilizada también como mensaje de error).
   - **Fecha futura:** `calculateAge.ts` **no la cubre hoy** — se agrega la guarda
-    `birthDate > referenceDate`. Mensaje "Fecha de nacimiento inválida", en `ErrorText` normal
-    (Figma no dibuja este caso; se sigue el patrón estándar del design system). Llave:
-    `auth:registro.errores.fechaNacimientoFutura`.
+    `birthDate > referenceDate`, con `referenceDate` anclada a `todayLocalIsoDate()` (ver
+    corrección arriba), no al instante real de `new Date()`. Mensaje "Fecha de nacimiento
+    inválida", en `ErrorText` normal (Figma no dibuja este caso; se sigue el patrón estándar del
+    design system). Llave: `auth:registro.errores.fechaNacimientoFutura`.
   - **>110 años:** tampoco cubierto hoy — se agrega un tope superior a `calculateAge.ts`. El
     backlog no da el texto literal, solo la intención ("mensaje específico... implausible...
     verificada"). **Texto propuesto, no confirmado, sujeto a aprobación:** "Verifica tu fecha de
@@ -341,12 +358,26 @@ iteración.
 - **Componente nuevo, diferencia consciente con Figma (`CLAUDE.md` §16), aprobada explícitamente
   por el usuario el 19-sep-2026:** `features/auth/organisms/PhoneField/` reemplaza el campo de
   texto libre que dibuja Figma (nodo `73:449`, helper "Formato internacional, por ejemplo +57 300
-  000 0000") por un selector de país (`Select`, opciones de `libphonenumber-js`, nombre vía
-  `Intl.DisplayNames(['es'], {type:'region'})` — sin catálogo de países a mano ni dependencia
-  nueva para eso) + el número nacional (`Input`). Por defecto Colombia (`CO`, +57), único mercado
-  del producto (`CLAUDE.md` §1); el selector permite cambiarlo a cualquiera de los ~245 países que
-  conoce la librería. Sin bandera: el design system no tiene assets de bandera todavía. Vive en la
-  feature, no en `design-system/`: primer y único consumidor (`CLAUDE.md` §4).
+  000 0000") por un selector de país + el número nacional (`Input`). Por defecto Colombia (`CO`,
+  +57), único mercado del producto (`CLAUDE.md` §1); el selector permite cambiarlo a cualquiera de
+  los ~245 países que conoce `libphonenumber-js`. Sin bandera: el design system no tiene assets de
+  bandera todavía. Vive en la feature, no en `design-system/`: primer y único consumidor
+  (`CLAUDE.md` §4).
+  - **Corrección posterior (misma sesión, captura de pantalla del usuario):** el selector de país
+    era un `Select` nativo con el nombre completo ("Colombia (+57)") en una columna de ancho fijo
+    angosto — se truncaba ("Colombia (+5…"), y peor con nombres largos ("Trinidad y Tobago"). El
+    placeholder del número nacional repetía además el indicativo (`"+57 300 000 0000"`),
+    contradictorio con el selector de al lado, que ya lo mostraba. Se reemplazó por
+    `features/auth/organisms/PhoneField/CountryCodeSelect.tsx` (archivo interno, no exportado):
+    disparador compacto `{ISO} +{indicativo}` (p. ej. "CO +57", nunca se trunca — el ISO
+    desambigua indicativos compartidos por varios países, como `+1`) que abre un panel con
+    buscador y el nombre completo, vía `Intl.DisplayNames`. El placeholder del número nacional pasó
+    a `"300 000 0000"`, sin el indicativo.
+  - **Segunda corrección de copy (misma sesión):** el helper decía "Formato internacional, por
+    ejemplo +57 300 000 0000" — el texto completo se partía en dos líneas en móvil, donde la
+    columna del formulario es angosta. El usuario acortó a "Formato internacional, ej. +57 300 000
+    0000" — **diferencia consciente adicional con el copy literal de Figma** (`CLAUDE.md` §16), por
+    la misma razón de ancho, no un cambio de contenido.
 - **Nueva dependencia, aprobada explícitamente:** `libphonenumber-js@1.13.13` (`CLAUDE.md` §2) —
   única forma confiable de validar/formatear indicativos internacionales.
 - `design-system/molecules/PasswordStrength/` **reescrito** (existía desde antes, sin ningún
@@ -402,7 +433,7 @@ variante `md`. En `lg`, Nombre(s)/Apellido(s) van lado a lado; en `sm` se apilan
 | `correo`              | `string`  | Formato de correo válido, obligatorio                                               | `CA-1.3.1`, `CA-1.1.1` |
 | `contraseña`          | `string`  | Obligatorio; en Login sin regla de formato; en Registro 12–64 *code points*, fuera de la lista de comunes (`PasswordPolicy.java`, confirmado) | `CA-1.3.1`, `CA-1.1.1` |
 | `nombre`, `apellido`  | `string`  | Obligatorios                                                                         | `CA-1.1.1`             |
-| `fechaNacimiento`     | `string` (fecha) | Obligatoria; ≥18 años UTC, no futura, no >110 años, formato válido, `max` nativo = hoy; viaja al backend como `dd/MM/yyyy` (`register.mapper.ts`) | `CA-1.1.1`, `CA-1.1.3` |
+| `fechaNacimiento`     | `string` (fecha) | Obligatoria; ≥18 años UTC, no futura (contra `todayLocalIsoDate()`), no >110 años, formato válido, `max`/`min` nativos = `todayLocalIsoDate()`/`oldestPlausibleBirthDateIsoDate()`; viaja al backend como `dd/MM/yyyy` (`register.mapper.ts`) | `CA-1.1.1`, `CA-1.1.3` |
 | `celular`             | `{paisIso, numeroNacional}` | Opcional; con número, formato E.164 real vía `libphonenumber-js` (`PhoneNumber.java`, confirmado); campo del backend es `phoneNumber` (E.164 completo) | `CA-1.1.1` |
 | `pronombres`          | `string` (código) | Obligatorio en cliente; uno de `HE`/`SHE`/`THEY` — **catálogo confirmado**, es el enum real `Pronoun` del backend; campo del backend es `pronoun` (singular), opcional del lado del backend | `tech.cameia.cuentas.domain.model.Pronoun`, revisado 19-sep-2026 |
 | `confirmarContraseña` | `string`  | Obligatorio, debe coincidir con `contraseña`; **no se envía al backend**             | Frontend               |
@@ -498,7 +529,7 @@ Notas:
 | ------- | --------------- | ------- |
 | `src/design-system/atoms/Logo/Logo.tsx` | Marca de Cameia, variantes `lockup`/`mark-only`, tono `default`/`inverse` | `Logo.test.tsx` |
 | `src/design-system/icons/GoogleIcon.tsx`, `src/design-system/icons/svg/google.svg` | Ícono real de Google | — |
-| `src/layouts/AuthLayout.tsx` | Panel de marca de dos columnas + colapso a una columna | `AuthLayout.test.tsx` |
+| `src/layouts/AuthLayout.tsx` | Panel de marca de dos columnas + colapso a una columna; logo y enlace "Volver a inicio" enlazan a `/` (§9) | `AuthLayout.test.tsx` |
 | `src/stores/auth.store.ts`, `src/app/providers/AuthProvider.tsx` | `emailVerified` en `AuthUser` | `AuthProvider.test.tsx` |
 | `src/features/auth/model/authErrorMessage.ts` | Código de `AuthError` → llave de i18n | `authErrorMessage.test.ts` |
 | `src/features/auth/schemas/login.schema.ts` | Validación zod de `correo`/`contraseña` | — |
@@ -511,12 +542,13 @@ Notas:
 | `src/features/auth/schemas/register.schema.ts` | Validación zod de Registro: cuatro causas de `fechaNacimiento`, contraseña real (12-64 *code points* + comunes), celular E.164, coincidencia de contraseñas | — |
 | `src/features/auth/api/register.dto.ts`, `register.mapper.ts`, `register.api.ts` | POST a /api/v1/users sin sesión, provisional; celular a E.164 vía `libphonenumber-js` | — |
 | `src/mocks/handlers/auth.handlers.ts` | Handler de POST a /api/v1/users (edad, contraseña, correo duplicado, celular — mismo orden que `RegisterUserService.register()`, `ProblemDetail` real) | `src/mocks/handlers/auth.handlers.test.ts` |
-| `src/utils/calculateAge.ts` | Guardas `isFutureDate`/`isImplausiblyOld` | `calculateAge.test.ts` |
+| `src/utils/calculateAge.ts` | Guardas `isFutureDate`/`isImplausiblyOld`; `todayLocalIsoDate()`/`oldestPlausibleBirthDateIsoDate()` (límites de calendario en hora local, para `max`/`min` del `<input type="date">`) | `calculateAge.test.ts` |
 | `src/utils/passwordStrength.ts` | `calculatePasswordStrength` (escala de 4 niveles, decisión de Frontend) | `passwordStrength.test.ts` |
 | `src/design-system/organisms/Modal/Modal.tsx` | Primer `Modal` del design system, `type=confirm` | `Modal.test.tsx` |
 | `src/design-system/molecules/PasswordStrength/PasswordStrength.tsx` | Reescrito al contrato real de Figma (5 niveles: empty, weak, fair, good, strong) | `PasswordStrength.test.tsx` |
 | `src/design-system/atoms/Input/Input.tsx`, `src/design-system/atoms/Select/Select.tsx`, `src/design-system/molecules/PasswordField/PasswordField.tsx` | `forwardRef` (foco automático de react-hook-form) | pruebas ya existentes + "reenvía el ref" |
 | `src/features/auth/organisms/PhoneField/PhoneField.tsx` | Selector de país + número nacional (celular internacional) | `PhoneField.test.tsx` |
+| `src/features/auth/organisms/PhoneField/CountryCodeSelect.tsx` | Disparador compacto `{ISO} +{indicativo}` con panel y buscador; archivo interno, no exportado (corrige truncado + placeholder contradictorio) | `CountryCodeSelect.test.tsx` |
 | `src/features/auth/organisms/RegisterForm/RegisterForm.tsx` | Formulario de Registro | `RegisterForm.test.tsx` |
 | `src/features/auth/hooks/useRegister.ts` | Orquesta `registerUser` → `signIn()` → `sendEmailVerification()`, caso de borde de sesión, `errorInfo` (`httpStatus`/`field`) | `useRegister.test.tsx` |
 | `src/features/auth/pages/RegisterPage.tsx` | Compone `AuthLayout` + `RegisterForm` + `Modal` | `RegisterPage.test.tsx` |
@@ -576,6 +608,43 @@ Notas:
   `errorMap.ts` esperaba nunca coincidió con lo que el backend real envía (`ADR-0007`). Esta
   sección y las anteriores ya reflejan el estado posterior a esa corrección — no quedó ningún dato
   de esta SPEC describiendo el estado previo como si fuera el actual.
+- **Segundo seguimiento de CM-34, mismo día:** el usuario reportó, con captura de pantalla, dos
+  hallazgos de UX en `/registro`: el selector de país de `PhoneField` truncaba nombres largos y el
+  placeholder del número contradecía al selector (ver corrección en §2, arriba); y no había forma
+  de volver a la landing (`/`) desde `/registro` ni `/ingresar`. Se verificó en vivo en Figma
+  (`get_metadata`, nodo `94:1124`, `PRT-01.03 · Login · lg`) que **ningún frame de Login o Registro
+  dibuja un elemento de "volver"** — no es una omisión de implementación, es una decisión de
+  comportamiento que le corresponde a Frontend (`CLAUDE.md` §16). Se agregó, en `AuthLayout.tsx`
+  (compartido por ambas pantallas): el logo (panel de marca y móvil) ahora enlaza a `ROUTES.landing`
+  — mismo carve-out de `boundaries/dependencies` que ya usa `AppShell.tsx` para su wordmark →
+  `ROUTES.inicio` — y un enlace de texto explícito "Volver a inicio", más descubrible que el logo
+  solo. Reutiliza la llave de i18n `common:acciones.volverInicio` y el destino `ROUTES.landing`, ya
+  usados de forma idéntica en `NotFoundPage.tsx` — no se crea ninguna llave nueva para esto.
+- **Segunda corrección de copy, mismo día:** el helper de celular ("Formato internacional, por
+  ejemplo +57 300 000 0000") se partía en dos líneas en móvil, donde la columna del formulario es
+  angosta. Se acortó a "Formato internacional, ej. +57 300 000 0000" — diferencia adicional con el
+  copy literal de Figma, por ancho, no por contenido (`CLAUDE.md` §16).
+- **Tercer seguimiento de CM-34, mismo día — fecha de nacimiento futura en móvil:** el usuario
+  reportó que el selector nativo de fecha en móvil permitía elegir un día posterior a hoy. Causa
+  raíz: `max` se calculaba con `new Date().toISOString().slice(0, 10)`, que convierte a UTC —
+  Colombia es `UTC-5` (`CLAUDE.md` §1), así que de 7 p. m. a medianoche hora local esa conversión ya
+  devuelve la fecha de mañana. El mismo desfase afectaba la propia validación de "fecha futura" en
+  `register.schema.ts` (comparaba contra `new Date()` sin normalizar): a esa hora, elegir "mañana"
+  no se marcaba como fecha futura, porque en UTC ya era "hoy". Se agregó
+  `utils/calculateAge.ts#todayLocalIsoDate()` (getters locales, no `toISOString()`) y se corrigieron
+  los dos puntos —`max` del `<input>` y la referencia de `.superRefine`— para usarlo. Regresión
+  cubierta con `vi.stubEnv('TZ', 'America/Bogota')` + `vi.setSystemTime()` en
+  `calculateAge.test.ts` y `RegisterForm.test.tsx`: sin la corrección, ambas pruebas fallan a las
+  8 p. m. hora de Bogotá.
+- **Cuarto seguimiento de CM-34, mismo día — mismo límite en el otro extremo:** pedido explícito del
+  usuario: si el `<input>` ya no deja elegir una fecha futura, tampoco debería dejar elegir una que
+  ya implica más de 110 años. Se agregó `utils/calculateAge.ts#oldestPlausibleBirthDateIsoDate()` y
+  el `<input>` ganó `min={oldestPlausibleBirthDateIsoDate()}` — mismo límite que ya valida
+  `isImplausiblyOld` al enviar, ahora también bloqueado desde el propio calendario nativo. El límite
+  no es "hace 110 años" tal cual (esa fecha exacta todavía cumple 110, plausible): es un día
+  después de "hace 111 años", mismo cálculo de cumpleaños que usa `calculateAge`, aplicado al
+  revés. Prueba nueva en `calculateAge.test.ts`/`RegisterForm.test.tsx` fija la fecha del sistema y
+  verifica el valor exacto del límite.
 
 ---
 
