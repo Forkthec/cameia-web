@@ -12,10 +12,21 @@
  * intermedio para esta pantalla (decisión de Frontend documentada en
  * `SPEC.md` §3) — y el logo se muestra centrado, en tono oscuro, arriba de
  * `children`.
+ *
+ * **Volver a la landing** (auth, seguimiento): ni `94:1124` ni el frame de
+ * Registro dibujan ninguna forma de volver a `/` — verificado en vivo, no es
+ * una omisión de implementación. Se agrega por decisión de Frontend
+ * (`CLAUDE.md` §16, anotada en `SPEC.md` §9): el logo enlaza a
+ * `ROUTES.landing` (mismo carve-out de `boundaries/dependencies` que ya usa
+ * `AppShell.tsx` para su wordmark → `ROUTES.inicio`) y se agrega además un
+ * enlace de texto explícito, más descubrible que el logo solo.
  */
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
+import { ROUTES } from '@/app/router/routes';
 import { Logo } from '@/design-system/atoms/Logo';
+import { Icon } from '@/design-system/icons/Icon';
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -45,7 +56,12 @@ export function AuthLayout({ children, headline }: AuthLayoutProps) {
             className="w-[55%] opacity-8"
           />
         </div>
-        <Logo variant="lockup" tone="inverse" wordmarkLabel={wordmarkLabel} className="relative" />
+        <Link
+          to={ROUTES.landing}
+          className="focus-visible:shadow-focus-ring relative rounded-sm focus-visible:outline-none"
+        >
+          <Logo variant="lockup" tone="inverse" wordmarkLabel={wordmarkLabel} />
+        </Link>
         {headline ? (
           <p className="text-display font-display text-text-on-inverse relative">{headline}</p>
         ) : null}
@@ -53,12 +69,24 @@ export function AuthLayout({ children, headline }: AuthLayoutProps) {
 
       <div className="px-space-4 py-space-8 flex flex-1 flex-col items-center">
         <div className="gap-space-5 flex w-full max-w-[27.5rem] flex-col">
-          <Logo
-            variant="lockup"
-            tone="default"
-            wordmarkLabel={wordmarkLabel}
-            className="justify-center lg:hidden"
-          />
+          <Link
+            to={ROUTES.landing}
+            className="text-text-muted hover:text-text-primary gap-space-1 text-small focus-visible:shadow-focus-ring inline-flex w-fit items-center self-start rounded-sm focus-visible:outline-none"
+          >
+            <Icon name="chevron-left" size={16} />
+            {t('acciones.volverInicio')}
+          </Link>
+          <Link
+            to={ROUTES.landing}
+            className="focus-visible:shadow-focus-ring rounded-sm focus-visible:outline-none lg:hidden"
+          >
+            <Logo
+              variant="lockup"
+              tone="default"
+              wordmarkLabel={wordmarkLabel}
+              className="justify-center"
+            />
+          </Link>
           {children}
         </div>
       </div>

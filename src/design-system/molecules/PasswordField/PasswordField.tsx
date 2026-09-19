@@ -15,8 +15,12 @@
  * ella. Se sobreescribe a los dos radios derechos de `Input`
  * (`rounded-r-md`), cuadrado por dentro (`rounded-l-none`), para que el
  * fondo de `hover`/`focus` seudo-circular quede en su lugar.
+ *
+ * `forwardRef` (CM-34 seguimiento): reenvía al `Input` interno — mismo
+ * motivo que `Input`/`Select`, habilita el foco automático de
+ * `react-hook-form` en el primer campo con error.
  */
-import { useId, useState, type ChangeEvent, type FocusEvent } from 'react';
+import { forwardRef, useId, useState, type ChangeEvent, type FocusEvent } from 'react';
 import { cn } from '@/utils/cn';
 import { Button } from '../../atoms/Button';
 import { Icon } from '../../icons/Icon';
@@ -41,35 +45,32 @@ interface PasswordFieldProps {
   onBlur?: (event: FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
 }
 
-export function PasswordField({
-  id,
-  className,
-  showPasswordLabel,
-  hidePasswordLabel,
-  ...rest
-}: PasswordFieldProps) {
-  const [visible, setVisible] = useState(false);
-  const generatedId = useId();
-  const inputId = id ?? generatedId;
+export const PasswordField = forwardRef<HTMLInputElement | HTMLTextAreaElement, PasswordFieldProps>(
+  function PasswordField({ id, className, showPasswordLabel, hidePasswordLabel, ...rest }, ref) {
+    const [visible, setVisible] = useState(false);
+    const generatedId = useId();
+    const inputId = id ?? generatedId;
 
-  return (
-    <div className={cn('relative', className)}>
-      <Input
-        id={inputId}
-        type={visible ? 'text' : 'password'}
-        className="pr-touch-target"
-        {...rest}
-      />
-      <Button
-        type="button"
-        variant="icon"
-        size="md"
-        className="absolute top-0 right-0 rounded-l-none rounded-r-md"
-        onClick={() => setVisible((current) => !current)}
-        icon={<Icon name={visible ? 'eye-off' : 'eye'} />}
-      >
-        {visible ? hidePasswordLabel : showPasswordLabel}
-      </Button>
-    </div>
-  );
-}
+    return (
+      <div className={cn('relative', className)}>
+        <Input
+          ref={ref}
+          id={inputId}
+          type={visible ? 'text' : 'password'}
+          className="pr-touch-target"
+          {...rest}
+        />
+        <Button
+          type="button"
+          variant="icon"
+          size="md"
+          className="absolute top-0 right-0 rounded-l-none rounded-r-md"
+          onClick={() => setVisible((current) => !current)}
+          icon={<Icon name={visible ? 'eye-off' : 'eye'} />}
+        >
+          {visible ? hidePasswordLabel : showPasswordLabel}
+        </Button>
+      </div>
+    );
+  },
+);

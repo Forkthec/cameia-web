@@ -93,7 +93,8 @@
     "confirmacionAgregada": "Formación agregada.",
     "confirmacionEliminada": "Formación eliminada.",
     "errorAgregar": "No se pudo agregar la formación académica.",
-    "errorEliminar": "No se pudo eliminar la formación académica."
+    "errorEliminar": "No se pudo eliminar la formación académica.",
+    "errorFechaInvalida": "Revisa las fechas de la formación académica."
   },
   "experiencia": {
     "titulo": "Experiencia Laboral",
@@ -137,7 +138,8 @@
     "confirmacionAgregada": "Experiencia agregada.",
     "confirmacionEliminada": "Experiencia eliminada.",
     "errorAgregar": "No se pudo agregar la experiencia laboral.",
-    "errorEliminar": "No se pudo eliminar la experiencia laboral."
+    "errorEliminar": "No se pudo eliminar la experiencia laboral.",
+    "errorFechaInvalida": "Revisa las fechas de la experiencia laboral."
   },
   "habilidades": {
     "titulo": "Habilidades",
@@ -195,7 +197,8 @@
     "confirmacionEliminado": "Rol objetivo eliminado.",
     "errorAgregar": "No se pudo agregar el rol objetivo.",
     "errorSustituir": "No se pudo sustituir el rol objetivo.",
-    "errorEliminar": "No se pudo eliminar el rol objetivo."
+    "errorEliminar": "No se pudo eliminar el rol objetivo.",
+    "errorDuplicado": "Ese rol objetivo ya está en tu perfil."
   },
   "metodo": {
     "titulo": "¿Cómo quieres completarlo?",

@@ -9,7 +9,7 @@ documentacion: tsdoc-es
 backlog: 12092026_01
 decisiones: [10092026_v1, 11092026_v2, 11092026_v1, 13092026_v1]
 figma: Cameia · Mockups MVP
-revisado: 2026-09-15
+revisado: 2026-09-19
 ---
 
 # Feature · Perfil Profesional
@@ -158,8 +158,8 @@ Fuente: backlog 12092026_01, hoja «Criterios de aceptación», HU-2.2, CA-2.2.1
 **Validaciones del lado del cliente**
 
 - `name`: vacío o mayor a 255 caracteres bloquea sin llamar al servidor (CA-2.2.1 a CA-2.2.3,
-  límite confirmado por la respuesta oficial del PO del 13-sep — ver §8, C-01). Llave
-  de error: `errors:codigos.PROFILE_NAME_INVALID` (ver §4).
+  límite confirmado por la respuesta oficial del PO del 13-sep — ver §8, C-01). El backend real
+  (`400`, sin `code` propio, `ADR-0007`) es solo defensa en profundidad — ver §4.
 - `summary`: más de 2000 caracteres bloquea sin llamar al servidor (`maxLength` del campo) y muestra
   el contador de caracteres restantes (CA-2.3.3, `GLOSSARY.md` §2). El frame de Figma muestra el
   contador en 600, no 2000 — se mantiene 2000 por decisión explícita (bloqueo **C-11**, §8).
@@ -200,7 +200,7 @@ CA escritos.
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | Carga       | Comparte el `Spinner` de §3.2: ambas secciones llegan en la misma respuesta de `GET /api/v1/profiles/:id` |
 | Vacío       | `EmptyState` propio por sección: ambas listas pueden estar vacías — experiencia sin ítems es válido; educación sin ítems bloquea la finalización (CM-65), no esta pantalla |
-| Error       | Alta/baja fallida → código específico si `errors:codigos` lo reconoce (`WORK_EXPERIENCE_DATE_INVALID`/`EDUCATION_DATE_INVALID`), si no el genérico de la sección; el formulario conserva lo escrito para reintentar |
+| Error       | Alta/baja fallida → mensaje específico si el `httpStatus` de *esa* mutación lo tiene (422 = fecha inválida), si no el genérico de la sección (ver §4, `ADR-0007`); el formulario conserva lo escrito para reintentar |
 | Sin permiso | Ver nota transversal arriba                                                                                                               |
 
 **Validaciones del lado del cliente**
@@ -249,7 +249,7 @@ construido por `EducationSection`/`WorkExperienceSection` (CM-61, §3.3).
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | Carga       | Comparte el `Spinner` inicial de la página: la lista de habilidades llega en la misma respuesta de `GET /api/v1/profiles/:id`        |
 | Vacío       | `EmptyState` propio: sin habilidades es válido para mostrar la pantalla; bloquea la finalización, no el render                       |
-| Error       | Alta/baja de habilidad → código específico si `errors:codigos` lo reconoce (`SKILL_DUPLICATE`), si no el genérico; finalizar con requisitos incumplidos → lista completa vía `error.details` (`profile:formulario.requisitos.*`), nunca solo el primero |
+| Error       | Alta de habilidad → mensaje específico si el `httpStatus` es 409 (duplicada, ver §4, `ADR-0007`), si no el genérico; finalizar con requisitos incumplidos → lista completa vía `error.errors` (`profile:formulario.requisitos.*`), nunca solo el primero |
 | Sin permiso | Ver nota transversal arriba                                                                                                          |
 
 **Validaciones del lado del cliente**
@@ -305,7 +305,7 @@ contra Figma en su momento.
 | ----------- | ----------------------------------------------------------------------------------------------------------- |
 | Carga       | Comparte el `Spinner` inicial de la página: bloquea el render hasta que `useProfileQuery` **y** `useProfessionalRolesQuery` resuelvan |
 | Vacío       | `EmptyState` propio: sin roles asociados, invita a agregar el primero — no bloquea mostrar la pantalla, solo finalizar (CM-65) |
-| Error       | Alta/sustitución/baja fallida → código específico si `errors:codigos` lo reconoce (`TARGET_ROLE_DUPLICATE`/`TARGET_ROLE_MAX_REACHED`/`TARGET_ROLE_LAST_CANNOT_REMOVE`), si no el genérico de la sección; fallo al cargar el catálogo comparte la pantalla de error inicial de la página |
+| Error       | Alta/sustitución/baja fallida → mensaje específico según el `httpStatus` de *esa* mutación (409 duplicado, 422 tope/último rol — ver §4, `ADR-0007`), si no el genérico de la sección; fallo al cargar el catálogo comparte la pantalla de error inicial de la página |
 | Sin permiso | Ver nota transversal arriba                                                                                |
 
 **Validaciones del lado del cliente**
@@ -351,31 +351,32 @@ CM-65.
 
 **Errores que el usuario puede ver**
 
-| Código                 | Cuándo ocurre                                      | Llave de i18n                                       |
+**Actualizado 19-sep-2026 (`ADR-0007`, seguimiento de CM-34):** el backend real
+(`ApiExceptionHandler.java`, `cameia-perfil`) responde `ProblemDetail` (RFC 7807) **sin `code`
+propio** — se confirmó al reescribir `ApiError`/`errorMap.ts` contra el mismo contrato que
+`cameia-cuentas`. Los códigos de esta tabla (`PROFILE_NAME_INVALID`, `WORK_EXPERIENCE_DATE_INVALID`,
+etc.) eran invenciones del mock, nunca confirmadas con backend — se retiran de `errors.json` y de
+aquí; cada caso se discrimina por `httpStatus` (confirmado por `ProfileController.java`) dentro del
+contexto de su propia mutación, con la llave de i18n movida al namespace de la feature
+(`profile.json`).
+
+| Causa                 | Cuándo ocurre                                      | Llave de i18n                                       |
 | ---------------------- | -------------------------------------------------- | --------------------------------------------------- |
-| `PROFILE_NAME_INVALID` | `name` vacío o mayor a 255 caracteres              | `errors:codigos.PROFILE_NAME_INVALID` — ya existe |
-| `NOT_FOUND`            | Perfil inexistente o de otro usuario (ver nota §3) | `errors:codigos.NOT_FOUND` — ya existe              |
-| `WORK_EXPERIENCE_DATE_INVALID` | Alta de experiencia con fechas inconsistentes (`ENDED` sin `endDate`, `endDate < startDate`, o `endDate` en un estado que no la admite) | `errors:codigos.WORK_EXPERIENCE_DATE_INVALID` — ya existe (CM-61) |
-| `EDUCATION_DATE_INVALID` | Alta de educación con `inProgress=true` y `endDate` presente | `errors:codigos.EDUCATION_DATE_INVALID` — ya existe (CM-61) |
-| `SKILL_DUPLICATE`     | Alta de habilidad con texto ya presente (sin distinguir mayúsculas ni espacios) | `errors:codigos.SKILL_DUPLICATE` — ya existe (CM-65) |
-| `TARGET_ROLE_DUPLICATE` | Agregar o sustituir con un rol profesional ya presente en el perfil (case exacto: comparación por `id` de catálogo) | `errors:codigos.TARGET_ROLE_DUPLICATE` — ya existe (CM-69) |
-| `TARGET_ROLE_MAX_REACHED` | Agregar un sexto rol objetivo | `errors:codigos.TARGET_ROLE_MAX_REACHED` — ya existe (CM-69) |
-| `TARGET_ROLE_LAST_CANNOT_REMOVE` | Eliminar el único rol objetivo de un perfil ya `COMPLETED` | `errors:codigos.TARGET_ROLE_LAST_CANNOT_REMOVE` — ya existe (CM-69) |
-| `PROFILE_INCOMPLETE`  | Finalizar sin cumplir uno o más de los 5 requisitos | No tiene llave propia: cada campo de `error.details` se traduce contra `profile:formulario.requisitos.*` (ver §3.4) — nunca el `message` crudo del backend |
-| `PROFILE_ALREADY_COMPLETED` | Finalizar un perfil que ya está `COMPLETED` | `errors:generico` (caso residual, no alcanzable desde la interfaz mientras el botón se deshabilita al completar) |
+| Nombre de perfil inválido | `400` al guardar Información General (`name` vacío o mayor a 255) — inalcanzable en operación normal, el cliente ya bloquea antes de llamar | `profile:general.nombre.errorLongitud` (cliente; residual sin llave propia, cae a `errors:generico`) |
+| Perfil no encontrado   | `404` de cualquier mutación/consulta sobre `:id` (ver nota §3) | `errors:codigos.NOT_FOUND` — sigue existiendo, es genérico por `httpStatus` |
+| Fecha de experiencia inválida | `422` al agregar experiencia (`ENDED` sin `endDate`, `endDate < startDate`, o `endDate` en un estado que no la admite) | `profile:experiencia.errorFechaInvalida` |
+| Fecha de educación inválida | `422` al agregar educación (`inProgress=true` y `endDate` presente) | `profile:educacion.errorFechaInvalida` |
+| Habilidad duplicada   | `409` al agregar habilidad con texto ya presente (sin distinguir mayúsculas ni espacios) — inalcanzable en operación normal, el cliente ya lo bloquea | `profile:habilidades.nombre.errorDuplicado` |
+| Rol objetivo duplicado | `409` al agregar o sustituir con un rol ya presente en el perfil | `profile:rolesObjetivo.errorDuplicado` |
+| Máximo de roles alcanzado | `422` al agregar un sexto rol objetivo | `profile:rolesObjetivo.agregar.tope` |
+| Último rol objetivo bloqueado | `422` al eliminar el único rol objetivo de un perfil ya `COMPLETED` | `profile:rolesObjetivo.eliminarUltimoBloqueado` |
+| Perfil incompleto | `422` al finalizar sin cumplir uno o más de los 5 requisitos, con `errors[]` no vacío | Cada `errors[].field` se traduce contra `profile:formulario.requisitos.*` (ver §3.4) — nunca el `message` crudo del backend |
+| Perfil ya completado | `409` al finalizar un perfil que ya está `COMPLETED` | `errors:generico` (caso residual, no alcanzable desde la interfaz mientras el botón se deshabilita al completar) |
 
-**`EDUCATION_REQUIRED` se retira de este contrato:** era el código que el mock devolvía en
-`.../finalize` (CM-61) cuando faltaba solo educación; CM-65 reemplaza ese endpoint por
-`.../completion`, que valida los 5 requisitos a la vez y nunca devuelve solo uno — `PROFILE_INCOMPLETE`
-lo sustituye por completo, no lo complementa.
-
-`PROFILE_NAME_INVALID`, `WORK_EXPERIENCE_DATE_INVALID`, `EDUCATION_DATE_INVALID`,
-`SKILL_DUPLICATE`, `PROFILE_INCOMPLETE`, `PROFILE_ALREADY_COMPLETED` y los tres códigos de Roles
-Objetivo son códigos de mock, no confirmados con backend — el backend real
-(`ApiExceptionHandler.java`) responde vía `ProblemDetail` (RFC 9457) sin un `code` propio todavía en
-los que se conocen (`ProfileController.java` sí confirma los **status HTTP** de Habilidades,
-Finalización y Roles Objetivo — 400/404/409/422 — solo no el `code` del cuerpo); pueden no coincidir
-cuando exista el contrato real (C-01).
+`getMissingRequirementFields` (§7) distingue "perfil incompleto" de cualquier otro `422` por tener
+`errors.length > 0` en la respuesta de *esa* mutación específica (`POST .../completion`), sin
+necesitar un código — es la única mutación de esta feature que puede devolver varios `errors[]` a
+la vez.
 
 ## 5. Enlace HTTP · PROVISIONAL
 

@@ -1,12 +1,16 @@
 /**
  * Comportamiento observable de `AuthLayout` (CLAUDE.md §4: `layouts/` son
- * plantillas de página): que siempre renderiza su contenido, y que el
+ * plantillas de página): que siempre renderiza su contenido, que el
  * titular del panel de marca solo aparece cuando se pasa `headline` (lo
  * necesita Login, no lo necesita el `RegisterPage` placeholder que comparte
- * este mismo layout).
+ * este mismo layout), y que hay dos formas de volver a la landing (`/`,
+ * seguimiento de auth: ningún frame de Login/Registro dibuja una, es
+ * decisión de Frontend) — el logo (ambos, panel de marca y móvil) y el
+ * enlace explícito "Volver a inicio".
  */
 import { render, screen } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
+import { MemoryRouter } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import i18n from '@/i18n';
 import { AuthLayout } from './AuthLayout';
@@ -18,31 +22,49 @@ async function waitUntilReady() {
   });
 }
 
+function renderLayout(headline?: string) {
+  return render(
+    <I18nextProvider i18n={i18n}>
+      <MemoryRouter>
+        <AuthLayout headline={headline}>
+          <p>Formulario</p>
+        </AuthLayout>
+      </MemoryRouter>
+    </I18nextProvider>,
+  );
+}
+
 describe('AuthLayout', () => {
   it('renderiza su contenido', async () => {
     await waitUntilReady();
 
-    render(
-      <I18nextProvider i18n={i18n}>
-        <AuthLayout>
-          <p>Formulario de ingreso</p>
-        </AuthLayout>
-      </I18nextProvider>,
-    );
+    renderLayout();
 
-    expect(screen.getByText('Formulario de ingreso')).toBeInTheDocument();
+    expect(screen.getByText('Formulario')).toBeInTheDocument();
+  });
+
+  it('el logo enlaza a la landing', async () => {
+    await waitUntilReady();
+
+    renderLayout();
+
+    const logos = screen.getAllByRole('link', { name: 'cameia' });
+    expect(logos.length).toBeGreaterThan(0);
+    logos.forEach((logo) => expect(logo).toHaveAttribute('href', '/'));
+  });
+
+  it('el enlace "Volver a inicio" enlaza a la landing', async () => {
+    await waitUntilReady();
+
+    renderLayout();
+
+    expect(screen.getByRole('link', { name: /volver a inicio/i })).toHaveAttribute('href', '/');
   });
 
   it('sin headline, no renderiza el titular del panel de marca', async () => {
     await waitUntilReady();
 
-    render(
-      <I18nextProvider i18n={i18n}>
-        <AuthLayout>
-          <p>Formulario</p>
-        </AuthLayout>
-      </I18nextProvider>,
-    );
+    renderLayout();
 
     expect(screen.queryByText(/entra a la entrevista/i)).not.toBeInTheDocument();
   });
@@ -50,13 +72,7 @@ describe('AuthLayout', () => {
   it('con headline, lo renderiza en el panel de marca', async () => {
     await waitUntilReady();
 
-    render(
-      <I18nextProvider i18n={i18n}>
-        <AuthLayout headline="Entra a la entrevista listo">
-          <p>Formulario</p>
-        </AuthLayout>
-      </I18nextProvider>,
-    );
+    renderLayout('Entra a la entrevista listo');
 
     expect(screen.getByText('Entra a la entrevista listo')).toBeInTheDocument();
   });

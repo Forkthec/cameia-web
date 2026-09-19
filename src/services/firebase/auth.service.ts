@@ -5,10 +5,10 @@
  * crudo, es lo que el resto de la app puede usar como llave de i18n).
  */
 import {
-  createUserWithEmailAndPassword,
   getAuth,
   getIdToken as getFirebaseIdToken,
   onAuthStateChanged as onFirebaseAuthStateChanged,
+  sendEmailVerification as sendFirebaseEmailVerification,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   type Unsubscribe,
@@ -21,14 +21,14 @@ const auth = getAuth(firebaseApp);
 const DEFAULT_AUTH_ERROR_CODE = 'AUTH_UNKNOWN_ERROR';
 
 /**
- * Solo cubre los códigos que puede devolver el registro y el ingreso de
- * Sprint 1 (CM-34, CM-40) — no verificación de correo, MFA ni recuperación
- * de contraseña, que son de sprints posteriores (CLAUDE.md §12).
+ * Solo cubre los códigos que `signIn()` puede lanzar de verdad (CA-1.3.1/
+ * CA-1.3.2). El registro (`CM-34`) ya no crea la credencial en el cliente
+ * (`ADR-0006`: `POST /api/v1/users` sin sesión, el backend llama a
+ * `createUser` del Admin SDK) — los códigos de `createUserWithEmailAndPassword`
+ * (`auth/email-already-in-use`, `auth/invalid-email`, `auth/weak-password`)
+ * se retiraron con `signUp()`, sin consumidor desde entonces.
  */
 const FIREBASE_ERROR_CODE_MAP: Record<string, string> = {
-  'auth/email-already-in-use': 'AUTH_EMAIL_TAKEN',
-  'auth/invalid-email': 'AUTH_INVALID_EMAIL',
-  'auth/weak-password': 'AUTH_WEAK_PASSWORD',
   // user-not-found/wrong-password/invalid-credential se mapean al mismo
   // código a propósito: no hay que revelar cuál de los dos datos es el
   // incorrecto.
@@ -65,15 +65,6 @@ function toAuthError(error: unknown): AuthError {
   return new AuthError(code);
 }
 
-export async function signUp(email: string, password: string): Promise<User> {
-  try {
-    const credential = await createUserWithEmailAndPassword(auth, email, password);
-    return credential.user;
-  } catch (error) {
-    throw toAuthError(error);
-  }
-}
-
 export async function signIn(email: string, password: string): Promise<User> {
   try {
     const credential = await signInWithEmailAndPassword(auth, email, password);
@@ -85,6 +76,15 @@ export async function signIn(email: string, password: string): Promise<User> {
 
 export async function signOut(): Promise<void> {
   await firebaseSignOut(auth);
+}
+
+/** Envía el correo de verificación (`CM-34`, `ADR-0006`) — no pasa por el Gateway, directo contra Firebase. */
+export async function sendEmailVerification(user: User): Promise<void> {
+  try {
+    await sendFirebaseEmailVerification(user);
+  } catch (error) {
+    throw toAuthError(error);
+  }
 }
 
 /** `null` cuando no hay sesión activa; httpClient lo usa para decidir si adjunta Authorization. */

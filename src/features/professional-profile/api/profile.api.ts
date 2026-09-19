@@ -15,10 +15,11 @@
  * antes de conocer el código real de `ProfileController.java#completeProfile`
  * (`SPEC.md` §5). Cuando el perfil no cumple los 5 requisitos, el backend
  * real responde 422 con "la lista de requisitos faltantes" — este mock la
- * transporta en `ApiError.details` (un `ApiErrorDetail` por requisito
- * incumplido, mismo mecanismo que ya usa `PROFILE_NAME_INVALID`), no en un
- * campo `missingRequirements` aparte: `errorMap.ts` ya sabe leer `details`,
- * y así no hace falta un DTO de error especial solo para este endpoint.
+ * transporta en `ApiError.errors` (un `{field, message}` por requisito
+ * incumplido, misma extensión `errors` del `ProblemDetail` real,
+ * `ADR-0007`), no en un campo `missingRequirements` aparte: `errorMap.ts` ya
+ * sabe leerla, y así no hace falta un DTO de error especial solo para este
+ * endpoint.
  *
  * `fetchProfessionalRoles` (CM-69) es el único endpoint de esta feature que
  * no pertenece al perfil sino a un catálogo compartido (`GET

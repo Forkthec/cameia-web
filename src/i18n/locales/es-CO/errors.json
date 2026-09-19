@@ -3,15 +3,6 @@
   "red": "No hay conexión. Revisa tu internet e inténtalo de nuevo.",
   "codigos": {
     "NOT_FOUND": "No encontramos lo que buscabas.",
-    "VALIDATION_ERROR": "Revisa los datos ingresados.",
-    "UNAUTHORIZED": "Tu sesión expiró. Vuelve a iniciar sesión.",
-    "PROFILE_NAME_INVALID": "El nombre del perfil no es válido.",
-    "WORK_EXPERIENCE_DATE_INVALID": "Revisa las fechas de la experiencia laboral.",
-    "EDUCATION_DATE_INVALID": "Revisa las fechas de la formación académica.",
-    "SKILL_DUPLICATE": "Esa habilidad ya está en tu perfil.",
-    "TARGET_ROLE_DUPLICATE": "Ese rol objetivo ya está en tu perfil.",
-    "TARGET_ROLE_MAX_REACHED": "Ya tienes el máximo de 5 roles objetivo.",
-    "TARGET_ROLE_LAST_CANNOT_REMOVE": "No puedes quedarte sin roles objetivo con el perfil activo.",
     "AUTH_INVALID_CREDENTIALS": "Correo o contraseña incorrectos",
     "AUTH_TOO_MANY_REQUESTS": "Demasiados intentos. Espera un momento y vuelve a intentarlo.",
     "AUTH_USER_DISABLED": "Esta cuenta está deshabilitada. Contacta a soporte."
