@@ -1,22 +1,18 @@
 import type { RouteObject } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
-import { AuthLayout } from '@/layouts/AuthLayout';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 
 /**
- * `LoginPage` ya compone su propio `AuthLayout` (necesita pasarle
- * `headline`, distinto por pantalla) — aquí solo se envuelve `RegisterPage`,
- * que sigue siendo un placeholder sin copy propio (CM-34, fuera de alcance).
+ * `LoginPage` y `RegisterPage` (CM-34) componen cada una su propio
+ * `AuthLayout` con el `headline` que les corresponde — ninguna vive
+ * envuelta aquí (mismo criterio para las dos desde que `RegisterPage` dejó
+ * de ser un placeholder).
  */
 export const authRoutes: RouteObject[] = [
   {
     path: ROUTES.registro,
-    element: (
-      <AuthLayout>
-        <RegisterPage />
-      </AuthLayout>
-    ),
+    element: <RegisterPage />,
   },
   {
     path: ROUTES.ingresar,

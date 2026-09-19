@@ -38,6 +38,13 @@ interface LoginFormProps {
   isSubmitting: boolean;
   /** Mensaje ya traducido de `errors:codigos.*`; su presencia también fuerza el borde rojo de ambos campos. */
   genericErrorMessage?: string;
+  /**
+   * Mensaje informativo (no de error) para el caso de borde de Registro
+   * (`CM-34`, `SPEC.md` §3): `POST /api/v1/users` tuvo éxito pero `signIn()`/
+   * `sendEmailVerification()` fallaron después. No fuerza el borde rojo de
+   * los campos — no es un fallo de este formulario.
+   */
+  infoMessage?: string;
   onSubmit: (values: LoginFormValues) => void;
   titleText: string;
   googleButtonLabel: string;
@@ -62,6 +69,7 @@ interface LoginFormProps {
 export function LoginForm({
   isSubmitting,
   genericErrorMessage,
+  infoMessage,
   onSubmit,
   titleText,
   googleButtonLabel,
@@ -97,6 +105,7 @@ export function LoginForm({
     >
       <h1 className="text-h1 font-display text-text-primary">{titleText}</h1>
 
+      {infoMessage ? <AlertInline variant="info">{infoMessage}</AlertInline> : null}
       {genericErrorMessage ? (
         <AlertInline variant="error">{genericErrorMessage}</AlertInline>
       ) : null}
