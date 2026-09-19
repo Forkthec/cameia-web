@@ -5,6 +5,7 @@
  */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { createRef } from 'react';
 import { describe, expect, it } from 'vitest';
 import { Input } from './Input';
 
@@ -53,5 +54,12 @@ describe('Input', () => {
     const helper = screen.getByText('Usa tu correo institucional');
 
     expect(input.getAttribute('aria-describedby')).toBe(`id-externo ${helper.id}`);
+  });
+
+  it('reenvía el ref al elemento nativo (foco automático de react-hook-form)', () => {
+    const ref = createRef<HTMLInputElement | HTMLTextAreaElement>();
+    render(<Input ref={ref} />);
+
+    expect(ref.current).toBe(screen.getByRole('textbox'));
   });
 });

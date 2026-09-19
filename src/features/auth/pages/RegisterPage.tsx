@@ -5,10 +5,13 @@
  * Única pieza de la feature que llama `useTranslation`/`useRegister`;
  * `RegisterForm` es puramente presentacional (ver su TSDoc de cabecera).
  *
- * Traduce `errorCode` de `useRegister` con el mismo criterio que
- * `EditProfilePage` (`i18n.exists('errors:codigos.${code}')`, cayendo al
- * mensaje genérico si el código no tiene llave propia) — sin duplicar esa
- * lógica en un archivo de `model/` aparte.
+ * Traduce `errorInfo` de `useRegister` (`ADR-0007`: `httpStatus` + `field`,
+ * ya no un `code` propio) a la llave de `auth.json`/`errors.json` que le
+ * corresponde a cada combinación conocida — correo duplicado (409) y
+ * fecha de nacimiento (422, `field: 'birthDate'`) reutilizan el mismo
+ * tratamiento visual que ya tenía cada campo; cualquier otra combinación
+ * cae al mensaje genérico (`errors:generico`) o al de red (`errors:red`,
+ * `httpStatus: 0`).
  */
 import { useTranslation } from 'react-i18next';
 import { AuthLayout } from '@/layouts/AuthLayout';
@@ -17,25 +20,25 @@ import { PRONOUNS } from '../model/pronouns';
 import { useRegister } from '../hooks/useRegister';
 import { RegisterForm } from '../organisms/RegisterForm';
 
-const REGISTRO_CORREO_DUPLICADO = 'REGISTRO_CORREO_DUPLICADO';
-const REGISTRO_FECHA_NACIMIENTO_INVALIDA = 'REGISTRO_FECHA_NACIMIENTO_INVALIDA';
-
 export function RegisterPage() {
-  const { t, i18n } = useTranslation(['auth', 'errors']);
-  const { isSubmitting, isSuccessModalOpen, errorCode, register, closeSuccessModal } =
+  const { t } = useTranslation(['auth', 'errors']);
+  const { isSubmitting, isSuccessModalOpen, errorInfo, register, closeSuccessModal } =
     useRegister();
 
-  const duplicateEmailErrorMessage =
-    errorCode === REGISTRO_CORREO_DUPLICADO
-      ? t('errors:codigos.REGISTRO_CORREO_DUPLICADO')
-      : undefined;
-  const birthDateRejectedByServer = errorCode === REGISTRO_FECHA_NACIMIENTO_INVALIDA;
+  const isDuplicateEmail = errorInfo?.httpStatus === 409;
+  const isBirthDateRejected = errorInfo?.httpStatus === 422 && errorInfo.field === 'birthDate';
+  const isPasswordRejected = errorInfo?.httpStatus === 422 && errorInfo.field === 'password';
+
+  const duplicateEmailErrorMessage = isDuplicateEmail
+    ? t('registro.correoDuplicado.mensaje')
+    : undefined;
+  const contrasenaServerErrorMessage = isPasswordRejected
+    ? t('registro.errores.contrasenaGenerica')
+    : undefined;
   const genericErrorMessage =
-    errorCode &&
-    errorCode !== REGISTRO_CORREO_DUPLICADO &&
-    errorCode !== REGISTRO_FECHA_NACIMIENTO_INVALIDA
-      ? i18n.exists(`errors:codigos.${errorCode}`)
-        ? t(`errors:codigos.${errorCode}`)
+    errorInfo && !isDuplicateEmail && !isBirthDateRejected && !isPasswordRejected
+      ? errorInfo.httpStatus === 0
+        ? t('errors:red')
         : t('errors:generico')
       : undefined;
 
@@ -63,7 +66,7 @@ export function RegisterPage() {
         fechaNacimientoErrorFutura={t('registro.errores.fechaNacimientoFutura')}
         fechaNacimientoErrorImplausible={t('registro.errores.fechaNacimientoImplausible')}
         fechaNacimientoErrorFormatoInvalido={t('registro.errores.fechaNacimientoInvalida')}
-        birthDateRejectedByServer={birthDateRejectedByServer}
+        birthDateRejectedByServer={isBirthDateRejected}
         correoLabel={t('registro.campos.correo')}
         correoPlaceholder={t('ingreso.correoPlaceholder')}
         correoErrorRequired={t('registro.errores.correoRequerido')}
@@ -71,11 +74,21 @@ export function RegisterPage() {
         duplicateEmailErrorMessage={duplicateEmailErrorMessage}
         duplicateEmailLoginLabel={t('registro.correoDuplicado.iniciarSesion')}
         duplicateEmailRecoverLabel={t('registro.correoDuplicado.recuperarContrasena')}
-        celularLabel={t('registro.campos.celular')}
-        celularPlaceholder={t('registro.placeholders.celular')}
+        celularPaisLabel={t('registro.celular.pais')}
+        celularNumeroLabel={t('registro.celular.numero')}
+        celularNumeroPlaceholder={t('registro.celular.numeroPlaceholder')}
+        celularAyuda={t('registro.celular.ayuda')}
+        celularErrorInvalido={t('registro.celular.errorInvalido')}
         contrasenaLabel={t('registro.campos.contrasena')}
         contrasenaPlaceholder={t('ingreso.contrasenaPlaceholder')}
-        contrasenaErrorRequired={t('registro.errores.contrasenaRequerida')}
+        contrasenaErrorMuyCorta={t('registro.errores.contrasenaMuyCorta')}
+        contrasenaErrorMuyLarga={t('registro.errores.contrasenaMuyLarga')}
+        contrasenaErrorComun={t('registro.errores.contrasenaComun')}
+        contrasenaServerErrorMessage={contrasenaServerErrorMessage}
+        contrasenaFuerzaDebil={t('registro.fuerzaContrasena.weak')}
+        contrasenaFuerzaAceptable={t('registro.fuerzaContrasena.fair')}
+        contrasenaFuerzaBuena={t('registro.fuerzaContrasena.good')}
+        contrasenaFuerzaFuerte={t('registro.fuerzaContrasena.strong')}
         confirmarContrasenaLabel={t('registro.campos.confirmarContrasena')}
         confirmarContrasenaPlaceholder={t('ingreso.contrasenaPlaceholder')}
         confirmarContrasenaErrorRequired={t('registro.errores.confirmarContrasenaRequerida')}

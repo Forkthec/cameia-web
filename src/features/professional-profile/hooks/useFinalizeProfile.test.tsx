@@ -77,6 +77,6 @@ describe('useFinalizeProfile', () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
     const error = result.current.error as ApiError;
     expect(error.isValidation()).toBe(true);
-    expect(error.details.map((detail) => detail.field)).toContain('targetRoles');
+    expect(error.errors.map((item) => item.field)).toContain('targetRoles');
   });
 });

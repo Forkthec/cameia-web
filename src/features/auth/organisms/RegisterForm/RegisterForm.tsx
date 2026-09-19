@@ -2,29 +2,44 @@
  * Formulario de Registro (`PRT-01.01`, nodos `70:170` lg / `75:410` sm):
  * Google (deshabilitado), divisor, Nombre(s)/Apellido(s) (lado a lado en
  * `lg`, apilados en `sm`), Fecha de nacimiento, Correo, Celular (opcional),
- * Contraseña, Confirmar contraseña, Pronombres, botón "Registrarse".
+ * Contraseña (+ medidor de fuerza), Confirmar contraseña, Pronombres, botón
+ * "Registrarse".
  *
  * Mismo patrón que `LoginForm`/`GeneralInfoForm`: sin `useTranslation`
- * (CLAUDE.md §14.7), todo texto visible entra por prop obligatoria;
- * `Controller` de react-hook-form en vez de `register()` porque `Input`/
- * `PasswordField`/`Select` no exponen `ref`.
+ * (CLAUDE.md §14.7), todo texto visible entra por prop obligatoria.
+ * `Controller` de react-hook-form, cada uno pasando `ref={field.ref}` al
+ * control real (CM-34 seguimiento: `Input`/`Select`/`PasswordField` ya
+ * reenvían `ref`) — así `handleSubmit` enfoca solo el primer campo con
+ * error al enviar (`shouldFocusError`, por defecto en react-hook-form).
  *
  * `fechaNacimientoAyuda` es el mismo texto en el helper permanente y en el
  * error de "menor de edad" (Figma, nodo `73:535`: el error solo cambia el
  * borde, nunca el texto) — se reutiliza también cuando el backend rechaza
  * la fecha (`birthDateRejectedByServer`, `InvalidBirthDateException`,
- * `SPEC.md` §3): es la misma causa, solo que detectada del otro lado.
+ * `SPEC.md` §3): es la misma causa, solo que detectada del otro lado. El
+ * campo además lleva `max={hoy}` para que el selector nativo del navegador
+ * no deje elegir una fecha futura (pedido explícito del usuario, no solo
+ * capturado al enviar).
  *
  * `duplicateEmailErrorMessage` fuerza el campo `correo` a estado de error y
  * revela el bloque de dos acciones que dibuja Figma para ese caso
  * ("Iniciar sesión" funcional, "Recuperar contraseña" deshabilitado — mismo
  * tratamiento que Login).
+ *
+ * `contrasena`/`celular.numeroNacional` replican reglas reales del backend
+ * (`PasswordPolicy.java`/`PhoneNumber.java`, `register.schema.ts`) —
+ * `contrasenaServerErrorMessage` cubre el residual improbable de que el
+ * backend rechace algo que el cliente no supo replicar (p. ej. una regla
+ * nueva); el celular no tiene un residual equivalente, porque
+ * `BusinessExceptionHandler.valorInvalido()` no etiqueta el campo (cae al
+ * `genericErrorMessage` general de la página).
  */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { Link } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
 import { cn } from '@/utils/cn';
+import { calculatePasswordStrength } from '@/utils/passwordStrength';
 import { Button } from '@/design-system/atoms/Button';
 import { Divider } from '@/design-system/atoms/Divider';
 import { Icon } from '@/design-system/icons/Icon';
@@ -33,11 +48,17 @@ import { AlertInline } from '@/design-system/molecules/AlertInline';
 import { FormField } from '@/design-system/molecules/FormField';
 import { Input } from '@/design-system/atoms/Input';
 import { PasswordField } from '@/design-system/molecules/PasswordField';
+import { PasswordStrength } from '@/design-system/molecules/PasswordStrength';
+import { PhoneField } from '../PhoneField';
 import {
   registerSchema,
   registerSchemaErrorCodes,
   type RegisterFormValues,
 } from '../../schemas/register.schema';
+
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 interface RegisterFormProps {
   isSubmitting: boolean;
@@ -71,12 +92,23 @@ interface RegisterFormProps {
   duplicateEmailLoginLabel: string;
   duplicateEmailRecoverLabel: string;
 
-  celularLabel: string;
-  celularPlaceholder: string;
+  celularPaisLabel: string;
+  celularNumeroLabel: string;
+  celularNumeroPlaceholder: string;
+  celularAyuda: string;
+  celularErrorInvalido: string;
 
   contrasenaLabel: string;
   contrasenaPlaceholder: string;
-  contrasenaErrorRequired: string;
+  contrasenaErrorMuyCorta: string;
+  contrasenaErrorMuyLarga: string;
+  contrasenaErrorComun: string;
+  /** Residual: el backend rechazó la contraseña por una regla que el cliente no replica. */
+  contrasenaServerErrorMessage?: string;
+  contrasenaFuerzaDebil: string;
+  contrasenaFuerzaAceptable: string;
+  contrasenaFuerzaBuena: string;
+  contrasenaFuerzaFuerte: string;
   confirmarContrasenaLabel: string;
   confirmarContrasenaPlaceholder: string;
   confirmarContrasenaErrorRequired: string;
@@ -89,7 +121,7 @@ interface RegisterFormProps {
   pronombresOptions: SelectOption[];
   pronombresErrorRequired: string;
 
-  /** Cualquier otro `4xx`/fallo de red no cubierto por los dos casos específicos de arriba. */
+  /** Cualquier otro `4xx`/fallo de red no cubierto por los casos específicos de arriba. */
   genericErrorMessage?: string;
 
   submitLabel: string;
@@ -124,11 +156,21 @@ export function RegisterForm({
   duplicateEmailErrorMessage,
   duplicateEmailLoginLabel,
   duplicateEmailRecoverLabel,
-  celularLabel,
-  celularPlaceholder,
+  celularPaisLabel,
+  celularNumeroLabel,
+  celularNumeroPlaceholder,
+  celularAyuda,
+  celularErrorInvalido,
   contrasenaLabel,
   contrasenaPlaceholder,
-  contrasenaErrorRequired,
+  contrasenaErrorMuyCorta,
+  contrasenaErrorMuyLarga,
+  contrasenaErrorComun,
+  contrasenaServerErrorMessage,
+  contrasenaFuerzaDebil,
+  contrasenaFuerzaAceptable,
+  contrasenaFuerzaBuena,
+  contrasenaFuerzaFuerte,
   confirmarContrasenaLabel,
   confirmarContrasenaPlaceholder,
   confirmarContrasenaErrorRequired,
@@ -146,6 +188,13 @@ export function RegisterForm({
   footerCta,
   className,
 }: RegisterFormProps) {
+  const strengthLabels = {
+    weak: contrasenaFuerzaDebil,
+    fair: contrasenaFuerzaAceptable,
+    good: contrasenaFuerzaBuena,
+    strong: contrasenaFuerzaFuerte,
+  } as const;
+
   const { control, handleSubmit } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -153,7 +202,7 @@ export function RegisterForm({
       apellido: '',
       fechaNacimiento: '',
       correo: '',
-      celular: '',
+      celular: { paisIso: 'CO', numeroNacional: '' },
       contrasena: '',
       confirmarContrasena: '',
       pronombres: '',
@@ -161,6 +210,7 @@ export function RegisterForm({
   });
 
   const hasDuplicateEmailError = Boolean(duplicateEmailErrorMessage);
+  const hasContrasenaServerError = Boolean(contrasenaServerErrorMessage);
 
   return (
     <form
@@ -200,6 +250,7 @@ export function RegisterForm({
               error={fieldState.error?.type === 'too_small' ? nombreErrorRequired : undefined}
             >
               <Input
+                ref={field.ref}
                 value={field.value}
                 onChange={field.onChange}
                 onBlur={field.onBlur}
@@ -220,6 +271,7 @@ export function RegisterForm({
               error={fieldState.error?.type === 'too_small' ? apellidoErrorRequired : undefined}
             >
               <Input
+                ref={field.ref}
                 value={field.value}
                 onChange={field.onChange}
                 onBlur={field.onBlur}
@@ -260,7 +312,9 @@ export function RegisterForm({
               error={errorMessage}
             >
               <Input
+                ref={field.ref}
                 type="date"
+                max={todayIsoDate()}
                 value={field.value}
                 onChange={field.onChange}
                 onBlur={field.onBlur}
@@ -295,6 +349,7 @@ export function RegisterForm({
               }
             >
               <Input
+                ref={field.ref}
                 type="email"
                 value={field.value}
                 onChange={field.onChange}
@@ -333,41 +388,72 @@ export function RegisterForm({
 
       <Controller
         control={control}
-        name="celular"
-        render={({ field }) => (
-          <FormField label={celularLabel}>
-            <Input
-              type="text"
-              value={field.value}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              placeholder={celularPlaceholder}
-              autoComplete="tel"
-              state={isSubmitting ? 'disabled' : 'default'}
-            />
-          </FormField>
+        name="celular.numeroNacional"
+        render={({ field: numeroField, fieldState }) => (
+          <Controller
+            control={control}
+            name="celular.paisIso"
+            render={({ field: paisField }) => (
+              <PhoneField
+                paisLabel={celularPaisLabel}
+                paisValue={paisField.value}
+                onPaisChange={paisField.onChange}
+                numeroLabel={celularNumeroLabel}
+                numeroValue={numeroField.value}
+                onNumeroChange={numeroField.onChange}
+                onNumeroBlur={numeroField.onBlur}
+                numeroPlaceholder={celularNumeroPlaceholder}
+                helperText={fieldState.error ? undefined : celularAyuda}
+                errorMessage={fieldState.error ? celularErrorInvalido : undefined}
+                state={isSubmitting ? 'disabled' : fieldState.error ? 'error' : 'default'}
+              />
+            )}
+          />
         )}
       />
 
       <Controller
         control={control}
         name="contrasena"
-        render={({ field, fieldState }) => (
-          <FormField
-            label={contrasenaLabel}
-            error={fieldState.error?.type === 'too_small' ? contrasenaErrorRequired : undefined}
-          >
-            <PasswordField
-              value={field.value}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              placeholder={contrasenaPlaceholder}
-              showPasswordLabel={showPasswordLabel}
-              hidePasswordLabel={hidePasswordLabel}
-              state={isSubmitting ? 'disabled' : fieldState.error ? 'error' : 'default'}
-            />
-          </FormField>
-        )}
+        render={({ field, fieldState }) => {
+          const errorMessage = hasContrasenaServerError
+            ? contrasenaServerErrorMessage
+            : fieldState.error?.message === registerSchemaErrorCodes.CONTRASENA_MUY_CORTA
+              ? contrasenaErrorMuyCorta
+              : fieldState.error?.message === registerSchemaErrorCodes.CONTRASENA_MUY_LARGA
+                ? contrasenaErrorMuyLarga
+                : fieldState.error?.message === registerSchemaErrorCodes.CONTRASENA_COMUN
+                  ? contrasenaErrorComun
+                  : undefined;
+          const strength = calculatePasswordStrength(field.value);
+
+          return (
+            <div className="gap-space-2 flex flex-col">
+              <FormField label={contrasenaLabel} error={errorMessage}>
+                <PasswordField
+                  ref={field.ref}
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder={contrasenaPlaceholder}
+                  showPasswordLabel={showPasswordLabel}
+                  hidePasswordLabel={hidePasswordLabel}
+                  state={
+                    isSubmitting
+                      ? 'disabled'
+                      : errorMessage || fieldState.error
+                        ? 'error'
+                        : 'default'
+                  }
+                />
+              </FormField>
+              <PasswordStrength
+                level={strength}
+                label={strength === 'empty' ? undefined : strengthLabels[strength]}
+              />
+            </div>
+          );
+        }}
       />
 
       <Controller
@@ -386,6 +472,7 @@ export function RegisterForm({
             }
           >
             <PasswordField
+              ref={field.ref}
               value={field.value}
               onChange={field.onChange}
               onBlur={field.onBlur}
@@ -407,6 +494,7 @@ export function RegisterForm({
             error={fieldState.error?.type === 'too_small' ? pronombresErrorRequired : undefined}
           >
             <Select
+              ref={field.ref}
               options={pronombresOptions}
               value={field.value}
               onChange={field.onChange}

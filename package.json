@@ -34,6 +34,7 @@
     "firebase": "12.18.0",
     "i18next": "26.4.2",
     "i18next-browser-languagedetector": "8.2.1",
+    "libphonenumber-js": "1.13.13",
     "lucide-react": "1.43.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",

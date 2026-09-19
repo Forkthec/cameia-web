@@ -15,6 +15,13 @@
  * (mismo mecanismo que `RequireAuth`/`useLogin` usan para `from`), para que
  * `LoginPage` muestre un mensaje informativo en vez de dejar a la persona
  * varada en un formulario que ya cumplió su propósito.
+ *
+ * `errorInfo` (`ADR-0007`, ya no hay `code` propio del backend): expone
+ * `httpStatus` + el primer `field` que `BusinessExceptionHandler.java` haya
+ * etiquetado (`birthDate`/`password` — `phoneNumber` nunca llega etiquetado,
+ * `valorInvalido()` no llama `campo()`). `httpStatus: 0` marca un fallo que
+ * ni siquiera llegó a responder (red). `RegisterPage` traduce cada
+ * combinación a su propia llave de `auth:registro.errores.*`.
  */
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -28,18 +35,17 @@ import type { RegisterFormValues } from '../schemas/register.schema';
 /** Valor de `location.state.registerInfo` que `LoginPage` reconoce para mostrar el mensaje informativo del caso de borde. */
 export const SIGN_IN_AFTER_REGISTER_FAILED = 'SIGN_IN_AFTER_REGISTER_FAILED';
 
+export interface RegisterErrorInfo {
+  httpStatus: number;
+  field?: string;
+}
+
 interface UseRegisterResult {
   /** `true` desde que se envía el formulario hasta que el backend/Firebase resuelven (éxito o error). */
   isSubmitting: boolean;
   /** `true` mientras se muestra el `Modal` de confirmación de Plan Gratis. */
   isSuccessModalOpen: boolean;
-  /**
-   * `error.code` de `ApiError` si el `POST` respondió `4xx`, o
-   * `'NETWORK_ERROR'` si la petición ni siquiera llegó a responder.
-   * `RegisterPage` decide, con `i18n.exists`, qué llave de `errors:codigos`
-   * le corresponde (mismo patrón que `EditProfilePage`).
-   */
-  errorCode: string | null;
+  errorInfo: RegisterErrorInfo | null;
   register: (values: RegisterFormValues) => Promise<void>;
   /** Cierra el modal y redirige a `/inicio` — misma acción sin importar cómo se cerró. */
   closeSuccessModal: () => void;
@@ -48,17 +54,21 @@ interface UseRegisterResult {
 export function useRegister(): UseRegisterResult {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
-  const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [errorInfo, setErrorInfo] = useState<RegisterErrorInfo | null>(null);
   const navigate = useNavigate();
 
   async function register(values: RegisterFormValues) {
     setIsSubmitting(true);
-    setErrorCode(null);
+    setErrorInfo(null);
 
     try {
       await registerUser(values);
     } catch (error) {
-      setErrorCode(error instanceof ApiError ? error.code : 'NETWORK_ERROR');
+      setErrorInfo(
+        error instanceof ApiError
+          ? { httpStatus: error.httpStatus, field: error.errors[0]?.field }
+          : { httpStatus: 0 },
+      );
       setIsSubmitting(false);
       return;
     }
@@ -88,5 +98,5 @@ export function useRegister(): UseRegisterResult {
     void navigate(ROUTES.inicio, { replace: true });
   }
 
-  return { isSubmitting, isSuccessModalOpen, errorCode, register, closeSuccessModal };
+  return { isSubmitting, isSuccessModalOpen, errorInfo, register, closeSuccessModal };
 }

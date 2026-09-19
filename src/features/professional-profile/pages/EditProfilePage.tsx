@@ -115,7 +115,7 @@ export function EditProfilePage() {
     const error = profileQuery.error ?? professionalRolesQuery.error;
     const message =
       error instanceof ApiError
-        ? error.code === 'NOT_FOUND'
+        ? error.httpStatus === 404
           ? t('errors:codigos.NOT_FOUND')
           : t('errors:generico')
         : t('errors:red');
@@ -143,20 +143,23 @@ export function EditProfilePage() {
   const completenessValue = getCompletenessValue(profile);
 
   /**
-   * Prefiere el mensaje específico del código de error real (p. ej.
-   * `WORK_EXPERIENCE_DATE_INVALID`) cuando lo hay en `errors:codigos`, y
-   * cae al mensaje genérico de la sección cuando no lo reconoce — mismo
-   * criterio que ya usa `EditProfilePage` para el error de carga del perfil.
+   * Prefiere el mensaje específico de `httpStatus` cuando quien llama lo
+   * tiene en `byStatus`, y cae al mensaje genérico de la sección cuando no
+   * (`ADR-0007`: ya no hay `code` propio del backend — cada mutación conoce
+   * de antemano qué `httpStatus` puede devolver y qué significa cada uno,
+   * porque los confirma `ProfileController.java`, no un catálogo compartido).
    */
-  function getItemErrorMessage(error: unknown, fallback: string): string {
-    if (error instanceof ApiError && i18n.exists(`errors:codigos.${error.code}`)) {
-      return t(`errors:codigos.${error.code}`);
-    }
-    return fallback;
+  function getItemErrorMessage(
+    error: unknown,
+    fallback: string,
+    byStatus: Record<number, string> = {},
+  ): string {
+    const specific = error instanceof ApiError ? byStatus[error.httpStatus] : undefined;
+    return specific ?? fallback;
   }
 
   /**
-   * `getMissingRequirementFields` ya aísla la lectura de `error.details`
+   * `getMissingRequirementFields` ya aísla la lectura de `error.errors`
    * (probada aparte, sin renderizar); aquí solo se traduce cada campo
    * contra `profile:formulario.requisitos.*` — un `field` que esta rama no
    * reconozca (p. ej. si el contrato real usa otros nombres) se omite en
@@ -265,7 +268,9 @@ export function EditProfilePage() {
           emptyStateDescription={t('profile:educacion.vacio.descripcion')}
           addErrorMessage={
             addEducation.isError
-              ? getItemErrorMessage(addEducation.error, t('profile:educacion.errorAgregar'))
+              ? getItemErrorMessage(addEducation.error, t('profile:educacion.errorAgregar'), {
+                  422: t('profile:educacion.errorFechaInvalida'),
+                })
               : undefined
           }
           removeErrorMessage={
@@ -320,7 +325,11 @@ export function EditProfilePage() {
           emptyStateDescription={t('profile:experiencia.vacio.descripcion')}
           addErrorMessage={
             addWorkExperience.isError
-              ? getItemErrorMessage(addWorkExperience.error, t('profile:experiencia.errorAgregar'))
+              ? getItemErrorMessage(
+                  addWorkExperience.error,
+                  t('profile:experiencia.errorAgregar'),
+                  { 422: t('profile:experiencia.errorFechaInvalida') },
+                )
               : undefined
           }
           removeErrorMessage={
@@ -371,7 +380,9 @@ export function EditProfilePage() {
           emptyStateDescription={t('profile:habilidades.vacio.descripcion')}
           addErrorMessage={
             addSkill.isError
-              ? getItemErrorMessage(addSkill.error, t('profile:habilidades.errorAgregar'))
+              ? getItemErrorMessage(addSkill.error, t('profile:habilidades.errorAgregar'), {
+                  409: t('profile:habilidades.nombre.errorDuplicado'),
+                })
               : undefined
           }
           removeErrorMessage={
@@ -422,7 +433,10 @@ export function EditProfilePage() {
           emptyStateDescription={t('profile:rolesObjetivo.vacio.descripcion')}
           addErrorMessage={
             addTargetRole.isError
-              ? getItemErrorMessage(addTargetRole.error, t('profile:rolesObjetivo.errorAgregar'))
+              ? getItemErrorMessage(addTargetRole.error, t('profile:rolesObjetivo.errorAgregar'), {
+                  422: t('profile:rolesObjetivo.agregar.tope'),
+                  409: t('profile:rolesObjetivo.errorDuplicado'),
+                })
               : undefined
           }
           substituteErrorMessage={
@@ -430,6 +444,7 @@ export function EditProfilePage() {
               ? getItemErrorMessage(
                   substituteTargetRole.error,
                   t('profile:rolesObjetivo.errorSustituir'),
+                  { 409: t('profile:rolesObjetivo.errorDuplicado') },
                 )
               : undefined
           }
@@ -438,6 +453,7 @@ export function EditProfilePage() {
               ? getItemErrorMessage(
                   removeTargetRole.error,
                   t('profile:rolesObjetivo.errorEliminar'),
+                  { 422: t('profile:rolesObjetivo.eliminarUltimoBloqueado') },
                 )
               : undefined
           }

@@ -35,7 +35,7 @@
  * contrato. `POST /api/v1/profiles/:id/completion` (no `.../finalize`,
  * como este archivo simulaba desde CM-61 hasta esta corrección — ver
  * `SPEC.md` §5) valida los 5 requisitos reales en orden y devuelve
- * **todos** los incumplidos en `details`, nunca solo el primero.
+ * **todos** los incumplidos en `errors`, nunca solo el primero.
  *
  * CM-69: Roles Objetivo también es gestión por ítem (`POST`/`PATCH`/
  * `DELETE`), confirmado contra el código real de `ProfileController.java`
@@ -68,6 +68,13 @@
  * `PATCH`; el backlog (CA-2.2.1 a CA-2.2.3) valida el nombre en la
  * creación. Aquí el body de `POST` es opcional — sin `name` crea vacío
  * (memo), y si `name` viene, se valida en el mismo sitio que `PATCH`.
+ *
+ * **Errores (`ADR-0007`):** el cuerpo de cada error simula un `ProblemDetail`
+ * real (RFC 7807, `title`/`status`/`detail` + la extensión `errors:
+ * [{field, message}]`) — sin `code` propio, porque `ApiExceptionHandler.java`
+ * (el backend real de `cameia-perfil`, ya citado en `SPEC.md` §4) tampoco lo
+ * envía. Cada llamador de este mock discrimina por `httpStatus`, nunca por
+ * un código inventado.
  */
 import { http, HttpResponse, type HttpHandler } from 'msw';
 import { MOCK_USER_ID } from './auth.handlers';
@@ -78,39 +85,6 @@ const SUMMARY_MAX_LENGTH = 2000;
 const DESCRIPTION_MAX_LENGTH = 500;
 const SKILL_NAME_MAX_LENGTH = 255;
 const MAX_TARGET_ROLES = 5;
-
-// Código de mock, no confirmado con backend; puede no coincidir cuando
-// exista el contrato real.
-const PROFILE_NAME_INVALID = 'PROFILE_NAME_INVALID';
-
-// Reutiliza el código genérico que ya existe en errors.json (§errors.codigos).
-const VALIDATION_ERROR = 'VALIDATION_ERROR';
-
-// Códigos nuevos de CM-61, PROVISIONALES — el backend real (ApiExceptionHandler.java)
-// responde 422 vía ProblemDetail con título "Valor no válido" para ambos
-// casos, sin un `code` propio todavía (bloqueo, mismo origen que C-01).
-const WORK_EXPERIENCE_DATE_INVALID = 'WORK_EXPERIENCE_DATE_INVALID';
-const EDUCATION_DATE_INVALID = 'EDUCATION_DATE_INVALID';
-
-// Código nuevo de CM-65, PROVISIONAL — el backend real (`ProfileController.java`)
-// confirma el status 409 para "habilidad ya asociada" pero no un `code` propio.
-const SKILL_DUPLICATE = 'SKILL_DUPLICATE';
-
-// Códigos nuevos de CM-65, PROVISIONALES — reemplazan `EDUCATION_REQUIRED`
-// (código de mock de CM-61 para el `/finalize` que este archivo ya no
-// simula): `ProfileController.java#completeProfile` confirma 422 con "la
-// lista de campos faltantes", pero no el `code`/forma exacta del cuerpo —
-// se transporta como `details` (un `ApiErrorDetail` por requisito), no como
-// un `missingRequirements` aparte (ver TSDoc de `finalizeProfile` en
-// `api/profile.api.ts`).
-const PROFILE_INCOMPLETE = 'PROFILE_INCOMPLETE';
-const PROFILE_ALREADY_COMPLETED = 'PROFILE_ALREADY_COMPLETED';
-
-// Códigos nuevos de CM-69, PROVISIONALES — mismo motivo: `ProfileController.java`
-// confirma los status HTTP (404/409/422) pero no un `code` de `ProblemDetail` propio.
-const TARGET_ROLE_DUPLICATE = 'TARGET_ROLE_DUPLICATE';
-const TARGET_ROLE_MAX_REACHED = 'TARGET_ROLE_MAX_REACHED';
-const TARGET_ROLE_LAST_CANNOT_REMOVE = 'TARGET_ROLE_LAST_CANNOT_REMOVE';
 
 const EDUCATION_LEVELS = ['TECHNICAL', 'UNDERGRADUATE', 'POSTGRADUATE'] as const;
 const EMPLOYMENT_STATUSES = ['CURRENT', 'UNKNOWN_END', 'ENDED'] as const;
@@ -190,25 +164,26 @@ interface ProfilePatchBody {
   summary?: string;
 }
 
-interface MockErrorDetail {
+interface MockErrorField {
   field: string;
-  code: string;
+  message: string;
 }
 
-/** Misma forma que `BackendErrorBody` en `services/http/errorMap.ts` — el contrato provisional, no RFC 9457. */
-function errorBody(code: string, message: string, details: MockErrorDetail[] = []) {
-  return { code, message, details, timestamp: new Date().toISOString() };
+/** Misma forma que un `ProblemDetail` real (RFC 7807, `ADR-0007`) — sin `code` propio. */
+function errorBody(status: number, title: string, detail: string, errors: MockErrorField[] = []) {
+  return { type: 'about:blank', title, status, detail, errors };
+}
+
+function notFound(detail: string) {
+  return errorBody(404, 'No encontrado', detail);
 }
 
 /** CA-2.2.1 a CA-2.2.3: nombre vacío o mayor a 255 caracteres, confirmado por la respuesta oficial del PO del 13-sep (C-01) contra el código/OpenAPI de MicroPerfilPro. */
 function validateName(name: string): ReturnType<typeof errorBody> | undefined {
   const trimmed = name.trim();
   if (trimmed.length === 0 || trimmed.length > NAME_MAX_LENGTH) {
-    return errorBody(
-      PROFILE_NAME_INVALID,
-      `El nombre del perfil debe tener entre 1 y ${NAME_MAX_LENGTH} caracteres.`,
-      [{ field: 'name', code: 'INVALID_LENGTH' }],
-    );
+    const detail = `El nombre del perfil debe tener entre 1 y ${NAME_MAX_LENGTH} caracteres.`;
+    return errorBody(400, 'Datos no válidos', detail, [{ field: 'name', message: detail }]);
   }
   return undefined;
 }
@@ -324,7 +299,7 @@ export const profilesHandlers: HttpHandler[] = [
     async ({ request, params }) => {
       const profile = findProfile(params.id);
       if (!profile) {
-        return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+        return HttpResponse.json(notFound('Perfil no encontrado.'), { status: 404 });
       }
 
       const body = await safeJson(request);
@@ -376,7 +351,7 @@ export const profilesHandlers: HttpHandler[] = [
     async ({ request, params }) => {
       const profile = findProfile(params.id);
       if (!profile) {
-        return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+        return HttpResponse.json(notFound('Perfil no encontrado.'), { status: 404 });
       }
 
       const body = (await safeJson(request)) ?? {};
@@ -393,7 +368,7 @@ export const profilesHandlers: HttpHandler[] = [
         (typeof description === 'string' && description.length > DESCRIPTION_MAX_LENGTH)
       ) {
         return HttpResponse.json(
-          errorBody(VALIDATION_ERROR, 'Revisa los datos de la experiencia laboral.'),
+          errorBody(400, 'Datos no válidos', 'Revisa los datos de la experiencia laboral.'),
           { status: 400 },
         );
       }
@@ -403,29 +378,23 @@ export const profilesHandlers: HttpHandler[] = [
 
       if (status === 'ENDED') {
         if (!isYearMonth(endDate)) {
+          const detail = 'La fecha de fin es obligatoria si ya no trabajas ahí.';
           return HttpResponse.json(
-            errorBody(
-              WORK_EXPERIENCE_DATE_INVALID,
-              'La fecha de fin es obligatoria si ya no trabajas ahí.',
-            ),
+            errorBody(422, 'Fecha no válida', detail, [{ field: 'endDate', message: detail }]),
             { status: 422 },
           );
         }
         if (endDate < startDate) {
+          const detail = 'La fecha de fin no puede ser anterior a la de inicio.';
           return HttpResponse.json(
-            errorBody(
-              WORK_EXPERIENCE_DATE_INVALID,
-              'La fecha de fin no puede ser anterior a la de inicio.',
-            ),
+            errorBody(422, 'Fecha no válida', detail, [{ field: 'endDate', message: detail }]),
             { status: 422 },
           );
         }
       } else if (hasEndDate) {
+        const detail = 'No puedes indicar una fecha de fin en este estado.';
         return HttpResponse.json(
-          errorBody(
-            WORK_EXPERIENCE_DATE_INVALID,
-            'No puedes indicar una fecha de fin en este estado.',
-          ),
+          errorBody(422, 'Fecha no válida', detail, [{ field: 'endDate', message: detail }]),
           { status: 422 },
         );
       }
@@ -450,13 +419,11 @@ export const profilesHandlers: HttpHandler[] = [
     ({ params }) => {
       const profile = findProfile(params.id);
       if (!profile) {
-        return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+        return HttpResponse.json(notFound('Perfil no encontrado.'), { status: 404 });
       }
       const index = profile.workExperience.findIndex((item) => item.id === params.workExperienceId);
       if (index === -1) {
-        return HttpResponse.json(errorBody('NOT_FOUND', 'Experiencia laboral no encontrada.'), {
-          status: 404,
-        });
+        return HttpResponse.json(notFound('Experiencia laboral no encontrada.'), { status: 404 });
       }
       profile.workExperience.splice(index, 1);
       return HttpResponse.json(profile, { status: 200 });
@@ -469,7 +436,7 @@ export const profilesHandlers: HttpHandler[] = [
   http.post<{ id: string }>('*/api/v1/profiles/:id/educations', async ({ request, params }) => {
     const profile = findProfile(params.id);
     if (!profile) {
-      return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+      return HttpResponse.json(notFound('Perfil no encontrado.'), { status: 404 });
     }
 
     const body = (await safeJson(request)) ?? {};
@@ -486,29 +453,23 @@ export const profilesHandlers: HttpHandler[] = [
       (fieldOfStudy !== undefined && fieldOfStudy !== null && typeof fieldOfStudy !== 'string')
     ) {
       return HttpResponse.json(
-        errorBody(VALIDATION_ERROR, 'Revisa los datos de la formación académica.'),
-        {
-          status: 400,
-        },
+        errorBody(400, 'Datos no válidos', 'Revisa los datos de la formación académica.'),
+        { status: 400 },
       );
     }
 
     const hasEndDate = endDate !== undefined && endDate !== null && endDate !== '';
     if (inProgress && hasEndDate) {
+      const detail = 'Una formación en curso no puede tener fecha de finalización.';
       return HttpResponse.json(
-        errorBody(
-          EDUCATION_DATE_INVALID,
-          'Una formación en curso no puede tener fecha de finalización.',
-        ),
+        errorBody(422, 'Fecha no válida', detail, [{ field: 'endDate', message: detail }]),
         { status: 422 },
       );
     }
     if (hasEndDate && !isYearMonth(endDate)) {
       return HttpResponse.json(
-        errorBody(VALIDATION_ERROR, 'La fecha de finalización no es válida.'),
-        {
-          status: 400,
-        },
+        errorBody(400, 'Datos no válidos', 'La fecha de finalización no es válida.'),
+        { status: 400 },
       );
     }
 
@@ -532,13 +493,11 @@ export const profilesHandlers: HttpHandler[] = [
     ({ params }) => {
       const profile = findProfile(params.id);
       if (!profile) {
-        return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+        return HttpResponse.json(notFound('Perfil no encontrado.'), { status: 404 });
       }
       const index = profile.education.findIndex((item) => item.id === params.educationId);
       if (index === -1) {
-        return HttpResponse.json(errorBody('NOT_FOUND', 'Educación no encontrada.'), {
-          status: 404,
-        });
+        return HttpResponse.json(notFound('Educación no encontrada.'), { status: 404 });
       }
       profile.education.splice(index, 1);
       return HttpResponse.json(profile, { status: 200 });
@@ -552,7 +511,7 @@ export const profilesHandlers: HttpHandler[] = [
   http.post<{ id: string }>('*/api/v1/profiles/:id/skills', async ({ request, params }) => {
     const profile = findProfile(params.id);
     if (!profile) {
-      return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+      return HttpResponse.json(notFound('Perfil no encontrado.'), { status: 404 });
     }
 
     const body = (await safeJson(request)) ?? {};
@@ -564,16 +523,18 @@ export const profilesHandlers: HttpHandler[] = [
       !SKILL_LEVELS.includes(level as SkillLevel) ||
       !DATA_PROVENANCES.includes(provenance as DataProvenance)
     ) {
-      return HttpResponse.json(errorBody(VALIDATION_ERROR, 'Revisa los datos de la habilidad.'), {
-        status: 400,
-      });
+      return HttpResponse.json(
+        errorBody(400, 'Datos no válidos', 'Revisa los datos de la habilidad.'),
+        { status: 400 },
+      );
     }
 
     const normalized = skillName.trim().toLowerCase();
     if (profile.skills.some((skill) => skill.skillName.trim().toLowerCase() === normalized)) {
-      return HttpResponse.json(errorBody(SKILL_DUPLICATE, 'Esa habilidad ya está en tu perfil.'), {
-        status: 409,
-      });
+      return HttpResponse.json(
+        errorBody(409, 'Habilidad duplicada', 'Esa habilidad ya está en tu perfil.'),
+        { status: 409 },
+      );
     }
 
     const item: SkillItem = {
@@ -591,13 +552,11 @@ export const profilesHandlers: HttpHandler[] = [
     ({ params }) => {
       const profile = findProfile(params.id);
       if (!profile) {
-        return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+        return HttpResponse.json(notFound('Perfil no encontrado.'), { status: 404 });
       }
       const index = profile.skills.findIndex((skill) => skill.id === params.skillId);
       if (index === -1) {
-        return HttpResponse.json(errorBody('NOT_FOUND', 'Habilidad no encontrada.'), {
-          status: 404,
-        });
+        return HttpResponse.json(notFound('Habilidad no encontrada.'), { status: 404 });
       }
       profile.skills.splice(index, 1);
       return HttpResponse.json(profile, { status: 200 });
@@ -611,7 +570,7 @@ export const profilesHandlers: HttpHandler[] = [
   http.post<{ id: string }>('*/api/v1/profiles/:id/target-roles', async ({ request, params }) => {
     const profile = findProfile(params.id);
     if (!profile) {
-      return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+      return HttpResponse.json(notFound('Perfil no encontrado.'), { status: 404 });
     }
 
     const body = (await safeJson(request)) ?? {};
@@ -622,15 +581,17 @@ export const profilesHandlers: HttpHandler[] = [
       !PROFESSIONAL_ROLES.some((role) => role.id === professionalRoleId) ||
       !DATA_PROVENANCES.includes(provenance as DataProvenance)
     ) {
-      return HttpResponse.json(errorBody(VALIDATION_ERROR, 'Revisa el rol objetivo enviado.'), {
-        status: 400,
-      });
+      return HttpResponse.json(
+        errorBody(400, 'Datos no válidos', 'Revisa el rol objetivo enviado.'),
+        { status: 400 },
+      );
     }
 
     if (profile.targetRoles.length >= MAX_TARGET_ROLES) {
       return HttpResponse.json(
         errorBody(
-          TARGET_ROLE_MAX_REACHED,
+          422,
+          'Máximo de roles alcanzado',
           `Ya tienes el máximo de ${MAX_TARGET_ROLES} roles objetivo.`,
         ),
         { status: 422 },
@@ -639,7 +600,7 @@ export const profilesHandlers: HttpHandler[] = [
 
     if (profile.targetRoles.some((role) => role.professionalRoleId === professionalRoleId)) {
       return HttpResponse.json(
-        errorBody(TARGET_ROLE_DUPLICATE, 'Ese rol objetivo ya está en tu perfil.'),
+        errorBody(409, 'Rol objetivo duplicado', 'Ese rol objetivo ya está en tu perfil.'),
         { status: 409 },
       );
     }
@@ -661,13 +622,11 @@ export const profilesHandlers: HttpHandler[] = [
     async ({ request, params }) => {
       const profile = findProfile(params.id);
       if (!profile) {
-        return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+        return HttpResponse.json(notFound('Perfil no encontrado.'), { status: 404 });
       }
       const item = profile.targetRoles.find((role) => role.id === params.roleId);
       if (!item) {
-        return HttpResponse.json(errorBody('NOT_FOUND', 'Rol objetivo no encontrado.'), {
-          status: 404,
-        });
+        return HttpResponse.json(notFound('Rol objetivo no encontrado.'), { status: 404 });
       }
 
       const body = (await safeJson(request)) ?? {};
@@ -677,9 +636,10 @@ export const profilesHandlers: HttpHandler[] = [
         !isNonBlankString(professionalRoleId) ||
         !PROFESSIONAL_ROLES.some((role) => role.id === professionalRoleId)
       ) {
-        return HttpResponse.json(errorBody(VALIDATION_ERROR, 'Revisa el rol objetivo enviado.'), {
-          status: 400,
-        });
+        return HttpResponse.json(
+          errorBody(400, 'Datos no válidos', 'Revisa el rol objetivo enviado.'),
+          { status: 400 },
+        );
       }
 
       if (
@@ -688,7 +648,7 @@ export const profilesHandlers: HttpHandler[] = [
         )
       ) {
         return HttpResponse.json(
-          errorBody(TARGET_ROLE_DUPLICATE, 'Ese rol objetivo ya está en tu perfil.'),
+          errorBody(409, 'Rol objetivo duplicado', 'Ese rol objetivo ya está en tu perfil.'),
           { status: 409 },
         );
       }
@@ -706,18 +666,17 @@ export const profilesHandlers: HttpHandler[] = [
     ({ params }) => {
       const profile = findProfile(params.id);
       if (!profile) {
-        return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+        return HttpResponse.json(notFound('Perfil no encontrado.'), { status: 404 });
       }
       const index = profile.targetRoles.findIndex((role) => role.id === params.roleId);
       if (index === -1) {
-        return HttpResponse.json(errorBody('NOT_FOUND', 'Rol objetivo no encontrado.'), {
-          status: 404,
-        });
+        return HttpResponse.json(notFound('Rol objetivo no encontrado.'), { status: 404 });
       }
       if (profile.targetRoles.length === 1 && profile.status === 'COMPLETED') {
         return HttpResponse.json(
           errorBody(
-            TARGET_ROLE_LAST_CANNOT_REMOVE,
+            422,
+            'No se puede eliminar',
             'No puedes quedarte sin roles objetivo con el perfil activo.',
           ),
           { status: 422 },
@@ -735,28 +694,40 @@ export const profilesHandlers: HttpHandler[] = [
   http.post('*/api/v1/profiles/:id/completion', ({ params }) => {
     const profile = findProfile(params.id as string);
     if (!profile) {
-      return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+      return HttpResponse.json(notFound('Perfil no encontrado.'), { status: 404 });
     }
 
     if (profile.status === 'COMPLETED') {
-      return HttpResponse.json(
-        errorBody(PROFILE_ALREADY_COMPLETED, 'Este perfil ya está activo.'),
-        { status: 409 },
-      );
+      return HttpResponse.json(errorBody(409, 'Perfil ya activo', 'Este perfil ya está activo.'), {
+        status: 409,
+      });
     }
 
-    const missing: MockErrorDetail[] = [];
-    if (profile.name.trim().length === 0) missing.push({ field: 'name', code: 'REQUIRED' });
-    if (profile.summary.trim().length === 0 || profile.summary.length > SUMMARY_MAX_LENGTH) {
-      missing.push({ field: 'summary', code: 'REQUIRED' });
+    const missing: MockErrorField[] = [];
+    if (profile.name.trim().length === 0) {
+      missing.push({ field: 'name', message: 'Obligatorio' });
     }
-    if (profile.education.length === 0) missing.push({ field: 'education', code: 'REQUIRED' });
-    if (profile.skills.length === 0) missing.push({ field: 'skills', code: 'REQUIRED' });
-    if (profile.targetRoles.length === 0) missing.push({ field: 'targetRoles', code: 'REQUIRED' });
+    if (profile.summary.trim().length === 0 || profile.summary.length > SUMMARY_MAX_LENGTH) {
+      missing.push({ field: 'summary', message: 'Obligatorio' });
+    }
+    if (profile.education.length === 0) {
+      missing.push({ field: 'education', message: 'Obligatorio' });
+    }
+    if (profile.skills.length === 0) {
+      missing.push({ field: 'skills', message: 'Obligatorio' });
+    }
+    if (profile.targetRoles.length === 0) {
+      missing.push({ field: 'targetRoles', message: 'Obligatorio' });
+    }
 
     if (missing.length > 0) {
       return HttpResponse.json(
-        errorBody(PROFILE_INCOMPLETE, 'Todavía no cumples los requisitos para finalizar.', missing),
+        errorBody(
+          422,
+          'Perfil incompleto',
+          'Todavía no cumples los requisitos para finalizar.',
+          missing,
+        ),
         { status: 422 },
       );
     }
@@ -782,7 +753,7 @@ export const profilesHandlers: HttpHandler[] = [
   http.get('*/api/v1/profiles/:id', ({ params }) => {
     const profile = findProfile(params.id as string);
     if (!profile) {
-      return HttpResponse.json(errorBody('NOT_FOUND', 'Perfil no encontrado.'), { status: 404 });
+      return HttpResponse.json(notFound('Perfil no encontrado.'), { status: 404 });
     }
     return HttpResponse.json(profile, { status: 200 });
   }),

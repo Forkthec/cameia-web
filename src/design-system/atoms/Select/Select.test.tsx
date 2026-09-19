@@ -7,6 +7,7 @@
  */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { createRef } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { Select } from './Select';
 
@@ -77,5 +78,20 @@ describe('Select', () => {
     const select = screen.getByRole('combobox');
     expect(select).toHaveAttribute('id', 'nivel-educativo');
     expect(select).toHaveAttribute('aria-describedby', 'nivel-educativo-error-externo');
+  });
+
+  it('reenvía el ref al elemento nativo (foco automático de react-hook-form)', () => {
+    const ref = createRef<HTMLSelectElement>();
+    render(
+      <Select
+        ref={ref}
+        options={options}
+        value=""
+        onChange={() => {}}
+        placeholder="Selecciona una opción"
+      />,
+    );
+
+    expect(ref.current).toBe(screen.getByRole('combobox'));
   });
 });

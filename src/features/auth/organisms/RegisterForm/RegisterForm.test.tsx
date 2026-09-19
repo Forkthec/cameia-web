@@ -1,11 +1,13 @@
 /**
  * Comportamiento observable de `RegisterForm` (CA-1.1.1/CA-1.1.3): valida
- * los campos obligatorios y las cuatro causas de `fechaNacimiento` en
- * cliente antes de llamar a `onSubmit`; cuando recibe
- * `duplicateEmailErrorMessage`, pone el campo `correo` en error y revela el
- * bloque de dos acciones (Figma); `birthDateRejectedByServer` fuerza el
- * mismo tratamiento visual que "menor de edad" de cliente hasta que la
- * persona edita el campo.
+ * los campos obligatorios, las causas de `fechaNacimiento` y las reglas
+ * reales de `contrasena` (`PasswordPolicy.java`: 12-64 caracteres, sin
+ * contraseñas comunes) en cliente antes de llamar a `onSubmit`; cuando
+ * recibe `duplicateEmailErrorMessage`, pone el campo `correo` en error y
+ * revela el bloque de dos acciones (Figma); `birthDateRejectedByServer`
+ * fuerza el mismo tratamiento visual que "menor de edad" de cliente hasta
+ * que la persona edita el campo; el medidor de fuerza acompaña el campo
+ * Contraseña.
  */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -36,11 +38,20 @@ const baseProps = {
   correoErrorInvalid: 'Ingresa un correo electrónico válido.',
   duplicateEmailLoginLabel: 'Iniciar sesión',
   duplicateEmailRecoverLabel: 'Recuperar contraseña',
-  celularLabel: 'Celular',
-  celularPlaceholder: '+57 300 000 0000',
+  celularPaisLabel: 'País',
+  celularNumeroLabel: 'Celular',
+  celularNumeroPlaceholder: '300 000 0000',
+  celularAyuda: 'Formato internacional, por ejemplo +57 300 000 0000',
+  celularErrorInvalido: 'Revisa el número, no coincide con el formato del país elegido.',
   contrasenaLabel: 'Contraseña',
   contrasenaPlaceholder: '••••••••',
-  contrasenaErrorRequired: 'Ingresa tu contraseña.',
+  contrasenaErrorMuyCorta: 'La contraseña debe tener al menos 12 caracteres.',
+  contrasenaErrorMuyLarga: 'La contraseña no puede superar los 64 caracteres.',
+  contrasenaErrorComun: 'Esta contraseña es demasiado común, elige otra.',
+  contrasenaFuerzaDebil: 'Débil',
+  contrasenaFuerzaAceptable: 'Aceptable',
+  contrasenaFuerzaBuena: 'Buena',
+  contrasenaFuerzaFuerte: 'Fuerte',
   confirmarContrasenaLabel: 'Confirmar contraseña',
   confirmarContrasenaPlaceholder: '••••••••',
   confirmarContrasenaErrorRequired: 'Confirma tu contraseña.',
@@ -61,6 +72,8 @@ const baseProps = {
   footerCta: 'Inicia sesión',
 };
 
+const VALID_PASSWORD = 'ClaveSegura2026';
+
 function renderRegisterForm(props: Partial<typeof baseProps & Record<string, unknown>> = {}) {
   return render(
     <MemoryRouter>
@@ -76,8 +89,8 @@ async function fillValidFormExceptSubmit(user: ReturnType<typeof userEvent.setup
     target: { value: '1990-01-01' },
   });
   await user.type(screen.getByLabelText('Correo electrónico'), 'ada@cameia.com');
-  await user.type(screen.getByLabelText('Contraseña'), 'secreta123');
-  await user.type(screen.getByLabelText('Confirmar contraseña'), 'secreta123');
+  await user.type(screen.getByLabelText('Contraseña'), VALID_PASSWORD);
+  await user.type(screen.getByLabelText('Confirmar contraseña'), VALID_PASSWORD);
   await user.selectOptions(screen.getByLabelText('Pronombres'), 'SHE');
 }
 
@@ -93,7 +106,9 @@ describe('RegisterForm', () => {
     expect(screen.getByText('Ingresa tu apellido.')).toBeInTheDocument();
     expect(screen.getByText('Formato de fecha inválido')).toBeInTheDocument();
     expect(screen.getByText('Ingresa tu correo electrónico.')).toBeInTheDocument();
-    expect(screen.getByText('Ingresa tu contraseña.')).toBeInTheDocument();
+    expect(
+      screen.getByText('La contraseña debe tener al menos 12 caracteres.'),
+    ).toBeInTheDocument();
     expect(screen.getByText('Confirma tu contraseña.')).toBeInTheDocument();
     expect(screen.getByText('Selecciona una opción.')).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
@@ -123,6 +138,13 @@ describe('RegisterForm', () => {
     expect(await screen.findByText('Verifica tu fecha de nacimiento')).toBeInTheDocument();
   });
 
+  it('el campo de fecha de nacimiento no deja elegir un día posterior a hoy', () => {
+    renderRegisterForm();
+
+    const today = new Date().toISOString().slice(0, 10);
+    expect(screen.getByLabelText('Fecha de nacimiento')).toHaveAttribute('max', today);
+  });
+
   it('menor de edad reutiliza el mismo texto que el helper permanente', async () => {
     const user = userEvent.setup();
     const currentYear = new Date().getUTCFullYear();
@@ -136,6 +158,63 @@ describe('RegisterForm', () => {
     expect(await screen.findAllByText('Debes ser mayor de edad')).not.toHaveLength(0);
   });
 
+  it('una contraseña de menos de 12 caracteres bloquea el envío', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    renderRegisterForm({ onSubmit });
+
+    await user.type(screen.getByLabelText('Contraseña'), 'corta123');
+    await user.click(screen.getByRole('button', { name: 'Registrarse' }));
+
+    expect(
+      await screen.findByText('La contraseña debe tener al menos 12 caracteres.'),
+    ).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('una contraseña de más de 64 caracteres bloquea el envío', async () => {
+    const user = userEvent.setup();
+    renderRegisterForm();
+
+    await user.type(screen.getByLabelText('Contraseña'), 'a'.repeat(65));
+    await user.click(screen.getByRole('button', { name: 'Registrarse' }));
+
+    expect(
+      await screen.findByText('La contraseña no puede superar los 64 caracteres.'),
+    ).toBeInTheDocument();
+  });
+
+  it('una contraseña común (aunque cumpla la longitud) bloquea el envío', async () => {
+    const user = userEvent.setup();
+    renderRegisterForm();
+
+    await user.type(screen.getByLabelText('Contraseña'), 'password1234');
+    await user.click(screen.getByRole('button', { name: 'Registrarse' }));
+
+    expect(
+      await screen.findByText('Esta contraseña es demasiado común, elige otra.'),
+    ).toBeInTheDocument();
+  });
+
+  it('el medidor de fuerza acompaña el valor escrito en Contraseña', async () => {
+    const user = userEvent.setup();
+    renderRegisterForm();
+
+    await user.type(screen.getByLabelText('Contraseña'), 'ClaveSegura2026!');
+
+    expect(await screen.findByText('Fuerte')).toBeInTheDocument();
+  });
+
+  it('con contrasenaServerErrorMessage, el campo Contraseña queda en error con ese texto', () => {
+    renderRegisterForm({
+      contrasenaServerErrorMessage: 'Tu contraseña no cumple los requisitos de seguridad.',
+    });
+
+    expect(
+      screen.getByText('Tu contraseña no cumple los requisitos de seguridad.'),
+    ).toBeInTheDocument();
+  });
+
   it('confirmar contraseña que no coincide bloquea el envío', async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();
@@ -143,10 +222,43 @@ describe('RegisterForm', () => {
 
     await fillValidFormExceptSubmit(user);
     await user.clear(screen.getByLabelText('Confirmar contraseña'));
-    await user.type(screen.getByLabelText('Confirmar contraseña'), 'otra-clave');
+    await user.type(screen.getByLabelText('Confirmar contraseña'), 'otra-clave-distinta-1');
     await user.click(screen.getByRole('button', { name: 'Registrarse' }));
 
     expect(await screen.findByText('Las contraseñas no coinciden.')).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('el celular es opcional: un envío sin número no lo bloquea', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    renderRegisterForm({ onSubmit });
+
+    await fillValidFormExceptSubmit(user);
+    await user.click(screen.getByRole('button', { name: 'Registrarse' }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+  });
+
+  it('Colombia es el país por defecto del celular', () => {
+    renderRegisterForm();
+
+    expect(screen.getByLabelText('País')).toHaveValue('CO');
+    expect(screen.getByLabelText('Celular')).toHaveAttribute('placeholder', '+57 300 000 0000');
+  });
+
+  it('un celular que no coincide con el país elegido bloquea el envío', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    renderRegisterForm({ onSubmit });
+
+    await fillValidFormExceptSubmit(user);
+    await user.type(screen.getByLabelText('Celular'), '123');
+    await user.click(screen.getByRole('button', { name: 'Registrarse' }));
+
+    expect(
+      await screen.findByText('Revisa el número, no coincide con el formato del país elegido.'),
+    ).toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
@@ -165,8 +277,8 @@ describe('RegisterForm', () => {
         apellido: 'Lovelace',
         fechaNacimiento: '1990-01-01',
         correo: 'ada@cameia.com',
-        contrasena: 'secreta123',
-        confirmarContrasena: 'secreta123',
+        contrasena: VALID_PASSWORD,
+        confirmarContrasena: VALID_PASSWORD,
         pronombres: 'SHE',
       }),
       expect.anything(),

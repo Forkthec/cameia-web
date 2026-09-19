@@ -69,7 +69,7 @@ describe('profilesHandlers', () => {
 
     expect(error).toBeInstanceOf(ApiError);
     expect((error as ApiError).isValidation()).toBe(true);
-    const fields = (error as ApiError).details.map((detail) => detail.field);
+    const fields = (error as ApiError).errors.map((item) => item.field);
     expect(fields).toEqual(['name', 'summary', 'education', 'skills', 'targetRoles']);
   });
 
@@ -90,7 +90,7 @@ describe('profilesHandlers', () => {
       .post(`/api/v1/profiles/${profile.id}/completion`)
       .catch((e: unknown) => e);
 
-    const fields = (error as ApiError).details.map((detail) => detail.field);
+    const fields = (error as ApiError).errors.map((item) => item.field);
     expect(fields).toEqual(['summary', 'skills', 'targetRoles']);
   });
 
@@ -156,7 +156,7 @@ describe('profilesHandlers', () => {
     const error = await httpClient.get('/api/v1/profiles/no-existe').catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ApiError);
-    expect((error as ApiError).code).toBe('NOT_FOUND');
+    expect((error as ApiError).httpStatus).toBe(404);
   });
 
   // CM-53, CA-2.3.1: guardar un resumen nuevo lo deja en MANUAL, sin origen.
@@ -291,7 +291,7 @@ describe('profilesHandlers', () => {
       .catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ApiError);
-    expect((error as ApiError).code).toBe('VALIDATION_ERROR');
+    expect((error as ApiError).httpStatus).toBe(400);
   });
 
   it('eliminar una educación la retira del perfil', async () => {
@@ -329,7 +329,7 @@ describe('profilesHandlers', () => {
       .catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ApiError);
-    expect((error as ApiError).code).toBe('NOT_FOUND');
+    expect((error as ApiError).httpStatus).toBe(404);
   });
 
   // `WorkExperience.java`: employmentStatus=ENDED exige endDate >= startDate.
@@ -453,7 +453,7 @@ describe('profilesHandlers', () => {
       .catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ApiError);
-    expect((error as ApiError).code).toBe('VALIDATION_ERROR');
+    expect((error as ApiError).httpStatus).toBe(400);
   });
 
   // CM-65: alta de habilidad válida — texto libre, sin catálogo.
@@ -484,7 +484,7 @@ describe('profilesHandlers', () => {
       .catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ApiError);
-    expect((error as ApiError).code).toBe('VALIDATION_ERROR');
+    expect((error as ApiError).httpStatus).toBe(400);
   });
 
   // `ProfileController.java#addSkill`: 409 si el texto ya existe, sin
@@ -539,7 +539,7 @@ describe('profilesHandlers', () => {
       .catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ApiError);
-    expect((error as ApiError).code).toBe('NOT_FOUND');
+    expect((error as ApiError).httpStatus).toBe(404);
   });
 
   // CM-69: alta de rol objetivo válido — catálogo cerrado (`PROFESSIONAL_ROLES`).
@@ -569,7 +569,7 @@ describe('profilesHandlers', () => {
       .catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ApiError);
-    expect((error as ApiError).code).toBe('VALIDATION_ERROR');
+    expect((error as ApiError).httpStatus).toBe(400);
   });
 
   // `ProfileController.java#addTargetRole`: 409 si el rol ya está asociado.

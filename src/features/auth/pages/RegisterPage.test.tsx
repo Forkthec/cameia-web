@@ -62,8 +62,8 @@ async function fillValidForm(user: ReturnType<typeof userEvent.setup>, email: st
     target: { value: '1990-01-01' },
   });
   await user.type(screen.getByLabelText('Correo electrónico'), email);
-  await user.type(screen.getByLabelText('Contraseña'), 'secreta123');
-  await user.type(screen.getByLabelText('Confirmar contraseña'), 'secreta123');
+  await user.type(screen.getByLabelText('Contraseña'), 'ClaveSegura2026');
+  await user.type(screen.getByLabelText('Confirmar contraseña'), 'ClaveSegura2026');
   await user.selectOptions(screen.getByLabelText('Pronombres'), 'SHE');
 }
 
@@ -100,7 +100,7 @@ describe('RegisterPage', () => {
       lastName: 'Lovelace',
       birthDate: '01/01/1990',
       email: 'ya-existe@cameia.com',
-      password: 'secreta123',
+      password: 'ClaveSegura2026',
       pronoun: 'SHE',
     });
     const user = userEvent.setup();

@@ -17,9 +17,12 @@
  * elegir nada sigue mandando `""`, que el schema de validación rechaza
  * igual que cualquier campo vacío, y el usuario nunca puede volver a esa
  * opción una vez elige un valor real.
+ *
+ * `forwardRef` (CM-34 seguimiento): mismo motivo que `Input` — habilita el
+ * foco automático de `react-hook-form` en el primer campo con error.
  */
 import { cva } from 'class-variance-authority';
-import { useId, type ChangeEvent, type FocusEvent } from 'react';
+import { forwardRef, useId, type ChangeEvent, type FocusEvent } from 'react';
 import { cn } from '@/utils/cn';
 import { Icon } from '../../icons/Icon';
 import { ErrorText } from '../ErrorText';
@@ -71,20 +74,23 @@ interface SelectProps {
   describedBy?: string;
 }
 
-export function Select({
-  options,
-  value,
-  onChange,
-  onBlur,
-  placeholder,
-  state = 'default',
-  id,
-  name,
-  className,
-  errorMessage,
-  helperText,
-  describedBy: externalDescribedBy,
-}: SelectProps) {
+export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
+  {
+    options,
+    value,
+    onChange,
+    onBlur,
+    placeholder,
+    state = 'default',
+    id,
+    name,
+    className,
+    errorMessage,
+    helperText,
+    describedBy: externalDescribedBy,
+  },
+  ref,
+) {
   const generatedId = useId();
   const selectId = id ?? generatedId;
   const helperId = `${selectId}-helper`;
@@ -100,6 +106,7 @@ export function Select({
     <div className="gap-space-1 flex flex-col">
       <div className="relative">
         <select
+          ref={ref}
           id={selectId}
           name={name}
           value={value}
@@ -132,4 +139,4 @@ export function Select({
       ) : null}
     </div>
   );
-}
+});

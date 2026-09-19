@@ -3,9 +3,10 @@
  * Registro): éxito encadena `registerUser` → `signIn()` →
  * `sendEmailVerification()`, guarda la sesión y abre el modal; cerrar el
  * modal redirige a `/inicio`; un `ApiError` de correo duplicado o de fecha
- * de nacimiento expone su código sin llamar a Firebase; y el caso de
- * borde (`POST` exitoso, `signIn()` falla después) redirige a `/ingresar`
- * con la marca `registerInfo`, no como error de este formulario.
+ * de nacimiento expone `httpStatus`/`field` (`ADR-0007`, sin `code` propio)
+ * sin llamar a Firebase; y el caso de borde (`POST` exitoso, `signIn()`
+ * falla después) redirige a `/ingresar` con la marca `registerInfo`, no
+ * como error de este formulario.
  */
 import { renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -47,7 +48,7 @@ const formValues = {
   apellido: 'Lovelace',
   fechaNacimiento: '1990-01-01',
   correo: 'ada@cameia.com',
-  celular: '',
+  celular: { paisIso: 'CO', numeroNacional: '' },
   contrasena: 'secreta123',
   confirmarContrasena: 'secreta123',
   pronombres: 'SHE',
@@ -107,39 +108,44 @@ describe('useRegister', () => {
     expect(navigateMock).toHaveBeenCalledWith('/inicio', { replace: true });
   });
 
-  it('con correo duplicado, expone el código sin llamar a Firebase', async () => {
+  it('con correo duplicado, expone el httpStatus 409 sin llamar a Firebase', async () => {
     registerUserMock.mockRejectedValue(
-      new ApiError({ httpStatus: 409, code: 'REGISTRO_CORREO_DUPLICADO', message: 'x' }),
+      new ApiError({ httpStatus: 409, title: 'Correo ya registrado', detail: 'x' }),
     );
     const { result } = renderUseRegister();
 
     await result.current.register(formValues);
 
-    await waitFor(() => expect(result.current.errorCode).toBe('REGISTRO_CORREO_DUPLICADO'));
+    await waitFor(() => expect(result.current.errorInfo).toEqual({ httpStatus: 409 }));
     expect(result.current.isSubmitting).toBe(false);
     expect(signInMock).not.toHaveBeenCalled();
   });
 
-  it('con fecha de nacimiento rechazada por el backend, expone su propio código', async () => {
+  it('con fecha de nacimiento rechazada por el backend, expone el field birthDate', async () => {
     registerUserMock.mockRejectedValue(
-      new ApiError({ httpStatus: 422, code: 'REGISTRO_FECHA_NACIMIENTO_INVALIDA', message: 'x' }),
+      new ApiError({
+        httpStatus: 422,
+        title: 'Fecha de nacimiento no válida',
+        detail: 'x',
+        errors: [{ field: 'birthDate', message: 'Debes ser mayor de edad' }],
+      }),
     );
     const { result } = renderUseRegister();
 
     await result.current.register(formValues);
 
     await waitFor(() =>
-      expect(result.current.errorCode).toBe('REGISTRO_FECHA_NACIMIENTO_INVALIDA'),
+      expect(result.current.errorInfo).toEqual({ httpStatus: 422, field: 'birthDate' }),
     );
   });
 
-  it('con un fallo que no es ApiError, expone NETWORK_ERROR', async () => {
+  it('con un fallo que no es ApiError, expone httpStatus 0', async () => {
     registerUserMock.mockRejectedValue(new TypeError('Failed to fetch'));
     const { result } = renderUseRegister();
 
     await result.current.register(formValues);
 
-    await waitFor(() => expect(result.current.errorCode).toBe('NETWORK_ERROR'));
+    await waitFor(() => expect(result.current.errorInfo).toEqual({ httpStatus: 0 }));
   });
 
   it('si el POST tiene éxito pero signIn() falla después, redirige a /ingresar con el mensaje informativo', async () => {
