@@ -14,8 +14,6 @@ sys.path.insert(0, str(Path(__file__).parent))
 from pr_policy import validate  # noqa: E402
 
 
-# PR "de oro": cumple todas las reglas. Cada caso de prueba parte de esta copia y
-# rompe una sola cosa a propósito, para comprobar que esa regla puntual lo rechaza.
 BASE = {
     "title": "CM-500 | docs(web): caso base valido",
     "head": "CM-500-caso-base-valido",
@@ -39,8 +37,6 @@ BASE = {
 }
 
 
-# Copia BASE (para no mutar el original), aplica el cambio roto de este caso, y
-# guarda qué texto de error se espera encontrar en la respuesta del validador.
 def case(name, expect_error_substr, mutate, draft=True):
     payload = json.loads(json.dumps(BASE))
     payload["draft"] = draft
@@ -48,7 +44,6 @@ def case(name, expect_error_substr, mutate, draft=True):
     return name, expect_error_substr, payload
 
 
-# Un caso por regla del validador: el nombre ya dice qué se rompe a propósito.
 CASES = [
     case("N1 rama con formato invalido", "rama:",
          lambda p: p.__setitem__("head", "mi-rama-sin-formato")),
