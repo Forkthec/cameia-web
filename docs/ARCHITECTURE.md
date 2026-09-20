@@ -79,7 +79,7 @@ cameia-web/
     │   └── SessionLayout.tsx           bg/inverse, sin navegación · PRT-05.*
     │
     ├── features/                       ORGANISMOS DE DOMINIO + PÁGINAS
-    │   ├── landing/                    pública, antes de auth · PRT-00.01 · sin HU, riesgo declarado
+    │   ├── landing/                    pública, antes de auth · PRT-00.01 · CM-186/HU-10.1, implementada
     │   ├── auth/                       HE-01 · Sprint 1
     │   ├── professional-profile/       HE-02 · Sprint 1
     │   ├── interview-setup/            HE-04 · Sprint 1
@@ -211,9 +211,9 @@ Dentro de cada una, solo las subcarpetas que la historia en curso necesita.
 
 **Ruta pública vs. autenticada — importante:** `/` deja de ser el dashboard. Es la landing de
 marketing (PRT-00.01), visible sin sesión, con su propio `header-publico`, hero, tarjetas de
-«qué ofrece» y CTA a `/registro`. El dashboard autenticado (PRT-00.02) vive en `/inicio`, detrás
-de `RequireAuth`, y coincide con la etiqueta del tab bar. Ninguna de las dos tiene HU en el
-backlog — ver riesgo #1.
+«qué ofrece» y CTA a `/registro` — **implementada (CM-186/HU-10.1)**. El dashboard autenticado
+(PRT-00.02) vive en `/inicio`, detrás de `RequireAuth`, y coincide con la etiqueta del tab bar;
+sigue sin HU en el backlog — ver riesgo #1.
 
 **No se crea** — `account`, `evaluation-report`, `progress`, `billing`, `usage`, `job-offers`.
 Aparecen en el árbol de arriba como referencia, no como carpetas a instanciar. Se crean cuando
@@ -253,7 +253,7 @@ porque replican valores del backend.
 
 | #   | Riesgo                                                                                                                                 | Impacto                             | Necesita                           |
 | --- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ---------------------------------- |
-| 1   | Ni la Landing pública (PRT-00.01) ni el Dashboard (PRT-00.02) tienen HU, aunque ambas están dibujadas y el login redirige a la segunda | Trabajo de dos pantallas sin ticket | HU o subtarea en CM-100 para ambas |
+| 1   | **Resuelto para la Landing** (CM-186/HU-10.1, ya implementada). El Dashboard (PRT-00.02) sigue sin HU, aunque está dibujado y el login ya redirige a él. | Trabajo del Tablero sin ticket | HU o subtarea en CM-100 para el Tablero |
 | 2   | PRT-04.09 preselecciona AUDIO pero HU-5.8 es Sprint 2                                                                                  | Callejón sin salida en el flujo     | Decisión de PO                     |
 | 3   | HU-1.2 (verificación de correo) fuera de Sprint 1                                                                                      | El registro no tiene destino        | Decisión de PO                     |
 | 4   | El selector de método ofrece «Autocompletar con IA», HU-2.6–2.10 son Sprint 2                                                          | Ruta muerta                         | Decisión de PO                     |

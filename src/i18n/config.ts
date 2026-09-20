@@ -12,7 +12,7 @@ export const SUPPORTED_LANGUAGES = ['es-CO', 'en'] as const;
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 
 /** Un namespace por feature (CLAUDE.md §7), más "common" para lo transversal. */
-export const NAMESPACES = ['common', 'auth', 'profile', 'interview', 'errors'] as const;
+export const NAMESPACES = ['common', 'auth', 'profile', 'interview', 'errors', 'landing'] as const;
 export type Namespace = (typeof NAMESPACES)[number];
 
 export const DEFAULT_NAMESPACE: Namespace = 'common';

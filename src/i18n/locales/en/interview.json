@@ -1,0 +1,29 @@
+{
+  "asistente": {
+    "progreso": "Wizard progress",
+    "pasos": {
+      "ofertaYRol": "Job posting and role",
+      "modoYTono": "Mode and tone",
+      "idiomaYFormato": "Language and answer format"
+    }
+  },
+  "modo": {
+    "ENTRENO": "Practice",
+    "SIMULACION": "Simulation"
+  },
+  "tono": {
+    "PROFESIONAL_NEUTRO": "Professional and neutral",
+    "CALIDO": "Warm",
+    "ESTRICTO": "Strict",
+    "MOTIVADOR": "Motivating"
+  },
+  "formaRespuesta": {
+    "TEXTO": "Text",
+    "AUDIO": "Audio",
+    "VIDEO": "Video"
+  },
+  "idioma": {
+    "es-CO": "Spanish (Colombia)",
+    "en": "English"
+  }
+}

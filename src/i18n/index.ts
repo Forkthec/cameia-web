@@ -18,6 +18,18 @@ import authEsCO from './locales/es-CO/auth.json';
 import profileEsCO from './locales/es-CO/profile.json';
 import interviewEsCO from './locales/es-CO/interview.json';
 import errorsEsCO from './locales/es-CO/errors.json';
+import landingEsCO from './locales/es-CO/landing.json';
+
+// "en" (CM-186): primer borrador traducido por Claude Code, pendiente de
+// aprobación de Frontend antes de darse por definitivo (SPEC.md §3.3 de
+// features/landing). Antes de este commit, "en" no tenía bundle propio y
+// todo se resolvía por fallbackLng contra "es-CO" (CLAUDE.md §7).
+import commonEn from './locales/en/common.json';
+import authEn from './locales/en/auth.json';
+import profileEn from './locales/en/profile.json';
+import interviewEn from './locales/en/interview.json';
+import errorsEn from './locales/en/errors.json';
+import landingEn from './locales/en/landing.json';
 
 // El resultado de "init" no se usa: los recursos son inline (no hay backend
 // remoto), así que la instancia queda lista de forma efectivamente síncrona.
@@ -33,9 +45,16 @@ void i18next
         profile: profileEsCO,
         interview: interviewEsCO,
         errors: errorsEsCO,
+        landing: landingEsCO,
       },
-      // "en" no tiene bundle propio a propósito: cada llave se resuelve por
-      // fallbackLng contra "es-CO" (config.ts, CLAUDE.md §7).
+      en: {
+        common: commonEn,
+        auth: authEn,
+        profile: profileEn,
+        interview: interviewEn,
+        errors: errorsEn,
+        landing: landingEn,
+      },
     },
   });
 

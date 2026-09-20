@@ -404,8 +404,9 @@ escribiendo código**: si el trabajo lo toca, para y pregunta.
    Sin decisión escrita.
 7. **Autocompletar con IA.** El selector de método (CM-46) ofrece esa ruta, pero HU-2.6 a HU-2.10
    son Sprint 2. Se renderiza deshabilitada. Sin decisión escrita.
-8. **Landing y Tablero.** PRT-00.01 (`/`) y PRT-00.02 (`/inicio`) siguen sin HU; el PO las creará
-   antes de comprometerlas (D-03). Hasta entonces no forman parte del alcance comprometido.
+8. **Tablero.** **Resuelto para la Landing** (PRT-00.01, `/`): el PO la incorporó al backlog como
+   CM-186/HU-10.1, ya implementada. PRT-00.02 (`/inicio`) sigue sin HU; hasta que el PO la cree, no
+   forma parte del alcance comprometido (D-03).
 9. **Referencias a prototipos.** La lista de PRT del backlog puede estar desactualizada frente a
    Figma (S-02). Los frames mandan; solo se construyen las pantallas efectivamente dibujadas.
 10. **Destino de HU-2.10 y de PRT-02.07.** El PO retiró PRT-02.07 del MVP (D-01) pero no dijo qué
