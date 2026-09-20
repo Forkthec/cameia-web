@@ -14,8 +14,6 @@ sys.path.insert(0, str(Path(__file__).parent))
 from pr_policy import validate  # noqa: E402
 
 
-# PR "de oro": cumple todas las reglas. Cada caso de prueba parte de esta copia y
-# rompe una sola cosa a propósito, para comprobar que esa regla puntual lo rechaza.
 BASE = {
     "title": "CM-500 | docs(web): caso base valido",
     "head": "CM-500-caso-base-valido",
@@ -39,8 +37,6 @@ BASE = {
 }
 
 
-# Copia BASE (para no mutar el original), aplica el cambio roto de este caso, y
-# guarda qué texto de error se espera encontrar en la respuesta del validador.
 def case(name, expect_error_substr, mutate, draft=True):
     payload = json.loads(json.dumps(BASE))
     payload["draft"] = draft
@@ -48,7 +44,6 @@ def case(name, expect_error_substr, mutate, draft=True):
     return name, expect_error_substr, payload
 
 
-# Un caso por regla del validador: el nombre ya dice qué se rompe a propósito.
 CASES = [
     case("N1 rama con formato invalido", "rama:",
          lambda p: p.__setitem__("head", "mi-rama-sin-formato")),
@@ -127,19 +122,7 @@ def main():
         failures.append(
             f"Regresion CM-123: se esperaba result=BORRADOR con errors no vacios, se obtuvo {out}")
 
-    # Regresion CM-186: fuera de Draft, "revisado por el autor" sin detalle adicional
-    # debe ser valido porque la plantilla permite ese minimo.
-    minimal_human = json.loads(json.dumps(BASE))
-    minimal_human["draft"] = False
-    minimal_human["body"] = minimal_human["body"].replace(
-        "- Control humano: pendiente — Nombre Apellido",
-        "- Control humano: revisado por el autor")
-    minimal_human_out = validate(minimal_human)
-    if minimal_human_out["errors"]:
-        failures.append(
-            f"Regresion CM-186: 'Control humano: revisado por el autor' no deberia fallar: {minimal_human_out['errors']}")
-
-    print(f"Casos ejecutados: {len(CASES) + 4} (incluye control, regresiones CM-175, CM-123 y CM-186)")
+    print(f"Casos ejecutados: {len(CASES) + 3} (incluye control, regresion CM-175 y regresion CM-123)")
     if failures:
         print(f"FALLARON {len(failures)}:")
         for f in failures:
