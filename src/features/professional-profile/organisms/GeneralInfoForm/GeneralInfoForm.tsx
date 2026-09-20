@@ -54,9 +54,21 @@
  * §14.7 aunque viva en `features`: no llama `useTranslation`, todo texto
  * visible entra como prop obligatoria (consistencia deliberada con ese
  * organismo, no la alternativa de traducir aquí mismo).
+ *
+ * Sincronización con `stores/unsavedChanges.store.ts` (`CM-194`, `SPEC.md`
+ * de `features/auth` §3): este es el único formulario de la app con una
+ * ventana real de "cambios sin guardar" (Educación/Experiencia/Habilidades/
+ * Roles Objetivo persisten al vuelo por ítem, sin borrador — decisión `D-C`
+ * ya documentada). `formState.isDirty` ya lo provee `react-hook-form`; antes
+ * de esta iteración no se leía. El segundo efecto limpia la bandera al
+ * desmontar — no lo pide la SPEC textualmente, pero sin él un `isDirty` en
+ * `true` quedaría "pegado" si el usuario navega fuera sin guardar y sin que
+ * `isDirty` vuelva a `false` por su cuenta.
  */
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { useUnsavedChangesStore } from '@/stores/unsavedChanges.store';
 import { cn } from '@/utils/cn';
 import { Input } from '@/design-system/atoms/Input';
 import { CharacterCounter } from '@/design-system/molecules/CharacterCounter';
@@ -114,10 +126,18 @@ export function GeneralInfoForm({
   summaryCounterLabel,
   className,
 }: GeneralInfoFormProps) {
-  const { control, handleSubmit } = useForm<GeneralInfoFormValues>({
+  const { control, handleSubmit, formState } = useForm<GeneralInfoFormValues>({
     resolver: zodResolver(generalInfoSchema),
     defaultValues: { name, summary },
   });
+
+  useEffect(() => {
+    useUnsavedChangesStore.getState().setUnsavedChanges(formState.isDirty);
+  }, [formState.isDirty]);
+
+  useEffect(() => {
+    return () => useUnsavedChangesStore.getState().setUnsavedChanges(false);
+  }, []);
 
   return (
     <form

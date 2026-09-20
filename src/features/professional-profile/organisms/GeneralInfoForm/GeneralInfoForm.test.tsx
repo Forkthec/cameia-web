@@ -5,11 +5,14 @@
  * envío sin llamar a `onSubmit` cuando `name` queda vacío o supera 255
  * caracteres, que el campo de resumen no deja escribir más de 2000
  * caracteres (`maxLength`) y que el contador refleja el conteo real, y que
- * un envío válido llega a `onSubmit` con los valores actuales.
+ * un envío válido llega a `onSubmit` con los valores actuales. `CM-194`
+ * suma: sincroniza `formState.isDirty` con `stores/unsavedChanges.store.ts`
+ * mientras el usuario edita, y limpia la bandera al desmontarse.
  */
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { useUnsavedChangesStore } from '@/stores/unsavedChanges.store';
 import { GeneralInfoForm } from './GeneralInfoForm';
 
 const baseProps = {
@@ -30,6 +33,10 @@ const baseProps = {
 };
 
 describe('GeneralInfoForm', () => {
+  afterEach(() => {
+    useUnsavedChangesStore.setState({ hasUnsavedChanges: false });
+  });
+
   it('muestra el encabezado de sección y los valores iniciales de name y summary', () => {
     render(<GeneralInfoForm {...baseProps} />);
 
@@ -120,5 +127,42 @@ describe('GeneralInfoForm', () => {
       { name: 'Ana Pérez', summary: 'Desarrolladora backend con experiencia en Java.' },
       expect.anything(),
     );
+  });
+
+  it('al modificar un campo, marca hasUnsavedChanges en true en el store', async () => {
+    const user = userEvent.setup();
+    render(<GeneralInfoForm {...baseProps} />);
+
+    await user.type(screen.getByLabelText('Nombre del perfil'), ' Jr.');
+
+    await waitFor(() => {
+      expect(useUnsavedChangesStore.getState().hasUnsavedChanges).toBe(true);
+    });
+  });
+
+  it('al restaurar el valor original, vuelve a marcar hasUnsavedChanges en false', async () => {
+    const user = userEvent.setup();
+    render(<GeneralInfoForm {...baseProps} />);
+    const nameInput = screen.getByLabelText('Nombre del perfil');
+
+    await user.type(nameInput, ' Jr.');
+    await waitFor(() => expect(useUnsavedChangesStore.getState().hasUnsavedChanges).toBe(true));
+    await user.type(nameInput, '{Backspace>4}');
+
+    await waitFor(() => {
+      expect(useUnsavedChangesStore.getState().hasUnsavedChanges).toBe(false);
+    });
+  });
+
+  it('al desmontarse, limpia hasUnsavedChanges', async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<GeneralInfoForm {...baseProps} />);
+
+    await user.type(screen.getByLabelText('Nombre del perfil'), ' Jr.');
+    await waitFor(() => expect(useUnsavedChangesStore.getState().hasUnsavedChanges).toBe(true));
+
+    unmount();
+
+    expect(useUnsavedChangesStore.getState().hasUnsavedChanges).toBe(false);
   });
 });

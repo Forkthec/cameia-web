@@ -8,9 +8,20 @@
  * completó el `POST` pero `signIn()`/`sendEmailVerification()` fallaron
  * después, redirige aquí con esa marca — se muestra como mensaje
  * informativo, nunca como error de Login (la cuenta ya existe).
+ *
+ * `location.state.logoutError` (`CM-194`, `useLogout.ts`): cuando `signOut()`
+ * de Firebase falla (raro), el cierre local ocurre igual y se llega aquí con
+ * esta marca. Se muestra fuera de `LoginForm` —no es un error de este
+ * formulario, no debe poner los campos en borde rojo— reutilizando el mismo
+ * mecanismo de `location.state` que ya usa `registerInfo`, en vez de la
+ * infraestructura de `Toast` que pedía el primer borrador de la SPEC:
+ * `Toast.tsx` no tiene ningún consumidor real ni host montado en la app
+ * todavía, y para este caso raro no vale la pena construirlo (decisión
+ * explícita del usuario).
  */
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
+import { AlertInline } from '@/design-system/molecules/AlertInline';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { SIGN_IN_AFTER_REGISTER_FAILED } from '../hooks/useRegister';
 import { useLogin } from '../hooks/useLogin';
@@ -18,10 +29,11 @@ import { LoginForm } from '../organisms/LoginForm';
 
 interface LoginLocationState {
   registerInfo?: string;
+  logoutError?: true;
 }
 
 export function LoginPage() {
-  const { t } = useTranslation('auth');
+  const { t } = useTranslation(['auth', 'errors']);
   const { isSubmitting, errorMessageKey, login } = useLogin();
   const location = useLocation();
 
@@ -30,9 +42,11 @@ export function LoginPage() {
     state?.registerInfo === SIGN_IN_AFTER_REGISTER_FAILED
       ? t('ingreso.infoRegistroPendiente')
       : undefined;
+  const logoutErrorMessage = state?.logoutError ? t('errors:generico') : undefined;
 
   return (
     <AuthLayout headline={t('ingreso.marca.titular')}>
+      {logoutErrorMessage ? <AlertInline variant="error">{logoutErrorMessage}</AlertInline> : null}
       <LoginForm
         isSubmitting={isSubmitting}
         genericErrorMessage={errorMessageKey ? t(errorMessageKey) : undefined}

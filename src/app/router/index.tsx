@@ -20,7 +20,7 @@ import { interviewSessionRoutes } from '@/features/interview-session';
 import { interviewSetupRoutes } from '@/features/interview-setup';
 import { landingRoutes } from '@/features/landing';
 import { professionalProfileShellRoutes } from '@/features/professional-profile';
-import { AppShell } from '@/layouts/AppShell';
+import { AuthenticatedAppShell } from './AuthenticatedAppShell';
 import { NotFoundPage } from './NotFoundPage';
 import { RouteErrorBoundary } from './RouteErrorBoundary';
 import { RedirectIfAuthenticated, RequireAuth } from './guards/RequireAuth';
@@ -40,7 +40,7 @@ export const routeConfig: RouteObject[] = [
         element: <RequireAuth />,
         children: [
           {
-            element: <AppShell progressEnabled={featureFlags.PROGRESS} />,
+            element: <AuthenticatedAppShell progressEnabled={featureFlags.PROGRESS} />,
             children: [...homeRoutes, ...professionalProfileShellRoutes],
           },
           ...interviewSetupRoutes,

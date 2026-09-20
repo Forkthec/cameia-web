@@ -12,14 +12,26 @@
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { HelmetProvider } from 'react-helmet-async';
 import { I18nextProvider } from 'react-i18next';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import i18n from '@/i18n';
 import { httpClient } from '@/services/http/httpClient';
 import { useAuthStore } from '@/stores/auth.store';
 import { routeConfig } from './index';
+
+// `signOut`/`getIdToken` reales llaman al SDK de Firebase; se mockean aquí
+// (no solo en `useLogout.test.tsx`) para el caso de integración de `CM-194`
+// de más abajo. `getIdToken` resuelve `null`, el mismo valor que ya
+// devolvía sin mock (no hay usuario real de Firebase en este árbol de
+// pruebas), así que no cambia el comportamiento de las pruebas existentes
+// que ya usan `httpClient` contra MSW.
+vi.mock('@/services/firebase/auth.service', () => ({
+  signOut: vi.fn().mockResolvedValue(undefined),
+  getIdToken: vi.fn().mockResolvedValue(null),
+}));
 
 async function waitUntilReady() {
   if (i18n.isInitialized) return;
@@ -143,5 +155,24 @@ describe('routeConfig', () => {
     expect(
       screen.getAllByRole('navigation', { name: 'Navegación principal' }).length,
     ).toBeGreaterThan(0);
+  });
+
+  it('tras cerrar sesión desde una ruta protegida, RequireAuth ya no deja pasar (CM-194)', async () => {
+    await waitUntilReady();
+    useAuthStore.setState({
+      isLoading: false,
+      isAuthenticated: true,
+      user: { uid: 'u1', email: 'ada@cameia.com', displayName: null, emailVerified: true },
+    });
+    const user = userEvent.setup();
+
+    renderAt('/inicio');
+    await screen.findByText('Pantalla pendiente · sin HU');
+
+    await user.click(screen.getByRole('button', { name: /Menú de usuario/ }));
+    await user.click(screen.getByRole('menuitem', { name: /Cerrar sesión/ }));
+    await user.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
+
+    expect(await screen.findByRole('heading', { name: 'Inicia sesión' })).toBeInTheDocument();
   });
 });

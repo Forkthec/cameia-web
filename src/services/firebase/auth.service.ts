@@ -74,8 +74,13 @@ export async function signIn(email: string, password: string): Promise<User> {
   }
 }
 
+/** Envuelto en `AuthError` igual que `signIn()` (`CM-194`, corrige una inconsistencia real del archivo). */
 export async function signOut(): Promise<void> {
-  await firebaseSignOut(auth);
+  try {
+    await firebaseSignOut(auth);
+  } catch (error) {
+    throw toAuthError(error);
+  }
 }
 
 /** Envía el correo de verificación (`CM-34`, `ADR-0006`) — no pasa por el Gateway, directo contra Firebase. */

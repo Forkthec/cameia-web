@@ -10,6 +10,7 @@
  * sin tocar `Icon.tsx` ni a quien consuma `<Icon name="..." />`.
  */
 import {
+  ArrowLeftRight,
   ArrowRight,
   Briefcase,
   ChartColumn,
@@ -81,6 +82,12 @@ export const icons = {
   'log-out': LogOut, // temporal · Lucide, reemplazar por SVG de Figma
   globe: Globe, // temporal · Lucide, reemplazar por SVG de Figma
   'arrow-right': ArrowRight, // temporal · Lucide, reemplazar por SVG de Figma
+  // Sin equivalente en Figma (el nodo real usa icon/chevron-right, ver
+  // LanguageSwitcher.tsx): se agrega para la fila de idioma del menú de
+  // usuario, pedido explícito del usuario (CM-194, seguimiento UI/UX) —
+  // "intercambio" comunica mejor que un clic alterna el valor, en vez de
+  // sugerir que se despliega un submenú.
+  swap: ArrowLeftRight,
   'loading-arc': LoaderCircle, // temporal · Lucide, reemplazar por SVG de Figma
   lock: Lock, // temporal · Lucide, reemplazar por SVG de Figma
   // "google" ya usa el SVG real exportado de Figma (icon/google, nodo
