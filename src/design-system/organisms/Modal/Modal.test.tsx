@@ -2,7 +2,10 @@
  * Comportamiento observable del primer `Modal` del design system (CM-34):
  * expone título y contenido con la asociación ARIA correcta, cierra con
  * Esc, con clic en el velo y con el botón de cierre, y no cierra con un
- * clic dentro del propio cuadro.
+ * clic dentro del propio cuadro. `CM-194` (Cerrar sesión, `CA-1.8.1`) suma:
+ * `variant="destructive"` en el botón primario, `primaryActionLoading`, y
+ * que el foco se mueve al diálogo al abrir, se atrapa dentro de él y vuelve
+ * al elemento anterior al cerrar (`CLAUDE.md` §10).
  */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -103,5 +106,85 @@ describe('Modal', () => {
 
     const labels = screen.getAllByRole('button').map((button) => button.textContent);
     expect(labels.indexOf('Cancelar')).toBeLessThan(labels.indexOf('Entendido'));
+  });
+
+  it('con variant="destructive", el botón primario usa el estilo destructivo', () => {
+    render(
+      <Modal {...baseProps} onClose={() => {}} variant="destructive">
+        contenido
+      </Modal>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Entendido' }).className).toContain('bg-danger-base');
+  });
+
+  it('con primaryActionLoading, deshabilita el botón primario y muestra el gerundio', () => {
+    render(
+      <Modal
+        {...baseProps}
+        onClose={() => {}}
+        primaryActionLoading
+        primaryActionLoadingLabel="Cerrando…"
+      >
+        contenido
+      </Modal>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Cerrando…' })).toBeDisabled();
+  });
+
+  it('al montarse, mueve el foco al diálogo', () => {
+    render(
+      <Modal {...baseProps} onClose={() => {}}>
+        contenido
+      </Modal>,
+    );
+
+    expect(screen.getByRole('dialog')).toHaveFocus();
+  });
+
+  it('el foco no se escapa del diálogo al tabular repetidamente', async () => {
+    const user = userEvent.setup();
+    render(
+      <Modal
+        {...baseProps}
+        onClose={() => {}}
+        secondaryActionLabel="Cancelar"
+        onSecondaryAction={() => {}}
+      >
+        contenido
+      </Modal>,
+    );
+
+    const closeButton = screen.getByRole('button', { name: 'Cerrar' });
+    const cancelButton = screen.getByRole('button', { name: 'Cancelar' });
+    const primaryButton = screen.getByRole('button', { name: 'Entendido' });
+
+    closeButton.focus();
+    await user.tab();
+    expect(cancelButton).toHaveFocus();
+    await user.tab();
+    expect(primaryButton).toHaveFocus();
+    await user.tab();
+    expect(closeButton).toHaveFocus();
+  });
+
+  it('al desmontarse, devuelve el foco al elemento que lo tenía antes de abrirse', () => {
+    render(
+      <div>
+        <button type="button">Abrir</button>
+      </div>,
+    );
+    const trigger = screen.getByRole('button', { name: 'Abrir' });
+    trigger.focus();
+
+    const { unmount } = render(
+      <Modal {...baseProps} onClose={() => {}}>
+        contenido
+      </Modal>,
+    );
+    unmount();
+
+    expect(trigger).toHaveFocus();
   });
 });

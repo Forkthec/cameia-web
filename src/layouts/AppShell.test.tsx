@@ -7,13 +7,20 @@
  * HE-07 no tiene ruta propia en este sprint (CLAUDE.md §11)—, y que el
  * wordmark "cameia" se renderiza en todos los breakpoints y enlaza a
  * `/inicio` (CM-46: sin él, la cabecera queda vacía en móvil, donde
- * `NavHeader` está oculto).
+ * `NavHeader` está oculto). `CM-194` (`CA-1.8.1`) suma: el disparador de
+ * `MenuUsuario` se ve en todo breakpoint, confirmar/cancelar el cierre de
+ * sesión, el aviso de cambios sin guardar, y que la confirmación es `Modal`
+ * en escritorio y `BottomSheet` en móvil.
  */
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import i18n from '@/i18n';
+import { useAuthStore } from '@/stores/auth.store';
+import { useUnsavedChangesStore } from '@/stores/unsavedChanges.store';
+import { setViewportMatches } from '@/test/matchMedia';
 import { AppShell } from './AppShell';
 
 async function waitUntilReady() {
@@ -23,12 +30,28 @@ async function waitUntilReady() {
   });
 }
 
-function renderShell(path = '/inicio', progressEnabled = false) {
+interface RenderShellOptions {
+  progressEnabled?: boolean;
+  onLogout?: () => void;
+  isLoggingOut?: boolean;
+}
+
+function renderShell(path = '/inicio', options: RenderShellOptions = {}) {
+  const { progressEnabled = false, onLogout = () => {}, isLoggingOut = false } = options;
+
   return render(
     <I18nextProvider i18n={i18n}>
       <MemoryRouter initialEntries={[path]}>
         <Routes>
-          <Route element={<AppShell progressEnabled={progressEnabled} />}>
+          <Route
+            element={
+              <AppShell
+                progressEnabled={progressEnabled}
+                onLogout={onLogout}
+                isLoggingOut={isLoggingOut}
+              />
+            }
+          >
             <Route path="/inicio" element={<p>Contenido de inicio</p>} />
           </Route>
         </Routes>
@@ -38,6 +61,11 @@ function renderShell(path = '/inicio', progressEnabled = false) {
 }
 
 describe('AppShell', () => {
+  afterEach(() => {
+    useAuthStore.setState({ user: null, plan: null, isAuthenticated: false, isLoading: false });
+    useUnsavedChangesStore.setState({ hasUnsavedChanges: false });
+  });
+
   it('renderiza el contenido de la ruta hija a través de Outlet', async () => {
     await waitUntilReady();
     renderShell();
@@ -57,7 +85,7 @@ describe('AppShell', () => {
 
   it('deshabilita "Progreso" cuando progressEnabled es false', async () => {
     await waitUntilReady();
-    renderShell('/inicio', false);
+    renderShell('/inicio', { progressEnabled: false });
 
     const progresoItems = screen.getAllByText('Progreso');
     for (const item of progresoItems) {
@@ -67,7 +95,7 @@ describe('AppShell', () => {
 
   it('"Progreso" nunca es un enlace real todavía — HE-07 no tiene ruta propia', async () => {
     await waitUntilReady();
-    renderShell('/inicio', true);
+    renderShell('/inicio', { progressEnabled: true });
 
     // Aunque progressEnabled sea true, el ítem no tiene `to` (sin HE-07 no
     // hay a dónde navegar): sigue sin ser un <NavLink>, solo cambia
@@ -81,5 +109,95 @@ describe('AppShell', () => {
 
     const wordmark = screen.getByRole('link', { name: 'cameia' });
     expect(wordmark).toHaveAttribute('href', '/inicio');
+  });
+
+  it('muestra el disparador de MenuUsuario tanto en escritorio como en móvil', async () => {
+    await waitUntilReady();
+
+    setViewportMatches(true);
+    const { unmount } = renderShell();
+    expect(screen.getByRole('button', { name: /Menú de usuario/ })).toBeInTheDocument();
+    unmount();
+
+    setViewportMatches(false);
+    renderShell();
+    expect(screen.getByRole('button', { name: /Menú de usuario/ })).toBeInTheDocument();
+  });
+
+  it('al confirmar sin cambios sin guardar, invoca onLogout', async () => {
+    await waitUntilReady();
+    const user = userEvent.setup();
+    const onLogout = vi.fn();
+    renderShell('/inicio', { onLogout });
+
+    await user.click(screen.getByRole('button', { name: /Menú de usuario/ }));
+    await user.click(screen.getByRole('menuitem', { name: /Cerrar sesión/ }));
+    await user.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
+
+    expect(onLogout).toHaveBeenCalledOnce();
+  });
+
+  it('con cambios sin guardar, la confirmación muestra el aviso correspondiente', async () => {
+    await waitUntilReady();
+    const user = userEvent.setup();
+    useUnsavedChangesStore.setState({ hasUnsavedChanges: true });
+    renderShell();
+
+    await user.click(screen.getByRole('button', { name: /Menú de usuario/ }));
+    await user.click(screen.getByRole('menuitem', { name: /Cerrar sesión/ }));
+
+    expect(
+      screen.getByText('Tienes cambios sin guardar. Si cierras sesión, se perderán.'),
+    ).toBeInTheDocument();
+  });
+
+  it('al cancelar la confirmación, no invoca onLogout', async () => {
+    await waitUntilReady();
+    const user = userEvent.setup();
+    const onLogout = vi.fn();
+    renderShell('/inicio', { onLogout });
+
+    await user.click(screen.getByRole('button', { name: /Menú de usuario/ }));
+    await user.click(screen.getByRole('menuitem', { name: /Cerrar sesión/ }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    expect(onLogout).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('en escritorio, la confirmación se muestra como Modal (con botón de cierre)', async () => {
+    await waitUntilReady();
+    const user = userEvent.setup();
+    setViewportMatches(true);
+    renderShell();
+
+    await user.click(screen.getByRole('button', { name: /Menú de usuario/ }));
+    await user.click(screen.getByRole('menuitem', { name: /Cerrar sesión/ }));
+
+    expect(screen.getByRole('button', { name: 'Cerrar' })).toBeInTheDocument();
+  });
+
+  it('en móvil, la confirmación se muestra como BottomSheet (sin botón de cierre)', async () => {
+    await waitUntilReady();
+    const user = userEvent.setup();
+    setViewportMatches(false);
+    renderShell();
+
+    await user.click(screen.getByRole('button', { name: /Menú de usuario/ }));
+    await user.click(screen.getByRole('menuitem', { name: /Cerrar sesión/ }));
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cerrar' })).not.toBeInTheDocument();
+  });
+
+  it('mientras isLoggingOut es true, el botón primario de la confirmación está en loading', async () => {
+    await waitUntilReady();
+    const user = userEvent.setup();
+    renderShell('/inicio', { isLoggingOut: true });
+
+    await user.click(screen.getByRole('button', { name: /Menú de usuario/ }));
+    await user.click(screen.getByRole('menuitem', { name: /Cerrar sesión/ }));
+
+    expect(screen.getByRole('button', { name: 'Cerrando sesión…' })).toBeDisabled();
   });
 });

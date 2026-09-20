@@ -239,11 +239,16 @@ Regla de anidado de radios: un hijo siempre lleva un radio menor que su contened
 
 ## 7. Internacionalización
 
-- `es-CO` es el **único idioma con recursos**. `en` sigue declarado en `SUPPORTED_LANGUAGES` pero
-  no tiene archivos propios: cuando el navegador pide inglés, i18next resuelve cada llave por
-  `fallbackLng: 'es-CO'`. No hay copia en inglés aprobada; el fallback es el mecanismo, no un
-  parche. `locales/en/` ya no existe: se borró y `fallbackLng` opera de verdad.
-- Un namespace por feature: `common`, `auth`, `profile`, `interview`, `errors`. (No existe
+- `es-CO` sigue siendo la fuente principal de copy, pero `en` ya no es solo un fallback: **desde
+  CM-186 tiene recursos propios en `locales/en/`** (los 6 namespaces: `common`, `auth`, `errors`,
+  `interview`, `landing`, `profile`), y cuando el idioma activo es inglés i18next los usa
+  directamente. El copy en inglés es una traducción de trabajo, no una copia con revisión editorial
+  cerrada — se ajusta llave por llave a medida que se revisa. `fallbackLng: 'es-CO'` sigue activo,
+  pero para lo que de verdad resuelve: una llave puntual que todavía no se tradujo (una feature
+  nueva construida solo en español), no el idioma completo como antes. El selector de idioma
+  (`LanguageSwitcher`) ya es alcanzable desde dos sitios: la landing pública (`context="public-header"`,
+  CM-186) y el menú de usuario autenticado (`context="menu-row"`, CM-194).
+- Un namespace por feature: `common`, `auth`, `profile`, `interview`, `errors`, `landing`. (No existe
   `report`; se crea cuando entre su feature.)
 - Llaves en `camelCase`; `UPPER_SNAKE_CASE` cuando la llave es un código de dominio; nunca
   kebab-case. Los códigos BCP-47 (`idioma.es-CO`) se copian tal cual porque son código de dominio,

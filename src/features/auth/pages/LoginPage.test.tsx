@@ -40,10 +40,10 @@ async function waitUntilReady() {
   });
 }
 
-function renderLoginPage() {
+function renderLoginPage(state?: unknown) {
   return render(
     <I18nextProvider i18n={i18n}>
-      <MemoryRouter initialEntries={['/ingresar']}>
+      <MemoryRouter initialEntries={[{ pathname: '/ingresar', state }]}>
         <Routes>
           <Route path="/ingresar" element={<LoginPage />} />
           <Route path="/inicio" element={<p>Tablero</p>} />
@@ -138,5 +138,12 @@ describe('LoginPage', () => {
     expect(await screen.findByRole('button', { name: 'Ingresando…' })).toBeDisabled();
 
     resolveSignIn({ uid: 'u1', email: 'ada@cameia.com', displayName: null, emailVerified: true });
+  });
+
+  it('con location.state.logoutError, muestra el aviso de error genérico', async () => {
+    await waitUntilReady();
+    renderLoginPage({ logoutError: true });
+
+    expect(await screen.findByText('Ocurrió un error. Inténtalo de nuevo.')).toBeInTheDocument();
   });
 });

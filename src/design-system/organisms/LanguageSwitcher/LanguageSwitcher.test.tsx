@@ -4,6 +4,8 @@
  * refleja con `aria-pressed`, y hacer clic en el otro idioma dispara
  * `onChange` con el código correcto — el propio componente no cambia el
  * idioma de la app, delega esa decisión a quien lo use (HeaderPublico).
+ * `context="menu-row"` (`CM-194`) protege que renderiza una sola fila con
+ * `label`/`valueLabel` visibles y alterna `es`/`en` al hacer clic.
  */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -32,5 +34,57 @@ describe('LanguageSwitcher', () => {
     await user.click(screen.getByRole('button', { name: 'EN' }));
 
     expect(onChange).toHaveBeenCalledWith('en');
+  });
+
+  it('con context="menu-row", muestra la etiqueta y el idioma activo en una sola fila', () => {
+    render(
+      <LanguageSwitcher
+        context="menu-row"
+        value="es"
+        onChange={vi.fn()}
+        label="Idioma"
+        valueLabel="Español"
+      />,
+    );
+
+    const row = screen.getByRole('button', { name: /Idioma/ });
+    expect(row).toHaveTextContent('Idioma');
+    expect(row).toHaveTextContent('Español');
+  });
+
+  it('con context="menu-row", al hacer clic alterna de "es" a "en"', async () => {
+    const onChange = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <LanguageSwitcher
+        context="menu-row"
+        value="es"
+        onChange={onChange}
+        label="Idioma"
+        valueLabel="Español"
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /Idioma/ }));
+
+    expect(onChange).toHaveBeenCalledWith('en');
+  });
+
+  it('con context="menu-row" y value="en", al hacer clic alterna de vuelta a "es"', async () => {
+    const onChange = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <LanguageSwitcher
+        context="menu-row"
+        value="en"
+        onChange={onChange}
+        label="Idioma"
+        valueLabel="English"
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /Idioma/ }));
+
+    expect(onChange).toHaveBeenCalledWith('es');
   });
 });

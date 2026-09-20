@@ -28,18 +28,59 @@
  * vectorial + wordmark; aquí solo se reproduce el wordmark, en texto, porque
  * el glifo es un activo de marca que no existe todavía en `design-system` —
  * inventarlo a mano no es una opción. Se completa cuando exista el SVG
- * oficial, sin rehacer esta cabecera (SPEC professional-profile §9). Sin
- * avatar ni menú de usuario: son controles y no existe todavía el flujo de
- * cuenta ni de cierre de sesión.
+ * oficial, sin rehacer esta cabecera (SPEC professional-profile §9).
+ *
+ * Menú de usuario y Cerrar sesión (`CM-194`, `CA-1.8.1`; `SPEC.md` de
+ * `features/auth` §3 "Menú de usuario y Cerrar sesión · PRT-01.08"): vive
+ * directo en este `<header>`, no dentro de `NavHeader` — `NavHeader` está
+ * `hidden md:flex` y el menú debe verse en toda pantalla autenticada,
+ * incluida móvil (Figma, nodo `228:6443`, descripción del componente:
+ * "usado en toda página autenticada"; no existe una variante `sm` de
+ * `menu-usuario` en Figma, confirmado con dos búsquedas independientes —
+ * decisión de Frontend reubicarlo aquí en vez de inventar un frame que no
+ * existe).
+ *
+ * Este componente resuelve avatar (`useAuthStore`), idioma
+ * (`useTranslation`/`i18n.changeLanguage`, mismo patrón que
+ * `HeaderPublico.tsx`) y el copy de confirmación
+ * (`stores/unsavedChanges.store.ts`) por sí mismo: `stores` y el paquete
+ * externo `react-i18next` sí están permitidos desde `layouts` en
+ * `boundaries/dependencies` (a diferencia de `features`/`services`). Solo
+ * `onLogout`/`isLoggingOut` llegan por prop, porque `useLogout` vive en
+ * `features/auth`, prohibido desde `layouts` — los arma
+ * `app/router/AuthenticatedAppShell.tsx`, mismo mecanismo de inyección que
+ * ya usaba `progressEnabled`.
+ *
+ * La confirmación decide `Modal` (`md:` en adelante) o `BottomSheet` (por
+ * debajo) con `useMediaQuery`: `DESKTOP_MEDIA_QUERY` duplica
+ * `--breakpoint-md: 600px` de `styles/index.css` — `layouts` no puede leer
+ * una variable CSS en JS sin un valor calculado en tiempo de ejecución, así
+ * que se repite aquí con el comentario del porqué, mismo criterio que ya usa
+ * `features/professional-profile/model/profile.constants.ts:DESKTOP_MEDIA_QUERY`.
  */
 import { useTranslation } from 'react-i18next';
 import { Link, Outlet } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
+import { BottomSheet } from '@/design-system/organisms/BottomSheet';
+import { LanguageSwitcher } from '@/design-system/organisms/LanguageSwitcher';
+import { MenuUsuario } from '@/design-system/organisms/MenuUsuario';
+import { Modal } from '@/design-system/organisms/Modal';
 import { NavHeader, type NavItem } from '@/design-system/organisms/NavHeader';
 import { TabBar } from '@/design-system/organisms/TabBar';
+import { useDisclosure } from '@/hooks/useDisclosure';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { useAuthStore } from '@/stores/auth.store';
+import { useUnsavedChangesStore } from '@/stores/unsavedChanges.store';
+
+/** Ver la nota de cabecera: mismo valor que `--breakpoint-md`, repetido a propósito. */
+const DESKTOP_MEDIA_QUERY = '(min-width: 600px)';
 
 interface AppShellProps {
   progressEnabled?: boolean;
+  /** Ejecuta el cierre de sesión real (`useLogout`, inyectado por `AuthenticatedAppShell`). */
+  onLogout: () => void;
+  /** `true` mientras `signOut()` está en curso — pasa el botón primario de la confirmación a `loading`. */
+  isLoggingOut?: boolean;
 }
 
 /**
@@ -50,8 +91,16 @@ interface AppShellProps {
  */
 const BRAND_WORDMARK = 'cameia';
 
-export function AppShell({ progressEnabled = false }: AppShellProps) {
-  const { t } = useTranslation('common');
+export function AppShell({
+  progressEnabled = false,
+  onLogout,
+  isLoggingOut = false,
+}: AppShellProps) {
+  const { t, i18n } = useTranslation(['common', 'auth']);
+  const isDesktop = useMediaQuery(DESKTOP_MEDIA_QUERY);
+  const confirmation = useDisclosure();
+  const user = useAuthStore((state) => state.user);
+  const hasUnsavedChanges = useUnsavedChangesStore((state) => state.hasUnsavedChanges);
 
   const items: NavItem[] = [
     { to: '/inicio', label: t('navegacion.inicio'), icon: 'home' },
@@ -67,18 +116,90 @@ export function AppShell({ progressEnabled = false }: AppShellProps) {
     { to: '/perfiles/nuevo', label: t('navegacion.perfiles'), icon: 'user' },
   ];
 
+  const language: 'es' | 'en' = i18n.language === 'en' ? 'en' : 'es';
+  function handleLanguageChange(next: 'es' | 'en') {
+    void i18n.changeLanguage(next === 'en' ? 'en' : 'es-CO');
+  }
+
+  const displayName = user?.displayName || user?.email || t('auth:menu.avatarAlt');
+  const avatarFallback = displayName.charAt(0).toUpperCase();
+
+  const confirmationMessage = hasUnsavedChanges
+    ? t('auth:menu.confirmacion.mensajeConCambiosSinGuardar')
+    : t('auth:menu.confirmacion.mensaje');
+
+  // Par discriminado que exigen `Modal`/`BottomSheet`: con `isLoggingOut`, el
+  // gerundio es obligatorio.
+  const loadingProps = isLoggingOut
+    ? {
+        primaryActionLoading: true as const,
+        primaryActionLoadingLabel: t('auth:menu.confirmacion.confirmarCargando'),
+      }
+    : { primaryActionLoading: false as const };
+
   return (
     <div className="min-h-dvh">
       <header className="border-border-subtle bg-bg-surface px-space-5 py-space-3 gap-space-4 flex items-center justify-between border-b">
         <Link to={ROUTES.inicio} className="font-display text-h3 text-text-primary font-extrabold">
           {BRAND_WORDMARK}
         </Link>
-        <NavHeader items={items} label={t('navegacion.principal')} />
+        <div className="gap-space-4 flex items-center">
+          <NavHeader items={items} label={t('navegacion.principal')} />
+          <MenuUsuario
+            avatarAlt={displayName}
+            avatarFallback={avatarFallback}
+            triggerLabel={t('auth:menu.trigger')}
+            menuLabel={t('auth:menu.panel')}
+            miCuenta={{ label: t('auth:menu.miCuenta'), onClick: () => {}, disabled: true }}
+            planes={{ label: t('auth:menu.planes'), onClick: () => {}, disabled: true }}
+            languageSwitcher={
+              <LanguageSwitcher
+                context="menu-row"
+                value={language}
+                onChange={handleLanguageChange}
+                label={t('auth:menu.idioma.etiqueta')}
+                valueLabel={t(`auth:menu.idioma.${language}`)}
+              />
+            }
+            cerrarSesion={{ label: t('auth:menu.cerrarSesion'), onClick: confirmation.open }}
+          />
+        </div>
       </header>
       <main className="p-space-5 pb-space-8 md:pb-space-5">
         <Outlet />
       </main>
       <TabBar items={items} label={t('navegacion.principal')} />
+
+      {confirmation.isOpen && isDesktop ? (
+        <Modal
+          title={t('auth:menu.confirmacion.titulo')}
+          onClose={confirmation.close}
+          closeLabel={t('common:acciones.cerrar')}
+          primaryActionLabel={t('auth:menu.confirmacion.confirmar')}
+          onPrimaryAction={() => void onLogout()}
+          secondaryActionLabel={t('common:acciones.cancelar')}
+          onSecondaryAction={confirmation.close}
+          variant="destructive"
+          {...loadingProps}
+        >
+          {confirmationMessage}
+        </Modal>
+      ) : null}
+
+      {confirmation.isOpen && !isDesktop ? (
+        <BottomSheet
+          title={t('auth:menu.confirmacion.titulo')}
+          onClose={confirmation.close}
+          primaryActionLabel={t('auth:menu.confirmacion.confirmar')}
+          onPrimaryAction={() => void onLogout()}
+          secondaryActionLabel={t('common:acciones.cancelar')}
+          onSecondaryAction={confirmation.close}
+          variant="destructive"
+          {...loadingProps}
+        >
+          {confirmationMessage}
+        </BottomSheet>
+      ) : null}
     </div>
   );
 }
