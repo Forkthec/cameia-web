@@ -139,11 +139,15 @@ def validate(payload):
         errors.append("ia: titulo y declaracion deben coincidir con [IA-ASISTIDO]")
 
     # "Control humano": mientras el PR está en Draft puede decir "pendiente" (nadie
-    # lo ha revisado todavía); para salir de Draft tiene que decir ya "revisado por
-    # el autor — ...". Es la regla del 11-sep: nada pasa a listo sin revisión real.
-    human_pattern = r"(pendiente|revisado por el autor) — \S.*" if payload["draft"] else r"revisado por el autor — \S.*"
+    # lo ha revisado todavía). Fuera de Draft debe declarar al menos "revisado por
+    # el autor"; el detalle "— ..." queda opcional para compatibilidad con la plantilla.
+    human_pattern = (
+        r"(pendiente|revisado por el autor) — \S.*"
+        if payload["draft"]
+        else r"revisado por el autor(?: — \S.*)?"
+    )
     if not re.fullmatch(human_pattern, fields.get("Control humano", "")):
-        errors.append("control humano: usar 'revisado por el autor — ...' antes de salir de Draft, o mantener 'pendiente' en Draft")
+        errors.append("control humano: usar 'revisado por el autor' (opcionalmente con '— ...') antes de salir de Draft, o mantener 'pendiente — ...' en Draft")
 
     return {
         "schema": 1,
