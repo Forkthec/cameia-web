@@ -12,6 +12,7 @@
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
+import { HelmetProvider } from 'react-helmet-async';
 import { I18nextProvider } from 'react-i18next';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -39,11 +40,13 @@ function renderAt(path: string) {
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return render(
-    <QueryClientProvider client={queryClient}>
-      <I18nextProvider i18n={i18n}>
-        <RouterProvider router={memoryRouter} />
-      </I18nextProvider>
-    </QueryClientProvider>,
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <I18nextProvider i18n={i18n}>
+          <RouterProvider router={memoryRouter} />
+        </I18nextProvider>
+      </QueryClientProvider>
+    </HelmetProvider>,
   );
 }
 
@@ -58,7 +61,9 @@ describe('routeConfig', () => {
 
     renderAt('/');
 
-    expect(await screen.findByText('Pantalla pendiente · sin HU')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Entra a la entrevista listo' }),
+    ).toBeInTheDocument();
   });
 
   it('una ruta inexistente muestra el 404', async () => {

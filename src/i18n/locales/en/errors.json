@@ -1,0 +1,10 @@
+{
+  "generico": "Something went wrong. Please try again.",
+  "red": "No connection. Check your internet and try again.",
+  "codigos": {
+    "NOT_FOUND": "We couldn't find what you were looking for.",
+    "AUTH_INVALID_CREDENTIALS": "Incorrect email or password",
+    "AUTH_TOO_MANY_REQUESTS": "Too many attempts. Wait a moment and try again.",
+    "AUTH_USER_DISABLED": "This account is disabled. Contact support."
+  }
+}

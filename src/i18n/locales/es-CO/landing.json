@@ -1,0 +1,56 @@
+{
+  "cta": {
+    "crearCuenta": "Crear cuenta",
+    "iniciarSesion": "Iniciar sesión"
+  },
+  "header": {
+    "idiomaInterfaz": "Idioma de la interfaz"
+  },
+  "hero": {
+    "titulo": "Entra a la entrevista listo",
+    "subtitulo": "Practica con un entrevistador de IA, recibe retroalimentación estructurada y llega a tu próxima entrevista con confianza.",
+    "esGratis": "Es gratis",
+    "tarjeta": {
+      "titulo": "Sesión de práctica",
+      "descripcion": "El entrevistador de IA te escucha y responde en tiempo real, por voz o por texto."
+    }
+  },
+  "modulos": {
+    "titulo": "Todo lo que necesitas para llegar preparado",
+    "simulacros": {
+      "titulo": "Simulacros por voz y texto",
+      "descripcion": "Practica entrevistas completas conversando con un entrevistador de IA, por voz o por texto, según prefieras."
+    },
+    "perfil": {
+      "titulo": "Perfil profesional y hoja de vida",
+      "descripcion": "Sube tu CV y deja que la IA complete tu perfil, o llénalo tú mismo. Tú tienes la última palabra."
+    },
+    "retroalimentacion": {
+      "titulo": "Retroalimentación estructurada",
+      "descripcion": "Recibe un desglose de tu desempeño por pregunta, con puntaje y sugerencias concretas de mejora."
+    }
+  },
+  "entrenoVsSimulacion": {
+    "titulo": "Practica a tu ritmo, o pon a prueba tu desempeño real",
+    "entreno": {
+      "titulo": "Entreno",
+      "descripcion": "Repregunta cuando lo necesites y recibe retroalimentación después de cada respuesta. Ideal para practicar sin presión."
+    },
+    "simulacion": {
+      "titulo": "Simulación",
+      "descripcion": "Un flujo continuo sin pausas, tal como sería una entrevista real. Recibe tu evaluación completa al final."
+    }
+  },
+  "cierre": {
+    "titulo": "Tu próxima entrevista empieza aquí"
+  },
+  "pie": {
+    "terminos": "Términos",
+    "privacidad": "Privacidad",
+    "copyright": "© 2026 Cameia"
+  },
+  "seo": {
+    "titulo": "CAMEIA · Practica entrevistas laborales con IA",
+    "descripcion": "Practica con un entrevistador de IA, recibe retroalimentación estructurada y llega a tu próxima entrevista con confianza."
+  }
+}

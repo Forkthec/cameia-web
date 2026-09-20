@@ -1,0 +1,30 @@
+{
+  "acciones": {
+    "guardar": "Save",
+    "cancelar": "Cancel",
+    "continuar": "Continue",
+    "atras": "Back",
+    "siguiente": "Next",
+    "cerrar": "Close",
+    "reintentar": "Retry",
+    "volverInicio": "Back to home"
+  },
+  "estados": {
+    "cargando": "Loading…",
+    "sinResultados": "No results"
+  },
+  "navegacion": {
+    "principal": "Main navigation",
+    "inicio": "Home",
+    "entrenar": "Practice",
+    "progreso": "Progress",
+    "perfiles": "Profiles"
+  },
+  "pendiente": {
+    "titulo": "Pending screen · {{ticket}}",
+    "descripcion": "This story hasn't been implemented yet ({{prt}})."
+  },
+  "marca": {
+    "nombre": "cameia"
+  }
+}

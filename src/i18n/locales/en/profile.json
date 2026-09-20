@@ -1,0 +1,216 @@
+{
+  "informacionGeneral": {
+    "titulo": "General information",
+    "campos": {
+      "nombreCompleto": "Full name",
+      "fechaNacimiento": "Date of birth",
+      "ciudad": "City"
+    }
+  },
+  "formulario": {
+    "titulo": "Edit professional profile",
+    "indiceSecciones": "Profile sections",
+    "completitud": {
+      "etiqueta": "Professional Profile completeness",
+      "fraccion": "{{value}} of {{max}} requirements complete"
+    },
+    "finalizar": "Finish and Continue",
+    "finalizando": "Finishing…",
+    "finalizarBloqueado": "You can't finish yet: complete the pending requirements.",
+    "confirmacionFinalizado": "Your profile is now active.",
+    "errorFinalizarIncompleto": "You still don't meet these requirements:",
+    "errorFinalizarGenerico": "Couldn't finish the profile. Please try again.",
+    "requisitos": {
+      "name": "Profile name",
+      "summary": "Professional summary",
+      "education": "Education",
+      "skills": "Skills",
+      "targetRoles": "Target roles"
+    }
+  },
+  "general": {
+    "tituloSeccion": "General Information",
+    "nombre": {
+      "etiqueta": "Profile name",
+      "placeholder": "Type here",
+      "ayuda": "For example: \"Data Analyst\" or \"Senior Product Manager\".",
+      "errorRequerido": "Enter a name for the profile.",
+      "errorLongitud": "The name can't be longer than 255 characters."
+    },
+    "resumen": {
+      "etiqueta": "Professional summary",
+      "placeholder": "Type here. This field grows with the content.",
+      "errorLongitud": "The summary can't be longer than 2000 characters.",
+      "contador": "{{count}} / {{max}} characters"
+    },
+    "guardarBorrador": "Save draft",
+    "guardandoBorrador": "Saving…",
+    "confirmacionGuardado": "Changes saved."
+  },
+  "educacion": {
+    "titulo": "Education",
+    "nivel": {
+      "etiqueta": "Education level",
+      "placeholder": "Select an option",
+      "errorRequerido": "Choose an education level.",
+      "TECHNICAL": "Technical",
+      "UNDERGRADUATE": "Undergraduate",
+      "POSTGRADUATE": "Postgraduate"
+    },
+    "tituloObtenido": {
+      "etiqueta": "Degree obtained",
+      "placeholder": "Type here",
+      "errorRequerido": "Enter the degree obtained."
+    },
+    "campoEstudio": {
+      "etiqueta": "Field of study",
+      "placeholder": "Type here"
+    },
+    "institucion": {
+      "etiqueta": "Institution",
+      "placeholder": "Type here",
+      "errorRequerido": "Enter the institution."
+    },
+    "fechaInicio": {
+      "etiqueta": "Start date",
+      "errorRequerido": "Enter the start date."
+    },
+    "fechaFin": {
+      "etiqueta": "End year",
+      "errorAnterior": "The end date can't be earlier than the start date."
+    },
+    "enCurso": "In progress",
+    "agregar": "Add education",
+    "agregando": "Adding…",
+    "eliminar": "Remove {{titulo}}",
+    "eliminando": "Removing…",
+    "periodo": "{{inicio}} - {{fin}}",
+    "periodoEnCurso": "{{inicio}} - present",
+    "vacio": {
+      "titulo": "You haven't added any education yet",
+      "descripcion": "Add at least one to be able to finish your profile."
+    },
+    "confirmacionAgregada": "Education added.",
+    "confirmacionEliminada": "Education removed.",
+    "errorAgregar": "Couldn't add the education entry.",
+    "errorEliminar": "Couldn't remove the education entry.",
+    "errorFechaInvalida": "Check the education entry's dates."
+  },
+  "experiencia": {
+    "titulo": "Work Experience",
+    "cargo": {
+      "etiqueta": "Job title",
+      "placeholder": "Type here",
+      "errorRequerido": "Enter the job title."
+    },
+    "empresa": {
+      "etiqueta": "Company",
+      "placeholder": "Type here",
+      "errorRequerido": "Enter the company."
+    },
+    "fechaInicio": {
+      "etiqueta": "Start date",
+      "errorRequerido": "Enter the start date."
+    },
+    "fechaFin": {
+      "etiqueta": "End date",
+      "errorRequerido": "Enter the end date.",
+      "errorAnterior": "The end date can't be earlier than the start date."
+    },
+    "actual": "I currently work here",
+    "finDesconocido": "I don't remember the exact end date",
+    "descripcion": {
+      "etiqueta": "Description of duties",
+      "placeholder": "Type here. This field grows with the content.",
+      "contador": "{{count}} / {{max}} characters"
+    },
+    "agregar": "Add experience",
+    "agregando": "Adding…",
+    "eliminar": "Remove {{cargo}}",
+    "eliminando": "Removing…",
+    "periodo": "{{inicio}} - {{fin}}",
+    "periodoActual": "{{inicio}} - present",
+    "periodoFinDesconocido": "{{inicio}} - end date unknown",
+    "vacio": {
+      "titulo": "You haven't added any work experience yet",
+      "descripcion": "It's optional; it isn't a requirement to finish your profile."
+    },
+    "confirmacionAgregada": "Experience added.",
+    "confirmacionEliminada": "Experience removed.",
+    "errorAgregar": "Couldn't add the work experience.",
+    "errorEliminar": "Couldn't remove the work experience.",
+    "errorFechaInvalida": "Check the work experience's dates."
+  },
+  "habilidades": {
+    "titulo": "Skills",
+    "nombre": {
+      "etiqueta": "Skill",
+      "placeholder": "Type here",
+      "errorRequerido": "Enter a skill.",
+      "errorLongitud": "The skill can't be longer than 255 characters.",
+      "errorDuplicado": "That skill is already in your profile."
+    },
+    "nivel": {
+      "etiqueta": "Level",
+      "placeholder": "Select an option",
+      "errorRequerido": "Choose a level.",
+      "BASIC": "Basic",
+      "INTERMEDIATE": "Intermediate",
+      "ADVANCED": "Advanced"
+    },
+    "chip": "{{nombre}} · {{nivel}}",
+    "agregar": "Add skill",
+    "agregando": "Adding…",
+    "quitar": "Remove {{nombre}}",
+    "vacio": {
+      "titulo": "You haven't added any skills yet",
+      "descripcion": "Add at least one to be able to finish your profile."
+    },
+    "confirmacionAgregada": "Skill added.",
+    "errorAgregar": "Couldn't add the skill.",
+    "errorEliminar": "Couldn't remove the skill."
+  },
+  "rolesObjetivo": {
+    "titulo": "Target roles",
+    "agregar": {
+      "etiqueta": "Add target role",
+      "placeholder": "Search for a role in the catalog",
+      "agregando": "Adding target role…",
+      "sinResultados": "We couldn't find that role in the catalog.",
+      "tope": "You can have up to 5 target roles."
+    },
+    "sustituir": {
+      "etiqueta": "Choose the new target role",
+      "placeholder": "Select an option",
+      "accion": "Replace {{rol}}",
+      "sustituyendo": "Replacing…"
+    },
+    "eliminar": "Remove {{rol}}",
+    "eliminando": "Removing…",
+    "eliminarUltimoBloqueado": "Your active profile must have at least one target role.",
+    "vacio": {
+      "titulo": "You haven't added any target roles yet",
+      "descripcion": "Add at least one to be able to finish your profile."
+    },
+    "confirmacionAgregado": "Target role added.",
+    "confirmacionSustituido": "Target role replaced.",
+    "confirmacionEliminado": "Target role removed.",
+    "errorAgregar": "Couldn't add the target role.",
+    "errorSustituir": "Couldn't replace the target role.",
+    "errorEliminar": "Couldn't remove the target role.",
+    "errorDuplicado": "That target role is already in your profile."
+  },
+  "metodo": {
+    "titulo": "How do you want to fill it out?",
+    "grupoEtiqueta": "Profile setup method",
+    "manual": {
+      "titulo": "Manual entry",
+      "descripcion": "You write each section yourself. Full control over what gets written."
+    },
+    "ia": {
+      "titulo": "Auto-fill with AI",
+      "descripcion": "Upload your résumé (CV) and AI fills in what it finds. You review and correct before saving.",
+      "insignia": "Coming soon"
+    }
+  }
+}
