@@ -24,6 +24,14 @@
  * Cada sección se abre y se cierra de forma independiente (no es un
  * acordeón exclusivo): colapsar las demás mientras el usuario escribe en
  * una sería un defecto, no una mejora.
+ *
+ * `ProfileSection.secondaryLabel` (CM-195, decisión D-H): se reenvía tanto a
+ * `StepList` (desktop) como al disparador de `AccordionSection` (móvil) —
+ * hoy solo lo usa "Experiencia Laboral" ("Opcional"), la única sección que
+ * nunca llega a `status: 'complete'` porque no es uno de los 5 requisitos
+ * de finalización (`model/profileCompleteness.ts`). Sin precedente de
+ * Figma para esta insignia — tratamiento visual mínimo (texto mudo)
+ * mientras no se verifique un diseño real.
  */
 import { useId, type ReactNode } from 'react';
 import { cn } from '@/utils/cn';
@@ -35,6 +43,8 @@ import type { StepStatus } from '@/design-system/molecules/Stepper';
 export interface ProfileSection {
   id: string;
   label: string;
+  /** Texto mudo junto a `label` (CM-195, decisión D-H) — p. ej. "Opcional" para una sección que nunca llega a `'complete'` porque no es requisito de finalización. Se muestra tanto en `StepList` (desktop) como en el disparador del acordeón (móvil). */
+  secondaryLabel?: string;
   status: StepStatus;
   content: ReactNode;
 }
@@ -53,10 +63,26 @@ function AccordionSection({ section }: AccordionSectionProps) {
         type="button"
         aria-expanded={isOpen}
         aria-controls={panelId}
+        // `aria-label` explícito cuando hay `secondaryLabel` (CM-195): el
+        // cálculo de nombre accesible concatena el texto de los `<span>`
+        // hijos sin insertar espacio entre ellos por su cuenta — dejar que
+        // el nombre saliera del contenido visual daba "HabilidadesOpcional",
+        // sin espacio. Sin `secondaryLabel`, se deja el nombre implícito de
+        // siempre (el texto visible del botón).
+        aria-label={
+          section.secondaryLabel ? `${section.label} ${section.secondaryLabel}` : undefined
+        }
         onClick={toggle}
         className="gap-space-2 flex w-full items-center justify-between text-left"
       >
-        <span className="text-h2 font-display text-text-primary">{section.label}</span>
+        <span className="gap-space-2 flex items-baseline">
+          <span className="text-h2 font-display text-text-primary">{section.label}</span>
+          {section.secondaryLabel ? (
+            <span className="text-label font-body text-text-muted font-normal">
+              {section.secondaryLabel}
+            </span>
+          ) : null}
+        </span>
         <Icon
           name="chevron-down"
           className={cn('text-text-muted transition-transform', isOpen && 'rotate-180')}
@@ -98,6 +124,7 @@ export function ProfileSectionsLayout({
 
   const stepListItems: StepListItem[] = sections.map((section) => ({
     label: section.label,
+    secondaryLabel: section.secondaryLabel,
     status: section.status,
   }));
 

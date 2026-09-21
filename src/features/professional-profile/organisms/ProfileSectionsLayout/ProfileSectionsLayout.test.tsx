@@ -89,4 +89,36 @@ describe('ProfileSectionsLayout', () => {
 
     expect(screen.queryByText('Expectativas Profesionales')).not.toBeInTheDocument();
   });
+
+  it('CM-195: muestra secondaryLabel en el StepList (desktop) y en el disparador del acordeón (móvil)', () => {
+    const sectionsWithOptional: ProfileSection[] = [
+      ...sections,
+      {
+        id: 'skills',
+        label: 'Habilidades',
+        secondaryLabel: 'Opcional',
+        status: 'upcoming',
+        content: <p>Formulario D</p>,
+      },
+    ];
+
+    const { unmount } = render(
+      <ProfileSectionsLayout
+        sections={sectionsWithOptional}
+        isDesktop
+        stepListLabel="Secciones del perfil"
+      />,
+    );
+    expect(screen.getByText('Opcional')).toBeInTheDocument();
+    unmount();
+
+    render(
+      <ProfileSectionsLayout
+        sections={sectionsWithOptional}
+        isDesktop={false}
+        stepListLabel="Secciones del perfil"
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Habilidades Opcional' })).toBeInTheDocument();
+  });
 });

@@ -17,12 +17,30 @@
  * CA-2.2.2 (ruta de IA) y CA-2.2.3 (rechazo por límite de cupo) NO se
  * implementan: la tarjeta de IA está deshabilitada (Sprint 2) y el mock no
  * modela ningún límite de plan. Ver SPEC §3.1 y §9.
+ *
+ * **CM-195 (decisión D-I):** `ProfileAlreadyExistsException`/`409` es real
+ * (`ProfileController.java#createProfile`, confirmado contra el código
+ * fuente) — un usuario que ya tiene un perfil y de todas formas llega aquí
+ * (p. ej. por el botón atrás del navegador) ve un mensaje propio, no el
+ * genérico de `errors:generico`. Sin `errors[]` en ese `409` (no es un
+ * campo inválido), así que basta `ApiError.isConflict()`.
+ *
+ * Al crear con éxito, guarda el id en `lastUsedProfileId`
+ * (`stores/uiPreferences.store.ts`) — conveniencia de cliente ya prevista
+ * (`GLO-TBD-06`) pero nunca conectada hasta ahora: es lo que permite que
+ * "Perfiles" en `AppShell` deje de mandar siempre aquí una vez que el
+ * usuario ya tiene un perfil. También se redirige de inmediato si ese id
+ * ya existe al montar esta página — cubre exactamente el caso de "atrás del
+ * navegador" que motivó este mensaje de error en primer lugar.
  */
+import { useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
+import { ApiError } from '@/services/http/ApiError';
 import { httpClient } from '@/services/http/httpClient';
+import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
 import { ProfileMethodSelector } from '../organisms/ProfileMethodSelector';
 
 interface CreateProfileResponse {
@@ -32,11 +50,30 @@ interface CreateProfileResponse {
 export function NewProfilePage() {
   const { t } = useTranslation(['profile', 'common', 'errors']);
   const navigate = useNavigate();
+  const lastUsedProfileId = useUiPreferencesStore((state) => state.lastUsedProfileId);
+  const setLastUsedProfileId = useUiPreferencesStore((state) => state.setLastUsedProfileId);
+
+  useEffect(() => {
+    if (lastUsedProfileId) {
+      void navigate(ROUTES.perfilEditar(lastUsedProfileId), { replace: true });
+    }
+    // Solo al montar: si `lastUsedProfileId` cambia después (p. ej. por otra
+    // pestaña), no se quiere interrumpir a alguien ya interactuando aquí.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const createProfile = useMutation({
     mutationFn: () => httpClient.post<CreateProfileResponse>('/api/v1/profiles'),
-    onSuccess: (profile) => navigate(ROUTES.perfilEditar(profile.id)),
+    onSuccess: (profile) => {
+      setLastUsedProfileId(profile.id);
+      void navigate(ROUTES.perfilEditar(profile.id));
+    },
   });
+
+  const isAlreadyExists =
+    createProfile.isError &&
+    createProfile.error instanceof ApiError &&
+    createProfile.error.isConflict();
 
   return (
     <section className="py-space-6 mx-auto max-w-[45rem]">
@@ -51,7 +88,13 @@ export function NewProfilePage() {
         loadingLabel={t('common:estados.cargando')}
         onSelectManual={() => createProfile.mutate()}
         loading={createProfile.isPending}
-        errorMessage={createProfile.isError ? t('errors:generico') : undefined}
+        errorMessage={
+          createProfile.isError
+            ? isAlreadyExists
+              ? t('profile:metodo.errorYaExiste')
+              : t('errors:generico')
+            : undefined
+        }
       />
     </section>
   );

@@ -20,7 +20,7 @@ const baseProps = {
   name: 'Ana María Pérez',
   summary: 'Desarrolladora backend con experiencia en Java.',
   sectionTitle: 'Información General',
-  onSubmit: () => {},
+  onSubmit: () => Promise.resolve(),
   nameLabel: 'Nombre del perfil',
   nameHelperText: 'Por ejemplo: "Analista de datos" o "Producto senior".',
   namePlaceholder: 'Escribe aquí',
@@ -70,7 +70,7 @@ describe('GeneralInfoForm', () => {
 
   it('name vacío bloquea el envío y no llama a onSubmit', async () => {
     const user = userEvent.setup();
-    const onSubmit = vi.fn();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(<GeneralInfoForm {...baseProps} onSubmit={onSubmit} />);
 
     await user.clear(screen.getByLabelText('Nombre del perfil'));
@@ -85,7 +85,7 @@ describe('GeneralInfoForm', () => {
   });
 
   it('name mayor a 255 caracteres bloquea el envío', async () => {
-    const onSubmit = vi.fn();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(<GeneralInfoForm {...baseProps} onSubmit={onSubmit} />);
 
     const nameInput = screen.getByLabelText('Nombre del perfil');
@@ -112,7 +112,7 @@ describe('GeneralInfoForm', () => {
 
   it('un envío válido llega a onSubmit con los valores actuales', async () => {
     const user = userEvent.setup();
-    const onSubmit = vi.fn();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(<GeneralInfoForm {...baseProps} onSubmit={onSubmit} />);
 
     const nameInput = screen.getByLabelText('Nombre del perfil');
@@ -123,10 +123,83 @@ describe('GeneralInfoForm', () => {
     form.requestSubmit();
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
-    expect(onSubmit).toHaveBeenCalledWith(
-      { name: 'Ana Pérez', summary: 'Desarrolladora backend con experiencia en Java.' },
-      expect.anything(),
+    // Un solo argumento: `trySave` (interno, ver TSDoc de cabecera CM-195) es
+    // quien recibe el segundo argumento nativo de RHF, no el `onSubmit` de props.
+    expect(onSubmit).toHaveBeenCalledWith({
+      name: 'Ana Pérez',
+      summary: 'Desarrolladora backend con experiencia en Java.',
+    });
+  });
+
+  it('CM-195: sacar el foco del formulario guarda automáticamente, sin ningún clic', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(
+      <div>
+        <GeneralInfoForm {...baseProps} onSubmit={onSubmit} />
+        <button type="button">Fuera del formulario</button>
+      </div>,
     );
+
+    await user.type(screen.getByLabelText('Resumen profesional'), ' Node.js.');
+    await user.click(screen.getByRole('button', { name: 'Fuera del formulario' }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+    expect(onSubmit).toHaveBeenCalledWith({
+      name: 'Ana María Pérez',
+      summary: 'Desarrolladora backend con experiencia en Java. Node.js.',
+    });
+  });
+
+  it('CM-195: tabular entre Nombre y Resumen (dentro del formulario) no guarda', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<GeneralInfoForm {...baseProps} onSubmit={onSubmit} />);
+
+    screen.getByLabelText('Nombre del perfil').focus();
+    await user.tab();
+
+    expect(screen.getByLabelText('Resumen profesional')).toHaveFocus();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('CM-195: tras un autoguardado exitoso, editar de nuevo y salir vuelve a guardar', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(
+      <div>
+        <GeneralInfoForm {...baseProps} onSubmit={onSubmit} />
+        <button type="button">Fuera del formulario</button>
+      </div>,
+    );
+    const outsideButton = screen.getByRole('button', { name: 'Fuera del formulario' });
+
+    await user.type(screen.getByLabelText('Resumen profesional'), ' Node.js.');
+    await user.click(outsideButton);
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+
+    await user.click(screen.getByLabelText('Resumen profesional'));
+    await user.type(screen.getByLabelText('Resumen profesional'), ' React.');
+    await user.click(outsideButton);
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(2));
+  });
+
+  it('CM-195: si el autoguardado falla, el formulario queda con cambios sin guardar', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockRejectedValue(new Error('network'));
+    render(
+      <div>
+        <GeneralInfoForm {...baseProps} onSubmit={onSubmit} />
+        <button type="button">Fuera del formulario</button>
+      </div>,
+    );
+
+    await user.type(screen.getByLabelText('Resumen profesional'), ' Node.js.');
+    await user.click(screen.getByRole('button', { name: 'Fuera del formulario' }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+    expect(useUnsavedChangesStore.getState().hasUnsavedChanges).toBe(true);
   });
 
   it('al modificar un campo, marca hasUnsavedChanges en true en el store', async () => {

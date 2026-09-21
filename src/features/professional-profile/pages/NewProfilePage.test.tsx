@@ -21,6 +21,7 @@ import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter, Route, Routes, useParams } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import i18n from '@/i18n';
+import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
 import { useHandlers } from '@/test/msw';
 import { NewProfilePage } from './NewProfilePage';
 
@@ -137,6 +138,55 @@ describe('NewProfilePage', () => {
 
     await user.click(manualCard);
     expect(await screen.findByText('Editar perfil profile-1')).toBeInTheDocument();
+  });
+
+  it('CM-195: tocar Llenado Manual guarda el id en lastUsedProfileId', async () => {
+    await waitUntilReady();
+    const user = userEvent.setup();
+    renderPage();
+
+    const manualCard = await screen.findByRole('radio', { name: /Llenado Manual/ });
+    await user.click(manualCard);
+
+    await screen.findByText('Editar perfil profile-1');
+    expect(useUiPreferencesStore.getState().lastUsedProfileId).toBe('profile-1');
+  });
+
+  it('CM-195: con lastUsedProfileId ya guardado, redirige de inmediato sin mostrar el selector', async () => {
+    await waitUntilReady();
+    useUiPreferencesStore.setState({ lastUsedProfileId: 'profile-existente' });
+    renderPage();
+
+    expect(await screen.findByText('Editar perfil profile-existente')).toBeInTheDocument();
+    expect(screen.queryByText('¿Cómo quieres completarlo?')).not.toBeInTheDocument();
+  });
+
+  it('CM-195: si ya existe un perfil (409), muestra un mensaje específico, no el genérico', async () => {
+    await waitUntilReady();
+    useHandlers(
+      http.post(
+        '*/api/v1/profiles',
+        () =>
+          HttpResponse.json(
+            {
+              type: 'about:blank',
+              title: 'Conflicto',
+              status: 409,
+              detail: 'ya existe',
+              errors: [],
+            },
+            { status: 409 },
+          ),
+        { once: true },
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    const manualCard = await screen.findByRole('radio', { name: /Llenado Manual/ });
+    await user.click(manualCard);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Ya tienes un perfil creado.');
   });
 
   it('expone un radiogroup con el nombre accesible del método de configuración', async () => {

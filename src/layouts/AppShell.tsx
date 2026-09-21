@@ -4,14 +4,28 @@
  * design-system/organisms). Renderiza <Outlet/> para las rutas hijas — se usa
  * como layout-route en app/router/index.tsx, no recibe `children` por prop.
  *
- * Los 3 `to` de `items` siguen duplicados a propósito: `layouts` no puede
- * importar de `app/` en general (docs/ARCHITECTURE.md §4), mismo patrón que
- * ya usa `stores/uiPreferences.store.ts` con SUPPORTED_LANGUAGES. Si esas
- * rutas cambian, hay que actualizar los dos sitios. El wordmark de abajo es
- * la única excepción: usa `ROUTES.inicio` a través de un carve-out puntual
- * de la matriz de fronteras (CM-46, `eslint.config.js`, elemento
- * "app-routes") que aísla exclusivamente `src/app/router/routes.ts` —no el
- * resto de `app`—, porque es un módulo hoja sin imports propios.
+ * Los `to` estáticos de `items` siguen duplicados a propósito: `layouts` no
+ * puede importar de `app/` en general (docs/ARCHITECTURE.md §4), mismo
+ * patrón que ya usa `stores/uiPreferences.store.ts` con SUPPORTED_LANGUAGES.
+ * Si esas rutas cambian, hay que actualizar los dos sitios. El wordmark de
+ * abajo es la excepción histórica: usa `ROUTES.inicio` a través de un
+ * carve-out puntual de la matriz de fronteras (CM-46, `eslint.config.js`,
+ * elemento "app-routes") que aísla exclusivamente `src/app/router/routes.ts`
+ * —no el resto de `app`—, porque es un módulo hoja sin imports propios.
+ *
+ * **"Perfiles" (CM-195, decisión D-I) reutiliza ese mismo carve-out**, esta
+ * vez porque de verdad lo necesita: a diferencia de los otros `to`
+ * (literales fijos), este es condicional y necesita interpolar un id
+ * (`ROUTES.perfilEditar(id)`), algo que un string duplicado no puede hacer.
+ * Lee `lastUsedProfileId` (`stores/uiPreferences.store.ts`, conveniencia de
+ * cliente ya prevista pero nunca conectada hasta ahora — ver TSDoc de
+ * cabecera de `NewProfilePage.tsx`/`EditProfilePage.tsx`): si existe, va
+ * directo al perfil ya creado; si no, a `/perfiles/nuevo` como antes. Sin
+ * endpoint real de "listar mis perfiles" (confirmado ausente del backend,
+ * auditoría CM-195), esta conveniencia de `localStorage` es la única señal
+ * que el frontend tiene — imperfecta (no sobrevive un cambio de dispositivo
+ * o `localStorage` borrado), por eso `NewProfilePage.tsx` también maneja el
+ * `409` de crear un segundo perfil como red de seguridad.
  *
  * `progressEnabled` llega por prop en vez de leerse de `config/features.ts`
  * aquí mismo: `eslint-plugin-boundaries` solo deja que `layouts` importe
@@ -70,6 +84,7 @@ import { TabBar } from '@/design-system/organisms/TabBar';
 import { useDisclosure } from '@/hooks/useDisclosure';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useAuthStore } from '@/stores/auth.store';
+import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
 import { useUnsavedChangesStore } from '@/stores/unsavedChanges.store';
 
 /** Ver la nota de cabecera: mismo valor que `--breakpoint-md`, repetido a propósito. */
@@ -101,6 +116,7 @@ export function AppShell({
   const confirmation = useDisclosure();
   const user = useAuthStore((state) => state.user);
   const hasUnsavedChanges = useUnsavedChangesStore((state) => state.hasUnsavedChanges);
+  const lastUsedProfileId = useUiPreferencesStore((state) => state.lastUsedProfileId);
 
   const items: NavItem[] = [
     { to: '/inicio', label: t('navegacion.inicio'), icon: 'home' },
@@ -111,9 +127,15 @@ export function AppShell({
       // HE-07 no existe todavía (CLAUDE.md §11): sin ruta propia, deshabilitado.
       disabled: !progressEnabled,
     },
-    // Sin HU de "lista de perfiles" en el backlog todavía: enlaza al único
-    // punto de entrada que sí existe (CM-46).
-    { to: '/perfiles/nuevo', label: t('navegacion.perfiles'), icon: 'user' },
+    // Sin HU de "lista de perfiles" en el backlog todavía (CM-46): sin
+    // `lastUsedProfileId`, enlaza al único punto de entrada que sí existe.
+    // Con él (CM-195, decisión D-I), va directo al perfil ya creado — ver
+    // TSDoc de cabecera sobre por qué este `to` sí usa `ROUTES`.
+    {
+      to: lastUsedProfileId ? ROUTES.perfilEditar(lastUsedProfileId) : '/perfiles/nuevo',
+      label: t('navegacion.perfiles'),
+      icon: 'user',
+    },
   ];
 
   const language: 'es' | 'en' = i18n.language === 'en' ? 'en' : 'es';

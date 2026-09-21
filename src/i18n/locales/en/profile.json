@@ -17,6 +17,7 @@
     "finalizar": "Finish and Continue",
     "finalizando": "Finishing…",
     "finalizarBloqueado": "You can't finish yet: complete the pending requirements.",
+    "yaActivo": "This profile is already active.",
     "confirmacionFinalizado": "Your profile is now active.",
     "errorFinalizarIncompleto": "You still don't meet these requirements:",
     "errorFinalizarGenerico": "Couldn't finish the profile. Please try again.",
@@ -98,6 +99,7 @@
   },
   "experiencia": {
     "titulo": "Work Experience",
+    "etiquetaOpcional": "Optional",
     "cargo": {
       "etiqueta": "Job title",
       "placeholder": "Type here",
@@ -211,6 +213,7 @@
       "titulo": "Auto-fill with AI",
       "descripcion": "Upload your résumé (CV) and AI fills in what it finds. You review and correct before saving.",
       "insignia": "Coming soon"
-    }
+    },
+    "errorYaExiste": "You already have a profile."
   }
 }
