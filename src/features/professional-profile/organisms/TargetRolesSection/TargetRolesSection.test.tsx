@@ -16,9 +16,9 @@ import type { ProfessionalRole, TargetRoleItem } from '../../model/profile.types
 import { TargetRolesSection } from './TargetRolesSection';
 
 const catalog: ProfessionalRole[] = [
-  { id: 'backend-developer', name: 'Desarrollador Backend' },
-  { id: 'frontend-developer', name: 'Desarrollador Frontend' },
-  { id: 'qa-analyst', name: 'Analista de QA' },
+  { id: 'backend-developer', name: 'Desarrollador Backend', category: 'Desarrollo' },
+  { id: 'frontend-developer', name: 'Desarrollador Frontend', category: 'Desarrollo' },
+  { id: 'qa-analyst', name: 'Analista de QA', category: 'Desarrollo' },
 ];
 
 const existingItem: TargetRoleItem = {
@@ -82,6 +82,7 @@ describe('TargetRolesSection', () => {
     const fullCatalog: ProfessionalRole[] = Array.from({ length: 5 }, (_, index) => ({
       id: `role-${index}`,
       name: `Rol ${index}`,
+      category: 'Desarrollo',
     }));
     const items: TargetRoleItem[] = fullCatalog.map((role, index) => ({
       id: `target-role-${index}`,

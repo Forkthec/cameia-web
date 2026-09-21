@@ -19,6 +19,10 @@
  * individual — confirmado contra Figma (`PRT-01.03 · Login · credenciales
  * inválidas`, nodos `96:1153`/`98:1306`): el borde rojo compartido, sin
  * señalar cuál campo falló, es la forma visual de cumplir CA-1.3.1.
+ *
+ * `correo` usa `emailSchema` (`login.schema.ts`), compartido con
+ * `register.schema.ts` (CM-195): mismo regex/`maxLength=254` que el backend
+ * real (`EmailAddress.java`). `correoErrorMuyLargo` cubre el caso `too_big`.
  */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
@@ -53,6 +57,7 @@ interface LoginFormProps {
   correoPlaceholder: string;
   correoErrorRequired: string;
   correoErrorInvalid: string;
+  correoErrorMuyLargo: string;
   contrasenaLabel: string;
   contrasenaPlaceholder: string;
   contrasenaErrorRequired: string;
@@ -78,6 +83,7 @@ export function LoginForm({
   correoPlaceholder,
   correoErrorRequired,
   correoErrorInvalid,
+  correoErrorMuyLargo,
   contrasenaLabel,
   contrasenaPlaceholder,
   contrasenaErrorRequired,
@@ -135,9 +141,11 @@ export function LoginForm({
             error={
               fieldState.error?.type === 'too_small'
                 ? correoErrorRequired
-                : fieldState.error?.type === 'invalid_format'
-                  ? correoErrorInvalid
-                  : undefined
+                : fieldState.error?.type === 'too_big'
+                  ? correoErrorMuyLargo
+                  : fieldState.error?.type === 'invalid_format'
+                    ? correoErrorInvalid
+                    : undefined
             }
           >
             <Input
@@ -147,6 +155,7 @@ export function LoginForm({
               onBlur={field.onBlur}
               placeholder={correoPlaceholder}
               autoComplete="email"
+              maxLength={254}
               state={
                 isSubmitting
                   ? 'disabled'

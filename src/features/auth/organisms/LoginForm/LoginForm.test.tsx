@@ -22,6 +22,7 @@ const baseProps = {
   correoPlaceholder: 'correo@ejemplo.com',
   correoErrorRequired: 'Ingresa tu correo electrónico.',
   correoErrorInvalid: 'Ingresa un correo electrónico válido.',
+  correoErrorMuyLargo: 'El correo no puede superar los 254 caracteres.',
   contrasenaLabel: 'Contraseña',
   contrasenaPlaceholder: '••••••••',
   contrasenaErrorRequired: 'Ingresa tu contraseña.',

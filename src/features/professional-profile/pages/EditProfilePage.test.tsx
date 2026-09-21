@@ -284,6 +284,62 @@ describe('EditProfilePage', () => {
     expect(await screen.findByText('Tu perfil ya está activo.')).toBeInTheDocument();
   });
 
+  it('CM-195: un perfil ya activo (COMPLETED) muestra el aviso visible y bloquea el botón', async () => {
+    await waitUntilReady();
+    setViewportMatches(true);
+    const user = userEvent.setup();
+    const created = await createProfile();
+
+    const { unmount } = renderPage(created.id);
+    await screen.findByRole('heading', { name: 'Editar perfil profesional' });
+
+    await user.type(screen.getByLabelText('Resumen profesional'), 'Backend con Node.js.');
+    await user.click(screen.getByRole('button', { name: 'Guardar borrador' }));
+    await waitFor(() => expect(screen.getByText('Cambios guardados.')).toBeInTheDocument());
+
+    const educationSection = within(screen.getByRole('region', { name: 'Formación académica' }));
+    await user.selectOptions(educationSection.getByLabelText('Nivel educativo'), 'UNDERGRADUATE');
+    await user.type(educationSection.getByLabelText('Título obtenido'), 'Ingeniería de Sistemas');
+    await user.type(educationSection.getByLabelText('Institución'), 'Universidad del Cauca');
+    fireEvent.change(educationSection.getByLabelText('Fecha de inicio'), {
+      target: { value: '2018-01-01' },
+    });
+    await user.click(educationSection.getByRole('button', { name: 'Agregar formación' }));
+    await screen.findByText('Ingeniería de Sistemas');
+
+    const skillsSection = within(screen.getByRole('region', { name: 'Habilidades' }));
+    await user.type(skillsSection.getByLabelText('Habilidad'), 'Node.js');
+    await user.selectOptions(skillsSection.getByLabelText('Nivel'), 'ADVANCED');
+    await user.click(skillsSection.getByRole('button', { name: 'Agregar habilidad' }));
+    await screen.findByText('Node.js · Avanzado');
+
+    const targetRolesSection = within(screen.getByRole('region', { name: 'Roles objetivo' }));
+    await user.click(targetRolesSection.getByRole('combobox', { name: 'Agregar rol objetivo' }));
+    await user.click(screen.getByRole('option', { name: 'Desarrollador Backend' }));
+    await screen.findByText('Desarrollador Backend');
+
+    const finishButton = await screen.findByRole('button', { name: 'Finalizar y Continuar' });
+    await waitFor(() => expect(finishButton).not.toBeDisabled());
+    await user.click(finishButton);
+    await screen.findByText('Tu perfil ya está activo.');
+
+    // Desmontar y volver a montar simula que la persona vuelve más tarde:
+    // `finalizeProfile` nace como una mutación nueva (`isSuccess: false`),
+    // así que el aviso de "Tu perfil ya está activo." (ligado a esa
+    // mutación) ya no aplica — el que debe aparecer es el de `profile.status
+    // === 'COMPLETED'`, que no depende de haber finalizado en esta sesión.
+    unmount();
+    renderPage(created.id);
+    await screen.findByRole('heading', { name: 'Editar perfil profesional' });
+
+    // Dos apariciones esperadas: la alerta visible de página y el hint
+    // `sr-only` del botón deshabilitado (`aria-describedby`) comparten el
+    // mismo texto a propósito — refuerzan el mismo mensaje para quien lee
+    // la pantalla y para quien usa un lector de pantalla enfocado en el botón.
+    expect(await screen.findAllByText('Este perfil ya está activo.')).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Finalizar y Continuar' })).toBeDisabled();
+  });
+
   it('finalizar un perfil incompleto muestra todos los requisitos faltantes a la vez', async () => {
     await waitUntilReady();
     setViewportMatches(true);

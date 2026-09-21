@@ -64,9 +64,34 @@
  * desmontar — no lo pide la SPEC textualmente, pero sin él un `isDirty` en
  * `true` quedaría "pegado" si el usuario navega fuera sin guardar y sin que
  * `isDirty` vuelva a `false` por su cuenta.
+ *
+ * **Autoguardado en `onBlur` (CM-195, decisión D-H):** antes de esta
+ * iteración, este formulario solo se enviaba cuando "Guardar borrador"
+ * (fuera de este componente) lo disparaba por el atributo HTML `form` —
+ * llenar los campos y nunca hacer ese clic perdía el dato en silencio. El
+ * `onBlur` del `<form>` (React lo hace burbujear vía `focusout`) dispara un
+ * guardado automático, pero solo cuando el foco sale del formulario
+ * **completo** (`!event.currentTarget.contains(event.relatedTarget)`) —
+ * tabular entre "Nombre" y "Resumen" no dispara nada, solo salir de la
+ * sección. `trySave` es el único punto de entrada tanto para ese blur como
+ * para el `submit` nativo del botón externo — la validación de zod sigue
+ * siendo la única puerta, nunca se guarda un `name` vacío por accidente.
+ *
+ * `isSubmittingRef` existe por una colisión real: al hacer clic en "Guardar
+ * borrador" (vive fuera de este `<form>`), el navegador dispara primero el
+ * `blur` del campo enfocado y luego el `submit` del clic — sin el guard,
+ * eso son dos `PATCH` seguidos con los mismos valores. Tras un guardado
+ * exitoso, `reset(values)` mueve el punto de referencia de "sucio" al valor
+ * recién confirmado — si el usuario edita de nuevo, `isDirty` vuelve a
+ * `true` y el siguiente blur-fuera-del-formulario guarda otra vez, sin
+ * límite. En error, no se llama `reset`: el campo queda "sucio" a propósito,
+ * así el próximo blur reintenta solo, sin perder el cambio.
+ *
+ * `onSubmit` cambia de `(values) => void` a `(values) => Promise<void>`
+ * porque `trySave` necesita esperarlo antes de decidir si limpia `isDirty`.
  */
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useUnsavedChangesStore } from '@/stores/unsavedChanges.store';
 import { cn } from '@/utils/cn';
@@ -87,7 +112,7 @@ interface GeneralInfoFormProps {
   showSectionTitle?: boolean;
   /** `true` mientras la mutación de guardado está en curso: deshabilita los campos. */
   isSaving?: boolean;
-  onSubmit: (values: GeneralInfoFormValues) => void;
+  onSubmit: (values: GeneralInfoFormValues) => Promise<void>;
   nameLabel: string;
   /** Copia literal del frame: `Por ejemplo: "Analista de datos" o "Producto senior".` */
   nameHelperText: string;
@@ -126,7 +151,7 @@ export function GeneralInfoForm({
   summaryCounterLabel,
   className,
 }: GeneralInfoFormProps) {
-  const { control, handleSubmit, formState } = useForm<GeneralInfoFormValues>({
+  const { control, handleSubmit, formState, reset } = useForm<GeneralInfoFormValues>({
     resolver: zodResolver(generalInfoSchema),
     defaultValues: { name, summary },
   });
@@ -139,6 +164,23 @@ export function GeneralInfoForm({
     return () => useUnsavedChangesStore.getState().setUnsavedChanges(false);
   }, []);
 
+  const isSubmittingRef = useRef(false);
+
+  /** Único punto de entrada del guardado (blur-fuera-del-formulario y submit nativo) — ver TSDoc de cabecera. */
+  async function trySave(values: GeneralInfoFormValues) {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    try {
+      await onSubmit(values);
+      reset(values);
+    } catch {
+      // El error ya lo muestra la página (`updateGeneralInfo.isError`); el
+      // formulario queda "sucio" a propósito — el próximo blur reintenta solo.
+    } finally {
+      isSubmittingRef.current = false;
+    }
+  }
+
   return (
     <form
       id={formId}
@@ -147,7 +189,12 @@ export function GeneralInfoForm({
       className={cn('gap-space-7 flex flex-col', className)}
       // `handleSubmit` devuelve una función async (el resolver de zod lo es);
       // el `onSubmit` nativo espera `void`, de ahí el `void` explícito.
-      onSubmit={(event) => void handleSubmit(onSubmit)(event)}
+      onSubmit={(event) => void handleSubmit(trySave)(event)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          void handleSubmit(trySave)();
+        }
+      }}
       noValidate
     >
       <Controller

@@ -58,6 +58,11 @@ export class ApiError extends Error {
     return this.httpStatus === 400 || this.httpStatus === 422;
   }
 
+  /** `409` — conflicto de recurso (p. ej. `ProfileAlreadyExistsException`/`ProfileAlreadyCompletedException` en `cameia-perfil`, confirmado contra el código real, CM-195). Nunca trae `errors[]`: no es un campo inválido, es un estado del recurso. */
+  isConflict(): boolean {
+    return this.httpStatus === 409;
+  }
+
   isServer(): boolean {
     return this.httpStatus >= 500;
   }

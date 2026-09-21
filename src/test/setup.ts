@@ -27,12 +27,20 @@
  * es infraestructura, no algo que cada prueba nueva deba recordar. Una
  * prueba que sí necesite ejercitar inglés (ej. `LanguageSwitcher`) lo cambia
  * explícitamente con `i18n.changeLanguage('en')`.
+ *
+ * `useUiPreferencesStore` (CM-195) usa el middleware `persist` de Zustand:
+ * sin reiniciarlo, `lastUsedProfileId` que una prueba deja escrito (en
+ * memoria y en el `localStorage` de jsdom) sobrevive a las pruebas
+ * siguientes del mismo archivo — `NewProfilePage.tsx` redirige de inmediato
+ * si ese valor existe, así que una prueba que no lo espere vería la página
+ * "desaparecer" sin explicación. Mismo criterio que `resetProfiles`.
  */
 import '@testing-library/jest-dom/vitest';
 import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 import i18n from '@/i18n';
 import { resetProfiles } from '@/mocks/handlers/profiles.handlers';
 import { server } from '@/mocks/server';
+import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
 import { installMatchMediaStub, resetViewportMatches } from './matchMedia';
 
 installMatchMediaStub();
@@ -40,6 +48,7 @@ installMatchMediaStub();
 beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
 beforeEach(async () => {
   resetProfiles();
+  useUiPreferencesStore.setState({ lastUsedProfileId: null });
   await i18n.changeLanguage('es-CO');
 });
 afterEach(() => {

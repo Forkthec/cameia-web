@@ -44,7 +44,7 @@ necesita una tabla, o cada persona la cruza a su manera.
 | Habilidad                  | `Skill`               | `skillName`             | `profile:habilidades.*`              | —                                              |
 | Nivel de habilidad         | `SkillLevel`          | `level`                 | `profile:habilidades.nivel.<CODIGO>` | `BASIC` · `INTERMEDIATE` · `ADVANCED`          |
 | Rol Objetivo               | `TargetRole`          | `targetRoles[].professionalRoleId` (confirmado, CM-69: `ProfileController.java`) | `profile:rolesObjetivo.*`            | —                                              |
-| Rol profesional (catálogo) | `ProfessionalRole`    | `id`/`name`, `GET /api/v1/professional-roles` (confirmado, CM-69: `ProfessionalRoleController.java`, CM-23) | `profile:rolesObjetivo.catalogo`     | —                                              |
+| Rol profesional (catálogo) | `ProfessionalRole`    | `id`/`name`/`category`, `GET /api/v1/profiles/professional-roles` (confirmado, CM-195: `ProfessionalRoleController.java`, CM-23; ruta corregida el 19-sep-2026 por CM-176) | `profile:rolesObjetivo.catalogo`     | —                                              |
 | Procedencia del resumen    | `summaryProvenance`   | `summaryProvenance` (mock, CM-53) | sin llave — no se muestra al usuario | `MANUAL` · `AI_SUGGESTED` · `AI_EDITED` |
 
 **Retirados del alcance.** `seniority` sale del contrato y queda como deuda sin uso. Las expectativas
@@ -64,6 +64,12 @@ pero el frontend no lo consume.
 
 La transición es directa: `IN_PROGRESS → COMPLETED`. No existe `PENDING`, y la secuencia intermedia
 por `IN_REVIEW` que describía el backlog del 6 de septiembre quedó sin efecto.
+
+**Divergencia documental conocida (CM-195, auditoría 20-sep-2026):**
+`docs/referencias/03092026_v3_glosario.md:199` (3-sep-2026, copia de un documento externo — no se
+edita) todavía lista `PENDING`, `IN_PROGRESS`, `IN_REVIEW`, `COMPLETED` como "Validado". Esa entrada
+quedó superada por esta sección: es anterior a la decisión T-02 del memo del 11-sep que cerró este
+punto, y el archivo histórico nunca se actualizó después.
 
 Las etiquetas «creado», «completo» y «activo» **no son sinónimos** en la interfaz. El glosario es
 explícito en esto y el backlog lo repite.

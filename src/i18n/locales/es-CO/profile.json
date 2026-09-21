@@ -17,6 +17,7 @@
     "finalizar": "Finalizar y Continuar",
     "finalizando": "Finalizando…",
     "finalizarBloqueado": "Todavía no puedes finalizar: completa los requisitos pendientes.",
+    "yaActivo": "Este perfil ya está activo.",
     "confirmacionFinalizado": "Tu perfil ya está activo.",
     "errorFinalizarIncompleto": "Todavía no cumples estos requisitos:",
     "errorFinalizarGenerico": "No se pudo finalizar el perfil. Inténtalo de nuevo.",
@@ -98,6 +99,7 @@
   },
   "experiencia": {
     "titulo": "Experiencia Laboral",
+    "etiquetaOpcional": "Opcional",
     "cargo": {
       "etiqueta": "Cargo",
       "placeholder": "Escribe aquí",
@@ -211,6 +213,7 @@
       "titulo": "Autocompletar con IA",
       "descripcion": "Subes tu Hoja de Vida (CV) y la IA prellena lo que encuentre. Tú revisas y corriges antes de guardar.",
       "insignia": "Próximamente"
-    }
+    },
+    "errorYaExiste": "Ya tienes un perfil creado."
   }
 }

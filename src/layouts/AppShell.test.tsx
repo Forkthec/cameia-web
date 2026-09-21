@@ -19,6 +19,7 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import i18n from '@/i18n';
 import { useAuthStore } from '@/stores/auth.store';
+import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
 import { useUnsavedChangesStore } from '@/stores/unsavedChanges.store';
 import { setViewportMatches } from '@/test/matchMedia';
 import { AppShell } from './AppShell';
@@ -64,6 +65,7 @@ describe('AppShell', () => {
   afterEach(() => {
     useAuthStore.setState({ user: null, plan: null, isAuthenticated: false, isLoading: false });
     useUnsavedChangesStore.setState({ hasUnsavedChanges: false });
+    useUiPreferencesStore.setState({ lastUsedProfileId: null });
   });
 
   it('renderiza el contenido de la ruta hija a través de Outlet', async () => {
@@ -101,6 +103,25 @@ describe('AppShell', () => {
     // hay a dónde navegar): sigue sin ser un <NavLink>, solo cambia
     // aria-disabled cuando en el futuro sí exista una ruta propia.
     expect(screen.queryAllByRole('link', { name: /Progreso/ })).toHaveLength(0);
+  });
+
+  it('CM-195: "Perfiles" enlaza a /perfiles/nuevo sin lastUsedProfileId', async () => {
+    await waitUntilReady();
+    renderShell();
+
+    for (const link of screen.getAllByRole('link', { name: 'Perfiles' })) {
+      expect(link).toHaveAttribute('href', '/perfiles/nuevo');
+    }
+  });
+
+  it('CM-195: "Perfiles" enlaza directo al perfil cuando hay lastUsedProfileId', async () => {
+    await waitUntilReady();
+    useUiPreferencesStore.setState({ lastUsedProfileId: 'profile-42' });
+    renderShell();
+
+    for (const link of screen.getAllByRole('link', { name: 'Perfiles' })) {
+      expect(link).toHaveAttribute('href', '/perfiles/profile-42/editar');
+    }
   });
 
   it('renderiza el wordmark "cameia" y enlaza a /inicio', async () => {

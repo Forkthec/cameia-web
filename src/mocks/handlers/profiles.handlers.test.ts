@@ -102,7 +102,12 @@ describe('profilesHandlers', () => {
       name: 'Ana María Pérez',
       summary: 'Desarrolladora backend con experiencia en Node.js.',
       targetRoles: [
-        { id: 'target-role-1', professionalRoleId: 'backend-developer', provenance: 'MANUAL' },
+        {
+          id: 'target-role-1',
+          professionalRoleId: 'backend-developer',
+          roleTitle: 'Desarrollador de Software',
+          provenance: 'MANUAL',
+        },
       ],
     });
     await httpClient.post(`/api/v1/profiles/${seeded.id}/educations`, {
@@ -234,7 +239,7 @@ describe('profilesHandlers', () => {
       name: 'Perfil de prueba',
     });
 
-    const updated = await httpClient.post<ProfileResponse & { education: unknown[] }>(
+    const updated = await httpClient.post<ProfileResponse & { educations: unknown[] }>(
       `/api/v1/profiles/${created.id}/educations`,
       {
         institution: 'Universidad del Cauca',
@@ -248,7 +253,7 @@ describe('profilesHandlers', () => {
       },
     );
 
-    expect(updated.education).toHaveLength(1);
+    expect(updated.educations).toHaveLength(1);
   });
 
   // `Education.java`: inProgress=true prohíbe endDate.
@@ -298,7 +303,7 @@ describe('profilesHandlers', () => {
     const created = await httpClient.post<ProfileResponse>('/api/v1/profiles', {
       name: 'Perfil de prueba',
     });
-    const withEducation = await httpClient.post<ProfileResponse & { education: { id: string }[] }>(
+    const withEducation = await httpClient.post<ProfileResponse & { educations: { id: string }[] }>(
       `/api/v1/profiles/${created.id}/educations`,
       {
         institution: 'Universidad del Cauca',
@@ -309,14 +314,14 @@ describe('profilesHandlers', () => {
         provenance: 'MANUAL',
       },
     );
-    const educationId = withEducation.education.at(0)?.id;
+    const educationId = withEducation.educations.at(0)?.id;
     if (!educationId) throw new Error('El perfil sembrado no tiene educación.');
 
-    const updated = await httpClient.del<ProfileResponse & { education: unknown[] }>(
+    const updated = await httpClient.del<ProfileResponse & { educations: unknown[] }>(
       `/api/v1/profiles/${created.id}/educations/${educationId}`,
     );
 
-    expect(updated.education).toHaveLength(0);
+    expect(updated.educations).toHaveLength(0);
   });
 
   it('eliminar una educación inexistente falla con NOT_FOUND', async () => {
@@ -398,7 +403,7 @@ describe('profilesHandlers', () => {
       name: 'Perfil de prueba',
     });
 
-    const updated = await httpClient.post<ProfileResponse & { workExperience: unknown[] }>(
+    const updated = await httpClient.post<ProfileResponse & { workExperiences: unknown[] }>(
       `/api/v1/profiles/${created.id}/work-experiences`,
       {
         company: 'CAMEIA',
@@ -409,7 +414,7 @@ describe('profilesHandlers', () => {
       },
     );
 
-    expect(updated.workExperience).toHaveLength(1);
+    expect(updated.workExperiences).toHaveLength(1);
   });
 
   it('eliminar una experiencia la retira del perfil', async () => {
@@ -417,7 +422,7 @@ describe('profilesHandlers', () => {
       name: 'Perfil de prueba',
     });
     const withExperience = await httpClient.post<
-      ProfileResponse & { workExperience: { id: string }[] }
+      ProfileResponse & { workExperiences: { id: string }[] }
     >(`/api/v1/profiles/${created.id}/work-experiences`, {
       company: 'CAMEIA',
       position: 'Desarrolladora backend',
@@ -425,14 +430,14 @@ describe('profilesHandlers', () => {
       employmentStatus: 'CURRENT',
       provenance: 'MANUAL',
     });
-    const workExperienceId = withExperience.workExperience.at(0)?.id;
+    const workExperienceId = withExperience.workExperiences.at(0)?.id;
     if (!workExperienceId) throw new Error('El perfil sembrado no tiene experiencia laboral.');
 
-    const updated = await httpClient.del<ProfileResponse & { workExperience: unknown[] }>(
+    const updated = await httpClient.del<ProfileResponse & { workExperiences: unknown[] }>(
       `/api/v1/profiles/${created.id}/work-experiences/${workExperienceId}`,
     );
 
-    expect(updated.workExperience).toHaveLength(0);
+    expect(updated.workExperiences).toHaveLength(0);
   });
 
   // `WorkExperience.java`: `description` limitada a 500 caracteres (MAX_TEXT_LENGTH).
@@ -462,12 +467,12 @@ describe('profilesHandlers', () => {
       name: 'Perfil de prueba',
     });
 
-    const updated = await httpClient.post<ProfileResponse & { skills: unknown[] }>(
+    const updated = await httpClient.post<ProfileResponse & { profileSkills: unknown[] }>(
       `/api/v1/profiles/${created.id}/skills`,
       { skillName: 'React', level: 'ADVANCED', provenance: 'MANUAL' },
     );
 
-    expect(updated.skills).toHaveLength(1);
+    expect(updated.profileSkills).toHaveLength(1);
   });
 
   it('un nivel de habilidad fuera del enum falla con VALIDATION_ERROR', async () => {
@@ -515,18 +520,18 @@ describe('profilesHandlers', () => {
     const created = await httpClient.post<ProfileResponse>('/api/v1/profiles', {
       name: 'Perfil de prueba',
     });
-    const withSkill = await httpClient.post<ProfileResponse & { skills: { id: string }[] }>(
+    const withSkill = await httpClient.post<ProfileResponse & { profileSkills: { id: string }[] }>(
       `/api/v1/profiles/${created.id}/skills`,
       { skillName: 'React', level: 'ADVANCED', provenance: 'MANUAL' },
     );
-    const skillId = withSkill.skills[0]?.id;
+    const skillId = withSkill.profileSkills[0]?.id;
     if (!skillId) throw new Error('El perfil sembrado no tiene habilidad.');
 
-    const updated = await httpClient.del<ProfileResponse & { skills: unknown[] }>(
+    const updated = await httpClient.del<ProfileResponse & { profileSkills: unknown[] }>(
       `/api/v1/profiles/${created.id}/skills/${skillId}`,
     );
 
-    expect(updated.skills).toHaveLength(0);
+    expect(updated.profileSkills).toHaveLength(0);
   });
 
   it('eliminar una habilidad inexistente falla con NOT_FOUND', async () => {
@@ -705,7 +710,12 @@ describe('profilesHandlers', () => {
     const seeded = seedProfileForTests({
       status: 'COMPLETED',
       targetRoles: [
-        { id: 'target-role-1', professionalRoleId: 'backend-developer', provenance: 'MANUAL' },
+        {
+          id: 'target-role-1',
+          professionalRoleId: 'backend-developer',
+          roleTitle: 'Desarrollador de Software',
+          provenance: 'MANUAL',
+        },
       ],
     });
 
@@ -721,7 +731,12 @@ describe('profilesHandlers', () => {
     const seeded = seedProfileForTests({
       status: 'IN_PROGRESS',
       targetRoles: [
-        { id: 'target-role-1', professionalRoleId: 'backend-developer', provenance: 'MANUAL' },
+        {
+          id: 'target-role-1',
+          professionalRoleId: 'backend-developer',
+          roleTitle: 'Desarrollador de Software',
+          provenance: 'MANUAL',
+        },
       ],
     });
 

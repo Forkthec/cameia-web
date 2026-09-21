@@ -50,6 +50,20 @@
  * una con una referencia de solo lectura al recurso de la otra; este
  * archivo ya está fusionado con ambos conjuntos de handlers reales.
  *
+ * **CM-195 (bug de crash, 20-sep-2026):** este mock devolvía
+ * `workExperience`/`education`/`skills` en el `ProfileRecord` — nombres
+ * inventados que nunca coincidieron con el `record ProfileResponse` real de
+ * `cameia-perfil` (`workExperiences`/`educations`/`profileSkills`,
+ * confirmado línea por línea contra el código fuente Java + una captura HAR
+ * real). El propio mock reproducía el bug en vez de detectarlo: como
+ * frontend y mock compartían el mismo nombre equivocado, ninguna prueba
+ * contra estos handlers atrapaba el crash real de `toProfile` en
+ * `profile.mapper.ts`. Corregido: el `ProfileRecord` interno ahora usa los
+ * nombres reales, y se agregan los campos del record real que faltaban
+ * (`reviewStatus`, `provenance` de perfil, `salaryExpectation`,
+ * `preferredModality`, `createdAt`, `updatedAt`, `roleTitle` por rol
+ * objetivo) para que este mock deje de mentir sobre el contrato.
+ *
  * El array en memoria y `resetProfiles()` son estado compartido entre
  * archivos de prueba; cualquier prueba futura que consuma estos handlers
  * (incluidas las de `professional-profile`) debe llamar `resetProfiles()`
@@ -116,10 +130,15 @@ interface SkillItem {
   provenance: DataProvenance;
 }
 
-/** `id` es el identificador propio del Rol Objetivo — `PATCH` lo conserva al sustituir `professionalRoleId` (ver TSDoc de cabecera, C-05). */
+/**
+ * `id` es el identificador propio del Rol Objetivo — `PATCH` lo conserva al sustituir
+ * `professionalRoleId` (ver TSDoc de cabecera, C-05). `roleTitle` (CM-195): campo real del
+ * record Java, resuelto aquí contra `PROFESSIONAL_ROLES` (ver `resolveRoleTitle`).
+ */
 interface TargetRoleItem {
   id: string;
   professionalRoleId: string;
+  roleTitle: string;
   provenance: DataProvenance;
 }
 
@@ -136,11 +155,24 @@ interface WorkExperienceItem {
 
 type ProfileStatus = 'IN_PROGRESS' | 'COMPLETED';
 
+/** CM-195: `record ProfileResponse` real, confirmado — `PENDING_REVIEW` es el único valor que un perfil manual alcanza en Sprint 1 (no hay endpoint que produzca `REVIEWED` en el contrato conocido). */
+type ReviewStatus = 'PENDING_REVIEW' | 'REVIEWED';
+
+/** CM-195: `record ProfileResponse` real, confirmado — sin UI ni endpoint que lo fije en Sprint 1; se simula `null` siempre. */
+type WorkModality = 'REMOTE' | 'HYBRID' | 'ON_SITE';
+
 /**
  * CM-53, CA-2.3.1/CA-2.3.2/CA-2.3.4: procedencia del resumen profesional.
  * `AI_SUGGESTED` es inalcanzable desde la interfaz en Sprint 1 (nace de
  * HU-2.6–2.10, Sprint 2) — solo lo produce `seedProfileForTests` para poder
  * probar la transición a `AI_EDITED` (SPEC.md §2, alcance consciente).
+ *
+ * **CM-195:** el `record ProfileResponse` real confirmado no tiene este
+ * campo en absoluto — es simulación adelantada de una funcionalidad de
+ * Sprint 2 que el backend real todavía no expone (ver TSDoc de `ProfileDto`
+ * en el frontend). Se conserva porque las pruebas de CA-2.3.x de esta
+ * feature siguen siendo el único lugar donde esa regla de negocio se
+ * verifica hoy; no se elimina sin que Producto decida qué pasa con ella.
  */
 type SummaryProvenance = 'MANUAL' | 'AI_SUGGESTED' | 'AI_EDITED' | null;
 
@@ -148,14 +180,28 @@ interface ProfileRecord {
   id: string;
   ownerId: string;
   status: ProfileStatus;
+  reviewStatus: ReviewStatus;
+  /** Procedencia del PERFIL completo (CM-195) — no confundir con la `provenance` de cada ítem (`DataProvenance`, ya existente). Siempre `MANUAL`: no hay flujo que cree un perfil por IA en Sprint 1. */
+  provenance: DataProvenance;
   name: string;
   summary: string;
   summaryProvenance: SummaryProvenance;
   summaryProvenanceOrigin: string | null;
-  workExperience: WorkExperienceItem[];
-  education: EducationItem[];
-  skills: SkillItem[];
+  salaryExpectation: number | null;
+  preferredModality: WorkModality | null;
+  createdAt: string;
+  updatedAt: string;
+  workExperiences: WorkExperienceItem[];
+  educations: EducationItem[];
+  profileSkills: SkillItem[];
   targetRoles: TargetRoleItem[];
+}
+
+/** CM-195: resuelve el `roleTitle` real que el backend ya manda resuelto — cae al propio id si el catálogo no lo tiene (no debería pasar: `professionalRoleId` ya se valida contra `PROFESSIONAL_ROLES` antes de llamar esto). */
+function resolveRoleTitle(professionalRoleId: string): string {
+  return (
+    PROFESSIONAL_ROLES.find((role) => role.id === professionalRoleId)?.nombre ?? professionalRoleId
+  );
 }
 
 /** CM-61/CM-65/CM-69: `workExperience`/`education`/`skills`/`targetRoles` ya NO viajan por aquí — la gestión de las cuatro es por ítem (ver TSDoc de cabecera). */
@@ -237,17 +283,24 @@ export function resetProfiles(): void {
  * helper no puede llegar a producción por ese camino.
  */
 export function seedProfileForTests(overrides: Partial<ProfileRecord> = {}): ProfileRecord {
+  const now = new Date().toISOString();
   const profile: ProfileRecord = {
     id: `profile-${nextId++}`,
     ownerId: MOCK_USER_ID,
     status: 'IN_PROGRESS',
+    reviewStatus: 'PENDING_REVIEW',
+    provenance: 'MANUAL',
     name: '',
     summary: '',
     summaryProvenance: null,
     summaryProvenanceOrigin: null,
-    workExperience: [],
-    education: [],
-    skills: [],
+    salaryExpectation: null,
+    preferredModality: null,
+    createdAt: now,
+    updatedAt: now,
+    workExperiences: [],
+    educations: [],
+    profileSkills: [],
     targetRoles: [],
     ...overrides,
   };
@@ -256,18 +309,26 @@ export function seedProfileForTests(overrides: Partial<ProfileRecord> = {}): Pro
 }
 
 function createEmptyProfile(name: string): ProfileRecord {
+  const now = new Date().toISOString();
   return {
     id: `profile-${nextId++}`,
     ownerId: MOCK_USER_ID,
     // GLOSSARY.md §3: el perfil se crea en IN_PROGRESS. No existe PENDING.
     status: 'IN_PROGRESS',
+    // CM-195: confirmado por HAR real — un perfil recién creado ya nace `PENDING_REVIEW`.
+    reviewStatus: 'PENDING_REVIEW',
+    provenance: 'MANUAL',
     name,
     summary: '',
     summaryProvenance: null,
     summaryProvenanceOrigin: null,
-    workExperience: [],
-    education: [],
-    skills: [],
+    salaryExpectation: null,
+    preferredModality: null,
+    createdAt: now,
+    updatedAt: now,
+    workExperiences: [],
+    educations: [],
+    profileSkills: [],
     targetRoles: [],
   };
 }
@@ -409,7 +470,7 @@ export const profilesHandlers: HttpHandler[] = [
         employmentStatus: status,
         provenance: provenance as DataProvenance,
       };
-      profile.workExperience.push(item);
+      profile.workExperiences.push(item);
       return HttpResponse.json(profile, { status: 201 });
     },
   ),
@@ -421,11 +482,13 @@ export const profilesHandlers: HttpHandler[] = [
       if (!profile) {
         return HttpResponse.json(notFound('Perfil no encontrado.'), { status: 404 });
       }
-      const index = profile.workExperience.findIndex((item) => item.id === params.workExperienceId);
+      const index = profile.workExperiences.findIndex(
+        (item) => item.id === params.workExperienceId,
+      );
       if (index === -1) {
         return HttpResponse.json(notFound('Experiencia laboral no encontrada.'), { status: 404 });
       }
-      profile.workExperience.splice(index, 1);
+      profile.workExperiences.splice(index, 1);
       return HttpResponse.json(profile, { status: 200 });
     },
   ),
@@ -484,7 +547,7 @@ export const profilesHandlers: HttpHandler[] = [
       inProgress,
       provenance: provenance as DataProvenance,
     };
-    profile.education.push(item);
+    profile.educations.push(item);
     return HttpResponse.json(profile, { status: 201 });
   }),
 
@@ -495,11 +558,11 @@ export const profilesHandlers: HttpHandler[] = [
       if (!profile) {
         return HttpResponse.json(notFound('Perfil no encontrado.'), { status: 404 });
       }
-      const index = profile.education.findIndex((item) => item.id === params.educationId);
+      const index = profile.educations.findIndex((item) => item.id === params.educationId);
       if (index === -1) {
         return HttpResponse.json(notFound('Educación no encontrada.'), { status: 404 });
       }
-      profile.education.splice(index, 1);
+      profile.educations.splice(index, 1);
       return HttpResponse.json(profile, { status: 200 });
     },
   ),
@@ -530,7 +593,9 @@ export const profilesHandlers: HttpHandler[] = [
     }
 
     const normalized = skillName.trim().toLowerCase();
-    if (profile.skills.some((skill) => skill.skillName.trim().toLowerCase() === normalized)) {
+    if (
+      profile.profileSkills.some((skill) => skill.skillName.trim().toLowerCase() === normalized)
+    ) {
       return HttpResponse.json(
         errorBody(409, 'Habilidad duplicada', 'Esa habilidad ya está en tu perfil.'),
         { status: 409 },
@@ -543,7 +608,7 @@ export const profilesHandlers: HttpHandler[] = [
       level: level as SkillLevel,
       provenance: provenance as DataProvenance,
     };
-    profile.skills.push(item);
+    profile.profileSkills.push(item);
     return HttpResponse.json(profile, { status: 201 });
   }),
 
@@ -554,11 +619,11 @@ export const profilesHandlers: HttpHandler[] = [
       if (!profile) {
         return HttpResponse.json(notFound('Perfil no encontrado.'), { status: 404 });
       }
-      const index = profile.skills.findIndex((skill) => skill.id === params.skillId);
+      const index = profile.profileSkills.findIndex((skill) => skill.id === params.skillId);
       if (index === -1) {
         return HttpResponse.json(notFound('Habilidad no encontrada.'), { status: 404 });
       }
-      profile.skills.splice(index, 1);
+      profile.profileSkills.splice(index, 1);
       return HttpResponse.json(profile, { status: 200 });
     },
   ),
@@ -608,6 +673,7 @@ export const profilesHandlers: HttpHandler[] = [
     const item: TargetRoleItem = {
       id: `target-role-${nextTargetRoleId++}`,
       professionalRoleId,
+      roleTitle: resolveRoleTitle(professionalRoleId),
       provenance: provenance as DataProvenance,
     };
     profile.targetRoles.push(item);
@@ -654,6 +720,7 @@ export const profilesHandlers: HttpHandler[] = [
       }
 
       item.professionalRoleId = professionalRoleId;
+      item.roleTitle = resolveRoleTitle(professionalRoleId);
       return HttpResponse.json(profile, { status: 200 });
     },
   ),
@@ -710,10 +777,10 @@ export const profilesHandlers: HttpHandler[] = [
     if (profile.summary.trim().length === 0 || profile.summary.length > SUMMARY_MAX_LENGTH) {
       missing.push({ field: 'summary', message: 'Obligatorio' });
     }
-    if (profile.education.length === 0) {
+    if (profile.educations.length === 0) {
       missing.push({ field: 'education', message: 'Obligatorio' });
     }
-    if (profile.skills.length === 0) {
+    if (profile.profileSkills.length === 0) {
       missing.push({ field: 'skills', message: 'Obligatorio' });
     }
     if (profile.targetRoles.length === 0) {
@@ -737,13 +804,6 @@ export const profilesHandlers: HttpHandler[] = [
     // 200 (`ProfileController.java#completeProfile`).
     profile.status = 'COMPLETED';
     return HttpResponse.json(profile, { status: 201 });
-  }),
-
-  http.get('*/api/v1/profiles', () => {
-    return HttpResponse.json(
-      profiles.filter((profile) => profile.ownerId === MOCK_USER_ID),
-      { status: 200 },
-    );
   }),
 
   // CM-53: SPEC.md §3.2 ya asumía este endpoint (estado de carga "mientras

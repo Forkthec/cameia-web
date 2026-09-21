@@ -3,13 +3,13 @@ feature: professional-profile
 estado: EN_CURSO
 hu: [HU-2.2, HU-2.3, HU-2.4, HU-2.5, HU-2.11]
 prt: [PRT-02.02, PRT-02.03, PRT-02.07]
-jira: [CM-46, CM-53, CM-61, CM-65, CM-69]
+jira: [CM-46, CM-53, CM-61, CM-65, CM-69, CM-195]
 rutas: [/perfiles/nuevo, /perfiles/:id/editar, /perfiles/:id/roles]
 documentacion: tsdoc-es
 backlog: 12092026_01
 decisiones: [10092026_v1, 11092026_v2, 11092026_v1, 13092026_v1]
 figma: Cameia · Mockups MVP
-revisado: 2026-09-19
+revisado: 2026-09-20
 ---
 
 # Feature · Perfil Profesional
@@ -80,7 +80,7 @@ el frame real no tiene — ya corregido en los tres lugares
 **Nota transversal de "Sin permiso" para las cinco subsecciones:** las cinco viven detrás de
 `RequireAuth` (`CLAUDE.md` §11), que redirige a `/ingresar` antes de montar la página; ese caso no
 se repite en cada tabla. El caso «perfil de otro usuario» **no está descrito en el contrato
-observable todavía**: los mocks no modelan un 403 — `GET /api/v1/profiles` filtra por `ownerId` y
+observable todavía**: los mocks no modelan un 403 — `GET /api/v1/profiles/:id`,
 `PATCH`/`finalize` devuelven 404 `NOT_FOUND` para un id ajeno o inexistente, sin distinguir los dos
 casos (`profiles.handlers.ts` líneas 163-166, 200-203). Se anota como parte de **C-01**: sin
 contrato real, no se puede afirmar que el backend distinga "no existe" de "no es tuyo".
@@ -282,8 +282,10 @@ contra Figma en su momento.
 - Gestiona Roles Objetivo **por ítem**, igual que Educación/Experiencia: cada alta es un `POST`
   inmediato, cada sustitución un `PATCH` inmediato, cada baja un `DELETE` inmediato — nunca un
   `PATCH` de colección (decisión D-A, extendida aquí a Roles Objetivo). Máximo 5 roles por perfil
-  (`MAX_TARGET_ROLES`), solo del catálogo cerrado (`GET /api/v1/professional-roles`,
-  `useProfessionalRolesQuery`): el usuario nunca escribe el nombre a mano (CA-2.11.7).
+  (`MAX_TARGET_ROLES`), solo del catálogo cerrado (`GET /api/v1/profiles/professional-roles`,
+  `useProfessionalRolesQuery`): el usuario nunca escribe el nombre a mano (CA-2.11.7). Ruta
+  corregida en CM-195: el Gateway solo enruta bajo `Path=/api/v1/profiles/**`, así que el backend
+  movió este endpoint el 19-sep-2026 (CM-176); la ruta vieja ya no existe.
 - **Agregar** (`TargetRolesSection`): reutiliza `design-system/molecules/Combobox` (construido en
   CM-61 anticipando exactamente este uso — su propio TSDoc ya decía «para roles objetivo, CM-69»).
   El catálogo ofrecido excluye los roles ya asociados al perfil; elegir una opción dispara el `POST`
@@ -381,7 +383,22 @@ la vez.
 ## 5. Enlace HTTP · PROVISIONAL
 
 **Estado del contrato:** provisional · fuente: `src/mocks/handlers/profiles.handlers.ts` (mocks,
-sin OpenAPI; C-01 sin responder) · revisado el 11-sep-2026.
+sin OpenAPI; C-01 sin responder) · revisado el 20-sep-2026 (CM-195).
+
+**CM-195 (bug de crash, 20-sep-2026):** el `record ProfileResponse` real de `cameia-perfil` se
+confirmó línea por línea contra el código fuente Java más una captura HAR real, y reveló que el
+`ProfileDto` del frontend usaba tres nombres de campo inventados —`education`/`workExperience`/
+`skills`— que nunca existieron en la respuesta real (`educations`/`workExperiences`/
+`profileSkills`). Como esos campos eran `undefined`, `toProfile` llamaba `.map()` sobre ellos y
+`EditProfilePage` truena para todo perfil recién creado — reproducible en el flujo real
+"Llenado manual" → `POST /api/v1/profiles` → `/perfiles/:id/editar`. Corregido en
+`profile.dto.ts`/`profile.mapper.ts`/mocks; los nombres de salida del modelo de dominio
+(`Profile.education`/`workExperience`/`skills`) no cambiaron — ver TSDoc de `profile.mapper.ts`.
+De paso se confirmaron y agregaron al DTO los campos reales que faltaban: `reviewStatus`,
+`provenance` (a nivel de perfil), `salaryExpectation`, `preferredModality`, `createdAt`,
+`updatedAt`, y `roleTitle` en cada Rol Objetivo — ninguno tiene consumidor en el dominio todavía
+(regla de crecimiento, `CLAUDE.md §4`). `name`/`summary` también se corrigieron a `string | null`:
+el backend real los manda `null` en un perfil recién creado, no `''`.
 
 | Operación                | Método y ruta                        | Envía                                                                     | Recibe                                                                                |
 | ------------------------ | ------------------------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
@@ -397,9 +414,13 @@ sin OpenAPI; C-01 sin responder) · revisado el 11-sep-2026.
 | Agregar rol objetivo | `POST /api/v1/profiles/:id/target-roles` | `AddTargetRoleRequestDto` (real: `professionalRoleId`, `provenance`) | 201 `ProfileRecord` · 400 `VALIDATION_ERROR` · 404 `NOT_FOUND` · 409 `TARGET_ROLE_DUPLICATE` · 422 `TARGET_ROLE_MAX_REACHED` |
 | Sustituir rol objetivo | `PATCH /api/v1/profiles/:id/target-roles/:roleId` | `UpdateTargetRoleRequestDto` (real: `professionalRoleId`) | 200 `ProfileRecord` · 400 `VALIDATION_ERROR` · 404 `NOT_FOUND` · 409 `TARGET_ROLE_DUPLICATE` |
 | Eliminar rol objetivo | `DELETE /api/v1/profiles/:id/target-roles/:roleId` | Sin body | 200 `ProfileRecord` · 404 `NOT_FOUND` · 422 `TARGET_ROLE_LAST_CANNOT_REMOVE` |
-| Catálogo de roles profesionales | `GET /api/v1/professional-roles` | Sin body | 200 `ProfessionalRoleDto[]` |
+| Catálogo de roles profesionales | `GET /api/v1/profiles/professional-roles` | Sin body | 200 `ProfessionalRoleDto[]` (`{id, nombre, categoria}`) |
 | Finalizar                | `POST /api/v1/profiles/:id/completion` | Sin body                                                                  | 201 `ProfileRecord` (status `COMPLETED`) · 404 `NOT_FOUND` · 409 `PROFILE_ALREADY_COMPLETED` · 422 `PROFILE_INCOMPLETE` (todos los requisitos incumplidos en `details`) |
-| Listar                   | `GET /api/v1/profiles`               | Sin body                                                                  | 200 `ProfileRecord[]`, filtrado por `ownerId`                                         |
+
+**CM-195 (auditoría 20-sep-2026):** se retiró de esta tabla y del mock (`profiles.handlers.ts`) un
+`GET /api/v1/profiles` (listado) que no corresponde a ningún endpoint real de
+`ProfileController.java` (15 mappings confirmados, ninguno es un `GET` sin `{id}`) y que no tenía
+ningún consumidor en el frontend — era código de mock muerto.
 
 Los 4 endpoints de experiencia/educación replican los DTO reales de `cameia-perfil`
 (`AddWorkExperienceRequest.java`, `AddEducationRequest.java`, compartidos en la sesión que construyó
@@ -419,7 +440,10 @@ fuera del flujo manual en Sprint 1.
 Los 3 endpoints de Roles Objetivo y el catálogo de roles profesionales (CM-69) replican igual el
 código real de `cameia-perfil` (`ProfileController.java#addTargetRole/updateTargetRole/removeTargetRole`,
 `ProfessionalRoleController.java`), compartido en la sesión que construyó ese ticket — mismo nivel
-de confianza que los 4 anteriores, superior al resto de este enlace mientras C-01 sigue abierto.
+de confianza que los 4 anteriores. **CM-195 (auditoría 20-sep-2026):** la ruta del catálogo y la
+forma de `ProfessionalRoleDto` (antes `PROVISIONAL`, `{id, name}`) se corrigieron contra el código
+real del backend — `GET /api/v1/profiles/professional-roles`, `{id, nombre, categoria}` — y
+`ProfessionalRole` (dominio) ahora incluye `category`.
 
 El `PATCH` nunca recibe `provenance`: `profiles.handlers.ts` deriva
 `summaryProvenance`/`summaryProvenanceOrigin` del valor almacenado y del nuevo `summary` (vaciar el
@@ -428,7 +452,7 @@ campo limpia los tres en conjunto — CA-2.3.4; editar un resumen `AI_SUGGESTED`
 — CA-2.3.1). Es responsabilidad del backend real cuando exista (C-01); aquí la sostiene el mock
 porque es la única capa contra la que corre el frontend mientras tanto (CM-53).
 
-**Resuelto por CM-69:** ya existe endpoint de catálogo de roles (`GET /api/v1/professional-roles`,
+**Resuelto por CM-69:** ya existe endpoint de catálogo de roles (`GET /api/v1/profiles/professional-roles`,
 tabla de arriba) — `src/mocks/data/catalogs.ts` sigue siendo el módulo de datos en memoria
 (`PROFESSIONAL_ROLES`), pero ahora un handler HTTP dedicado
 (`src/mocks/handlers/professionalRoles.handlers.ts`) lo expone, replicando el endpoint real ya
@@ -625,6 +649,35 @@ global ya corriendo, es un segundo reset inocuo, no un conflicto.
   organismos nuevos: en el acordeón móvil el encabezado del disparador ya es el título; en
   desktop lo pinta el organismo. Resuelve la advertencia que ya documentaba el TSDoc de
   `GeneralInfoForm.tsx` desde CM-53.
+- **D-H — Autoguardado de Información General en `onBlur` + "Experiencia Laboral" marcada
+  "Opcional" en el índice (CM-195, sin precedente de Figma para ninguna de las dos).** Hallazgo de
+  uso real: exigir un clic aparte en "Guardar borrador" para la única sección sin persistencia por
+  ítem arriesgaba pérdida silenciosa de datos, y el estado permanente `upcoming` de "Experiencia
+  Laboral" en el stepper se leía como un bug, no como "no es obligatoria". Se agrega `onBlur` al
+  `<form>` de `GeneralInfoForm` (dispara solo cuando el foco sale del formulario completo, con un
+  guard `isSubmittingRef` contra el doble envío cuando el clic en "Guardar borrador" también
+  dispara ese blur) y un campo opcional `secondaryLabel` en `StepListItem`/`ProfileSection` para la
+  etiqueta "Opcional", con tratamiento visual mínimo (texto mudo, no un badge nuevo) a falta de
+  diseño verificado en Figma. "Guardar borrador" se conserva como respaldo explícito (decisión del
+  usuario). No cambia la lógica de completitud (`profileCompleteness.ts`) ni el criterio de qué
+  cuenta como uno de los 5 requisitos de finalización.
+- **D-I — Perfil ya `COMPLETED` visible, y `lastUsedProfileId` conectado (CM-195).** Hallazgo de
+  uso real: con 5/5 requisitos completos, "Finalizar y Continuar" seguía deshabilitado sin
+  explicación visible — la causa real (`profile.status === 'COMPLETED'`, backend real confirmado
+  contra `ProfileController.java`/`ProfileAppService`) solo vivía en un hint `sr-only`.
+  `EditProfilePage.tsx` ahora muestra `profile:formulario.yaActivo` de forma visible (guardado
+  contra duplicar el aviso de éxito de `finalizeProfile.isSuccess` de esta misma sesión) y cubre
+  también el `409` de `ProfileAlreadyCompletedException` si el botón se dispara con caché vieja.
+  Investigando el caso relacionado "error genérico al crear un perfil cuando ya existe uno"
+  (`ProfileAlreadyExistsException`, `409` real en `POST /api/v1/profiles`, confirmado contra el
+  código fuente), se encontró que `stores/uiPreferences.store.ts` ya tenía `lastUsedProfileId`
+  pensado exactamente para este caso (`GLO-TBD-06`) pero **nunca conectado**: se conecta ahora en
+  `NewProfilePage.tsx` (se guarda al crear, y redirige de inmediato si ya existe — cubre el caso de
+  volver con el botón atrás del navegador) y en `EditProfilePage.tsx` (backfill al cargar, para
+  perfiles abiertos antes de esta conexión). `AppShell.tsx` deja de enlazar "Perfiles" siempre a
+  `/perfiles/nuevo`: con `lastUsedProfileId`, va directo al perfil. Es una conveniencia de solo
+  cliente (`localStorage`), no infalible — por eso `NewProfilePage.tsx` también distingue el `409`
+  de "ya existe" del error genérico (`ApiError.isConflict()`, nuevo), como red de seguridad.
 
 **Decisiones de diseño, PRT-02.03 (CM-65, 15-sep-2026 — Figma desactualizado para esta subtarea,
 guía visual únicamente, ver nota de §3.4).**

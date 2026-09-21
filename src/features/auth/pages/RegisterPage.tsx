@@ -58,9 +58,11 @@ export function RegisterPage() {
         nombreLabel={t('registro.campos.nombre')}
         nombrePlaceholder={t('registro.placeholders.nombre')}
         nombreErrorRequired={t('registro.errores.nombreRequerido')}
+        nombreErrorFormato={t('registro.errores.nombreFormatoInvalido')}
         apellidoLabel={t('registro.campos.apellido')}
         apellidoPlaceholder={t('registro.placeholders.apellido')}
         apellidoErrorRequired={t('registro.errores.apellidoRequerido')}
+        apellidoErrorFormato={t('registro.errores.apellidoFormatoInvalido')}
         fechaNacimientoLabel={t('registro.campos.fechaNacimiento.label')}
         fechaNacimientoAyuda={t('registro.campos.fechaNacimiento.helper')}
         fechaNacimientoErrorFutura={t('registro.errores.fechaNacimientoFutura')}
@@ -71,6 +73,7 @@ export function RegisterPage() {
         correoPlaceholder={t('ingreso.correoPlaceholder')}
         correoErrorRequired={t('registro.errores.correoRequerido')}
         correoErrorInvalid={t('registro.errores.correoInvalido')}
+        correoErrorMuyLargo={t('registro.errores.correoMuyLargo')}
         duplicateEmailErrorMessage={duplicateEmailErrorMessage}
         duplicateEmailLoginLabel={t('registro.correoDuplicado.iniciarSesion')}
         duplicateEmailRecoverLabel={t('registro.correoDuplicado.recuperarContrasena')}

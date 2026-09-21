@@ -20,7 +20,10 @@
  * "Guardar borrador" solo envía `GeneralInfoForm` (por el atributo HTML
  * `form`, `GENERAL_INFO_FORM_ID`): Educación, Experiencia Laboral,
  * Habilidades y Roles Objetivo se persisten al vuelo por ítem, sin
- * borrador que guardar (decisión D-C). "Finalizar y Continuar" (CM-65) ya
+ * borrador que guardar (decisión D-C). Desde CM-195 (decisión D-H),
+ * `GeneralInfoForm` también se autoguarda en `onBlur` — "Guardar borrador"
+ * queda como respaldo explícito, ya no como el único disparador; ver TSDoc
+ * de cabecera de `GeneralInfoForm.tsx`. "Finalizar y Continuar" (CM-65) ya
  * llama a `useFinalizeProfile` contra el endpoint real — con Habilidades y
  * Roles Objetivo ya fusionados, `getCompletenessValue` puede llegar a los 5
  * requisitos reales y habilitar el botón. Un `422 PROFILE_INCOMPLETE` (si
@@ -37,7 +40,21 @@
  * Es la única capa de esta feature que llama `useTranslation`: los
  * organismos que ensambla siguen el patrón de `GeneralInfoForm` (texto por
  * props obligatorias, sin `useTranslation` propio — CLAUDE.md §14.7).
+ *
+ * **CM-195 (decisión D-I):** `profile.status === 'COMPLETED'` ya no solo
+ * deshabilita "Finalizar y Continuar" en silencio — muestra
+ * `profile:formulario.yaActivo` de forma visible (antes solo vivía en el
+ * hint `sr-only` del botón). Cubre también el `409`
+ * (`ProfileAlreadyCompletedException`, confirmado contra
+ * `ProfileController.java#completeProfile`) por si el botón se dispara con
+ * una caché vieja. Además, guarda `profileId` en `lastUsedProfileId`
+ * (`stores/uiPreferences.store.ts`) al cargar — conveniencia de cliente
+ * prevista desde antes (`GLO-TBD-06`) pero nunca conectada; es lo que le
+ * permite a `AppShell`/"Perfiles" dejar de mandar siempre a
+ * `/perfiles/nuevo`. Ver TSDoc de cabecera de `NewProfilePage.tsx` para el
+ * otro lado de esta conexión.
  */
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
 import { Button } from '@/design-system/atoms/Button';
@@ -45,6 +62,7 @@ import { Spinner } from '@/design-system/atoms/Spinner';
 import { AlertInline } from '@/design-system/molecules/AlertInline';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { ApiError } from '@/services/http/ApiError';
+import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
 import { useAddEducation } from '../hooks/useAddEducation';
 import { useAddSkill } from '../hooks/useAddSkill';
 import { useAddTargetRole } from '../hooks/useAddTargetRole';
@@ -97,6 +115,14 @@ export function EditProfilePage() {
   const addTargetRole = useAddTargetRole(profileId);
   const substituteTargetRole = useSubstituteTargetRole(profileId);
   const removeTargetRole = useRemoveTargetRole(profileId);
+  const setLastUsedProfileId = useUiPreferencesStore((state) => state.setLastUsedProfileId);
+
+  // CM-195 (decisión D-I): backfill de `lastUsedProfileId` para perfiles
+  // abiertos aquí directamente (por link, o creados antes de esta
+  // conexión) — no solo los recién creados en `NewProfilePage.tsx`.
+  useEffect(() => {
+    setLastUsedProfileId(profileId);
+  }, [profileId, setLastUsedProfileId]);
 
   if (profileQuery.isPending || professionalRolesQuery.isPending) {
     return (
@@ -209,7 +235,7 @@ export function EditProfilePage() {
           sectionTitle={t('profile:general.tituloSeccion')}
           showSectionTitle={isDesktop}
           isSaving={updateGeneralInfo.isPending}
-          onSubmit={(values) => updateGeneralInfo.mutate(values)}
+          onSubmit={(values) => updateGeneralInfo.mutateAsync(values).then(() => {})}
           nameLabel={t('profile:general.nombre.etiqueta')}
           nameHelperText={t('profile:general.nombre.ayuda')}
           namePlaceholder={t('profile:general.nombre.placeholder')}
@@ -285,6 +311,7 @@ export function EditProfilePage() {
     {
       id: 'work-experience',
       label: t('profile:experiencia.titulo'),
+      secondaryLabel: t('profile:experiencia.etiquetaOpcional'),
       status: sectionStatuses['work-experience'],
       content: (
         <WorkExperienceSection
@@ -484,9 +511,28 @@ export function EditProfilePage() {
           {t('profile:formulario.confirmacionFinalizado')}
         </AlertInline>
       ) : null}
+      {/* CM-195 (decisión D-I): perfil ya `COMPLETED` desde antes de esta
+          sesión de la página — distinto de `finalizeProfile.isSuccess`
+          (que solo es cierto si la mutación corrió aquí mismo). Sin esto,
+          alguien que vuelve a un perfil ya activo solo ve el botón
+          deshabilitado, sin ninguna explicación visible. */}
+      {profile.status === 'COMPLETED' && !finalizeProfile.isSuccess ? (
+        <AlertInline variant="success">{t('profile:formulario.yaActivo')}</AlertInline>
+      ) : null}
       {finalizeProfile.isError
         ? (() => {
-            const missingLabels = getMissingRequirementsLabels(finalizeProfile.error);
+            const error = finalizeProfile.error;
+            // `ProfileAlreadyCompletedException` (`409`, confirmado contra
+            // `ProfileController.java#completeProfile`): el botón ya debería
+            // estar deshabilitado antes de esto — cubre solo una caché
+            // vieja/condición de carrera, con el mismo mensaje que el aviso
+            // de arriba, no el error genérico.
+            if (error instanceof ApiError && error.isConflict()) {
+              return (
+                <AlertInline variant="success">{t('profile:formulario.yaActivo')}</AlertInline>
+              );
+            }
+            const missingLabels = getMissingRequirementsLabels(error);
             return (
               <AlertInline variant="error">
                 {missingLabels && missingLabels.length > 0 ? (
@@ -523,7 +569,11 @@ export function EditProfilePage() {
         isFinishDisabled={
           profile.status === 'COMPLETED' || completenessValue < PROFILE_COMPLETENESS_MAX
         }
-        finishDisabledHint={t('profile:formulario.finalizarBloqueado')}
+        finishDisabledHint={
+          profile.status === 'COMPLETED'
+            ? t('profile:formulario.yaActivo')
+            : t('profile:formulario.finalizarBloqueado')
+        }
         isFinalizing={finalizeProfile.isPending}
         finalizingLabel={t('profile:formulario.finalizando')}
       />

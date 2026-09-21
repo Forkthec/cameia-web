@@ -59,6 +59,7 @@ export function LoginPage() {
         correoPlaceholder={t('ingreso.correoPlaceholder')}
         correoErrorRequired={t('ingreso.errores.correoRequerido')}
         correoErrorInvalid={t('ingreso.errores.correoInvalido')}
+        correoErrorMuyLargo={t('ingreso.errores.correoMuyLargo')}
         contrasenaLabel={t('ingreso.campos.contrasena')}
         contrasenaPlaceholder={t('ingreso.contrasenaPlaceholder')}
         contrasenaErrorRequired={t('ingreso.errores.contrasenaRequerida')}
