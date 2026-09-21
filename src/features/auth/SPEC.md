@@ -3,7 +3,7 @@ feature: auth
 estado: EN_CURSO
 hu: [HU-1.3, HU-1.1, HU-1.8]
 prt: [PRT-01.03, PRT-01.01, PRT-01.08]
-jira: [CM-40, CM-34, CM-194]
+jira: [CM-40, CM-34, CM-194, CM-195]
 rutas: [/ingresar, /registro]
 documentacion: tsdoc-es
 backlog: 16092026_01
@@ -209,7 +209,10 @@ cuerpo cuando entre su propia iteración.
 **Validaciones del lado del cliente**
 
 - `correo`: obligatorio y con formato de correo válido. Llaves:
-  `auth:login.errores.correoRequerido` / `correoInvalido`.
+  `auth:login.errores.correoRequerido` / `correoInvalido` / `correoMuyLargo`. **CM-195 (auditoría
+  20-sep-2026):** usa el mismo `emailSchema` compartido con Registro (`schemas/email.schema.ts`) —
+  regex real de `EmailAddress.java` y `maxLength=254` — en vez del `.email()` de Zod que traía
+  antes.
 - `contraseña`: obligatorio. Sin regla de formato/longitud en Login. Llave:
   `auth:login.errores.contrasenaRequerida`.
 - Mostrar/ocultar contraseña: afordancia de `PasswordField`, no una validación.
@@ -302,8 +305,18 @@ cuerpo cuando entre su propia iteración.
 
 **Validaciones del lado del cliente**
 
-- `nombre`, `apellido`: obligatorios.
+- `nombre`, `apellido`: obligatorios. **CM-195 (auditoría 20-sep-2026), replican
+  `RegisterUserRequest.java`/`AccountEntity.java` reales (`cameia-cuentas`):** solo letras (con
+  tildes y `ñ`/`Ñ`) y espacios — `filterToLettersAndSpaces` (`utils/textFilters.ts`) filtra a nivel
+  de tecleo, el regex del schema es defensa en profundidad — y `maxLength=120` (`VARCHAR(120)` en
+  BD). Ninguno de los dos límites está documentado en el backlog; se anota como divergencia
+  consciente, no bloquea.
 - `correo`: obligatorio, formato válido (la unicidad la valida el backend, `CA-1.1.1`).
+  **CM-195:** el formato se valida contra el regex real de `EmailAddress.java` (`^[^@\s]+@[^@\s.]+
+  (\.[^@\s.]+)+$`, más permisivo que el `.email()` de Zod que se usaba antes) y `maxLength=254`
+  (límite de Firebase Auth, confirmado en el value object de dominio) — `features/auth/schemas/
+  email.schema.ts`, compartido con Login. Tampoco documentado en el backlog; misma nota de
+  divergencia consciente que nombre/apellido.
 - `contraseña`: obligatoria, **replica `PasswordPolicy.java` real (confirmado 19-sep-2026,
   seguimiento de CM-34)** — entre 12 y 64 caracteres (contados por *code point*, no por unidad
   UTF-16) y fuera de una lista cerrada de 32 contraseñas comunes

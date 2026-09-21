@@ -28,11 +28,26 @@
  * lo arma `PhoneField` a partir del país elegido + el número nacional
  * escrito. Vacío en conjunto es válido (CA-1.1.1 no exige celular);
  * `isValidPhoneNumber` de `libphonenumber-js` solo corre cuando hay número.
+ *
+ * `nombre`/`apellido` replican `RegisterUserRequest.java`/`AccountEntity.java`
+ * (`cameia-cuentas`, confirmado 20-sep-2026, CM-195): solo letras (con tildes
+ * y `ñ`/`Ñ`) y espacios, `maxLength=120`. `RegisterForm` ya filtra a nivel de
+ * tecleo con `filterToLettersAndSpaces` (`utils/textFilters.ts`), así que
+ * este regex/`.max()` es defensa en profundidad, no la primera barrera. No
+ * documentado en el backlog — divergencia consciente.
+ *
+ * `correo` usa `emailSchema` compartido con `login.schema.ts`
+ * (`email.schema.ts`, CM-195): mismo campo, mismo contrato real de
+ * `EmailAddress.java`, sin duplicar el regex en dos archivos.
  */
 import { isValidPhoneNumber, type CountryCode } from 'libphonenumber-js';
 import { z } from 'zod';
 import { isAdult, isFutureDate, isImplausiblyOld, todayLocalIsoDate } from '@/utils/calculateAge';
 import { isCommonPassword } from '../model/commonPasswords';
+import { emailSchema } from './email.schema';
+
+const NAME_REGEX = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/;
+const NAME_MAX_LENGTH = 120;
 
 const FECHA_NACIMIENTO_FORMATO_INVALIDO = 'FECHA_NACIMIENTO_FORMATO_INVALIDO';
 const FECHA_NACIMIENTO_FUTURA = 'FECHA_NACIMIENTO_FUTURA';
@@ -57,10 +72,10 @@ function parseBirthDate(value: string): Date | null {
 
 export const registerSchema = z
   .object({
-    nombre: z.string().trim().min(1),
-    apellido: z.string().trim().min(1),
+    nombre: z.string().trim().min(1).max(NAME_MAX_LENGTH).regex(NAME_REGEX),
+    apellido: z.string().trim().min(1).max(NAME_MAX_LENGTH).regex(NAME_REGEX),
     fechaNacimiento: z.string(),
-    correo: z.string().trim().min(1).email(),
+    correo: emailSchema,
     celular: z.object({
       paisIso: z.string(),
       numeroNacional: z.string().trim(),

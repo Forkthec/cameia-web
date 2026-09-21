@@ -40,6 +40,14 @@
  * nueva); el celular no tiene un residual equivalente, porque
  * `BusinessExceptionHandler.valorInvalido()` no etiqueta el campo (cae al
  * `genericErrorMessage` general de la página).
+ *
+ * `nombre`/`apellido`/`celular.numeroNacional` filtran a nivel de tecleo
+ * (`filterToLettersAndSpaces`/`filterToDigits`, `utils/textFilters.ts`,
+ * CM-195): el `onChange` del `Controller` reescribe `event.target.value`
+ * antes de pasarlo a `field.onChange`, así que un carácter inválido nunca
+ * llega a existir en el estado del formulario. `correo` no filtra —
+ * necesita `.`, `_`, `%`, `+`, `-`, `@` sin restricción — solo valida al
+ * enviar (`email.schema.ts`).
  */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
@@ -48,6 +56,7 @@ import { ROUTES } from '@/app/router/routes';
 import { oldestPlausibleBirthDateIsoDate, todayLocalIsoDate } from '@/utils/calculateAge';
 import { cn } from '@/utils/cn';
 import { calculatePasswordStrength } from '@/utils/passwordStrength';
+import { filterToDigits, filterToLettersAndSpaces } from '@/utils/textFilters';
 import { Button } from '@/design-system/atoms/Button';
 import { Divider } from '@/design-system/atoms/Divider';
 import { Icon } from '@/design-system/icons/Icon';
@@ -75,9 +84,11 @@ interface RegisterFormProps {
   nombreLabel: string;
   nombrePlaceholder: string;
   nombreErrorRequired: string;
+  nombreErrorFormato: string;
   apellidoLabel: string;
   apellidoPlaceholder: string;
   apellidoErrorRequired: string;
+  apellidoErrorFormato: string;
 
   fechaNacimientoLabel: string;
   fechaNacimientoAyuda: string;
@@ -91,6 +102,7 @@ interface RegisterFormProps {
   correoPlaceholder: string;
   correoErrorRequired: string;
   correoErrorInvalid: string;
+  correoErrorMuyLargo: string;
   /** Correo duplicado (`EmailAlreadyRegisteredException`): mensaje bajo el campo + bloque de dos acciones. */
   duplicateEmailErrorMessage?: string;
   duplicateEmailLoginLabel: string;
@@ -146,9 +158,11 @@ export function RegisterForm({
   nombreLabel,
   nombrePlaceholder,
   nombreErrorRequired,
+  nombreErrorFormato,
   apellidoLabel,
   apellidoPlaceholder,
   apellidoErrorRequired,
+  apellidoErrorFormato,
   fechaNacimientoLabel,
   fechaNacimientoAyuda,
   fechaNacimientoErrorFutura,
@@ -159,6 +173,7 @@ export function RegisterForm({
   correoPlaceholder,
   correoErrorRequired,
   correoErrorInvalid,
+  correoErrorMuyLargo,
   duplicateEmailErrorMessage,
   duplicateEmailLoginLabel,
   duplicateEmailRecoverLabel,
@@ -255,15 +270,25 @@ export function RegisterForm({
           render={({ field, fieldState }) => (
             <FormField
               label={nombreLabel}
-              error={fieldState.error?.type === 'too_small' ? nombreErrorRequired : undefined}
+              error={
+                fieldState.error?.type === 'too_small'
+                  ? nombreErrorRequired
+                  : fieldState.error?.type === 'invalid_format'
+                    ? nombreErrorFormato
+                    : undefined
+              }
             >
               <Input
                 ref={field.ref}
                 value={field.value}
-                onChange={field.onChange}
+                onChange={(event) => {
+                  event.target.value = filterToLettersAndSpaces(event.target.value);
+                  field.onChange(event);
+                }}
                 onBlur={field.onBlur}
                 placeholder={nombrePlaceholder}
                 autoComplete="given-name"
+                maxLength={120}
                 state={isSubmitting ? 'disabled' : fieldState.error ? 'error' : 'default'}
               />
             </FormField>
@@ -276,15 +301,25 @@ export function RegisterForm({
           render={({ field, fieldState }) => (
             <FormField
               label={apellidoLabel}
-              error={fieldState.error?.type === 'too_small' ? apellidoErrorRequired : undefined}
+              error={
+                fieldState.error?.type === 'too_small'
+                  ? apellidoErrorRequired
+                  : fieldState.error?.type === 'invalid_format'
+                    ? apellidoErrorFormato
+                    : undefined
+              }
             >
               <Input
                 ref={field.ref}
                 value={field.value}
-                onChange={field.onChange}
+                onChange={(event) => {
+                  event.target.value = filterToLettersAndSpaces(event.target.value);
+                  field.onChange(event);
+                }}
                 onBlur={field.onBlur}
                 placeholder={apellidoPlaceholder}
                 autoComplete="family-name"
+                maxLength={120}
                 state={isSubmitting ? 'disabled' : fieldState.error ? 'error' : 'default'}
               />
             </FormField>
@@ -352,9 +387,11 @@ export function RegisterForm({
                   ? duplicateEmailErrorMessage
                   : fieldState.error?.type === 'too_small'
                     ? correoErrorRequired
-                    : fieldState.error?.type === 'invalid_format'
-                      ? correoErrorInvalid
-                      : undefined
+                    : fieldState.error?.type === 'too_big'
+                      ? correoErrorMuyLargo
+                      : fieldState.error?.type === 'invalid_format'
+                        ? correoErrorInvalid
+                        : undefined
               }
             >
               <Input
@@ -365,6 +402,7 @@ export function RegisterForm({
                 onBlur={field.onBlur}
                 placeholder={correoPlaceholder}
                 autoComplete="email"
+                maxLength={254}
                 state={
                   isSubmitting
                     ? 'disabled'
@@ -411,7 +449,10 @@ export function RegisterForm({
                 paisSinResultadosLabel={celularSinResultadosLabel}
                 numeroLabel={celularNumeroLabel}
                 numeroValue={numeroField.value}
-                onNumeroChange={numeroField.onChange}
+                onNumeroChange={(event) => {
+                  event.target.value = filterToDigits(event.target.value);
+                  numeroField.onChange(event);
+                }}
                 onNumeroBlur={numeroField.onBlur}
                 numeroPlaceholder={celularNumeroPlaceholder}
                 helperText={fieldState.error ? undefined : celularAyuda}
