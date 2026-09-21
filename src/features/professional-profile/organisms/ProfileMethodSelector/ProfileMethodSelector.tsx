@@ -110,6 +110,7 @@ export function ProfileMethodSelector({
               // text-decoration-color, fill, stroke) más las que necesita el hover de esta tarjeta
               // (box-shadow, transform), para no perder la transición de fondo que ya tenía por defecto.
               'transition-[color,background-color,border-color,box-shadow,transform] duration-[var(--duration-quick)] ease-out',
+              'enabled:cursor-pointer',
               'enabled:hover:border-brand-base enabled:hover:shadow-elevation-2 enabled:hover:scale-102',
               'enabled:focus-visible:border-brand-base enabled:focus-visible:shadow-elevation-2 enabled:focus-visible:scale-102',
               'motion-reduce:transition-none motion-reduce:hover:scale-100 motion-reduce:focus-visible:scale-100',
