@@ -10,12 +10,15 @@ import { PROFESSIONAL_ROLES } from '../data/catalogs';
 
 interface ProfessionalRoleResponse {
   id: string;
-  name: string;
+  nombre: string;
+  categoria: string;
 }
 
 describe('professionalRolesHandlers', () => {
   it('devuelve el catálogo completo de roles profesionales', async () => {
-    const roles = await httpClient.get<ProfessionalRoleResponse[]>('/api/v1/professional-roles');
+    const roles = await httpClient.get<ProfessionalRoleResponse[]>(
+      '/api/v1/profiles/professional-roles',
+    );
 
     expect(roles).toEqual(PROFESSIONAL_ROLES);
   });

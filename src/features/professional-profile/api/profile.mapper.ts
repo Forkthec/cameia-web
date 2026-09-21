@@ -94,19 +94,27 @@ function toTargetRoleItem(dto: TargetRoleDto): TargetRoleItem {
 }
 
 export function toProfessionalRole(dto: ProfessionalRoleDto): ProfessionalRole {
-  return { id: dto.id, name: dto.name };
+  return { id: dto.id, name: dto.nombre, category: dto.categoria };
 }
 
+/**
+ * `dto.name`/`dto.summary` llegan `null` en un perfil recién creado (backend
+ * real, confirmado por HAR) — se normalizan a `''` aquí, la única vez que
+ * ese `null` existe (CM-195). `dto.summaryProvenance` no existe en el record
+ * real todavía (ver TSDoc de `ProfileDto`); `?? null` cubre tanto el `null`
+ * explícito como el campo ausente (`undefined`) con el mismo valor de
+ * dominio, sin distinguir los dos — el dominio no necesita esa distinción.
+ */
 export function toProfile(dto: ProfileDto): Profile {
   return {
     id: dto.id,
     status: dto.status,
-    name: dto.name,
-    summary: dto.summary,
-    summaryProvenance: dto.summaryProvenance,
-    education: dto.education.map(toEducationItem),
-    workExperience: dto.workExperience.map(toWorkExperienceItem),
-    skills: dto.skills.map(toSkillItem),
+    name: dto.name ?? '',
+    summary: dto.summary ?? '',
+    summaryProvenance: dto.summaryProvenance ?? null,
+    education: dto.educations.map(toEducationItem),
+    workExperience: dto.workExperiences.map(toWorkExperienceItem),
+    skills: dto.profileSkills.map(toSkillItem),
     targetRoles: dto.targetRoles.map(toTargetRoleItem),
   };
 }

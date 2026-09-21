@@ -14,7 +14,7 @@ interface CreatedProfile {
 }
 
 interface ProfileWithEducation {
-  education: { id: string }[];
+  educations: { id: string }[];
 }
 
 describe('useRemoveEducation', () => {
@@ -33,7 +33,7 @@ describe('useRemoveEducation', () => {
         provenance: 'MANUAL',
       },
     );
-    const [firstEducation] = withEducation.education;
+    const [firstEducation] = withEducation.educations;
     const educationId = firstEducation?.id;
     if (!educationId) throw new Error('El perfil sembrado no tiene educación.');
 

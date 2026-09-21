@@ -1,6 +1,6 @@
 /**
  * Comportamiento observable de `useProfessionalRolesQuery` contra el mock
- * real: trae el catálogo cerrado completo (`GET /api/v1/professional-roles`).
+ * real: trae el catálogo cerrado completo (`GET /api/v1/profiles/professional-roles`).
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
@@ -23,6 +23,7 @@ describe('useProfessionalRolesQuery', () => {
     expect(result.current.data).toContainEqual({
       id: 'backend-developer',
       name: 'Desarrollador Backend',
+      category: 'Desarrollo',
     });
   });
 });

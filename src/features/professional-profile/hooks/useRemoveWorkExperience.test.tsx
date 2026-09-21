@@ -15,7 +15,7 @@ interface CreatedProfile {
 }
 
 interface ProfileWithWorkExperience {
-  workExperience: { id: string }[];
+  workExperiences: { id: string }[];
 }
 
 describe('useRemoveWorkExperience', () => {
@@ -33,7 +33,7 @@ describe('useRemoveWorkExperience', () => {
         provenance: 'MANUAL',
       },
     );
-    const [firstExperience] = withExperience.workExperience;
+    const [firstExperience] = withExperience.workExperiences;
     const workExperienceId = firstExperience?.id;
     if (!workExperienceId) throw new Error('El perfil sembrado no tiene experiencia laboral.');
 

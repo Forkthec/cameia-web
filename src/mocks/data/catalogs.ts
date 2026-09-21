@@ -27,31 +27,54 @@ export type SkillLevel = (typeof SKILL_LEVELS)[number];
  * Roles profesionales — SÍ es catálogo cerrado (backlog 6-sep, HU-2.11): el
  * usuario selecciona de aquí, nunca escribe libre. Ejemplo realista para el
  * dominio de la aplicación (entrevistas, tecnología, áreas afines).
- * `GET /api/v1/professional-roles` (`mocks/handlers/professionalRoles.handlers.ts`,
- * CM-69) ya simula el endpoint real (`ProfessionalRoleController.java`, CM-23).
+ * `GET /api/v1/profiles/professional-roles`
+ * (`mocks/handlers/professionalRoles.handlers.ts`, CM-69) ya simula el
+ * endpoint real (`ProfessionalRoleController.java`, CM-23). Forma y ruta
+ * corregidas en CM-195 (auditoría 20-sep-2026): el backend real responde
+ * `{id, nombre, categoria}`, en español — este catálogo mock refleja
+ * directamente esa forma cruda (es lo que el handler MSW devuelve sin pasar
+ * por el mapper de la app real). `categoria` es agrupación de ejemplo, sin
+ * confirmar contra un catálogo real de categorías del backend.
  */
 export interface ProfessionalRole {
   id: string;
-  name: string;
+  nombre: string;
+  categoria: string;
 }
 
 export const PROFESSIONAL_ROLES: ProfessionalRole[] = [
-  { id: 'software-developer', name: 'Desarrollador de Software' },
-  { id: 'frontend-developer', name: 'Desarrollador Frontend' },
-  { id: 'backend-developer', name: 'Desarrollador Backend' },
-  { id: 'fullstack-developer', name: 'Desarrollador Full Stack' },
-  { id: 'data-engineer', name: 'Ingeniero de Datos' },
-  { id: 'data-scientist', name: 'Científico de Datos' },
-  { id: 'machine-learning-engineer', name: 'Ingeniero de Machine Learning' },
-  { id: 'qa-analyst', name: 'Analista de QA' },
-  { id: 'devops-engineer', name: 'Ingeniero DevOps' },
-  { id: 'cloud-specialist', name: 'Especialista en Cloud Computing' },
-  { id: 'security-specialist', name: 'Especialista en Ciberseguridad' },
-  { id: 'database-administrator', name: 'Administrador de Bases de Datos' },
-  { id: 'network-engineer', name: 'Ingeniero de Redes' },
-  { id: 'solutions-architect', name: 'Arquitecto de Soluciones' },
-  { id: 'product-manager', name: 'Product Manager' },
-  { id: 'ux-ui-designer', name: 'Diseñador UX/UI' },
-  { id: 'scrum-master', name: 'Scrum Master' },
-  { id: 'business-analyst', name: 'Analista de Negocios' },
+  { id: 'software-developer', nombre: 'Desarrollador de Software', categoria: 'Desarrollo' },
+  { id: 'frontend-developer', nombre: 'Desarrollador Frontend', categoria: 'Desarrollo' },
+  { id: 'backend-developer', nombre: 'Desarrollador Backend', categoria: 'Desarrollo' },
+  { id: 'fullstack-developer', nombre: 'Desarrollador Full Stack', categoria: 'Desarrollo' },
+  { id: 'data-engineer', nombre: 'Ingeniero de Datos', categoria: 'Datos' },
+  { id: 'data-scientist', nombre: 'Científico de Datos', categoria: 'Datos' },
+  {
+    id: 'machine-learning-engineer',
+    nombre: 'Ingeniero de Machine Learning',
+    categoria: 'Datos',
+  },
+  { id: 'qa-analyst', nombre: 'Analista de QA', categoria: 'Desarrollo' },
+  { id: 'devops-engineer', nombre: 'Ingeniero DevOps', categoria: 'Infraestructura' },
+  {
+    id: 'cloud-specialist',
+    nombre: 'Especialista en Cloud Computing',
+    categoria: 'Infraestructura',
+  },
+  {
+    id: 'security-specialist',
+    nombre: 'Especialista en Ciberseguridad',
+    categoria: 'Infraestructura',
+  },
+  {
+    id: 'database-administrator',
+    nombre: 'Administrador de Bases de Datos',
+    categoria: 'Infraestructura',
+  },
+  { id: 'network-engineer', nombre: 'Ingeniero de Redes', categoria: 'Infraestructura' },
+  { id: 'solutions-architect', nombre: 'Arquitecto de Soluciones', categoria: 'Infraestructura' },
+  { id: 'product-manager', nombre: 'Product Manager', categoria: 'Producto y Diseño' },
+  { id: 'ux-ui-designer', nombre: 'Diseñador UX/UI', categoria: 'Producto y Diseño' },
+  { id: 'scrum-master', nombre: 'Scrum Master', categoria: 'Producto y Diseño' },
+  { id: 'business-analyst', nombre: 'Analista de Negocios', categoria: 'Producto y Diseño' },
 ];

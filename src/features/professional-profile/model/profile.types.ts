@@ -90,10 +90,11 @@ export interface SkillItem {
   provenance: DataProvenance;
 }
 
-/** Catálogo cerrado de roles TI (backend real: `ProfessionalRoleController.java`, CM-23). El usuario elige de aquí, nunca escribe libre. */
+/** Catálogo cerrado de roles TI (backend real: `ProfessionalRoleController.java`, CM-23). El usuario elige de aquí, nunca escribe libre. `category` confirmado en CM-195 (antes ausente del modelo). */
 export interface ProfessionalRole {
   id: string;
   name: string;
+  category: string;
 }
 
 /**
@@ -112,6 +113,7 @@ export interface TargetRoleItem {
 export interface Profile {
   id: string;
   status: ProfileStatus;
+  /** Nunca `null` aquí aunque el backend real lo mande así en un perfil recién creado — `profile.mapper.ts#toProfile` normaliza a `''` (CM-195). */
   name: string;
   summary: string;
   summaryProvenance: SummaryProvenance;

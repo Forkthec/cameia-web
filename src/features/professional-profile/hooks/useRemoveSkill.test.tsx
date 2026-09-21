@@ -15,7 +15,7 @@ interface CreatedProfile {
 }
 
 interface ProfileWithSkills {
-  skills: { id: string }[];
+  profileSkills: { id: string }[];
 }
 
 describe('useRemoveSkill', () => {
@@ -27,7 +27,7 @@ describe('useRemoveSkill', () => {
       `/api/v1/profiles/${created.id}/skills`,
       { skillName: 'React', level: 'ADVANCED', provenance: 'MANUAL' },
     );
-    const skillId = withSkill.skills[0]?.id;
+    const skillId = withSkill.profileSkills[0]?.id;
     if (!skillId) throw new Error('El perfil sembrado no tiene habilidad.');
 
     const queryClient = new QueryClient({

@@ -131,6 +131,6 @@ export async function removeTargetRole(id: string, roleId: string): Promise<Prof
 }
 
 export async function fetchProfessionalRoles(): Promise<ProfessionalRole[]> {
-  const dtos = await httpClient.get<ProfessionalRoleDto[]>('/api/v1/professional-roles');
+  const dtos = await httpClient.get<ProfessionalRoleDto[]>('/api/v1/profiles/professional-roles');
   return dtos.map(toProfessionalRole);
 }
