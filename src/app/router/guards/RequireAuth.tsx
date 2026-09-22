@@ -39,15 +39,41 @@ export function RequireAuth() {
 }
 
 /**
+ * Exige que el correo de la sesión esté verificado (`CM-14`). Cubre todo lo
+ * que cuelga de `RequireAuth` menos `/verificar-correo`, que es la pantalla a
+ * la que redirige: bloquearla sería dejar a la persona sin salida.
+ *
+ * Es la traducción al frontend de una regla de negocio de `cameia-cuentas`
+ * («una cuenta `PENDING_VERIFICATION` existe, pero el resto de la plataforma
+ * no debe tratarla como utilizable», su spec §5), **no** un control de
+ * seguridad: quien lo saltara en su propio navegador se encontraría con que
+ * cada endpoint sigue exigiendo su ID Token y el backend sigue decidiendo por
+ * el claim `email_verified`.
+ */
+export function RequireVerifiedEmail() {
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const isEmailVerified = useAuthStore((state) => state.user?.emailVerified ?? false);
+
+  if (!isLoading && !isEmailVerified) {
+    return <Navigate to={ROUTES.verificarCorreo} replace />;
+  }
+
+  return <Outlet />;
+}
+
+/**
  * Cubre `/`, `/registro` e `/ingresar`: si ya hay sesión, no vuelve a mostrar
- * la landing ni el formulario, redirige directo a `/inicio`.
+ * la landing ni el formulario. El destino depende de si el correo está
+ * verificado (`CM-14`): sin verificar no tiene sentido mandar a `/inicio`,
+ * porque `RequireVerifiedEmail` rebotaría de inmediato.
  */
 export function RedirectIfAuthenticated() {
   const isLoading = useAuthStore((state) => state.isLoading);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isEmailVerified = useAuthStore((state) => state.user?.emailVerified ?? false);
 
   if (!isLoading && isAuthenticated) {
-    return <Navigate to={ROUTES.inicio} replace />;
+    return <Navigate to={isEmailVerified ? ROUTES.inicio : ROUTES.verificarCorreo} replace />;
   }
 
   return <Outlet />;

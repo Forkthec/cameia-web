@@ -212,4 +212,23 @@ export const authHandlers: HttpHandler[] = [
       { status: 201 },
     );
   }),
+
+  /**
+   * Activación tras verificar el correo (CM-14, `REQ-CU-13`). El backend real
+   * decide por el claim `email_verified` del ID Token, que MSW no puede leer:
+   * aquí se simula con la cabecera `X-Mock-Email-Verified`, que solo existe en
+   * los mocks — el cliente nunca la envía. Sin ella se responde `204`, que es
+   * el camino feliz; con `false` se responde el `403` del backend real, para
+   * poder ejercitar ese estado de la pantalla.
+   */
+  http.post('*/api/v1/users/me/verification', ({ request }) => {
+    if (request.headers.get('X-Mock-Email-Verified') === 'false') {
+      return HttpResponse.json(
+        errorBody(403, 'Correo sin verificar', 'El correo de la cuenta no está verificado.'),
+        { status: 403 },
+      );
+    }
+
+    return new HttpResponse(null, { status: 204 });
+  }),
 ];

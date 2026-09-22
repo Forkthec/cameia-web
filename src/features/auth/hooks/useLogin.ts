@@ -20,6 +20,7 @@ import { useLocation, useNavigate, type Location } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
 import { AuthError, signIn } from '@/services/firebase/auth.service';
 import { useAuthStore } from '@/stores/auth.store';
+import { activateAccount } from '../api/verification.api';
 import { getAuthErrorMessageKey } from '../model/authErrorMessage';
 
 interface LoginLocationState {
@@ -60,6 +61,15 @@ export function useLogin(): UseLoginResult {
         },
         useAuthStore.getState().plan,
       );
+
+      // Activación de rezagados (`CM-14`): si el correo ya está verificado, la
+      // Cuenta puede seguir en `PENDING_VERIFICATION` porque la activación de
+      // su momento falló. No hay forma de preguntarlo (`SPEC.md` B-24) y
+      // `REQ-CU-13` la declara idempotente, así que se repite sin bloquear la
+      // navegación y sin que un fallo impida entrar a una cuenta ya verificada.
+      if (user.emailVerified) {
+        void activateAccount().catch(() => undefined);
+      }
 
       const state = location.state as LoginLocationState | null;
       void navigate(resolveRedirectTarget(state?.from), { replace: true });

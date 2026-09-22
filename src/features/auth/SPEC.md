@@ -45,7 +45,7 @@ consigue el ID Token, lo entrega al resto de la aplicación, y lo suelta cuando 
 Esta SPEC gobierna hoy el Inicio de Sesión (`HU-1.3` / `CM-40`, **implementado**), el Registro
 (`HU-1.1` / `CM-34`, **implementado**), el Cierre de Sesión (`HU-1.8` / `CM-194`, **implementado**,
 alcance acotado a `CA-1.8.1` — ver §2) y la Verificación de Correo (`HU-1.2` / `CM-14`,
-**documentada en esta iteración, todavía sin implementar** — ver §2). El resto de la feature
+**implementada en esta iteración**, con parte de sus pruebas pendientes — ver §2 y §7). El resto de la feature
 (Recuperación, Google, y el cierre de sesión en **todos los dispositivos** que la propia `HU-1.8`
 anticipa como trabajo de Backend) sigue descrito solo conceptualmente en el Anexo A y sube al
 cuerpo cuando entre su propia iteración.
@@ -131,7 +131,7 @@ el correo quedó verificado, pero **no decide** si una Cuenta está activa — e
   referencia visual (`+57 300 000 0000`) pero el backlog no exige una regla de formato; el campo
   queda como texto libre opcional.
 
-### Verificación de correo (`HU-1.2` / `CM-14`) — documentada en esta iteración, sin implementar todavía
+### Verificación de correo (`HU-1.2` / `CM-14`) — implementada en esta iteración
 
 **Entra:**
 
@@ -722,6 +722,7 @@ Firebase la frena, cae en el error (a) con su propio mensaje.
 | `verificacion.abrirCorreo` | Abrir correo |
 | `verificacion.reenviar` | Reenviar enlace |
 | `verificacion.reenviarEspera` | Reenviar enlace ({{segundos}} s) |
+| `verificacion.reenviando` | Reenviando… |
 | `verificacion.reenviado` | Te enviamos un enlace nuevo. |
 | `verificacion.activando` | Activando tu cuenta… |
 | `verificacion.reintentar` | Reintentar |
@@ -1068,25 +1069,28 @@ Notas:
 | `src/features/auth/pages/LoginPage.tsx` | **Modificado, no anticipado por la redacción original de esta SPEC** (que pedía un `Toast`, sin infraestructura en la app): lee `location.state.logoutError` y muestra `AlertInline variant="error"`, mismo mecanismo que ya usaba para `registerInfo` (`CM-194`) | `LoginPage.test.tsx` |
 | `src/i18n/locales/es-CO/auth.json` | Llaves nuevas de `menu.*` (Mi cuenta, Planes, Cerrar sesión, confirmación) (`CM-194`) | — |
 
-**Planificado en `CM-14`, todavía sin escribir** (esta SPEC se revisa antes de implementar):
+**Verificación de correo (`CM-14`).** Todo el código de producción está escrito; las pruebas
+marcadas «pendiente» son la siguiente tanda, acotada a pedido del usuario para no entregar un
+cambio ilegible de una sola vez:
 
-| Archivo | Qué implementará | Prueba prevista |
-| ------- | ----------------- | ---------------- |
+| Archivo | Qué implementa | Prueba |
+| ------- | --------------- | ------- |
 | `src/app/router/routes.ts` | `ROUTES.verificarCorreo`, con el valor /verificar-correo | `src/app/router/index.test.tsx` |
-| `src/app/router/guards/RequireAuth.tsx` | `RequireVerifiedEmail` nuevo; `RedirectIfAuthenticated` con destino según `emailVerified` | `src/app/router/guards/RequireAuth.test.tsx` |
+| `src/app/router/guards/RequireAuth.tsx` | `RequireVerifiedEmail` nuevo; `RedirectIfAuthenticated` con destino según `emailVerified` | `src/app/router/guards/RequireAuth.test.tsx` (5 casos nuevos) |
 | `src/app/router/index.tsx` | La ruta de verificación bajo `RequireAuth`; el resto bajo `RequireVerifiedEmail` | `src/app/router/index.test.tsx` |
 | `src/features/auth/routes.tsx`, `src/features/auth/index.ts` | `verificarCorreoRoutes` exportado aparte de `authRoutes` | `src/app/router/index.test.tsx` |
-| `src/features/auth/pages/VerifyEmailPage.tsx` | Compone `AuthLayout` + `Toast` + `VerifyEmailPanel`; única pieza con `useTranslation` | `src/features/auth/pages/VerifyEmailPage.test.tsx` |
-| `src/features/auth/organisms/VerifyEmailPanel/VerifyEmailPanel.tsx` | Contenido presentacional de la pantalla, toda la copia por props | `src/features/auth/organisms/VerifyEmailPanel/VerifyEmailPanel.test.tsx` |
-| `src/features/auth/hooks/useEmailVerification.ts` | Sondeo, refresco forzado, activación, reenvío con espera y errores | `src/features/auth/hooks/useEmailVerification.test.tsx` |
-| `src/features/auth/api/verification.api.ts` | `activateAccount()` — POST a /api/v1/users/me/verification, cuerpo vacío | cubierto por las pruebas del hook + el handler de MSW |
+| `src/features/auth/pages/VerifyEmailPage.tsx` | Compone `AuthLayout` + `Toast` + `VerifyEmailPanel`; única pieza con `useTranslation` | **pendiente** — `src/features/auth/pages/VerifyEmailPage.test.tsx` |
+| `src/features/auth/organisms/VerifyEmailPanel/VerifyEmailPanel.tsx` | Contenido presentacional de la pantalla, toda la copia por props | **pendiente** — `src/features/auth/organisms/VerifyEmailPanel/VerifyEmailPanel.test.tsx` |
+| `src/features/auth/hooks/useEmailVerification.ts` | Sondeo, refresco forzado, activación (con un solo reintento ante `403`), reenvío con espera y errores | `src/features/auth/hooks/useEmailVerification.test.tsx` |
+| `src/features/auth/api/verification.api.ts` | `activateAccount()` — POST a /api/v1/users/me/verification, cuerpo vacío | cubierto por las pruebas del hook |
 | `src/features/auth/model/webmailProviders.ts` | Mapa dominio → webmail para «Abrir correo» | `src/features/auth/model/webmailProviders.test.ts` |
-| `src/services/firebase/auth.service.ts` | `reloadCurrentUser()` y `refreshIdToken()` nuevas | `src/services/firebase/auth.service.test.ts` |
+| `src/features/auth/hooks/useLogin.ts` (ya listado arriba) | Sin prueba propia todavía de la activación de rezagados | **pendiente** |
+| `src/services/firebase/auth.service.ts` | `reloadCurrentUser()` y `refreshIdToken()` nuevas | **pendiente** — `src/services/firebase/auth.service.test.ts` |
 | `src/features/auth/hooks/useRegister.ts` | Redirige a la pantalla de verificación; sin `Modal` | `src/features/auth/hooks/useRegister.test.tsx` |
 | `src/features/auth/pages/RegisterPage.tsx` | Sin el `Modal` de Plan Gratis | `src/features/auth/pages/RegisterPage.test.tsx` |
 | `src/features/auth/hooks/useLogin.ts` | Activación de rezagados cuando la sesión ya viene verificada | `src/features/auth/hooks/useLogin.test.tsx` |
 | `src/design-system/icons/registry.tsx` | Ícono `mail` | `src/design-system/icons/Icon.test.tsx` (ya existente) |
-| `src/mocks/handlers/auth.handlers.ts` | Handler de la activación (`204` y camino de `403`) | `src/mocks/handlers/auth.handlers.test.ts` |
+| `src/mocks/handlers/auth.handlers.ts` | Handler de la activación (`204`, y `403` simulado con la cabecera `X-Mock-Email-Verified`, que solo existe en los mocks) | **pendiente** — `src/mocks/handlers/auth.handlers.test.ts` |
 | `src/i18n/locales/es-CO/auth.json`, `src/i18n/locales/en/auth.json` | Bloque `verificacion.*`; se retira `registro.modal.*` | — |
 
 ## 8. Bloqueos

@@ -1,8 +1,11 @@
 /**
  * Comportamiento observable de `useRegister` (`ADR-0006`, `SPEC.md` §3
  * Registro): éxito encadena `registerUser` → `signIn()` →
- * `sendEmailVerification()`, guarda la sesión y abre el modal; cerrar el
- * modal redirige a `/inicio`; un `ApiError` de correo duplicado o de fecha
+ * `sendEmailVerification()`, guarda la sesión y redirige a
+ * `/verificar-correo` con la marca que enciende el `Toast` de esa pantalla
+ * (`CM-14`, defecto D-01: el `Modal` de Plan Gratis que esta prueba esperaba
+ * antes nunca llegó a verse en la aplicación real); un `ApiError` de correo
+ * duplicado o de fecha
  * de nacimiento expone `httpStatus`/`field` (`ADR-0007`, sin `code` propio)
  * sin llamar a Firebase; y el caso de borde (`POST` exitoso, `signIn()`
  * falla después) redirige a `/ingresar` con la marca `registerInfo`, no
@@ -60,7 +63,7 @@ describe('useRegister', () => {
     useAuthStore.setState({ user: null, plan: null, isAuthenticated: false, isLoading: false });
   });
 
-  it('con el POST y la sesión exitosos, guarda la sesión y abre el modal de confirmación', async () => {
+  it('con el POST y la sesión exitosos, guarda la sesión y redirige a /verificar-correo', async () => {
     registerUserMock.mockResolvedValue({
       id: 'account-1',
       firebaseUid: 'u1',
@@ -78,34 +81,15 @@ describe('useRegister', () => {
 
     await result.current.register(formValues);
 
-    await waitFor(() => expect(result.current.isSuccessModalOpen).toBe(true));
+    await waitFor(() =>
+      expect(navigateMock).toHaveBeenCalledWith('/verificar-correo', {
+        state: { registroExitoso: true },
+      }),
+    );
     expect(result.current.isSubmitting).toBe(false);
     expect(sendEmailVerificationMock).toHaveBeenCalledOnce();
     expect(useAuthStore.getState().isAuthenticated).toBe(true);
     expect(useAuthStore.getState().user?.uid).toBe('u1');
-  });
-
-  it('al cerrar el modal de confirmación, redirige a /inicio', async () => {
-    registerUserMock.mockResolvedValue({
-      id: 'account-1',
-      firebaseUid: 'u1',
-      status: 'PENDING_VERIFICATION',
-      plan: 'FREE',
-    });
-    signInMock.mockResolvedValue({
-      uid: 'u1',
-      email: 'ada@cameia.com',
-      displayName: null,
-      emailVerified: false,
-    });
-    sendEmailVerificationMock.mockResolvedValue(undefined);
-    const { result } = renderUseRegister();
-    await result.current.register(formValues);
-    await waitFor(() => expect(result.current.isSuccessModalOpen).toBe(true));
-
-    result.current.closeSuccessModal();
-
-    expect(navigateMock).toHaveBeenCalledWith('/inicio', { replace: true });
   });
 
   it('con correo duplicado, expone el httpStatus 409 sin llamar a Firebase', async () => {
@@ -165,7 +149,7 @@ describe('useRegister', () => {
         state: { registerInfo: SIGN_IN_AFTER_REGISTER_FAILED },
       }),
     );
-    expect(result.current.isSuccessModalOpen).toBe(false);
+    expect(navigateMock).not.toHaveBeenCalledWith('/verificar-correo', expect.anything());
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
   });
 });

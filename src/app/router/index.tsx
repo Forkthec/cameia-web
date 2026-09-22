@@ -14,7 +14,7 @@
  */
 import { createBrowserRouter, type RouteObject } from 'react-router';
 import { featureFlags } from '@/config/features';
-import { authRoutes } from '@/features/auth';
+import { authRoutes, verificarCorreoRoutes } from '@/features/auth';
 import { homeRoutes } from '@/features/home';
 import { interviewSessionRoutes } from '@/features/interview-session';
 import { interviewSetupRoutes } from '@/features/interview-setup';
@@ -23,7 +23,7 @@ import { professionalProfileShellRoutes } from '@/features/professional-profile'
 import { AuthenticatedAppShell } from './AuthenticatedAppShell';
 import { NotFoundPage } from './NotFoundPage';
 import { RouteErrorBoundary } from './RouteErrorBoundary';
-import { RedirectIfAuthenticated, RequireAuth } from './guards/RequireAuth';
+import { RedirectIfAuthenticated, RequireAuth, RequireVerifiedEmail } from './guards/RequireAuth';
 
 // Exportado aparte de `router` para que las pruebas puedan montar el mismo
 // árbol sobre `createMemoryRouter` en vez de depender del historial real del
@@ -39,12 +39,20 @@ export const routeConfig: RouteObject[] = [
       {
         element: <RequireAuth />,
         children: [
+          // Fuera de RequireVerifiedEmail a propósito (CM-14): es la pantalla
+          // que saca de ese estado.
+          ...verificarCorreoRoutes,
           {
-            element: <AuthenticatedAppShell progressEnabled={featureFlags.PROGRESS} />,
-            children: [...homeRoutes, ...professionalProfileShellRoutes],
+            element: <RequireVerifiedEmail />,
+            children: [
+              {
+                element: <AuthenticatedAppShell progressEnabled={featureFlags.PROGRESS} />,
+                children: [...homeRoutes, ...professionalProfileShellRoutes],
+              },
+              ...interviewSetupRoutes,
+              ...interviewSessionRoutes,
+            ],
           },
-          ...interviewSetupRoutes,
-          ...interviewSessionRoutes,
         ],
       },
       { path: '*', element: <NotFoundPage /> },

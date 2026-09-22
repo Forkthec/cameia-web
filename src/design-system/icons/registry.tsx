@@ -30,6 +30,7 @@ import {
   Info,
   LoaderCircle,
   Lock,
+  Mail,
   LogOut,
   Mic,
   MessageCircle,
@@ -80,6 +81,7 @@ export const icons = {
   user: User, // temporal · Lucide, reemplazar por SVG de Figma
   settings: Settings, // temporal · Lucide, reemplazar por SVG de Figma
   'log-out': LogOut, // temporal · Lucide, reemplazar por SVG de Figma
+  mail: Mail, // temporal · Lucide, reemplazar por SVG de Figma
   globe: Globe, // temporal · Lucide, reemplazar por SVG de Figma
   'arrow-right': ArrowRight, // temporal · Lucide, reemplazar por SVG de Figma
   // Sin equivalente en Figma (el nodo real usa icon/chevron-right, ver
