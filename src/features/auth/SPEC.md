@@ -1,15 +1,15 @@
 ---
 feature: auth
 estado: EN_CURSO
-hu: [HU-1.3, HU-1.1, HU-1.8]
-prt: [PRT-01.03, PRT-01.01, PRT-01.08]
-jira: [CM-40, CM-34, CM-194, CM-195]
-rutas: [/ingresar, /registro]
+hu: [HU-1.3, HU-1.1, HU-1.8, HU-1.2]
+prt: [PRT-01.03, PRT-01.01, PRT-01.08, PRT-01.02]
+jira: [CM-40, CM-34, CM-194, CM-195, CM-14]
+rutas: [/ingresar, /registro, /verificar-correo]
 documentacion: tsdoc-es
 backlog: 16092026_01
 decisiones: []
 figma: Cameia · Mockups MVP
-revisado: 2026-09-20
+revisado: 2026-09-21
 ---
 
 # Feature · Autenticación (auth)
@@ -23,6 +23,17 @@ revisado: 2026-09-20
 > (Verificación de correo, Recuperación de contraseña, Google, cierre de sesión en todos los
 > dispositivos) sigue solo conceptual en el Anexo A — no calza con `IMPLEMENTADA`.
 
+> **Alcance nuevo, 21-sep-2026 (`CM-14` / `HU-1.2`):** entra la **Verificación de correo
+> electrónico** — la pantalla `/verificar-correo` (`PRT-01.02`), el guard que impide usar la
+> aplicación con el correo sin verificar, y la llamada de activación `POST
+> /api/v1/users/me/verification` que pasa la Cuenta de `PENDING_VERIFICATION` a `ACTIVE` del lado
+> de `cameia-cuentas` (`CU-2`/`REQ-CU-13` de
+> `cameia-cuentas/specs/CM-14-RegistroUsuario/spec.md`). Hasta hoy esta SPEC declaraba esa pantalla
+> explícitamente fuera de alcance («sigue fuera de Sprint 1»); esas frases se corrigen en §2, §3 y
+> §5 en vez de dejarlas describiendo el estado anterior como si fuera el actual. `estado` sigue en
+> `EN_CURSO`: Recuperación de contraseña (`HU-1.4`), Google (`HU-1.10`) y el cierre de sesión en
+> todos los dispositivos siguen solo conceptuales en el Anexo A.
+
 ## 1. Propósito
 
 Resolver la identidad del Invitado y del Usuario dentro de CAMEIA: permitir que un Invitado se
@@ -32,11 +43,17 @@ credenciales de forma permanente — eso es de Firebase — ni decide entitlemen
 consigue el ID Token, lo entrega al resto de la aplicación, y lo suelta cuando corresponde.
 
 Esta SPEC gobierna hoy el Inicio de Sesión (`HU-1.3` / `CM-40`, **implementado**), el Registro
-(`HU-1.1` / `CM-34`, **implementado**) y el Cierre de Sesión (`HU-1.8` / `CM-194`, **documentado en
-esta iteración, alcance acotado a `CA-1.8.1`** — ver §2). El resto de la feature (Verificación,
-Recuperación, Google, y el cierre de sesión en **todos los dispositivos** que la propia `HU-1.8`
+(`HU-1.1` / `CM-34`, **implementado**), el Cierre de Sesión (`HU-1.8` / `CM-194`, **implementado**,
+alcance acotado a `CA-1.8.1` — ver §2) y la Verificación de Correo (`HU-1.2` / `CM-14`,
+**documentada en esta iteración, todavía sin implementar** — ver §2). El resto de la feature
+(Recuperación, Google, y el cierre de sesión en **todos los dispositivos** que la propia `HU-1.8`
 anticipa como trabajo de Backend) sigue descrito solo conceptualmente en el Anexo A y sube al
 cuerpo cuando entre su propia iteración.
+
+La feature termina donde empieza el negocio: consigue el ID Token y demuestra ante el backend que
+el correo quedó verificado, pero **no decide** si una Cuenta está activa — eso lo resuelve
+`cameia-cuentas` leyendo el claim `email_verified` del token, nunca la palabra del navegador
+(regla explícita de su spec, §5).
 
 ## 2. Alcance
 
@@ -98,10 +115,10 @@ cuerpo cuando entre su propia iteración.
 
 **No entra, y es deliberado:**
 
-- La **pantalla** de verificación de correo (`HU-1.2`, `PRT-01.02`) — sigue fuera de Sprint 1. El
-  *envío* del correo sí entra (lo exige `CA-1.1.1` como parte del registro), pero no hay pantalla
-  a la que redirigir para confirmarlo: se redirige a `/inicio`, con la misma lógica de "acceso
-  permitido, correo pendiente de verificar" que ya usa Login.
+- La **pantalla** de verificación de correo (`HU-1.2`, `PRT-01.02`) — **ya no aplica**: entró con
+  `CM-14`, ver la subsección siguiente. Lo que la iteración de Registro construyó fue solo el
+  *envío* del correo (`CA-1.1.1`), con redirección a `/inicio` porque no existía pantalla de
+  destino; esa redirección la reemplaza `CM-14`.
 - Login con Google desde este formulario (`HU-1.10`) — mismo tratamiento visible-deshabilitado
   que en Login.
 - Un editor de pronombres reutilizable para `HU-1.6` (Sprint 2) — solo se construye el catálogo de
@@ -113,6 +130,64 @@ cuerpo cuando entre su propia iteración.
 - Formato/validación estricta de `celular` (prefijo internacional) — Figma lo dibuja como
   referencia visual (`+57 300 000 0000`) pero el backlog no exige una regla de formato; el campo
   queda como texto libre opcional.
+
+### Verificación de correo (`HU-1.2` / `CM-14`) — documentada en esta iteración, sin implementar todavía
+
+**Entra:**
+
+- Vista de Verificación (`PRT-01.02`, ruta nueva `/verificar-correo`): la pantalla del prototipo
+  entregado por el usuario el 21-sep-2026 — `Toast` de éxito del registro, titular «Verifica tu
+  correo», el correo de destino, ilustración, instrucción, botón «Abrir correo» y enlace «Reenviar
+  enlace». **Ese prototipo es la fuente de diseño de esta pantalla**, no un frame de Figma
+  (decisión explícita del usuario, ver §9 y B-26).
+- **Detección de la verificación sin salir de la pantalla:** sondeo de `user.reload()` cada 5 s
+  mientras la pestaña esté visible, más una comprobación inmediata al montar y cada vez que la
+  pestaña recupera el foco (decisión explícita del usuario, 21-sep-2026).
+- **Activación de la Cuenta en el backend:** `POST /api/v1/users/me/verification` con el ID Token
+  ya refrescado. Es lo único que pasa la Cuenta de `PENDING_VERIFICATION` a `ACTIVE`
+  (`CU-2`/`REQ-CU-13` de `cameia-cuentas`): **verificar el correo del lado de Firebase no activa
+  nada por sí solo**, y esta SPEC ya lo tenía anotado como hallazgo pendiente en §5 desde `CM-34`.
+- **Reenvío del enlace** con `sendEmailVerification()` (ya existe, `CM-34`) y una espera obligada
+  de 60 s entre envíos — decisión de Frontend: Firebase estrangula el envío con
+  `auth/too-many-requests`, y un botón sin freno lleva derecho a ese error.
+- **Guard nuevo `RequireVerifiedEmail`** (decisión explícita del usuario, 21-sep-2026): ninguna
+  ruta autenticada se puede usar con el correo sin verificar; todas redirigen a
+  `/verificar-correo`. Es la traducción al frontend de la regla de negocio de Cuentas: «una cuenta
+  `PENDING_VERIFICATION` existe, pero el resto de la plataforma no debe tratarla como utilizable»
+  (spec de `cameia-cuentas` §5).
+- **Cambio de `RedirectIfAuthenticated`:** hoy manda a `/inicio` a cualquiera con sesión; pasa a
+  mandar a `/verificar-correo` cuando esa sesión tiene el correo sin verificar.
+- **Activación de rezagados al iniciar sesión:** `useLogin` dispara la misma activación, en
+  segundo plano y sin bloquear la navegación, cuando la sesión que acaba de abrirse ya trae el
+  correo verificado. Es la única forma de recuperar una Cuenta que verificó el correo pero cuya
+  activación falló en su momento — el frontend no puede consultar el estado de la Cuenta (B-24) y
+  `REQ-CU-13` garantiza que repetir la llamada es inofensivo.
+- **Retiro del `Modal` de Plan Gratis del flujo de Registro** y traslado de su mensaje a la
+  pantalla de verificación. **Decisión propuesta por Frontend a raíz de un defecto real (D-01, §9):
+  ese modal nunca llegó a verse en la aplicación. Pendiente de tu visto bueno en la revisión de
+  esta SPEC.**
+- **Cierre de `B-03`** (dónde se renderiza el aviso de correo sin verificar, `CA-1.3.1`): con el
+  guard duro deja de hacer falta un banner en el shell autenticado — nadie autenticado sin
+  verificar llega a una pantalla donde mostrarlo.
+
+**No entra, y es deliberado:**
+
+- **Que el enlace del correo abra la aplicación** (`applyActionCode` sobre un `oobCode`, en una
+  ruta propia tipo `/auth/accion`): exige cambiar la plantilla y el *action URL* en la consola de
+  Firebase, fuera de este repositorio. Descartado explícitamente el 21-sep-2026 a favor del
+  sondeo. El enlace sigue abriendo la página alojada por Firebase.
+- **Caducidad de las cuentas que nunca verifican el correo:** `CU-TBD-04` de la spec de
+  `cameia-cuentas` está escalada al Product Owner y bloquea el cierre de la HU allá, no aquí. El
+  frontend no inventa ningún vencimiento ni cuenta regresiva.
+- **Un `GET` de estado de la Cuenta:** no existe en `cameia-cuentas` (B-24). El frontend no puede
+  preguntar si una Cuenta ya está `ACTIVE`; se apoya en que la activación es idempotente.
+- **Infraestructura global de `Toast`** (store, host, provider): el `Toast` de esta pantalla se
+  renderiza dentro de la propia página, como ya hace `AlertInline` en `LoginPage`. Mismo criterio
+  decidido en `CM-194`, no una decisión nueva.
+- **Cambiar el correo antes de verificarlo** (`updateEmail` de Firebase, o volver al formulario de
+  registro): ninguna HU lo pide y el backend no tiene endpoint para ello. Quien se equivocó de
+  correo se queda sin salida dentro del producto — **limitación consciente**, anotada en B-27.
+- **Recuperación de contraseña** (`HU-1.4`) y **Google** (`HU-1.10`): sin cambios, siguen fuera.
 
 ### Cerrar sesión (`HU-1.8` / `CM-194`) — documentado en esta iteración, alcance acotado a `CA-1.8.1`
 
@@ -287,8 +362,13 @@ cuerpo cuando entre su propia iteración.
 - Al enviar, valida en cliente (zod) y, si pasa, hace `POST /api/v1/users` **sin sesión** ("Caso
   B" del diagrama, ver §5 y `ADR-0006`).
 - Si el backend responde `201`: encadena, en este orden, `signIn()` (reutilizado de Login, con las
-  mismas credenciales) → `sendEmailVerification()` (nueva) → actualiza el estado de sesión → abre
-  el `Modal` de confirmación (Plan Gratis) → al cerrarlo, redirige a `/inicio`.
+  mismas credenciales) → `sendEmailVerification()` → actualiza el estado de sesión → redirige a
+  `/verificar-correo` con `location.state.registroExitoso`, que es lo que enciende el `Toast` de
+  «¡Registro exitoso!» de esa pantalla (`CM-14`).
+  - **Hasta `CM-14` esta viñeta decía otra cosa** («abre el `Modal` de confirmación de Plan Gratis
+    → al cerrarlo, redirige a `/inicio`») y **nunca funcionó en la aplicación real**: el guard
+    `RedirectIfAuthenticated` desmonta `/registro` en cuanto el store marca la sesión, así que el
+    modal se cerraba solo antes de poder leerse. Defecto D-01, §9. El `Modal` sale de este flujo.
 - Si el backend responde `4xx`/`409`: discrimina por `httpStatus` + `errors[].field`
   (`ADR-0007` — el `ProblemDetail` real no trae un código propio). Para correo duplicado (`409`,
   sin `errors[]`), además del mensaje en el campo, muestra el bloque de dos acciones que dibuja
@@ -509,6 +589,181 @@ variante `md`. En `lg`, Nombre(s)/Apellido(s) van lado a lado; en `sm` se apilan
 - El resto de reglas de seguridad de la feature (sin cabeceras `X-User-*` del cliente, nada de
   `localStorage` para datos sensibles, un solo tema) aplica igual que en Login.
 
+### `/verificar-correo` — Verificación de correo · `PRT-01.02`
+
+**Qué hace**
+
+- Es la única pantalla autenticada que vive **fuera** de `RequireVerifiedEmail`: exige sesión
+  (`RequireAuth`) pero no exige el correo verificado — es justamente de donde se sale de ese
+  estado, igual que el Gateway debe exceptuar esta ruta de su propia regla
+  (`CONTRATO-GATEWAY-CM-14` §1, punto 1). Si alguien llega con el correo ya verificado, redirige a
+  `/inicio` sin mostrar nada.
+- Compone `AuthLayout` con el mismo `headline` de Login y Registro (`ingreso.marca.titular`,
+  «Entra a la entrevista listo») — el prototipo dibuja exactamente ese panel de marca.
+- Muestra, de arriba abajo: `Toast` `variant="success"` con cierre, titular «Verifica tu correo»,
+  la frase «Hemos enviado un enlace de verificación a **{correo}**» con el correo destacado, la
+  ilustración del sobre, la instrucción «Revisa tu bandeja de entrada y haz clic en el enlace para
+  verificar tu correo.», el botón primario «Abrir correo» y el enlace «Reenviar enlace».
+- **El correo sale de `useAuthStore` (`user.email`)**, no de `location.state`: a esta pantalla
+  también se llega desde Login, donde no hay estado de navegación que traiga nada.
+- **El `Toast` solo aparece cuando `location.state.registroExitoso` es `true`.** Quien llega
+  redirigido por el guard tras iniciar sesión con una cuenta sin verificar ve la misma pantalla sin
+  el `Toast`: no acaba de registrarse, no hay nada que anunciar.
+- Mientras está montada y la pestaña visible, llama `reloadCurrentUser()` cada 5 s, más una vez al
+  montar y cada vez que la pestaña vuelve a estar visible (`visibilitychange`). Con la pestaña
+  oculta **no** sondea: nadie está mirando y el temporizador solo gastaría batería y cuota.
+- Cuando detecta `emailVerified === true`: fuerza el refresco del ID Token
+  (`getIdToken(user, true)`), llama `activateAccount()`, actualiza el store con
+  `emailVerified: true` y redirige a `/inicio`.
+  - **Por qué el refresco forzado, porque no es evidente:** `user.reload()` actualiza el objeto
+    `User` del SDK, pero **no** el ID Token que ya está en caché. Ese token sigue diciendo
+    `email_verified: false` hasta que expira (una hora) o se pide con `forceRefresh`. Sin el
+    refresco, la activación responde `403` de forma sistemática y la persona queda atrapada en
+    esta pantalla con el correo ya verificado.
+  - Si aun así llega un `403`, se reintenta **una vez** con otro refresco forzado antes de mostrar
+    el error: el claim puede tardar en propagarse, y un reintento silencioso es más honesto que
+    pedirle a la persona que pulse un botón por un detalle interno de Firebase.
+
+**Estados**
+
+| Estado      | Qué muestra |
+| ----------- | ----------- |
+| Carga       | Tres momentos distintos: (a) el sondeo es de fondo y **no** muestra nada — ni spinner de página ni pantalla en blanco: la pantalla se ve completa desde el primer render; (b) al reenviar, «Reenviar enlace» pasa a `loading` con su `loadingLabel`; (c) al detectar la verificación, el bloque de acciones se reemplaza por `Spinner` + «Activando tu cuenta…» mientras corre el `POST` — único momento en que no hay nada que tocar. |
+| Vacío       | No aplica: la pantalla no lista datos. El único dato que muestra —el correo— siempre existe, porque sin sesión `RequireAuth` no deja llegar hasta aquí. |
+| Error       | Cuatro variantes, todas en `AlertInline` sobre el bloque de acciones; ninguna cierra la sesión ni detiene el sondeo: (a) reenvío estrangulado por Firebase (`auth/too-many-requests`) → `variant="warning"`, mensaje propio que pide esperar; (b) cualquier otro fallo de reenvío → `variant="error"` con `errors:generico`; (c) activación rechazada con `403` tras el reintento → `variant="error"` con acción «Reintentar»; (d) red (`httpStatus: 0`) o cualquier otro código en la activación → `errors:red` / `errors:generico`, misma acción «Reintentar». |
+| Sin permiso | No aplica en el sentido habitual: no hay rol ni plan de por medio. El caso análogo —llegar sin sesión— lo resuelve `RequireAuth` antes de montar esta pantalla, y el inverso —llegar con el correo ya verificado— se resuelve redirigiendo a `/inicio`, no mostrando un bloqueo. |
+
+**Validaciones del lado del cliente**
+
+No hay formulario: esta pantalla no valida ningún campo. La única regla de cliente es la **espera
+de 60 s entre reenvíos**, que no es validación de un dato sino un freno para no chocar contra el
+estrangulamiento de Firebase. El botón muestra la cuenta regresiva en su propia etiqueta
+(«Reenviar enlace (45 s)») y vuelve solo a su estado normal; el temporizador vive en el estado del
+componente y no se persiste — si la persona recarga la página puede reenviar de inmediato, y si
+Firebase la frena, cae en el error (a) con su propio mensaje.
+
+**Arquitectura y componentes**
+
+- Ruta nueva `ROUTES.verificarCorreo = '/verificar-correo'` en `app/router/routes.ts`, registrada
+  en `features/auth/routes.tsx` como un `RouteObject[]` aparte de `authRoutes`
+  (`verificarCorreoRoutes`), porque **no** va detrás de `RedirectIfAuthenticated` como las otras
+  dos rutas de la feature, sino detrás de `RequireAuth`. `features/auth/index.ts` exporta ambos.
+- Árbol de rutas resultante en `app/router/index.tsx`:
+
+  ```
+  RedirectIfAuthenticated → landing, /registro, /ingresar
+  RequireAuth
+  ├── /verificar-correo                        ← sin RequireVerifiedEmail, a propósito
+  └── RequireVerifiedEmail
+      ├── AuthenticatedAppShell → /inicio, perfiles
+      ├── interviewSetupRoutes
+      └── interviewSessionRoutes
+  ```
+
+- `app/router/guards/RequireAuth.tsx` gana `RequireVerifiedEmail` (mismo archivo, misma forma de
+  layout-route con `<Outlet/>`; su TSDoc ya declara que ahí viven los guards de sesión). Lee
+  `emailVerified` de `useAuthStore` y redirige a `ROUTES.verificarCorreo` con `replace`. Respeta
+  `isLoading` igual que `RequireAuth`, para no rebotar antes de saber si hay sesión.
+- `RedirectIfAuthenticated` cambia de destino: `/verificar-correo` cuando la sesión tiene el correo
+  sin verificar, `/inicio` en el resto de casos.
+- `features/auth/pages/VerifyEmailPage.tsx` — única pieza que llama `useTranslation`; el organismo
+  es presentacional, como `LoginForm`/`RegisterForm`.
+- `features/auth/organisms/VerifyEmailPanel/` — el contenido de la pantalla (titular, correo,
+  ilustración, instrucción, acciones), sin dominio ni i18n propios: toda la copia entra por props,
+  el mismo criterio que esta feature ya aplica a sus otros organismos.
+- `features/auth/hooks/useEmailVerification.ts` — el orquestador: sondeo, refresco forzado del
+  token, activación, reenvío con su cuenta regresiva y los estados de error. Devuelve datos y
+  funciones, nunca JSX.
+- `features/auth/api/verification.api.ts` — `activateAccount(): Promise<void>`, un `POST` de cuerpo
+  vacío. **Sin `verification.dto.ts` ni `verification.mapper.ts`**: no se consume ningún campo de
+  la respuesta y `CLAUDE.md` §4 prohíbe crear archivos vacíos por simetría. Si el backend publica
+  un cuerpo que la UI necesite (B-23), entran entonces, y el mapper vuelve a ser el cortafuegos
+  (`ADR-0003`).
+- `services/firebase/auth.service.ts` gana dos funciones, con la misma envoltura en `AuthError` que
+  las existentes:
+  - `reloadCurrentUser(): Promise<User | null>` — `user.reload()` y devuelve `auth.currentUser`.
+  - `refreshIdToken(): Promise<string | null>` — `getIdToken(user, true)`. No hace falta tocar
+    `httpClient`: una vez refrescado, ese token nuevo es el que el SDK entrega en la siguiente
+    llamada a `getIdToken()`.
+- `features/auth/model/webmailProviders.ts` — mapa dominio → URL del webmail para «Abrir correo»
+  (Gmail, Outlook/Hotmail/Live, Yahoo, iCloud, Proton). **Si el dominio no está en el mapa, el
+  botón no se renderiza**: no hay destino honesto al que mandar a la persona, y la instrucción de
+  arriba ya dice qué hacer. Decisión de Frontend, anotada en B-27.
+- `design-system/icons/registry.tsx` gana `mail` (Lucide `Mail`), que hoy no existe en el registro.
+  La ilustración del prototipo —sobre con una insignia de enlace— se arma con ese ícono a gran
+  tamaño sobre un círculo de fondo con tokens, **provisional hasta que Diseño entregue el SVG
+  real** (B-26). Nadie importa de `lucide-react` fuera del registro (`CLAUDE.md` §3.3).
+- `design-system/molecules/Toast/` ya existe y **gana aquí su primer consumidor real**: se posiciona
+  desde la página, sin store ni host global.
+- `useRegister.ts` deja de manejar `isSuccessModalOpen`/`closeSuccessModal` y redirige a
+  `/verificar-correo`; `RegisterPage.tsx` deja de montar el `Modal`. Las llaves
+  `auth:registro.modal.*` se retiran y su mensaje pasa a `auth:verificacion.planGratis`
+  (`CLAUDE.md` §13: no se deja código ni copia muerta). `Modal` conserva consumidor — `AppShell`
+  lo usa para confirmar el cierre de sesión (`CM-194`) —, así que no queda huérfano.
+- `useLogin.ts` gana la activación de rezagados descrita en §2: tras `signIn()`, si
+  `user.emailVerified` es `true`, dispara `activateAccount()` sin bloquear la navegación y **traga
+  el error** — un fallo ahí no puede impedir entrar a una cuenta que ya está verificada.
+- `mocks/handlers/auth.handlers.ts` gana el handler de `POST /api/v1/users/me/verification`
+  (`204`), y la forma de simular el `403` para poder probar el camino de error.
+- **Primer uso de `<Trans>` de `react-i18next` en la aplicación**, para «Hemos enviado un enlace de
+  verificación a **{{correo}}**» sin partir la frase en dos llaves: el correo va destacado en medio
+  de la oración, y concatenar fragmentos traducidos rompe cualquier idioma con otro orden de
+  palabras. Se anota por ser un patrón nuevo, no por ser excepcional.
+
+**i18n · llaves nuevas (`auth.json`, `es-CO` y `en`)**
+
+| Llave | `es-CO` |
+| ----- | ------- |
+| `verificacion.toastRegistro` | ¡Registro exitoso! Hemos enviado un enlace de verificación a tu correo electrónico. |
+| `verificacion.toastCerrar` | Cerrar |
+| `verificacion.titulo` | Verifica tu correo |
+| `verificacion.enviadoA` | Hemos enviado un enlace de verificación a `<destacado>{{correo}}</destacado>` |
+| `verificacion.instruccion` | Revisa tu bandeja de entrada y haz clic en el enlace para verificar tu correo. |
+| `verificacion.abrirCorreo` | Abrir correo |
+| `verificacion.reenviar` | Reenviar enlace |
+| `verificacion.reenviarEspera` | Reenviar enlace ({{segundos}} s) |
+| `verificacion.reenviado` | Te enviamos un enlace nuevo. |
+| `verificacion.activando` | Activando tu cuenta… |
+| `verificacion.reintentar` | Reintentar |
+| `verificacion.planGratis` | Tu cuenta quedó con el Plan Gratis de CAMEIA. |
+| `verificacion.errores.demasiadosIntentos` | Enviamos varios enlaces seguidos. Espera unos minutos antes de pedir otro. |
+| `verificacion.errores.noConfirmada` | Todavía no pudimos confirmar tu verificación. Si ya hiciste clic en el enlace, inténtalo de nuevo. |
+
+Ninguna llave nueva en `errors.json`: la activación no trae códigos propios (`ADR-0007`) y los
+casos genéricos reutilizan `errors:generico` / `errors:red`.
+
+**Responsive**
+
+No hay frames de Figma para esta pantalla (B-26). Se reutiliza el comportamiento ya construido de
+`AuthLayout`: dos columnas a partir de `lg:` (panel de marca + contenido) y una sola columna por
+debajo, con el logo centrado arriba. El prototipo entregado corresponde al caso `lg`. El `Toast`
+flota arriba a la derecha de la columna de contenido en `lg:` y ocupa el ancho disponible con
+margen lateral por debajo — decisión de Frontend, el prototipo solo muestra el caso ancho.
+
+**Accesibilidad**
+
+- El `Toast` ya emite `role="status"` en su variante `success` (componente existente), así que el
+  anuncio del registro exitoso llega solo a un lector de pantalla.
+- El cambio de estado «detectado → activando → listo» se anuncia con una región
+  `aria-live="polite"` que contiene el texto «Activando tu cuenta…»; sin ella, el sondeo cambia la
+  pantalla sin que un lector de pantalla se entere.
+- «Abrir correo» abre en pestaña nueva (`target="_blank"`, `rel="noopener noreferrer"`) y lo dice
+  en su nombre accesible; «Reenviar enlace» queda `disabled` durante la espera, con la cuenta
+  regresiva en el propio texto —no solo en un atributo— para que no dependa de ver un color.
+- Áreas táctiles de 44×44 y anillo de foco: los heredan `Button` y `Toast`, sin nada especial aquí.
+- `prefers-reduced-motion` no aplica: la pantalla no anima nada. El `Spinner` ya lo respeta.
+
+**Seguridad**
+
+- **El navegador nunca decide la verificación.** `emailVerified` del cliente solo elige qué
+  pantalla mostrar; el estado real lo decide `cameia-cuentas` leyendo el claim del ID Token (su
+  spec, §5). Por eso el guard es una comodidad de UX, no un control de seguridad: si alguien lo
+  saltara, cada endpoint protegido sigue exigiendo su token.
+- El `oobCode` del enlace de verificación nunca pasa por este cliente: lo consume la página alojada
+  de Firebase. Aquí no se guarda, ni se registra, ni se lee de la URL.
+- Nada nuevo en `localStorage`/`sessionStorage` (`CLAUDE.md` §3.9): el temporizador de reenvío vive
+  en memoria y se pierde al recargar, a propósito.
+
 ### Menú de usuario y Cerrar sesión · `PRT-01.08` — toda pantalla autenticada
 
 **Qué hace**
@@ -660,6 +915,8 @@ variante `md`. En `lg`, Nombre(s)/Apellido(s) van lado a lado; en `sm` se apilan
 | `emailVerified`       | `boolean` | Se lee de `userCredential.user.emailVerified` tras autenticar                       | `CA-1.3.1`, `GLOSSARY.md` |
 | ID Token (Firebase)   | `string` (JWT) | Se adjunta como `Authorization: Bearer` en llamadas protegidas posteriores      | `ADR-0003`             |
 | `hasUnsavedChanges`   | `boolean` | Bandera interna de cliente, no un campo de usuario; `true` mientras `GeneralInfoForm` tenga `formState.isDirty` | `stores/unsavedChanges.store.ts`, nuevo en `CM-194` |
+| `email_verified` (claim) | `boolean` | Claim del ID Token. **Lo lee el backend, no el frontend**: es lo único que `cameia-cuentas` acepta como prueba de la verificación (`REQ-CU-13`). El cliente solo se encarga de que el token esté refrescado antes de la activación | `CM-14` / spec de `cameia-cuentas` §5 |
+| Estado de la Cuenta   | `string` (código) | `PENDING_VERIFICATION` → `ACTIVE`. El frontend **no lo lee nunca** (no hay endpoint que lo devuelva, B-24): solo dispara la transición y confía en que es idempotente | `CU-1`/`REQ-CU-13` de `cameia-cuentas`; sin entrada en `docs/GLOSSARY.md` todavía (B-25) |
 
 **Estados y enumerados**
 
@@ -700,6 +957,10 @@ sistema de `AuthError` que Login.
 | Cualquier otro `4xx`/`0` (red) de `POST /api/v1/users` | Fallback genérico o de red                                          | `errors:generico` / `errors:red`         |
 | Cualquier otro código `auth/*` no mapeado (Login) | Fallback                                              | `errors:generico`                        |
 | **Falla de `signOut()` de Firebase** (rara, ej. problema interno del SDK) | **Excepción atrapada por `useLogout`, en el flujo de Cerrar sesión (`CM-194`)** | **`errors:generico`, en un `Toast`** |
+| **Reenvío estrangulado** | `auth/too-many-requests` al reenviar el enlace de verificación (`CM-14`) | `auth:verificacion.errores.demasiadosIntentos` |
+| **Otro fallo del reenvío** | Cualquier otro código `auth/*` de `sendEmailVerification()` | `errors:generico` |
+| **Activación rechazada (`403`)** | `POST /api/v1/users/me/verification` con un ID Token cuyo `email_verified` sigue en `false`, ya reintentado con refresco forzado. Incluye el caso de que el Gateway no propague el estado de verificación (B-22) | `auth:verificacion.errores.noConfirmada` |
+| **Activación fallida (otro código / red)** | Cualquier otra respuesta del mismo endpoint | `errors:generico` / `errors:red` |
 
 ## 5. Enlace HTTP · PROVISIONAL
 
@@ -710,7 +971,9 @@ sistema de `AuthError` que Login.
 | ------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | -------- |
 | Inicio de sesión    | SDK Firebase Auth `signInWithEmailAndPassword` — no es HTTP a CAMEIA             | Correo y contraseña, directo a Firebase                                 | `UserCredential` |
 | **Registro**        | **`POST /api/v1/users`** — sin sesión ("Caso B"), Gateway descarta `Authorization`/`X-User-*` del cliente y firma internamente con OIDC (`ADR-0006`) | `firstName`, `lastName`, `birthDate` (`dd/MM/yyyy`), `email`, `password`, `pronoun?`, `phoneNumber?` — **nombres confirmados** contra `RegisterUserRequest.java` (19-sep-2026); el contrato completo sigue `// PROVISIONAL` porque `CM-35` no ha cerrado el ticket, aunque el formato de error **ya no es provisional** (`ADR-0007`) | `201` con `{ id, firebaseUid, status, plan }` (`RegisteredUserResponse.java`, confirmado), o `4xx`/`409` con `ProblemDetail` real (RFC 7807: `title`/`detail`/`status` + `errors: [{field, message}]` — `ADR-0007`, confirmado contra `BusinessExceptionHandler.java`) |
-| Verificación de correo (envío) | SDK Firebase Auth `sendEmailVerification()` — no es HTTP a CAMEIA, y no pasa por el Gateway | — | — |
+| Verificación de correo (envío y reenvío) | SDK Firebase Auth `sendEmailVerification()` — no es HTTP a CAMEIA, y no pasa por el Gateway | — | — |
+| **Verificación de correo (detección)** | SDK Firebase Auth `user.reload()` + `getIdToken(user, true)` — no es HTTP a CAMEIA | — | `emailVerified` actualizado y un ID Token nuevo, ya con `email_verified: true` |
+| **Activación de la Cuenta** | **`POST /api/v1/users/me/verification`** — Caso A, exige ID Token válido (`CU-2`/`REQ-CU-13` de `cameia-cuentas/specs/CM-14-RegistroUsuario/spec.md`, `CONTRATO-GATEWAY-CM-14.md` §1) | Cuerpo **vacío**. La identidad y el estado de verificación salen del token; el Gateway agrega `X-User-Id`/`X-User-Email`/`X-User-Roles`/`X-Request-Id` | Éxito sin cuerpo documentado (B-23; el cliente lo ignora), `403` si `email_verified` es `false`, y respuesta de éxito sin cambios si la Cuenta ya estaba `ACTIVE` (idempotente por `REQ-CU-13`) |
 | **Cierre de sesión (dispositivo actual)** | **SDK Firebase Auth `signOut()`** — no es HTTP a CAMEIA, no pasa por el Gateway | — | — |
 
 Notas:
@@ -731,12 +994,16 @@ Notas:
   (`ProblemDetail`, `ADR-0007`), y que `RegisterUserService.register()` puede lanzar tres
   excepciones de dominio distintas (`EmailAlreadyRegisteredException`, `InvalidBirthDateException`,
   `WeakPasswordException` — ver §3 y §4), en ese orden.
-- **Hallazgo fuera de alcance de esta iteración:** existe también
-  `AccountActivationController` (`POST /api/v1/users/me/verification`, exige `X-User-Id`) que
-  activa la cuenta (`PENDING_VERIFICATION` → `ACTIVE`) tras la verificación del correo. Verificar
-  el correo del lado de Firebase no activa la cuenta por sí solo — hace falta esa llamada
-  autenticada después. Es territorio de `HU-1.2` (fuera de esta SPEC); se deja anotado para cuando
-  se aborde esa historia, no se implementa en `CM-34`.
+- **El hallazgo que `CM-34` dejó anotado ya está en alcance (`CM-14`, 21-sep-2026):**
+  `AccountActivationController` (`POST /api/v1/users/me/verification`, Caso A) es lo que activa la
+  Cuenta (`PENDING_VERIFICATION` → `ACTIVE`) tras la verificación del correo. Verificar el correo
+  del lado de Firebase **no** activa la Cuenta por sí solo. Lo que entonces se dejó como nota para
+  «cuando se aborde `HU-1.2`» es exactamente esta iteración; ver §2 y §3.
+- **Dependencia del Gateway, no del frontend:** `cameia-cuentas` decide por el claim
+  `email_verified`, y hoy lo espera propagado como encabezado — si no llega, **trata la
+  verificación como no probada y responde `403`** (`CONTRATO-GATEWAY-CM-14.md` §1, punto 2). Que
+  el frontend refresque el token no basta si el Gateway no propaga el estado: esta pantalla
+  depende de esa coordinación para funcionar de extremo a extremo (B-22).
 - **Cierre de sesión en todos los dispositivos, fuera de alcance de esta iteración:** la
   especificación técnica de `HU-1.8` (backlog, ambas versiones) anticipa `POST
   /api/v1/auth/logout-all`, marcado `[Requiere Definición - TBD]` por el propio backlog, vía
@@ -754,6 +1021,7 @@ Notas:
 | `CA-1.1.1`  | Separa Nombre(s)/Apellido(s) en dos campos (Figma, no "nombre completo"); implementa el `Modal` de confirmación con copy provisional; distingue visualmente las cuatro causas de rechazo de fecha de nacimiento; encadena `signIn()` + `sendEmailVerification()` tras el `POST` exitoso, sin repetir lógica de Login. |
 | `CA-1.1.2`  | Muestra, junto al mensaje de correo duplicado, el bloque de dos acciones ("Iniciar sesión" funcional, "Recuperar contraseña" deshabilitado) que dibuja Figma — el criterio solo pide el mensaje. |
 | `CA-1.1.3`  | Extiende `utils/calculateAge.ts` con las guardas de fecha futura y >110 años, que hoy no existen; escribe el mensaje de ">110 años" (no viene literal en el backlog, queda marcado como propuesto). |
+| `HU-1.2` (sin `CA` publicadas al frontend, B-25) | El comportamiento no sale de un criterio de aceptación sino de la spec de Backend (`CU-2`, `REQ-CU-13`) y del prototipo entregado: pantalla propia, detección por sondeo, refresco forzado del ID Token antes de activar, reenvío con espera de 60 s, guard duro sobre toda ruta autenticada, y activación de rezagados al iniciar sesión. Todo eso lo pone Frontend; el backend solo define el endpoint y su regla. |
 | `CA-1.8.1`  | Además de "ejecuta `signOut` y redirige a Login" (lo único que pide el criterio), agrega: confirmación previa (`Modal`/`BottomSheet` `destructive`); advertencia adicional cuando hay cambios sin guardar; ícono en el ítem del menú (desviación consciente de Figma); limpieza explícita del store antes de navegar, sin depender únicamente del listener asíncrono de `AuthProvider`; y construye el menú de usuario completo (`Mi cuenta`/`Planes`/idioma), no solo el ítem de logout, porque así lo define el único componente real de Figma para esta zona (`menu-usuario`). |
 
 ## 7. Estado de implementación
@@ -800,13 +1068,34 @@ Notas:
 | `src/features/auth/pages/LoginPage.tsx` | **Modificado, no anticipado por la redacción original de esta SPEC** (que pedía un `Toast`, sin infraestructura en la app): lee `location.state.logoutError` y muestra `AlertInline variant="error"`, mismo mecanismo que ya usaba para `registerInfo` (`CM-194`) | `LoginPage.test.tsx` |
 | `src/i18n/locales/es-CO/auth.json` | Llaves nuevas de `menu.*` (Mi cuenta, Planes, Cerrar sesión, confirmación) (`CM-194`) | — |
 
+**Planificado en `CM-14`, todavía sin escribir** (esta SPEC se revisa antes de implementar):
+
+| Archivo | Qué implementará | Prueba prevista |
+| ------- | ----------------- | ---------------- |
+| `src/app/router/routes.ts` | `ROUTES.verificarCorreo`, con el valor /verificar-correo | `src/app/router/index.test.tsx` |
+| `src/app/router/guards/RequireAuth.tsx` | `RequireVerifiedEmail` nuevo; `RedirectIfAuthenticated` con destino según `emailVerified` | `src/app/router/guards/RequireAuth.test.tsx` |
+| `src/app/router/index.tsx` | La ruta de verificación bajo `RequireAuth`; el resto bajo `RequireVerifiedEmail` | `src/app/router/index.test.tsx` |
+| `src/features/auth/routes.tsx`, `src/features/auth/index.ts` | `verificarCorreoRoutes` exportado aparte de `authRoutes` | `src/app/router/index.test.tsx` |
+| `src/features/auth/pages/VerifyEmailPage.tsx` | Compone `AuthLayout` + `Toast` + `VerifyEmailPanel`; única pieza con `useTranslation` | `src/features/auth/pages/VerifyEmailPage.test.tsx` |
+| `src/features/auth/organisms/VerifyEmailPanel/VerifyEmailPanel.tsx` | Contenido presentacional de la pantalla, toda la copia por props | `src/features/auth/organisms/VerifyEmailPanel/VerifyEmailPanel.test.tsx` |
+| `src/features/auth/hooks/useEmailVerification.ts` | Sondeo, refresco forzado, activación, reenvío con espera y errores | `src/features/auth/hooks/useEmailVerification.test.tsx` |
+| `src/features/auth/api/verification.api.ts` | `activateAccount()` — POST a /api/v1/users/me/verification, cuerpo vacío | cubierto por las pruebas del hook + el handler de MSW |
+| `src/features/auth/model/webmailProviders.ts` | Mapa dominio → webmail para «Abrir correo» | `src/features/auth/model/webmailProviders.test.ts` |
+| `src/services/firebase/auth.service.ts` | `reloadCurrentUser()` y `refreshIdToken()` nuevas | `src/services/firebase/auth.service.test.ts` |
+| `src/features/auth/hooks/useRegister.ts` | Redirige a la pantalla de verificación; sin `Modal` | `src/features/auth/hooks/useRegister.test.tsx` |
+| `src/features/auth/pages/RegisterPage.tsx` | Sin el `Modal` de Plan Gratis | `src/features/auth/pages/RegisterPage.test.tsx` |
+| `src/features/auth/hooks/useLogin.ts` | Activación de rezagados cuando la sesión ya viene verificada | `src/features/auth/hooks/useLogin.test.tsx` |
+| `src/design-system/icons/registry.tsx` | Ícono `mail` | `src/design-system/icons/Icon.test.tsx` (ya existente) |
+| `src/mocks/handlers/auth.handlers.ts` | Handler de la activación (`204` y camino de `403`) | `src/mocks/handlers/auth.handlers.test.ts` |
+| `src/i18n/locales/es-CO/auth.json`, `src/i18n/locales/en/auth.json` | Bloque `verificacion.*`; se retira `registro.modal.*` | — |
+
 ## 8. Bloqueos
 
 | Id   | Qué falta                                                                                                  | De quién depende                       | Estado |
 | ---- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------- | ----------- |
 | B-01 | ~~Confirmar `/registro`~~ | — | **Resuelto:** existe en `ROUTES.registro`. |
 | B-02 | Ticket Jira y `PRT` para `HU-1.10` (Google) | Product Owner / Scrum Master | Abierto — no bloquea. |
-| B-03 | Dónde se renderiza el banner de correo no verificado (`CA-1.3.1`) | Decisión de Frontend | Abierto — `auth.store.ts` ya persiste `emailVerified`. |
+| B-03 | ~~Dónde se renderiza el banner de correo no verificado (`CA-1.3.1`)~~ | — | **Resuelto, 21-sep-2026 (`CM-14`):** no hace falta banner. Con `RequireVerifiedEmail`, una sesión sin verificar no alcanza ninguna pantalla donde mostrarlo — se la lleva a `/verificar-correo`. |
 | B-04 | ~~Estado real de `services/firebase/*`, `auth.store.ts`, `AuthLayout.tsx`~~ | — | **Resuelto.** |
 | B-05 | ~~Breakpoints reales de `PRT-01.03`~~ | — | **Resuelto.** |
 | B-06 | ~~Código/formato exacto de error de `POST /api/v1/users`~~ | — | **Resuelto 19-sep-2026 (`ADR-0007`):** no hay código propio — `ProblemDetail` real (RFC 7807), `httpStatus` + `errors[].field`, confirmado contra `BusinessExceptionHandler.java`. |
@@ -825,6 +1114,12 @@ Notas:
 | B-19 | `HU-1.8` figura como Sprint 3 en el backlog vigente (`16092026_01`); `CM-194` no aparece entre las 13 subtareas de Sprint 1 de `CLAUDE.md` §11 | Product Owner / Scrum Master | Abierto, no bloquea la construcción de `CA-1.8.1` — confirmar si formalmente se adelantó. |
 | B-20 | Valor `estado: PARCIAL` del encabezado de esta SPEC no confirmado contra el enumerado real de `docs/_plantilla-feature/SPEC.md` | Frontend / `pnpm spec:check` | **Resuelto, 20-sep-2026** — `pnpm spec:check` tras implementar `CM-194` lo confirmó como el único error real; corregido a `EN_CURSO` (ver nota del encabezado). |
 | B-21 | La fila `context="menu-row"` de `language-switcher` (Figma, nodo `49:421`) mide 258px de ancho de forma nativa, pero el slot real donde se usa dentro de `menu-usuario` mide 224px — el texto "Idioma de la app" + el valor del idioma no cabían en una sola línea, ni en la app ni en el propio archivo de Figma | Diseño | **Resuelto, 20-sep-2026, a petición explícita del usuario** (no un hallazgo de Figma ni un CA del backlog): etiqueta acortada a "Idioma" y el ícono `chevron-right` (sugería que el clic despliega algo, cuando en realidad alterna el valor al instante) se reemplazó por un ícono de intercambio (`swap`, `icons/registry.tsx`). Queda como desviación consciente de Figma, no como pendiente de Diseño — se documenta por si Diseño quiere alinear el archivo fuente más adelante. |
+| B-22 | **El Gateway debe propagar el estado de verificación** (`X-User-Email-Verified`) o rechazar él mismo la ruta: `cameia-cuentas` trata la verificación como no probada y responde `403` si el encabezado no llega (`CONTRATO-GATEWAY-CM-14.md` §1, punto 2). Además, la ruta debe quedar exceptuada de cualquier regla futura que bloquee Caso A con el correo sin verificar (punto 1 del mismo documento) | Gateway / Juan Vela | Abierto — **bloquea el funcionamiento de extremo a extremo**, no la construcción de la pantalla: contra mocks el flujo completo se puede probar. |
+| B-23 | Cuerpo de la respuesta de éxito de `POST /api/v1/users/me/verification` — la spec de Cuentas no lo especifica (`204`? `200` con la Cuenta?) | Backend (`cameia-cuentas`) | Abierto, no bloquea — el cliente ignora el cuerpo y solo mira el código; si aparece uno útil, entran `verification.dto.ts`/`.mapper.ts`. |
+| B-24 | No existe forma de consultar el estado de una Cuenta (`GET /api/v1/users/me` o equivalente) — el frontend no puede saber si una Cuenta ya quedó `ACTIVE` | Backend / Product Owner | Abierto, no bloquea — se compensa repitiendo la activación idempotente al iniciar sesión (§2), a costa de una llamada extra por inicio de sesión. |
+| B-25 | `HU-1.2` no tiene criterios de aceptación en manos de Frontend ni ticket propio de subtarea (se trabaja bajo `CM-14`, la historia), y los estados de Cuenta (`PENDING_VERIFICATION`/`ACTIVE`/`DISABLED`/`ANONYMIZED`) no están en `docs/GLOSSARY.md` | Product Owner / Frontend | Abierto, no bloquea — el comportamiento se toma de la spec de Backend y del prototipo; el glosario se completa cuando el PO confirme el enumerado. |
+| B-26 | `PRT-01.02` no existe como frame en Figma: el diseño de esta pantalla es la imagen entregada por el usuario el 21-sep-2026 (decisión explícita suya, ver §9). Tampoco existe el SVG de la ilustración del sobre | Diseño | Abierto, no bloquea — se construye con el ícono `mail` del registro y tokens; Diseño puede alinear el archivo fuente después. |
+| B-27 | Dos decisiones de producto sin dueño en esta pantalla: qué hacer cuando el dominio del correo no tiene webmail conocido (hoy: no se muestra «Abrir correo») y qué puede hacer quien se registró con un correo equivocado (hoy: nada dentro del producto) | Producto | Abierto, no bloquea. |
 
 ## 9. Notas
 
@@ -1008,6 +1303,55 @@ Notas:
     ícono), `design-system/icons/registry.tsx` (nuevo ícono `swap`), `i18n/locales/es-CO/auth.json`
     y `i18n/locales/en/auth.json` (`menu.idioma.etiqueta`), y las pruebas correspondientes. No
     cambió ningún contrato de props de `LanguageSwitcher` ni de `MenuUsuario`.
+- **D-01 · Defecto real encontrado al abrir `CM-14`, 21-sep-2026:** el `Modal` de Plan Gratis que
+  esta SPEC describía desde `CM-34` **nunca se vio en la aplicación**. `useRegister` llama
+  `useAuthStore.setUser(...)` y luego abre el modal, pero `/registro` vive detrás de
+  `RedirectIfAuthenticated` (`app/router/index.tsx`): en cuanto el store marca `isAuthenticated`,
+  ese guard renderiza `<Navigate to="/inicio" replace />` y desmonta la página con el modal dentro.
+  Las pruebas no lo detectaron porque `RegisterPage.test.tsx` monta la página en un `MemoryRouter`
+  sin los guards — el defecto solo existe en el árbol de rutas real. Lo reportó el usuario
+  («¿de qué modal me hablas? no veo nada al hacer el registro») al revisar el alcance de `CM-14`.
+  La corrección no es hacer visible el modal sino **retirarlo**: el destino del registro pasa a ser
+  `/verificar-correo`, y el mensaje de Plan Gratis se muestra ahí (`verificacion.planGratis`).
+  **Divergencia consciente con el backlog** (`CLAUDE.md` §16), que pide mostrar la asignación del
+  plan «inmediatamente tras el registro»: se sigue mostrando inmediatamente, en la pantalla
+  siguiente y sin un modal que interrumpa. **Sujeta a tu visto bueno en la revisión de esta SPEC.**
+- **Guard duro en vez de banner, decisión explícita del usuario (21-sep-2026):** de las tres
+  opciones planteadas —bloquear toda ruta autenticada, mostrar la pantalla solo al terminar el
+  registro, o bloquear y además mantener el banner de `CA-1.3.1`— se eligió la primera. Es la que
+  concuerda con la regla de negocio de `cameia-cuentas` («una cuenta `PENDING_VERIFICATION` existe,
+  pero el resto de la plataforma no debe tratarla como utilizable», su spec §5) y la que cierra
+  B-03 sin construir un banner que nadie llegaría a ver.
+- **Detección por sondeo, decisión explícita del usuario (21-sep-2026):** se descartó la ruta de
+  configurar el *action URL* de Firebase para que el enlace del correo abra una pantalla propia
+  (`applyActionCode`), porque exige tocar la consola de Firebase, fuera de este repositorio. Se
+  descartó también agregar un botón «Ya verifiqué»: el prototipo no lo dibuja y el sondeo lo hace
+  innecesario. Queda `user.reload()` cada 5 s con la pestaña visible, más una comprobación al
+  montar y al recuperar el foco.
+- **Origen del diseño de `PRT-01.02`, decisión explícita del usuario (21-sep-2026):** la fuente es
+  la imagen entregada en la raíz del repositorio, no un frame de Figma — `CLAUDE.md` §13 exige
+  revisar el prototipo en vivo *cuando existe*, y aquí no existe (B-26). La imagen **no se versiona**
+  (pedido explícito del usuario: no debe entrar en ningún commit); esta sección y §3 son la única
+  constancia de lo que dibujaba: `Toast` de registro exitoso, titular «Verifica tu correo», el
+  correo de destino en negrita, ilustración de sobre con enlace, instrucción, botón «Abrir correo»
+  y enlace «Reenviar enlace», sobre el mismo `AuthLayout` de Login y Registro.
+- **Por qué el frontend activa la Cuenta y no lo hace el backend solo:** Firebase no avisa a
+  `cameia-cuentas` cuando alguien verifica su correo; el único portador de esa prueba es el claim
+  `email_verified` del ID Token, que viaja con la siguiente petición autenticada. De ahí que la
+  activación sea una llamada explícita del cliente (`CU-2`) y no un webhook. Esto también explica
+  por qué el refresco forzado del token es obligatorio y no una optimización.
+- **Activación de rezagados al iniciar sesión, decisión de Frontend:** `REQ-CU-13` declara la
+  operación idempotente justamente para que el cliente pueda reintentarla «sin efectos raros». Se
+  aprovecha para curar el caso de una Cuenta que verificó el correo pero cuya activación falló
+  (red caída, `403` transitorio, pestaña cerrada a mitad): al iniciar sesión con el correo ya
+  verificado se dispara la llamada en segundo plano y se traga el error. El costo es una petición
+  extra por inicio de sesión; la alternativa —saber si hace falta— exige un endpoint que no existe
+  (B-24).
+- **Qué pasa si alguien fuerza la URL de una pantalla protegida sin verificar:** el guard lo
+  devuelve a `/verificar-correo`, pero eso es comodidad, no seguridad. Si alguien deshabilitara el
+  guard en su propio navegador, cada endpoint del backend sigue exigiendo su token y Cuentas sigue
+  decidiendo por el claim. La SPEC lo dice explícitamente para que nadie lea el guard como control
+  de acceso.
 
 ---
 
@@ -1016,7 +1360,7 @@ Notas:
 | HU       | Qué es                          | Jira    | PRT        | Sprint (backlog) | Estado en esta SPEC |
 | -------- | ---------------------------------- | ------- | ---------- | ----------------- | ---------------------- |
 | `HU-1.1` | Registro con correo/contraseña + datos personales | `CM-14` (historia) / `CM-34` (subtarea Frontend) | `PRT-01.01`| 1 | **Gobernada por esta SPEC — implementada** |
-| `HU-1.2` | Verificación de correo electrónico | pendiente | `PRT-01.02`| 2 | Fuera de esta SPEC |
+| `HU-1.2` | **Verificación de correo electrónico** | `CM-14` (historia; sin subtarea de Frontend, B-25) | `PRT-01.02` (sin frame en Figma, B-26) | 2 (backlog) / adelantada en esta iteración | **Gobernada por esta SPEC — documentada, sin implementar todavía** |
 | `HU-1.3` | **Inicio de sesión**             | `CM-40` | `PRT-01.03`| 1                  | **Gobernada por esta SPEC — implementada** |
 | `HU-1.4` | Recuperación de contraseña        | pendiente | `PRT-01.04`| 2                  | Fuera de esta SPEC |
 | `HU-1.8` | **Cierre de sesión (dispositivo actual)** | `CM-194` | `PRT-01.08` | 3 (backlog) / adelantada en esta iteración | **Gobernada por esta SPEC — documentada, alcance `CA-1.8.1`; ver B-19** |
@@ -1041,7 +1385,9 @@ sesión server-side propia) — ver §3 y §5.
 
 ## Anexo C · Preguntas que esta SPEC no puede cerrar por sí sola
 
-- B-06 a B-20 (arriba) son las vigentes. Ninguna bloquea construir la pantalla.
+- B-02, B-03 (resuelto), B-07 a B-27 (arriba) son las vigentes. Ninguna bloquea construir las
+  pantallas; **B-22 sí bloquea que la verificación funcione de extremo a extremo** contra el
+  backend real, porque depende de una coordinación con el Gateway que no es de este repositorio.
 - ~~¿`RequireAuth` propaga la ruta de origen?~~ **Resuelto:** sí.
 - ~~¿Existe un prototipo de logout en Figma?~~ **Resuelto, 20-sep-2026:** sí, `PRT-01.08` (nodo
   `228:6443`) — corrige una premisa inicial equivocada del propio proceso de análisis de `CM-194`.
