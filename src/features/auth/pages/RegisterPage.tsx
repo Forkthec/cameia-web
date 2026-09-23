@@ -1,9 +1,13 @@
 /**
  * `/registro` · HU-1.1 / CM-34 / `PRT-01.01`. Compone `AuthLayout` (mismo
  * `headline` que ya usa Login, `ingreso.marca.titular` — SPEC.md §3
- * Registro) + `RegisterForm` + el `Modal` de confirmación de Plan Gratis.
+ * Registro) + `RegisterForm`.
  * Única pieza de la feature que llama `useTranslation`/`useRegister`;
  * `RegisterForm` es puramente presentacional (ver su TSDoc de cabecera).
+ *
+ * Ya no monta el `Modal` de Plan Gratis: `CM-14` lo retiró del flujo (defecto
+ * D-01, `SPEC.md` §9) y el registro termina redirigiendo a
+ * `/verificar-correo`.
  *
  * Traduce `errorInfo` de `useRegister` (`ADR-0007`: `httpStatus` + `field`,
  * ya no un `code` propio) a la llave de `auth.json`/`errors.json` que le
@@ -15,15 +19,13 @@
  */
 import { useTranslation } from 'react-i18next';
 import { AuthLayout } from '@/layouts/AuthLayout';
-import { Modal } from '@/design-system/organisms/Modal';
 import { PRONOUNS } from '../model/pronouns';
 import { useRegister } from '../hooks/useRegister';
 import { RegisterForm } from '../organisms/RegisterForm';
 
 export function RegisterPage() {
   const { t } = useTranslation(['auth', 'errors']);
-  const { isSubmitting, isSuccessModalOpen, errorInfo, register, closeSuccessModal } =
-    useRegister();
+  const { isSubmitting, errorInfo, register } = useRegister();
 
   const isDuplicateEmail = errorInfo?.httpStatus === 409;
   const isBirthDateRejected = errorInfo?.httpStatus === 422 && errorInfo.field === 'birthDate';
@@ -110,18 +112,6 @@ export function RegisterPage() {
         footerQuestion={t('registro.yaTengoCuenta')}
         footerCta={t('registro.irAIngresar')}
       />
-
-      {isSuccessModalOpen ? (
-        <Modal
-          title={t('registro.modal.titulo')}
-          closeLabel={t('registro.modal.cerrar')}
-          primaryActionLabel={t('registro.modal.cta')}
-          onPrimaryAction={closeSuccessModal}
-          onClose={closeSuccessModal}
-        >
-          {t('registro.modal.mensaje')}
-        </Modal>
-      ) : null}
     </AuthLayout>
   );
 }

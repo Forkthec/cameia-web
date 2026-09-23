@@ -48,7 +48,7 @@ function renderRegisterPage() {
       <MemoryRouter initialEntries={['/registro']}>
         <Routes>
           <Route path="/registro" element={<RegisterPage />} />
-          <Route path="/inicio" element={<p>Tablero</p>} />
+          <Route path="/verificar-correo" element={<p>Verifica tu correo</p>} />
         </Routes>
       </MemoryRouter>
     </I18nextProvider>,
@@ -73,7 +73,7 @@ describe('RegisterPage', () => {
     useAuthStore.setState({ user: null, plan: null, isAuthenticated: false, isLoading: false });
   });
 
-  it('con datos válidos, muestra el modal de confirmación y al cerrarlo redirige a /inicio', async () => {
+  it('con datos válidos, redirige a la pantalla de verificación de correo', async () => {
     await waitUntilReady();
     signInMock.mockResolvedValue({
       uid: 'u1',
@@ -88,9 +88,7 @@ describe('RegisterPage', () => {
     await fillValidForm(user, 'nueva@cameia.com');
     await user.click(screen.getByRole('button', { name: 'Registrarse' }));
 
-    await user.click(await screen.findByRole('button', { name: 'Entendido' }));
-
-    expect(await screen.findByText('Tablero')).toBeInTheDocument();
+    expect(await screen.findByText('Verifica tu correo')).toBeInTheDocument();
   });
 
   it('un correo ya registrado muestra el error con el bloque de dos acciones', async () => {
