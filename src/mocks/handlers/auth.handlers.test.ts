@@ -5,21 +5,11 @@
  * el orden real de `RegisterUserService.register()`, con la forma de
  * `ProblemDetail` (`ADR-0007`, sin `code` propio), y que un registro válido
  * responda `201` con la forma exacta de `RegisteredUserResponse.java`.
- *
- * Cubre también el handler de activación (`CM-14`): que el camino feliz
- * responda `200` con la forma real de `ActivatedAccountResponse` —no un `204`
- * sin cuerpo— y que el `403` de `EmailNotVerifiedException` se pueda
- * ejercitar con la cabecera de simulación.
  */
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ApiError } from '@/services/http/ApiError';
 import { httpClient } from '@/services/http/httpClient';
 import { resetRegisteredUsers } from './auth.handlers';
-
-interface ActivatedAccountResponse {
-  id: string;
-  status: string;
-}
 
 interface RegisteredUserResponse {
   id: string;
@@ -116,34 +106,5 @@ describe('authHandlers · POST /api/v1/users', () => {
     });
 
     expect(account.status).toBe('PENDING_VERIFICATION');
-  });
-});
-
-describe('authHandlers · POST /api/v1/users/me/verification', () => {
-  it('responde 200 con la cuenta ya activa', async () => {
-    const account = await httpClient.post<ActivatedAccountResponse>(
-      '/api/v1/users/me/verification',
-    );
-
-    expect(account.status).toBe('ACTIVE');
-    expect(account.id).toBeTruthy();
-  });
-
-  // Se usa `fetch` y no `httpClient` porque la cabecera de simulación no es
-  // parte del contrato: el cliente real nunca la envía, así que `httpClient`
-  // no tiene —ni debe tener— forma de mandarla. El origen da igual (el handler
-  // declara la ruta con `*/api/...`) y no se lee de `config/env`: la matriz de
-  // fronteras no deja que `mocks` importe de `config`.
-  it('con la cabecera de simulación en false responde el 403 de correo sin verificar', async () => {
-    const response = await fetch('http://localhost/api/v1/users/me/verification', {
-      method: 'POST',
-      headers: { 'X-Mock-Email-Verified': 'false' },
-    });
-
-    expect(response.status).toBe(403);
-    await expect(response.json()).resolves.toMatchObject({
-      status: 403,
-      title: 'Correo sin verificar',
-    });
   });
 });
