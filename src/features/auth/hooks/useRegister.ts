@@ -1,14 +1,10 @@
 /**
  * Orquesta el envío del formulario de Registro (`ADR-0006`): `POST
  * /api/v1/users` (sin sesión) → si `201`, reutiliza `signIn()` (mismo que
- * Login) → `sendEmailVerification()` → guarda la sesión → redirige a
- * `/verificar-correo` con `registroExitoso`, la marca que enciende el `Toast`
- * de esa pantalla.
- *
- * **Hasta `CM-14` abría aquí un `Modal` de Plan Gratis que nunca llegó a
- * verse** (defecto D-01, `SPEC.md` §9): `/registro` cuelga de
- * `RedirectIfAuthenticated`, que desmonta la página en cuanto el store marca
- * la sesión. El mensaje del plan vive ahora en la pantalla de verificación.
+ * Login) → `sendEmailVerification()` (nueva) → guarda la sesión → abre el
+ * `Modal` de confirmación de Plan Gratis. Al cerrar el modal (con
+ * "Entendido", Esc o clic en el velo — no hay nada que cancelar, así que
+ * las tres rutas hacen lo mismo), redirige a `/inicio`.
  *
  * No valida los campos — eso ya lo hizo `RegisterForm` con `registerSchema`.
  *
@@ -47,12 +43,17 @@ export interface RegisterErrorInfo {
 interface UseRegisterResult {
   /** `true` desde que se envía el formulario hasta que el backend/Firebase resuelven (éxito o error). */
   isSubmitting: boolean;
+  /** `true` mientras se muestra el `Modal` de confirmación de Plan Gratis. */
+  isSuccessModalOpen: boolean;
   errorInfo: RegisterErrorInfo | null;
   register: (values: RegisterFormValues) => Promise<void>;
+  /** Cierra el modal y redirige a `/inicio` — misma acción sin importar cómo se cerró. */
+  closeSuccessModal: () => void;
 }
 
 export function useRegister(): UseRegisterResult {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [errorInfo, setErrorInfo] = useState<RegisterErrorInfo | null>(null);
   const navigate = useNavigate();
 
@@ -85,12 +86,17 @@ export function useRegister(): UseRegisterResult {
         useAuthStore.getState().plan,
       );
       setIsSubmitting(false);
-      void navigate(ROUTES.verificarCorreo, { state: { registroExitoso: true } });
+      setIsSuccessModalOpen(true);
     } catch {
       setIsSubmitting(false);
       void navigate(ROUTES.ingresar, { state: { registerInfo: SIGN_IN_AFTER_REGISTER_FAILED } });
     }
   }
 
-  return { isSubmitting, errorInfo, register };
+  function closeSuccessModal() {
+    setIsSuccessModalOpen(false);
+    void navigate(ROUTES.inicio, { replace: true });
+  }
+
+  return { isSubmitting, isSuccessModalOpen, errorInfo, register, closeSuccessModal };
 }

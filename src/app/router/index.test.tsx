@@ -98,13 +98,7 @@ describe('routeConfig', () => {
 
   it('una ruta protegida con sesión renderiza dentro de AppShell', async () => {
     await waitUntilReady();
-    useAuthStore.setState({
-      isLoading: false,
-      isAuthenticated: true,
-      // Con el correo sin verificar, `RequireVerifiedEmail` mandaría a
-      // /verificar-correo (CM-14): una sesión "normal" es una verificada.
-      user: { uid: 'u1', email: 'ada@cameia.com', displayName: null, emailVerified: true },
-    });
+    useAuthStore.setState({ isLoading: false, isAuthenticated: true });
 
     renderAt('/inicio');
 
@@ -125,13 +119,7 @@ describe('routeConfig', () => {
 
   it('"/perfiles/nuevo" con sesión renderiza el selector de método dentro de AppShell', async () => {
     await waitUntilReady();
-    useAuthStore.setState({
-      isLoading: false,
-      isAuthenticated: true,
-      // Con el correo sin verificar, `RequireVerifiedEmail` mandaría a
-      // /verificar-correo (CM-14): una sesión "normal" es una verificada.
-      user: { uid: 'u1', email: 'ada@cameia.com', displayName: null, emailVerified: true },
-    });
+    useAuthStore.setState({ isLoading: false, isAuthenticated: true });
 
     renderAt('/perfiles/nuevo');
 
@@ -154,13 +142,7 @@ describe('routeConfig', () => {
 
   it('"/perfiles/:id/editar" con sesión renderiza el formulario dentro de AppShell', async () => {
     await waitUntilReady();
-    useAuthStore.setState({
-      isLoading: false,
-      isAuthenticated: true,
-      // Con el correo sin verificar, `RequireVerifiedEmail` mandaría a
-      // /verificar-correo (CM-14): una sesión "normal" es una verificada.
-      user: { uid: 'u1', email: 'ada@cameia.com', displayName: null, emailVerified: true },
-    });
+    useAuthStore.setState({ isLoading: false, isAuthenticated: true });
     const created = await httpClient.post<{ id: string }>('/api/v1/profiles', {
       name: 'Ana María Pérez',
     });

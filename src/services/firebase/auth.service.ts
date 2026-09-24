@@ -92,45 +92,6 @@ export async function sendEmailVerification(user: User): Promise<void> {
   }
 }
 
-/**
- * Vuelve a leer el usuario desde Firebase (`CM-14`). Es lo que descubre que
- * alguien hizo clic en el enlace de verificación: el objeto `User` en memoria
- * no se entera solo.
- *
- * @returns el usuario ya refrescado, o `null` si no hay sesión activa.
- * @throws {AuthError} si el SDK falla al refrescar (red caída, sesión revocada).
- */
-export async function reloadCurrentUser(): Promise<User | null> {
-  const user = auth.currentUser;
-  if (!user) return null;
-  try {
-    await user.reload();
-  } catch (error) {
-    throw toAuthError(error);
-  }
-  return auth.currentUser;
-}
-
-/**
- * Pide un ID Token nuevo saltándose la caché (`CM-14`). Obligatorio antes de
- * activar la Cuenta: `reload()` actualiza el objeto `User`, pero el token en
- * caché sigue afirmando `email_verified: false` hasta que expira, y
- * `cameia-cuentas` decide por ese claim (`REQ-CU-13`), no por lo que diga el
- * navegador.
- *
- * @returns el token nuevo, o `null` si no hay sesión activa.
- * @throws {AuthError} si el SDK no logra refrescarlo.
- */
-export async function refreshIdToken(): Promise<string | null> {
-  const user = auth.currentUser;
-  if (!user) return null;
-  try {
-    return await getFirebaseIdToken(user, true);
-  } catch (error) {
-    throw toAuthError(error);
-  }
-}
-
 /** `null` cuando no hay sesión activa; httpClient lo usa para decidir si adjunta Authorization. */
 export async function getIdToken(): Promise<string | null> {
   const user = auth.currentUser;
