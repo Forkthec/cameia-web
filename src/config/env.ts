@@ -34,6 +34,10 @@ const rawEnvSchema = z
     VITE_FIREBASE_AUTH_DOMAIN: z.string().min(1),
     VITE_FIREBASE_PROJECT_ID: z.string().min(1),
     VITE_FIREBASE_APP_ID: z.string().min(1),
+    // Opcional a propósito: solo la define quien desarrolla en local con el emulador de
+    // Firebase Auth (CM-188). El valor efectivo se calcula abajo en "firebase.authEmulatorHost",
+    // que además solo lo respeta en local (mismo patrón que "enableMsw").
+    VITE_FIREBASE_AUTH_EMULATOR_HOST: z.optional(z.string()),
     // Opcional a propósito: puede no existir en .env. El valor efectivo se
     // calcula abajo en "enableMsw", que además solo lo respeta en local.
     VITE_ENABLE_MSW: z.optional(z.string()),
@@ -80,6 +84,8 @@ export const env = {
     authDomain: rawEnv.VITE_FIREBASE_AUTH_DOMAIN,
     projectId: rawEnv.VITE_FIREBASE_PROJECT_ID,
     appId: rawEnv.VITE_FIREBASE_APP_ID,
+    // Solo tiene efecto en 'local' (ver auth.service.ts) — igual que "enableMsw" de abajo.
+    authEmulatorHost: rawEnv.VITE_FIREBASE_AUTH_EMULATOR_HOST,
   },
   // VITE_ENABLE_MSW solo tiene efecto en entorno local; fuera de local se ignora siempre.
   enableMsw: rawEnv.VITE_APP_ENV === 'local' && rawEnv.VITE_ENABLE_MSW === 'true',
