@@ -3,8 +3,14 @@
  * muestra al usuario: cada código `auth/*` se traduce a un código propio de
  * CAMEIA (mismo principio que ApiError — un código estable, no el mensaje
  * crudo, es lo que el resto de la app puede usar como llave de i18n).
+ *
+ * En local, con `VITE_FIREBASE_AUTH_EMULATOR_HOST` definida, se conecta al
+ * emulador de Firebase Auth (CM-188) en vez de al proyecto real — mismo
+ * mecanismo que ya usan `cameia-gateway` y `cameia-cuentas`, para desarrollar
+ * sin credenciales de un proyecto de Firebase real.
  */
 import {
+  connectAuthEmulator,
   getAuth,
   getIdToken as getFirebaseIdToken,
   onAuthStateChanged as onFirebaseAuthStateChanged,
@@ -14,9 +20,28 @@ import {
   type Unsubscribe,
   type User,
 } from 'firebase/auth';
+import { env } from '@/config/env';
 import { firebaseApp } from './firebaseApp';
 
+/**
+ * Solo en 'local' y solo si se configuró un emulador — nunca en staging/producción, donde la
+ * variable no existe en el build (viene de las variables del Environment de GitHub Actions, ver
+ * .github/workflows/desplegar-servicio.yml). Función pura y exportada para poder probarla sin
+ * reimportar el módulo (la conexión real ocurre una sola vez, a nivel de módulo, más abajo).
+ */
+export function shouldUseAuthEmulator(
+  appEnv: string,
+  authEmulatorHost: string | undefined,
+): boolean {
+  return appEnv === 'local' && Boolean(authEmulatorHost);
+}
+
 const auth = getAuth(firebaseApp);
+
+// `disableWarnings` evita el aviso del SDK en consola en cada arranque de la app en desarrollo.
+if (shouldUseAuthEmulator(env.appEnv, env.firebase.authEmulatorHost)) {
+  connectAuthEmulator(auth, `http://${env.firebase.authEmulatorHost}`, { disableWarnings: true });
+}
 
 const DEFAULT_AUTH_ERROR_CODE = 'AUTH_UNKNOWN_ERROR';
 
