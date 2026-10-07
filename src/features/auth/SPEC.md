@@ -3,7 +3,7 @@ feature: auth
 estado: EN_CURSO
 hu: [HU-1.3, HU-1.1, HU-1.8]
 prt: [PRT-01.03, PRT-01.01, PRT-01.08]
-jira: [CM-40, CM-34, CM-194, CM-195]
+jira: [CM-40, CM-34, CM-194, CM-195, CM-243]
 rutas: [/ingresar, /registro]
 documentacion: tsdoc-es
 backlog: 16092026_01
@@ -539,6 +539,7 @@ variante `md`. En `lg`, Nombre(s)/Apellido(s) van lado a lado; en `sm` se apilan
 - Si el usuario confirma: `useLogout()` ejecuta, en este orden: `signOut()` (ahora envuelto en
   `AuthError`) → `useAuthStore.getState().clear()` (explícito, sin esperar al listener asíncrono
   de `AuthProvider` — mismo criterio de determinismo que ya usa `useLogin.ts` en sentido inverso)
+  → `useUiPreferencesStore.getState().setLastUsedProfileId(null)` (`CA-1.8.3`, CM-243)
   → `navigate(ROUTES.ingresar, { replace: true })`.
 - Si `signOut()` lanza: se limpia igual el estado local y se navega igual a `/ingresar` — el
   cierre de sesión es, por alcance, local (ver Seguridad); no tiene sentido dejar a alguien
@@ -970,6 +971,17 @@ Notas:
   navegar, por el mismo criterio de determinismo que ya usa `useLogin.ts` en sentido inverso
   (actualiza el store antes de navegar, sin esperar al listener asíncrono) — evita cualquier
   ventana, por pequeña que sea, de UI inconsistente durante la transición.
+- **`CA-1.8.3` / DF-003 (CM-243): el último perfil usado se borra en dos sitios.** Un id de perfil
+  que sobrevive al cierre de sesión hacía que otra cuenta en el mismo navegador cargara el perfil
+  de la anterior y recibiera un `403`. `useLogout` lo pone en `null` junto a `useAuthStore.clear()`
+  (determinista, no espera al listener) y `AuthProvider` lo pone en `null` cuando Firebase reporta
+  que no hay usuario. Lo segundo cubre el `401` de `httpClient` y la sesión vencida, que no pasan
+  por `useLogout` y que `services/` no puede resolver por sí solo (la matriz de fronteras le
+  prohíbe importar de `stores/`). Solo se borra `lastUsedProfileId`: `idioma` es del dispositivo.
+  **Observación, fuera de alcance:** `useLogout` no vacía la caché de TanStack Query (p. ej.
+  `['profile', id]`), que sigue en memoria hasta recargar; no provoca DF-003 porque ya no hay id
+  con el cual consultarla. La prueba manual en el navegador queda pendiente (sin `.env` ni
+  Gateway locales).
 - **`handleUnauthorized()` no se toca:** sigue usando `window.location.href` (recarga dura) para el
   cierre forzado por `401` — es un camino distinto y ya probado; el logout voluntario es nuevo,
   simétrico a `useLogin.ts`, y usa `useNavigate`.

@@ -3,11 +3,14 @@
  * bloquea el render de sus hijos esperando a que resuelva Firebase, y que
  * sincroniza el resultado (con o sin sesión) en `useAuthStore` (CLAUDE.md
  * §3.6: el estado de sesión vive en Zustand, no en un estado local de
- * este componente).
+ * este componente). También `CA-1.8.3` (CM-243, DF-003): cuando Firebase
+ * reporta que no hay usuario —cierre de sesión, 401 o sesión vencida— se
+ * borra `lastUsedProfileId`.
  */
 import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useAuthStore } from '@/stores/auth.store';
+import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
 import { AuthProvider } from './AuthProvider';
 
 const { onAuthStateChangedMock, getIdTokenResultMock } = vi.hoisted(() => ({
@@ -57,6 +60,39 @@ describe('AuthProvider', () => {
 
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
     expect(useAuthStore.getState().isLoading).toBe(false);
+  });
+
+  it('sin usuario, borra el último perfil usado: cubre el 401 y la sesión vencida (CA-1.8.3)', () => {
+    let capturedCallback: ((user: unknown) => void) | undefined;
+    onAuthStateChangedMock.mockImplementation((callback: (user: unknown) => void) => {
+      capturedCallback = callback;
+      return () => {};
+    });
+
+    render(<AuthProvider>{null}</AuthProvider>);
+    useUiPreferencesStore.setState({ lastUsedProfileId: 'perfil-de-A' });
+
+    capturedCallback?.(null);
+
+    expect(useUiPreferencesStore.getState().lastUsedProfileId).toBeNull();
+  });
+
+  it('con usuario, conserva el último perfil usado', async () => {
+    let capturedCallback: ((user: unknown) => void) | undefined;
+    onAuthStateChangedMock.mockImplementation((callback: (user: unknown) => void) => {
+      capturedCallback = callback;
+      return () => {};
+    });
+    getIdTokenResultMock.mockResolvedValue({ claims: { plan: 'FREE' } });
+
+    render(<AuthProvider>{null}</AuthProvider>);
+    useUiPreferencesStore.setState({ lastUsedProfileId: 'perfil-de-A' });
+    capturedCallback?.({ uid: 'u1', email: 'a@b.com', displayName: 'Ada', emailVerified: true });
+
+    await vi.waitFor(() => {
+      expect(useAuthStore.getState().isAuthenticated).toBe(true);
+    });
+    expect(useUiPreferencesStore.getState().lastUsedProfileId).toBe('perfil-de-A');
   });
 
   it('con usuario, guarda el perfil resuelto en el store de auth', async () => {
