@@ -14,6 +14,14 @@ revisado: 2026-09-19
 
 # Feature · Landing Pública
 
+> **Nota sobre el backlog (6-oct-2026).** Hasta la entrega del frontend (2026-10-06) esta feature se
+> construyó contra versiones anteriores del backlog (la que indica el campo `backlog` del
+> encabezado). Existe una versión más reciente, `05102026_01_Backlog.xlsx` (v4, con la hoja «Cambios
+> v4»), que **no se tuvo en cuenta** en lo ya construido y que **no se cruzó contra el código**. El
+> backlog sigue cambiando: el equipo debe contrastar este SPEC con la versión vigente antes de tocar
+> la feature. El campo `backlog` del encabezado no se cambia a propósito: indica contra qué versión
+> se escribió el SPEC, no cuál es la vigente.
+
 ## 1. Propósito
 
 La Landing pública es la puerta de entrada de CAMEIA para quien todavía no tiene cuenta: comunica
@@ -31,24 +39,23 @@ inmediato al Tablero de inicio.
   página.
 - `HeaderPublico`: logo, `LanguageSwitcher` (ES/EN, funcional) y los botones "Iniciar
   sesión"/"Crear cuenta", con el reflow de dos filas confirmado en el prototipo `sm`.
-- Componente nuevo y no interactivo para las cinco tarjetas informativas (tres de características,
-  dos de modo).
-- `LanguageSwitcher` nuevo en `design-system/organisms/`, reutilizable fuera de esta feature desde
-  el día uno.
+- `FeatureCard`, componente no interactivo para las cinco tarjetas informativas (tres de
+  características, dos de modo).
+- `LanguageSwitcher` en `design-system/organisms/`, reutilizable fuera de esta feature desde el día
+  uno (hoy lo consumen también el menú de usuario autenticado, `context="menu-row"`).
 - Redirección a `/inicio` para quien ya tiene sesión activa: **ya implementada** por
   `RedirectIfAuthenticated` (`app/router/guards/RequireAuth.tsx`); esta HU solo verifica que sigue
   cubriendo `/` sin tocar el guard.
 - Responsive en dos estados reales verificados contra Figma (`sm` <1024px, `lg` ≥1024px —
   corregido durante la implementación, ver §3.1) más una zona intermedia sin diseño propio (ver
   §9).
-- Internacionalización **funcional** ES/EN: namespace nuevo `landing`, más traducción al inglés de
-  los cinco namespaces ya existentes (`common`, `auth`, `profile`, `interview`, `errors`),
-  generada por IA y sujeta a aprobación humana antes de fusionarse (decisión de Frontend,
-  19-sep-2026).
-- `<title>` y Open Graph vía `react-helmet-async`, incluyendo integrar `HelmetProvider` en
-  `AppProviders.tsx` (hoy la dependencia está instalada pero no cableada).
-- Bitácora de IA (`docs/bitacora-ia/CM-186.md`) y actualización de la documentación afectada (ver
-  §9).
+- Internacionalización **funcional** ES/EN: namespace `landing`, más traducción al inglés de los
+  cinco namespaces que ya existían (`common`, `auth`, `profile`, `interview`, `errors`), generada
+  por IA; la aprobación editorial humana sigue pendiente (decisión de Frontend, 19-sep-2026; ver
+  §8).
+- `<title>` y Open Graph vía `react-helmet-async`, con `HelmetProvider` integrado en
+  `AppProviders.tsx`.
+- Bitácora de IA (`docs/bitacora-ia/CM-186.md`) y la documentación afectada (ver §9).
 
 **No entra, y es deliberado:**
 
@@ -72,8 +79,11 @@ inmediato al Tablero de inicio.
 
 **Qué hace**
 
-- Muestra la propuesta de valor de CAMEIA a un Visitante sin sesión, con dos llamadas a la acción
-  hacia los flujos ya existentes de HE-01.
+- Muestra la propuesta de valor de CAMEIA a un Visitante sin sesión, con llamadas a la acción hacia
+  los flujos ya existentes de HE-01: en pantalla hay **3 «Crear cuenta»** (header, hero y banner de
+  cierre) y **1 «Iniciar sesión»** (header), no «ambos CTAs». `HeaderPublico` monta dos variantes del
+  header en el DOM (`sm` y `lg`, una oculta por CSS), de modo que en el DOM aparecen 4 «Crear cuenta»
+  y 2 «Iniciar sesión».
 - Si al montar la ruta ya hay una sesión activa (`isAuthenticated: true` en `auth.store`), no se
   llega a ver: `RedirectIfAuthenticated` ya envía a `ROUTES.inicio` antes de renderizar el
   `<Outlet/>` real (comportamiento confirmado, no nuevo).
@@ -162,7 +172,7 @@ fluida hasta 1440px y más allá. Los tokens de texto nuevos de §3.6 cambian en
 
 | | `sm` | `lg` |
 |---|---|---|
-| Agrupación | `footer-links` contiene **solo** "Términos" y "Privacidad"; el copyright es un párrafo hermano, aparte | `footer-links` contiene los tres: "Términos", "Privacidad" y "© 2026 Cameia" — agrupación distinta, no solo layout |
+| Agrupación | `footer-links` contiene **solo** "Términos" y "Privacidad" (texto sin enlace: son `<span>`, no tienen ruta ni `href` todavía); el copyright es un párrafo hermano, aparte | `footer-links` contiene los tres: "Términos", "Privacidad" (texto sin enlace, igual que en `sm`) y "© 2026 Cameia" — agrupación distinta, no solo layout |
 | Layout | Columna, `gap: space-3` (12px) | Fila |
 | Padding | `px: space-4` `py: space-5` | `px: space-9` `py: space-6` |
 | Logo | Glyph reducido (17.81×14.25 vs 19.59×15.67) | tamaño base |
@@ -172,17 +182,17 @@ fluida hasta 1440px y más allá. Los tokens de texto nuevos de §3.6 cambian en
 ```
 features/landing/
 ├── organisms/
-│   ├── HeaderPublico/       nuevo · logo + LanguageSwitcher + CTAs, con el reflow sm/lg de §3.1
-│   ├── FeatureCard/         nuevo · tarjeta no interactiva (ícono + título + descripción),
+│   ├── HeaderPublico/       logo + LanguageSwitcher + CTAs, con el reflow sm/lg de §3.1
+│   ├── FeatureCard/         tarjeta no interactiva (ícono + título + descripción),
 │   │                        reemplaza el uso de card-selectable en las 5 tarjetas
-│   └── Footer/              nuevo · enlaces + copyright, con la agrupación distinta en sm (§3.1)
+│   └── Footer/              texto sin enlace + copyright, con la agrupación distinta en sm (§3.1)
 ├── pages/
-│   └── LandingPage.tsx      reemplaza por completo el placeholder actual
-├── routes.tsx               sin cambios de forma (ya registra `/`)
+│   └── LandingPage.tsx      composición completa de la pantalla (antes era un placeholder)
+├── routes.tsx               registra `/`
 └── index.ts
 
 design-system/organisms/
-└── LanguageSwitcher/        nuevo · reutilizable, primer consumidor es HeaderPublico
+└── LanguageSwitcher/        reutilizable, primer consumidor fue HeaderPublico
 ```
 
 Justificación de cada ubicación (regla de crecimiento de `ARCHITECTURE.md` §5): `HeaderPublico`,
@@ -206,11 +216,12 @@ puramente informativo. Se construye `FeatureCard` como componente nuevo, visualm
 - Namespace nuevo `landing` en `i18n/locales/es-CO/landing.json`, con todo el copy de §3.1 como
   llaves (`camelCase`, sin texto visible hardcodeado — regla dura 2).
 - El switch ES/EN debe ser **funcional de verdad** (decisión de Frontend, 19-sep-2026): esto
-  exige poblar `i18n/locales/en/` con traducción de **los cinco namespaces ya existentes**
-  (`common`, `auth`, `profile`, `interview`, `errors`) además de `landing`. Hoy `locales/en/` no
-  existe (`fallbackLng: 'es-CO'` es el único mecanismo).
-- El contenido en inglés lo genera Claude Code como primer borrador; **la aprobación final del
-  contenido es responsabilidad de Frontend** antes de fusionarse — no se da por definitivo solo
+  exigió poblar `i18n/locales/en/` con traducción de **los cinco namespaces que ya existían**
+  (`common`, `auth`, `profile`, `interview`, `errors`) además de `landing`. Hoy `locales/en/`
+  existe con los 6 namespaces, con las mismas llaves que `es-CO`; `fallbackLng: 'es-CO'` solo cubre
+  una llave que todavía no se haya traducido.
+- El contenido en inglés lo generó Claude Code como primer borrador; **la aprobación final del
+  contenido es responsabilidad de Frontend** y sigue pendiente (§8) — no se da por definitivo solo
   porque compile o pase pruebas de existencia de llave.
 - No se traduce nada del dominio de Entrevistas (`interview:modo.*`, códigos de sesión, etc.) más
   allá de su etiqueta visible: esos códigos siguen en español por decisión ya tomada y pendiente
@@ -238,8 +249,8 @@ puramente informativo. Se construye `FeatureCard` como componente nuevo, visualm
 
 ### 3.5 SEO
 
-- Se integra `HelmetProvider` en `app/providers/AppProviders.tsx` (hoy ausente; la dependencia
-  `react-helmet-async@3.0.0` ya está instalada).
+- `HelmetProvider` está integrado en `app/providers/AppProviders.tsx` (dependencia
+  `react-helmet-async@3.0.0`).
 - `LandingPage.tsx` declara `<title>` y metadatos Open Graph básicos (título, descripción) usando
   las mismas llaves de `landing.json`, para no duplicar copy.
 - `index.html` ya anticipa este mecanismo con un `<title>` de respaldo — no se toca ese archivo
@@ -256,11 +267,11 @@ SDD-Anchored: el código reveló una restricción, se tomó una decisión, la SP
 (21/27, Bold) como estilos reales y distintos para el título del hero y los títulos de sección en
 el frame `sm` (§3.1). El código no tenía tokens propios para esto — solo sobrescribía
 `--text-display`/`--text-h2` dentro de un bloque `@media (max-width: 599px)` global, un corte que
-no coincide con el punto de quiebre `sm`/`lg` de esta feature (768px, alineado con `AppShell`,
+no coincide con el punto de quiebre `sm`/`lg` de esta feature (1024px, el `lg` del tema; ver
 §3.1). **Decisión:** se agregan `--text-display-sm` y `--text-h2-sm` como tokens semánticos
 nuevos, con los valores exactos de Figma, aplicados con utilidades responsivas que cambian
-exactamente en el punto de corte real de esta feature — `lg`, 1024px, corregido más abajo en esta
-misma sección respecto a la primera versión de esta SPEC (ej. `text-display-sm lg:text-display`).
+exactamente en el punto de corte real de esta feature — `lg`, 1024px (ej. `text-display-sm
+lg:text-display`).
 No se toca el mecanismo de 599px ya usado en el resto de la app — es un token nuevo, no una
 redefinición del existente. Justificación: usar el mecanismo de 599px produciría un desajuste
 visible en toda la franja donde el layout de Landing ya está apilado (hasta 1023px, según el corte
@@ -312,32 +323,34 @@ a HE-01, no a esta SPEC.
 | Criterio | Qué hace el frontend que el criterio no dice |
 | -------- | --------------------------------------------- |
 | CA-10.1.1 | Implementa las seis secciones de §3.1 en los dos breakpoints verificados contra Figma, con `LanguageSwitcher` funcional. |
-| CA-10.1.2 | Ambos CTAs son instancias del átomo `Button` existente y navegan con `ROUTES.registro`/`ROUTES.ingresar`, ya definidas; no se crean rutas nuevas. |
+| CA-10.1.2 | Los CTAs (3 «Crear cuenta» y 1 «Iniciar sesión» visibles en cada breakpoint) son instancias del átomo `Button` existente y navegan con `ROUTES.registro`/`ROUTES.ingresar`, ya definidas; no se crean rutas nuevas. |
 | CA-10.1.3 | El criterio llega incompleto desde el backlog (columnas Dado/Cuando/Entonces desalineadas, sin resultado explícito — ver hoja `Criterios de aceptación`, fila `CA-10.1.3`). El frontend interpreta el resultado esperado a partir del texto narrativo de HU-10.1 y lo confirma contra el comportamiento ya implementado en `RedirectIfAuthenticated`: redirección a `ROUTES.inicio`. Confirmado directamente por Frontend/PO el 19-sep-2026. |
 
 ## 7. Estado de implementación
 
 | Archivo | Qué implementa | Prueba |
 | ------- | -------------- | ------ |
-| `src/features/landing/pages/LandingPage.tsx` | Composición completa de la pantalla (reemplaza el placeholder actual) | `src/features/landing/pages/LandingPage.test.tsx` |
+| `src/features/landing/pages/LandingPage.tsx` | Composición completa de la pantalla | `src/features/landing/pages/LandingPage.test.tsx` |
 | `src/features/landing/organisms/HeaderPublico/HeaderPublico.tsx` | Header público, reflow `sm`/`lg` de §3.1 | `src/features/landing/organisms/HeaderPublico/HeaderPublico.test.tsx` |
 | `src/features/landing/organisms/FeatureCard/FeatureCard.tsx` | Tarjeta informativa no interactiva, reutilizada 5 veces | `src/features/landing/organisms/FeatureCard/FeatureCard.test.tsx` |
 | `src/features/landing/organisms/Footer/Footer.tsx` | Pie de página, con la agrupación distinta en `sm` (§3.1) | `src/features/landing/organisms/Footer/Footer.test.tsx` |
 | `src/design-system/organisms/LanguageSwitcher/LanguageSwitcher.tsx` | Selector ES/EN reutilizable | `src/design-system/organisms/LanguageSwitcher/LanguageSwitcher.test.tsx` |
 | `src/i18n/locales/es-CO/landing.json` | Copy de la landing en español | cubierto por `src/features/landing/pages/LandingPage.test.tsx` |
 | `src/i18n/locales/en/common.json`, `auth.json`, `profile.json`, `interview.json`, `errors.json`, `landing.json` | Traducción al inglés de toda la app | validado por aprobación humana (Frontend), no por prueba automática de contenido |
-| `src/app/providers/AppProviders.tsx` (modificado) | Integra `HelmetProvider` | cubierto por `src/app/router/index.test.tsx` (envuelve `HelmetProvider` para renderizar `LandingPage` real) |
+| `src/app/providers/AppProviders.tsx` | Integra `HelmetProvider` | cubierto por `src/app/router/index.test.tsx` (envuelve `HelmetProvider` para renderizar `LandingPage` real) |
 | `src/design-system/atoms/Logo/Logo.tsx` (modificado) | Prop `size` nuevo (`default`/`sm`), ver §3.6 | `src/design-system/atoms/Logo/Logo.test.tsx` (actualizado) |
 | `src/styles/index.css` (modificado) | Tokens nuevos `--text-display-sm`, `--text-h2-sm`, ver §3.6 | validación visual manual contra los nodos 67:2/69:63 (no hay snapshot visual automatizado en el proyecto) |
 | `src/test/setup.ts` (modificado) | Fija el idioma a `es-CO` antes de cada prueba — hallazgo real durante la implementación, ver §9 | cubierto indirectamente: toda la suite pasa con textos en español |
 | `docs/bitacora-ia/CM-186.md` | Evidencia de la sesión asistida por IA (formato ya usado en el proyecto) | — |
-| `docs/decisiones/19092026_v1_decisiones-landing-cm-186.md` (nuevo, recomendado) | Formaliza las tres decisiones de esta conversación (i18n funcional, confirmación de redirect, SEO en alcance) | — |
+| `docs/decisiones/19092026_v1_decisiones-landing-cm-186.md` | Formaliza las seis decisiones FE-01…FE-06 (i18n funcional, interpretación de CA-10.1.3, SEO en alcance, punto de corte `lg`, tokens de texto `sm`, tamaño del logo del pie) | — |
 
 ## 8. Bloqueos
 
 | Id | Qué falta | De quién depende | Desde |
 | -- | --------- | ------------------ | ----- |
-| — | Ninguno. Esta feature no depende de backend ni de otra feature en curso. | — | — |
+| — | Ninguno de backend ni de otra feature: esta feature no depende de ellos. Quedan dos pendientes propios de Frontend (por eso el `estado` sigue en `EN_CURSO`), descritos abajo. | — | — |
+| L-01 | Aprobación editorial humana del inglés de los 6 namespaces (generado por IA; FE-01 la deja «pendiente de Frontend»). Hallazgo ya conocido: `en/landing.json` repite una frase en `modulos.retroalimentacion.descripcion` | Frontend | 19-sep-2026 |
+| L-02 | Comparar visualmente la pantalla construida contra los nodos `67:2` (lg) y `69:63` (sm) de Figma en un navegador (ver «Validación pendiente» en §9) | Frontend | 19-sep-2026 |
 
 ## 9. Notas
 
@@ -366,9 +379,9 @@ franjas, es una señal para pedir un mockup real, no para que el frontend improv
 
 **Alcance de traducción ampliado.** Por decisión de Frontend (19-sep-2026), el switch ES/EN se
 implementa funcional desde ya, lo que exige traducir al inglés los cinco namespaces ya existentes
-además de crear `landing`. Esto amplía el trabajo más allá de "solo la landing" y se recomienda
-formalizarlo en `docs/decisiones/` (ver tabla de §7) para que quede trazable igual que las demás
-decisiones del proyecto (patrón `10092026_v1_solicitud.../11092026_v2_respuesta...`).
+además de crear `landing`. Esto amplía el trabajo más allá de "solo la landing" y quedó
+formalizado como FE-01 en `docs/decisiones/19092026_v1_decisiones-landing-cm-186.md` (ver §7),
+trazable igual que las demás decisiones del proyecto.
 
 **CA-10.1.3 incompleto en el backlog.** Ver §6. Se recomienda corregir el Excel del backlog con
 el mismo tratamiento que ya tuvo el proyecto para otros defectos de captura (patrón J-05, S-02).
@@ -396,14 +409,13 @@ esta SPEC describía el corte como el `md` de `AppShell`, "768px" — el `md` re
 en su lugar `lg` (1024px, ya registrado en el tema). Confirmado con el usuario antes de escribir
 ningún componente (no es una corrección silenciosa).
 
-**Documentación a actualizar en el mismo PR:**
+**Documentación afectada por esta HU:**
 - `docs/ARCHITECTURE.md` §7, riesgo #1: ya no aplica para Landing (sigue aplicando para el
   Tablero/PRT-00.02, HU-10.2, que no es parte de esta SPEC).
-- `docs/CLAUDE.md` §12, "Contradicciones abiertas", punto 8: marcar como resuelto para Landing
-  (HU-10.1 ya existe), dejar abierto para Tablero.
-- `docs/CLAUDE.md` §17, tabla de pendientes: revisar si el patrón de `api/`/`*.dto.ts`/
-  `*.mapper.ts` sigue sin estrenarse tras esta feature (Landing no necesita `api/`, así que
-  probablemente esa fila no cambia — Claude Code confirma).
+- `CLAUDE.md` §12, "Contradicciones abiertas", punto 8: resuelto para Landing (HU-10.1 existe y
+  está implementada), abierto para Tablero.
+- `CLAUDE.md` §17 (pendientes): Landing no necesita `api/`, así que no afecta la fila del patrón
+  `api/`/`*.dto.ts`/`*.mapper.ts`.
 
 **Validación pendiente de ejecución (no de diseño):** aunque toda la estructura de esta SPEC ya
 está verificada contra Figma real, el propio código construido debe compararse visualmente contra

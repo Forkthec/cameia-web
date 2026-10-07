@@ -23,6 +23,14 @@ revisado: 2026-09-20
 > (Verificación de correo, Recuperación de contraseña, Google, cierre de sesión en todos los
 > dispositivos) sigue solo conceptual en el Anexo A — no calza con `IMPLEMENTADA`.
 
+> **Nota sobre el backlog (6-oct-2026).** Hasta la entrega del frontend (2026-10-06) esta feature se
+> construyó contra versiones anteriores del backlog (la que indica el campo `backlog` del
+> encabezado). Existe una versión más reciente, `05102026_01_Backlog.xlsx` (v4, con la hoja «Cambios
+> v4»), que **no se tuvo en cuenta** en lo ya construido y que **no se cruzó contra el código**. El
+> backlog sigue cambiando: el equipo debe contrastar este SPEC con la versión vigente antes de tocar
+> la feature. El campo `backlog` del encabezado no se cambia a propósito: indica contra qué versión
+> se escribió el SPEC, no cuál es la vigente.
+
 ## 1. Propósito
 
 Resolver la identidad del Invitado y del Usuario dentro de CAMEIA: permitir que un Invitado se
@@ -32,8 +40,8 @@ credenciales de forma permanente — eso es de Firebase — ni decide entitlemen
 consigue el ID Token, lo entrega al resto de la aplicación, y lo suelta cuando corresponde.
 
 Esta SPEC gobierna hoy el Inicio de Sesión (`HU-1.3` / `CM-40`, **implementado**), el Registro
-(`HU-1.1` / `CM-34`, **implementado**) y el Cierre de Sesión (`HU-1.8` / `CM-194`, **documentado en
-esta iteración, alcance acotado a `CA-1.8.1`** — ver §2). El resto de la feature (Verificación,
+(`HU-1.1` / `CM-34`, **implementado**) y el Cierre de Sesión (`HU-1.8` / `CM-194`, **implementado,
+alcance acotado a `CA-1.8.1`** — ver §2). El resto de la feature (Verificación,
 Recuperación, Google, y el cierre de sesión en **todos los dispositivos** que la propia `HU-1.8`
 anticipa como trabajo de Backend) sigue descrito solo conceptualmente en el Anexo A y sube al
 cuerpo cuando entre su propia iteración.
@@ -69,32 +77,36 @@ cuerpo cuando entre su propia iteración.
 - El banner persistente de "correo sin verificar" que exige `CA-1.3.1` **no se renderiza en esta
   iteración** (Bloqueo B-03): su lugar natural es el shell autenticado (`AppShell`).
 - Cualquier llamada a un endpoint propio de CAMEIA para autenticar: no existe para este paso.
-- Un guard de tipo "solo invitados": no se crea; el comportamiento de redirección si ya hay sesión
-  se resuelve dentro de la propia página.
+- Lógica de «ya hay sesión» dentro de la propia página: no la hay. El guard `RedirectIfAuthenticated`
+  (`src/app/router/guards/RequireAuth.tsx`) envuelve la landing y las rutas de `auth` (`/`,
+  `/ingresar`, `/registro`) y, con sesión activa, redirige a `/inicio` (ver B-22 para un efecto
+  colateral en el registro).
 
 ### Registro (`HU-1.1` / `CM-34`) — implementado
 
-**Entra en esta iteración:**
+**Entra:**
 
 - Vista de Registro (`PRT-01.01`, ruta `/registro`): formulario completo — `nombre`, `apellido`,
   `fechaNacimiento`, `correo`, `celular` (opcional), `contraseña`, `confirmarContraseña`,
   `pronombres` — con sus validaciones de cliente, envío a `POST /api/v1/users` (sin sesión, ver
   §5 y `ADR-0006`), y encadenamiento a `signIn()` + `sendEmailVerification()` tras el éxito.
-- El campo `pronombres` gana el alcance de esta iteración de la feature completa (`HU-1.1`
-  obligatorio; el editor de `HU-1.6` es Sprint 2 y no se toca aquí).
+- El campo `pronombres` (`HU-1.1` lo exige obligatorio; el editor de `HU-1.6` es Sprint 2 y no se
+  toca aquí).
 - El `Modal` de confirmación de Plan Gratis (backlog: "esta asignación debe mostrarse al usuario
   inmediatamente tras el registro") — con el copy mínimo que el backlog exige, marcado pendiente
-  de aprobación de Producto/Diseño (Bloqueo B-08).
+  de aprobación de Producto/Diseño (Bloqueo B-08). **Defecto abierto (Bloqueo B-22):** con el guard
+  real del router, este modal no llega a mostrarse.
 - Los cuatro mensajes de validación de fecha de nacimiento (`CA-1.1.1`/`CA-1.1.3`): menor de edad,
   fecha futura, >110 años, formato inválido.
 - El estado de error "correo duplicado" con su bloque de dos acciones ("Iniciar sesión", funcional;
   "Recuperar contraseña", deshabilitado — mismo tratamiento que Login).
-- Extender `utils/calculateAge.ts` con las dos guardas que hoy no cubre (fecha futura, >110 años).
+- `utils/calculateAge.ts` cubre además las dos guardas de fecha futura y >110 años
+  (`isFutureDate`, `isImplausiblyOld`).
 - Primera capa `features/auth/api/` de la feature (`register.dto.ts`/`register.mapper.ts`/
-  `register.api.ts`), **PROVISIONAL**, y su `mocks/handlers/auth.ts`.
-- Retirar `signUp()` y las entradas de `FIREBASE_ERROR_CODE_MAP` que le pertenecían en exclusiva
-  (`ADR-0006`) — **cambio grande, requiere confirmación antes de ejecutarse** (ver el prompt).
-- Primer componente `design-system/organisms/Modal/` de la app (variante `type=confirm`).
+  `register.api.ts`), **PROVISIONAL**, y su handler en `mocks/handlers/auth.handlers.ts`.
+- `signUp()` y las entradas de `FIREBASE_ERROR_CODE_MAP` que le pertenecían en exclusiva se
+  retiraron (`ADR-0006`).
+- `design-system/organisms/Modal/` (variante `type=confirm`), primer `Modal` de la app.
 
 **No entra, y es deliberado:**
 
@@ -114,12 +126,12 @@ cuerpo cuando entre su propia iteración.
   referencia visual (`+57 300 000 0000`) pero el backlog no exige una regla de formato; el campo
   queda como texto libre opcional.
 
-### Cerrar sesión (`HU-1.8` / `CM-194`) — documentado en esta iteración, alcance acotado a `CA-1.8.1`
+### Cerrar sesión (`HU-1.8` / `CM-194`) — implementado, alcance acotado a `CA-1.8.1`
 
 **Entra:**
 
-- Nuevo control de "menú de usuario" en el navbar autenticado (`AppShell`/`NavHeader`), visible en
-  toda pantalla protegida — Figma (`PRT-01.08`, nodo `228:6443`) lo describe como componente
+- Control de "menú de usuario" en el `<header>` de `AppShell` (junto al `NavHeader`, no dentro de
+  él), visible en toda pantalla protegida — Figma (`PRT-01.08`, nodo `228:6443`) lo describe como componente
   transversal ("usado en toda página autenticada"), no exclusivo de logout. Disparador: `Avatar` +
   indicador desplegable, en el mismo lugar que ya reserva `PRT-02.02` (nodo `191:499`,
   `user-area`). Al abrir: panel flotante (`menu-usuario`, nodo `439:1243`) con, en este orden:
@@ -134,8 +146,8 @@ cuerpo cuando entre su propia iteración.
   aunque hoy en la práctica el único formulario que puede estar en ese estado es "Información
   General" del Perfil Profesional (ver Arquitectura, §3).
 - Corrección de una inconsistencia real de `services/firebase/auth.service.ts`: `signOut()` no
-  envolvía sus errores en `AuthError` como el resto del archivo. Se corrige en esta iteración
-  porque se toca el mismo archivo, no porque lo exija el backlog.
+  envolvía sus errores en `AuthError` como el resto del archivo. Se corrigió junto con `CM-194`
+  porque se tocó el mismo archivo, no porque lo exija el backlog.
 - Extensión de `design-system/organisms/Modal/` con una variante de estilo `destructive`,
   reutilizando el `Button` `variant="destructive"` que ya existe (con tokens de color correctos).
 - Nuevo componente `design-system/organisms/BottomSheet/` — primer `BottomSheet` del design
@@ -146,10 +158,11 @@ cuerpo cuando entre su propia iteración.
   `CLAUDE.md` §5) — sin dominio, recibe todo por props.
 - Nuevo hook `features/auth/hooks/useLogout.ts`, simétrico a `useLogin.ts`.
 - Nuevo store transversal `stores/unsavedChanges.store.ts`.
-- `src/app/router/index.tsx` instancia `useLogout()` y arma los datos del menú, pasándolos a
-  `AppShell` por props — mismo patrón ya usado por `progressEnabled` (necesario porque
-  `boundaries/dependencies` no deja a `layouts` importar `features` ni `services`; ver
-  Arquitectura y §9).
+- `src/app/router/AuthenticatedAppShell.tsx` envuelve `AppShell` y es quien llama `useLogout()` (que
+  devuelve `{isLoggingOut, logout}`), pasándole solo `onLogout` e `isLoggingOut` por props — mismo
+  patrón ya usado por `progressEnabled`. `AppShell` resuelve por su cuenta el avatar, el idioma y el
+  copy de confirmación (`boundaries/dependencies` no deja a `layouts` importar `features` ni
+  `services`; ver Arquitectura y §9).
 
 **No entra, y es deliberado:**
 
@@ -209,12 +222,12 @@ cuerpo cuando entre su propia iteración.
 **Validaciones del lado del cliente**
 
 - `correo`: obligatorio y con formato de correo válido. Llaves:
-  `auth:login.errores.correoRequerido` / `correoInvalido` / `correoMuyLargo`. **CM-195 (auditoría
+  `auth:ingreso.errores.correoRequerido` / `correoInvalido` / `correoMuyLargo`. **CM-195 (auditoría
   20-sep-2026):** usa el mismo `emailSchema` compartido con Registro (`schemas/email.schema.ts`) —
   regex real de `EmailAddress.java` y `maxLength=254` — en vez del `.email()` de Zod que traía
   antes.
 - `contraseña`: obligatorio. Sin regla de formato/longitud en Login. Llave:
-  `auth:login.errores.contrasenaRequerida`.
+  `auth:ingreso.errores.contrasenaRequerida`.
 - Mostrar/ocultar contraseña: afordancia de `PasswordField`, no una validación.
 
 **Arquitectura y componentes**
@@ -235,9 +248,9 @@ cuerpo cuando entre su propia iteración.
   `signUp()`, ver más abajo). `getAuthErrorMessageKey` (en `model/`) traduce esos códigos de
   CAMEIA a una llave de i18n.
 - `services/firebase/firebaseApp.ts` y `auth.service.ts`: existen, con `signIn()`, `signOut()`,
-  `getIdToken()`, `onAuthStateChanged()`. **`signUp()` existía pero se retira en la iteración de
-  Registro** — ver más abajo y `ADR-0006`. `signOut()` se envuelve en `AuthError` en la iteración
-  de Cerrar sesión (`CM-194`, ver esa subsección) — hasta entonces era la única función del
+  `getIdToken()`, `onAuthStateChanged()`. **`signUp()` se retiró en la iteración de
+  Registro** — ver más abajo y `ADR-0006`. `signOut()` se envuelve en `AuthError` desde la
+  iteración de Cerrar sesión (`CM-194`, ver esa subsección); antes era la única función del
   archivo sin ese manejo.
 - `stores/auth.store.ts`: tiene `emailVerified: boolean` en `AuthUser`, propagado desde
   `app/providers/AuthProvider.tsx` vía `onAuthStateChanged`.
@@ -267,8 +280,8 @@ cuerpo cuando entre su propia iteración.
 **Seguridad**
 
 - La contraseña nunca se persiste ni se registra en logs; viaja solo a Firebase vía el SDK.
-- El ID Token no se guarda manualmente; lo gestiona el SDK de Firebase y
-  `authTokenInterceptor.ts`.
+- El ID Token no se guarda manualmente; lo gestiona el SDK de Firebase y `httpClient.ts` lo
+  adjunta como `Authorization: Bearer` en cada petición (`services/http/httpClient.ts`).
 - El límite de intentos lo aplica Firebase; el frontend no implementa throttling propio.
 - El frontend no implementa cabeceras `X-User-*` de ningún tipo (política ya acordada,
   `11092026_v1_consulta-contrato-y-alcance-perfil-profesional.md`, C-02).
@@ -288,7 +301,9 @@ cuerpo cuando entre su propia iteración.
   B" del diagrama, ver §5 y `ADR-0006`).
 - Si el backend responde `201`: encadena, en este orden, `signIn()` (reutilizado de Login, con las
   mismas credenciales) → `sendEmailVerification()` (nueva) → actualiza el estado de sesión → abre
-  el `Modal` de confirmación (Plan Gratis) → al cerrarlo, redirige a `/inicio`.
+  el `Modal` de confirmación (Plan Gratis) → al cerrarlo, redirige a `/inicio`. **Defecto conocido
+  (Bloqueo B-22):** `setUser(...)` marca la sesión antes de abrir el modal y `RedirectIfAuthenticated`
+  redirige a `/inicio` en cuanto la ve, así que en el código actual el modal no llega a mostrarse.
 - Si el backend responde `4xx`/`409`: discrimina por `httpStatus` + `errors[].field`
   (`ADR-0007` — el `ProblemDetail` real no trae un código propio). Para correo duplicado (`409`,
   sin `errors[]`), además del mensaje en el campo, muestra el bloque de dos acciones que dibuja
@@ -354,12 +369,12 @@ cuerpo cuando entre su propia iteración.
     "Debes ser mayor de edad" — **mismo texto que el helper permanente del campo**; Figma (nodo
     `73:535`) confirma que aquí el error solo cambia el color del borde, no el texto. Llave:
     `auth:registro.campos.fechaNacimiento.helper` (reutilizada también como mensaje de error).
-  - **Fecha futura:** `calculateAge.ts` **no la cubre hoy** — se agrega la guarda
-    `birthDate > referenceDate`, con `referenceDate` anclada a `todayLocalIsoDate()` (ver
-    corrección arriba), no al instante real de `new Date()`. Mensaje "Fecha de nacimiento
+  - **Fecha futura:** `calculateAge.ts` la cubre con `isFutureDate` (`birthDate >
+    referenceDate`), con `referenceDate` anclada a `todayLocalIsoDate()` (ver corrección arriba),
+    no al instante real de `new Date()`. Mensaje "Fecha de nacimiento
     inválida", en `ErrorText` normal (Figma no dibuja este caso; se sigue el patrón estándar del
     design system). Llave: `auth:registro.errores.fechaNacimientoFutura`.
-  - **>110 años:** tampoco cubierto hoy — se agrega un tope superior a `calculateAge.ts`. El
+  - **>110 años:** lo cubre `isImplausiblyOld` en `calculateAge.ts` (tope superior). El
     backlog no da el texto literal, solo la intención ("mensaje específico... implausible...
     verificada"). **Texto propuesto, no confirmado, sujeto a aprobación:** "Verifica tu fecha de
     nacimiento". Llave: `auth:registro.errores.fechaNacimientoImplausible`.
@@ -382,10 +397,10 @@ cuerpo cuando entre su propia iteración.
 **Arquitectura y componentes**
 
 - Ruta pública, registrada en `features/auth/routes.tsx`, junto a `/ingresar`.
-- `RegisterPage.tsx` deja de ser el placeholder de `EmptyState`. Compone su propio `AuthLayout`
+- `RegisterPage.tsx` compone su propio `AuthLayout`
   con `headline="Entra a la entrevista listo"` (mismo copy que ya usa Login) + `RegisterForm` —
   igual patrón que `LoginPage`, ya no envuelto directamente en `routes.tsx` sin `headline`.
-- **Primera capa `api/` de la feature** (no existía; Login nunca la necesitó):
+- **Primera capa `api/` de la feature** (Login nunca la necesitó; la creó Registro):
   - `features/auth/api/register.dto.ts` — **`// PROVISIONAL — pendiente de OpenAPI de
     cameia-cuentas (CM-35)`**. Nombres de campo confirmados contra el código real de
     `cameia-cuentas` (`RegisterUserRequest.java`, revisado 19-sep-2026): `firstName`, `lastName`,
@@ -402,17 +417,15 @@ cuerpo cuando entre su propia iteración.
   - `features/auth/api/register.api.ts` — hace el `POST` **sin token**. Confirmado en Fase 0:
     `services/http/httpClient.ts` ya soporta una petición no autenticada (`request()` solo agrega
     `Authorization` si `getIdToken()` devuelve algo) — no hace falta `fetch` directo.
-  - `mocks/handlers/auth.handlers.ts` — ya existe (vacío, solo exportaba `MOCK_USER_ID`); gana su
-    primer handler real (`POST /api/v1/users`), no un archivo nuevo.
+  - `mocks/handlers/auth.handlers.ts` — contiene el handler de `POST /api/v1/users`.
 - `services/firebase/auth.service.ts`:
-  - **Se retira `signUp()`** y las entradas de `FIREBASE_ERROR_CODE_MAP` exclusivas de creación
-    de cuenta (`auth/email-already-in-use`, `auth/weak-password`, etc. — ya no las puede devolver
-    un cliente que nunca llama a `createUserWithEmailAndPassword`). `ADR-0006`. **Cambio grande:
-    confirmar antes de ejecutarlo** (ver el prompt, Fase 3).
-  - Se agrega `sendEmailVerification()`, nueva, mismo patrón que las funciones existentes.
+  - **`signUp()` está retirado**, junto con las entradas de `FIREBASE_ERROR_CODE_MAP` exclusivas de
+    creación de cuenta (`auth/email-already-in-use`, `auth/weak-password`, etc. — ya no las puede
+    devolver un cliente que nunca llama a `createUserWithEmailAndPassword`). `ADR-0006`.
+  - `sendEmailVerification()`, mismo patrón que las funciones existentes.
   - `signIn()` se reutiliza tal cual — no se duplica lógica de autenticación.
-- `utils/calculateAge.ts`: se extiende con las dos guardas que hoy no tiene. Verificar primero si
-  algo más en el repo ya lo consume, para no romper otro llamador al extenderlo.
+- `utils/calculateAge.ts`: incluye las dos guardas (`isFutureDate`, `isImplausiblyOld`) además de
+  `calculateAge`/`isAdult`.
 - `RegisterForm` sigue el patrón de `GeneralInfoForm` (`Controller` de react-hook-form nunca
   `register()`, porque `Input` no expone `ref`; toda copia entra por props; el error se resuelve
   con `fieldState.error?.type`, nunca el mensaje de zod; sin `useTranslation` dentro del
@@ -513,8 +526,9 @@ variante `md`. En `lg`, Nombre(s)/Apellido(s) van lado a lado; en `sm` se apilan
 
 **Qué hace**
 
-- El `NavHeader` gana una zona de usuario a la derecha (`Avatar` + indicador desplegable, mismo
-  lugar que ya reserva Figma en `PRT-02.02`, nodo `191:499`/`user-area`). Al hacer clic, o
+- El `<header>` de `AppShell` lleva una zona de usuario a la derecha del `NavHeader`, que no la
+  contiene (`Avatar` + indicador desplegable, mismo lugar que reserva Figma en `PRT-02.02`, nodo
+  `191:499`/`user-area`). Al hacer clic, o
   `Enter`/`Space` con foco, abre `MenuUsuario`: panel flotante, ancho 240px, `elevation/2`, con
   los ítems descritos en §2.
 - Al hacer clic en "Cerrar sesión" (o activarlo por teclado): primero se consulta
@@ -528,8 +542,9 @@ variante `md`. En `lg`, Nombre(s)/Apellido(s) van lado a lado; en `sm` se apilan
   → `navigate(ROUTES.ingresar, { replace: true })`.
 - Si `signOut()` lanza: se limpia igual el estado local y se navega igual a `/ingresar` — el
   cierre de sesión es, por alcance, local (ver Seguridad); no tiene sentido dejar a alguien
-  atrapado en una pantalla autenticada porque la llamada remota a Firebase falló. Se muestra
-  `errors:generico` en un `Toast` (no hay código `AUTH_*` específico para este caso).
+  atrapado en una pantalla autenticada porque la llamada remota a Firebase falló. Se navega a
+  `/ingresar` con `state.logoutError` y `LoginPage` muestra `errors:generico` en un `AlertInline`
+  (`variant="error"`; no hay `Toast` montado ni código `AUTH_*` específico para este caso).
 - Si el usuario cancela la confirmación: el panel se cierra y no ocurre nada más.
 - No hay feedback adicional tras un cierre de sesión exitoso, más allá de llegar a `/ingresar` —
   **decisión de Frontend**: la propia pantalla de Login ya comunica el cambio de estado.
@@ -540,7 +555,7 @@ variante `md`. En `lg`, Nombre(s)/Apellido(s) van lado a lado; en `sm` se apilan
 | ----------- | ----------- |
 | Carga       | El botón primario de la confirmación pasa a `loading` (`Button` `loading`/`loadingLabel`) mientras `signOut()` está en curso. |
 | Vacío       | No aplica. |
-| Error       | `signOut()` falla: `Toast` con `errors:generico`; el cierre local ocurre de todas formas. |
+| Error       | `signOut()` falla: el cierre local ocurre de todas formas y `/ingresar` muestra `errors:generico` en un `AlertInline` (vía `state.logoutError`). |
 | Sin permiso | No aplica: el control solo existe dentro de `RequireAuth`. |
 
 **Reglas de negocio** (no hay formulario propio, por eso no hay tabla de validaciones)
@@ -593,17 +608,19 @@ variante `md`. En `lg`, Nombre(s)/Apellido(s) van lado a lado; en `sm` se apilan
   esta feature; no se toca su lógica de guardado ni la de Educación/Experiencia/Habilidades/Roles
   Objetivo (que persisten al vuelo, sin borrador — decisión `D-C` ya documentada, sin ventana de
   "sin guardar" que señalar).
-- `features/auth/hooks/useLogout.ts` — nuevo, simétrico a `useLogin.ts`: expone `logout()` (con
-  el flujo completo descrito arriba) y el estado de `loading`/`error`.
-- `src/app/router/index.tsx` — capa `app`, sin restricciones de `boundaries`: instancia
-  `useLogout()`, arma los `items` de `MenuUsuario` (incluidos los deshabilitados de "Mi
-  cuenta"/"Planes" y el callback de idioma) y los pasa a `<AppShell>` por props — mismo patrón
-  exacto que ya usa `progressEnabled` hoy.
-- `src/layouts/AppShell.tsx` — recibe los nuevos props y los reenvía a `NavHeader`/`MenuUsuario`;
-  sigue sin importar nada de `features/` ni `services/` directamente (`boundaries/dependencies` no
+- `features/auth/hooks/useLogout.ts` — simétrico a `useLogin.ts`: devuelve `{isLoggingOut,
+  logout}` (el flujo completo descrito arriba). No expone `error`: el fallo viaja a `/ingresar` por
+  `location.state.logoutError`.
+- `src/app/router/AuthenticatedAppShell.tsx` — capa `app`, sin restricciones de `boundaries`:
+  llama `useLogout()` (no se puede hacer en `routeConfig`, un array de nivel de módulo) y pasa
+  `onLogout`/`isLoggingOut` a `<AppShell>` por props — mismo patrón que `progressEnabled`.
+  `src/app/router/index.tsx` solo lo usa como `element` de la ruta.
+- `src/layouts/AppShell.tsx` — compone `MenuUsuario` y `Modal`/`BottomSheet` en su propio
+  `<header>` (no dentro de `NavHeader`); resuelve avatar (`useAuthStore`), idioma y copy de
+  confirmación por sí mismo y solo recibe `onLogout`/`isLoggingOut` por props; sigue sin importar
+  nada de `features/` ni `services/` directamente (`boundaries/dependencies` no
   lo permite — confirmado contra `eslint.config.js` real, el único carve-out existente,
-  `app-routes`, es de un solo archivo hoja y no aplica aquí). Se retira el comentario actual del
-  archivo que documenta la ausencia de este control.
+  `app-routes`, es de un solo archivo hoja y no aplica aquí).
 - `src/design-system/icons/registry.tsx` — el icono `log-out` (`LogOut` de Lucide) ya estaba
   registrado sin consumidor; gana su primer uso real en esta iteración. **Desviación consciente de
   Figma** (el nodo `439:1241`, ítem "Cerrar sesión", no dibuja icono) — documentada igual que la
@@ -685,8 +702,8 @@ sistema de `AuthError` que Login.
 
 | Causa                       | Cuándo ocurre                                                              | Llave de i18n                          |
 | ------------------------------ | ------------------------------------------------------------------------- | ---------------------------------------- |
-| Campo vacío (Login)           | Validación de cliente                                                     | `auth:login.errores.<campo>Requerido`    |
-| Formato de correo inválido    | Validación de cliente                                                     | `auth:login.errores.correoInvalido` / `auth:registro.errores.correoInvalido` |
+| Campo vacío (Login)           | Validación de cliente                                                     | `auth:ingreso.errores.<campo>Requerido`  |
+| Formato de correo inválido    | Validación de cliente                                                     | `auth:ingreso.errores.correoInvalido` / `auth:registro.errores.correoInvalido` |
 | `AUTH_INVALID_CREDENTIALS`    | `auth/invalid-credential`, `auth/user-not-found`, `auth/wrong-password` (Login) | `errors:codigos.AUTH_INVALID_CREDENTIALS` |
 | `AUTH_TOO_MANY_REQUESTS`      | `auth/too-many-requests`                                                  | `errors:codigos.AUTH_TOO_MANY_REQUESTS`  |
 | `AUTH_NETWORK_ERROR`          | `auth/network-request-failed`                                             | `errors:red`                             |
@@ -699,7 +716,7 @@ sistema de `AuthError` que Login.
 | Celular rechazado por el backend | `422` de `POST /api/v1/users` **sin** `errors[]` (`IllegalArgumentException` de `PhoneNumber.java` — su manejador, `valorInvalido()`, no lo etiqueta) — inalcanzable en operación normal | `errors:generico` (no hay forma de asociarlo al campo `celular` específicamente) |
 | Cualquier otro `4xx`/`0` (red) de `POST /api/v1/users` | Fallback genérico o de red                                          | `errors:generico` / `errors:red`         |
 | Cualquier otro código `auth/*` no mapeado (Login) | Fallback                                              | `errors:generico`                        |
-| **Falla de `signOut()` de Firebase** (rara, ej. problema interno del SDK) | **Excepción atrapada por `useLogout`, en el flujo de Cerrar sesión (`CM-194`)** | **`errors:generico`, en un `Toast`** |
+| **Falla de `signOut()` de Firebase** (rara, ej. problema interno del SDK) | **Excepción atrapada por `useLogout`, en el flujo de Cerrar sesión (`CM-194`)** | **`errors:generico`, en un `AlertInline` de `/ingresar` (vía `state.logoutError`)** |
 
 ## 5. Enlace HTTP · PROVISIONAL
 
@@ -719,8 +736,8 @@ Notas:
   cierre de sesión pasan por el Gateway.
 - La cabecera `X-User-Plan` que aparece en el diagrama para llamadas posteriores ("Caso A") **no**
   es responsabilidad del frontend implementarla — la deriva el Gateway del Custom Claim.
-- `register.api.ts` es la primera llamada de esta feature a un endpoint propio de CAMEIA — necesita
-  su handler en `mocks/handlers/auth.handlers.ts` (ya existía vacío, gana su primer handler real).
+- `register.api.ts` es la primera llamada de esta feature a un endpoint propio de CAMEIA — tiene
+  su handler en `mocks/handlers/auth.handlers.ts`.
 - Este contrato es más volátil que el de Login: `CM-35` sigue "En curso". Cuando publique su forma
   real, solo cambian `register.dto.ts` y `register.mapper.ts` (`ADR-0003`).
 - **Confirmado 19-sep-2026** contra el código real de `cameia-cuentas` (adjuntado por el usuario:
@@ -784,7 +801,7 @@ Notas:
 | `src/features/auth/organisms/PhoneField/CountryCodeSelect.tsx` | Disparador compacto `{ISO} +{indicativo}` con panel y buscador; archivo interno, no exportado (corrige truncado + placeholder contradictorio); **patrón base de `MenuUsuario` (`CM-194`)** | `CountryCodeSelect.test.tsx` |
 | `src/features/auth/organisms/RegisterForm/RegisterForm.tsx` | Formulario de Registro | `RegisterForm.test.tsx` |
 | `src/features/auth/hooks/useRegister.ts` | Orquesta `registerUser` → `signIn()` → `sendEmailVerification()`, caso de borde de sesión, `errorInfo` (`httpStatus`/`field`) | `useRegister.test.tsx` |
-| `src/features/auth/pages/RegisterPage.tsx` | Compone `AuthLayout` + `RegisterForm` + `Modal` | `RegisterPage.test.tsx` |
+| `src/features/auth/pages/RegisterPage.tsx` | Compone `AuthLayout` + `RegisterForm` + `Modal`; con el guard real, el modal no llega a verse (B-22) | `RegisterPage.test.tsx` (monta la página en MemoryRouter sin guards, por eso no lo detecta) |
 | `src/services/firebase/auth.service.ts` | `sendEmailVerification()` nueva; `signUp()` retirado (`ADR-0006`); **`signOut()` envuelto en `AuthError` (`CM-194`)** | `auth.service.test.ts` |
 | `src/services/http/ApiError.ts`, `errorMap.ts` | Reescritos contra `ProblemDetail` real (`ADR-0007`) | `errorMap.test.ts` |
 | `src/stores/unsavedChanges.store.ts` | **Nuevo (`CM-194`).** Bandera de cliente `hasUnsavedChanges`/`setUnsavedChanges` | `unsavedChanges.store.test.ts` |
@@ -825,6 +842,7 @@ Notas:
 | B-19 | `HU-1.8` figura como Sprint 3 en el backlog vigente (`16092026_01`); `CM-194` no aparece entre las 13 subtareas de Sprint 1 de `CLAUDE.md` §11 | Product Owner / Scrum Master | Abierto, no bloquea la construcción de `CA-1.8.1` — confirmar si formalmente se adelantó. |
 | B-20 | Valor `estado: PARCIAL` del encabezado de esta SPEC no confirmado contra el enumerado real de `docs/_plantilla-feature/SPEC.md` | Frontend / `pnpm spec:check` | **Resuelto, 20-sep-2026** — `pnpm spec:check` tras implementar `CM-194` lo confirmó como el único error real; corregido a `EN_CURSO` (ver nota del encabezado). |
 | B-21 | La fila `context="menu-row"` de `language-switcher` (Figma, nodo `49:421`) mide 258px de ancho de forma nativa, pero el slot real donde se usa dentro de `menu-usuario` mide 224px — el texto "Idioma de la app" + el valor del idioma no cabían en una sola línea, ni en la app ni en el propio archivo de Figma | Diseño | **Resuelto, 20-sep-2026, a petición explícita del usuario** (no un hallazgo de Figma ni un CA del backlog): etiqueta acortada a "Idioma" y el ícono `chevron-right` (sugería que el clic despliega algo, cuando en realidad alterna el valor al instante) se reemplazó por un ícono de intercambio (`swap`, `icons/registry.tsx`). Queda como desviación consciente de Figma, no como pendiente de Diseño — se documenta por si Diseño quiere alinear el archivo fuente más adelante. |
+| B-22 | **Defecto abierto, solo documentado (no se corrigió código).** El `Modal` de Plan Gratis del registro no llega a verse: `useRegister` marca la sesión (`useAuthStore.getState().setUser(...)`) antes de abrirlo (`setIsSuccessModalOpen(true)`), y `/registro` vive bajo `RedirectIfAuthenticated` (`src/app/router/index.tsx`, `src/app/router/guards/RequireAuth.tsx`), que redirige a `/inicio` en cuanto ve sesión y desmonta `RegisterPage` con el modal dentro. Ninguna prueba lo cubre: `RegisterPage.test.tsx` monta la página en `MemoryRouter` sin guards. Conclusión sacada de leer código y pruebas; no se reprodujo en navegador. Cuando se corrija (mostrar el modal antes de marcar sesión, excluirlo del guard, o retirar el modal), añadir una prueba que monte `/registro` con los guards reales (`routeConfig` sobre `createMemoryRouter`). Relacionado con B-08 (copy del modal). | Frontend | Abierto — vigente desde que existe `RedirectIfAuthenticated` (9-sep-2026). |
 
 ## 9. Notas
 
@@ -842,8 +860,8 @@ Notas:
   real de `cameia-cuentas` y son `phoneNumber`/`pronoun` (singular); `birthDate` viaja como
   `dd/MM/yyyy`, no ISO. Se corrige aquí porque el backend es la fuente de verdad sobre su propio
   contrato, aunque siga marcado `// PROVISIONAL` en conjunto (`CM-35` no ha cerrado el ticket).
-- `i18n/locales/es-CO/auth.json` ya tenía un bloque `registro` con una llave `nombreCompleto` —
-  **no coincide con Figma**, que separa Nombre(s)/Apellido(s). Se reestructura, no se conserva la
+- `i18n/locales/es-CO/auth.json` tenía un bloque `registro` con una llave `nombreCompleto` —
+  **no coincidía con Figma**, que separa Nombre(s)/Apellido(s). Se reestructuró, no se conservó la
   llave vieja sin uso (regla de "no código muerto" aplicada también a i18n).
 - `errors.json` no tenía ningún código específico de registro (`AUTH_EMAIL_TAKEN` y similares no
   existen todavía, y de hecho ya no aplican bajo `ADR-0006`). Tras `ADR-0007` (19-sep-2026), el
@@ -927,11 +945,11 @@ Notas:
   hoja y no aplica aquí. Tampoco `hooks` tiene ningún permiso explícito hacia `stores`/`services`
   en la matriz (confirmado leyendo `policies` completo; ningún hook existente hoy —`useDebounce`,
   `useDisclosure`, `useMediaQuery`, `usePrefersReducedMotion`— importa de ninguno de los dos). Se
-  resuelve con el mismo patrón ya usado por `progressEnabled`: `app/router/index.tsx` (capa `app`,
-  sin restricciones) instancia `useLogout()` (que sí puede vivir en `features/auth/hooks/`, porque
-  `features` sí puede importar `stores`/`services`) y arma los datos del menú, pasándolos a
-  `AppShell` por props. `AppShell`/`MenuUsuario` no importan `services/firebase` ni
-  `features/auth` en ningún momento.
+  resuelve con el mismo patrón ya usado por `progressEnabled`: `app/router/AuthenticatedAppShell.tsx`
+  (capa `app`, sin restricciones) llama `useLogout()` (que sí puede vivir en `features/auth/hooks/`,
+  porque `features` sí puede importar `stores`/`services`) y pasa solo `onLogout`/`isLoggingOut` a
+  `AppShell` por props (ver la corrección 1 de la nota «Tres correcciones…», más abajo).
+  `AppShell`/`MenuUsuario` no importan `services/firebase` ni `features/auth` en ningún momento.
 - **Cambios sin guardar, mecanismo nuevo mínimo, decisión explícita del usuario (20-sep-2026: debe
   cubrir todos los formularios, no solo Perfil Profesional):** no existía ninguna señal de
   "formulario sucio" expuesta fuera de ningún formulario de la app (confirmado: ni
@@ -1019,7 +1037,7 @@ Notas:
 | `HU-1.2` | Verificación de correo electrónico | pendiente | `PRT-01.02`| 2 | Fuera de esta SPEC |
 | `HU-1.3` | **Inicio de sesión**             | `CM-40` | `PRT-01.03`| 1                  | **Gobernada por esta SPEC — implementada** |
 | `HU-1.4` | Recuperación de contraseña        | pendiente | `PRT-01.04`| 2                  | Fuera de esta SPEC |
-| `HU-1.8` | **Cierre de sesión (dispositivo actual)** | `CM-194` | `PRT-01.08` | 3 (backlog) / adelantada en esta iteración | **Gobernada por esta SPEC — documentada, alcance `CA-1.8.1`; ver B-19** |
+| `HU-1.8` | **Cierre de sesión (dispositivo actual)** | `CM-194` | `PRT-01.08` | 3 (backlog) / adelantada en esta iteración | **Gobernada por esta SPEC — implementada, alcance `CA-1.8.1`; ver B-19** |
 | `HU-1.10`| Registro/login con Google         | pendiente | `[TBD]` (backlog) | 3          | Fuera de esta SPEC |
 
 El cierre de sesión en **todos los dispositivos** (revocación server-side, `POST
@@ -1041,7 +1059,9 @@ sesión server-side propia) — ver §3 y §5.
 
 ## Anexo C · Preguntas que esta SPEC no puede cerrar por sí sola
 
-- B-06 a B-20 (arriba) son las vigentes. Ninguna bloquea construir la pantalla.
+- Las vigentes son las marcadas «Abierto» en §8 (a 6-oct-2026: B-02, B-03, B-07, B-08, B-10, B-11,
+  B-13 a B-19 y B-22). Ninguna impide construir la pantalla; B-22 es un defecto visible del
+  registro, no una pregunta.
 - ~~¿`RequireAuth` propaga la ruta de origen?~~ **Resuelto:** sí.
 - ~~¿Existe un prototipo de logout en Figma?~~ **Resuelto, 20-sep-2026:** sí, `PRT-01.08` (nodo
   `228:6443`) — corrige una premisa inicial equivocada del propio proceso de análisis de `CM-194`.

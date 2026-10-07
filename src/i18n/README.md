@@ -18,15 +18,24 @@ i18n/
 ├── config.ts             opciones de i18next (idiomas, namespaces, detección)
 ├── index.ts               inicializa i18next y expone la instancia configurada
 └── locales/
-    └── es-CO/              único idioma con recursos; fuente de verdad de la copia
-        ├── common.json      acciones, estados y navegación transversales
-        ├── auth.json         PRT-01.01 (registro) y PRT-01.03 (ingreso)
-        ├── profile.json      perfil profesional
-        ├── interview.json    catálogos de configuración de entrevista
-        └── errors.json       mensajes de interfaz y códigos de error del backend
+    ├── es-CO/              idioma fuente de la copia
+    │   ├── common.json      acciones, estados y navegación transversales
+    │   ├── auth.json         PRT-01.01 (registro), PRT-01.03 (ingreso) y menú de usuario
+    │   ├── profile.json      perfil profesional
+    │   ├── interview.json    catálogos de configuración de entrevista
+    │   ├── landing.json      landing pública (PRT-00.01)
+    │   └── errors.json       mensajes genéricos de interfaz y llaves por tipo de fallo
+    └── en/                 mismos 6 namespaces y mismas llaves que es-CO
 ```
 
-`en` sigue declarado en `SUPPORTED_LANGUAGES` (`config.ts`), pero no tiene bundle
-propio: cuando el navegador pide inglés, i18next resuelve cada llave por
-`fallbackLng: 'es-CO'`. No hay copia en inglés aprobada; el fallback es el
-mecanismo real, no un parche temporal (CLAUDE.md §7).
+`en` tiene recursos propios desde CM-186: cuando el idioma activo es inglés, i18next usa
+`locales/en/` directamente. Es una traducción de trabajo, sin revisión editorial cerrada: se ajusta
+llave por llave (CLAUDE.md §7). `fallbackLng: 'es-CO'` sigue activo, pero para lo que de verdad
+cubre: una llave puntual que todavía no se tradujo (por ejemplo, la de una feature nueva escrita
+solo en español), no el idioma completo. Al agregar una llave a `es-CO`, agrégala también a `en`.
+
+`errors.json` **no** contiene códigos de error del backend: el backend no envía ningún código
+propio (`ProblemDetail`, ADR-0007), así que el frontend discrimina por `httpStatus` y
+`errors[].field` y cada feature guarda sus mensajes en su propio namespace. Sus llaves `codigos.*`
+son `AUTH_*` (códigos de Firebase mapeados en `auth.service.ts`) y `NOT_FOUND`, más `generico` y
+`red`.
