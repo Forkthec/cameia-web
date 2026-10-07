@@ -6,10 +6,10 @@ prt: []
 jira: []
 rutas: []
 documentacion: tsdoc-es
-backlog: 06092026_01
+backlog: 05102026_01
 decisiones: []
 figma: Cameia · Mockups MVP
-revisado: 2026-09-11
+revisado: 2026-10-06
 ---
 
 <!--
@@ -19,10 +19,13 @@ revisado: 2026-09-11
   El encabezado de arriba lo lee `pnpm spec:check`. Reglas:
   - `estado` admite ANDAMIAJE, EN_CURSO, IMPLEMENTADA o BLOQUEADA.
   - `rutas` debe coincidir con lo que existe en app/router/routes.ts.
-  - `backlog` es la versión contra la que se escribió. Si el backlog cambia y esto no,
-    la spec está vieja y hay que revisarla.
+  - `backlog` es la versión contra la que se escribió. El backlog cambia constantemente: antes
+    de rellenar o revisar un SPEC hay que verificar cuál es la versión vigente y contrastar con
+    ella; si el backlog cambia y esto no, la spec está vieja y hay que revisarla. `05102026_01`
+    es solo un valor de ejemplo, no la versión a la que apuntar.
   - `decisiones` lista los documentos de docs/decisiones/ que modifican lo que dice el backlog.
-  - `revisado` es la última vez que un humano confirmó que esto sigue siendo cierto.
+  - `revisado` es la última vez que un humano confirmó que esto sigue siendo cierto
+    (el valor de arriba también es solo de ejemplo).
 -->
 
 # Feature · <Nombre legible>
@@ -90,8 +93,14 @@ revisado: 2026-09-11
 
 **Errores que el usuario puede ver**
 
-| Código | Cuándo ocurre | Llave de i18n |
-| ------ | ------------- | ------------- |
+<!-- El backend no envía códigos de error propios: responde `ProblemDetail` (RFC 7807) y el
+     frontend discrimina por `httpStatus` y, cuando el backend lo etiqueta, por `errors[].field`
+     (ADR-0007; CLAUDE.md §8). No se inventa un código —ni aquí ni en un mock— para llenar la
+     primera columna. Nunca se muestra `title`/`detail` crudo: cada fila termina en una llave
+     de i18n. -->
+
+| `httpStatus` | `errors[].field` (si aplica) | Cuándo ocurre | Llave de i18n |
+| ------------ | ---------------------------- | ------------- | ------------- |
 
 ## 5. Enlace HTTP · PROVISIONAL
 
@@ -116,7 +125,10 @@ revisado: 2026-09-11
 ## 7. Estado de implementación
 
 <!-- Es el ancla que hace detectable la divergencia. Cada archivo con lo que implementa y la
-     prueba que lo cubre. `spec:check` verifica que los archivos existan. -->
+     prueba que lo cubre. `spec:check` solo verifica los archivos citados con ruta completa
+     (`src/features/<nombre>/...`, `src/design-system/...`): un nombre suelto como `Button` o
+     `EditProfilePage.test.tsx` se salta con un aviso (SC-04) y queda sin comprobar. Cita
+     siempre la ruta completa desde `src/`. -->
 
 | Archivo | Qué implementa | Prueba |
 | ------- | -------------- | ------ |
@@ -134,3 +146,7 @@ revisado: 2026-09-11
      Regla de autoridad: cuando esta especificación y Figma difieren en diseño, manda la
      especificación y Figma se actualiza después. Cuando difieren en comportamiento, manda
      el backlog siempre. Toda diferencia consciente se anota aquí. -->
+
+<!-- Se permiten anexos (A, B, C…) después de la sección 9 si hacen falta —un registro de
+     decisiones locales, una tabla larga de validaciones— siempre que las nueve secciones de
+     arriba sigan presentes y en este orden. -->
