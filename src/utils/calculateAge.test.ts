@@ -8,15 +8,13 @@
  * `fechaNacimiento` que Login nunca necesitó, con su caso límite propio
  * (110 años cumplidos es plausible, 111 no).
  *
- * `todayLocalIsoDate` (segundo seguimiento de CM-34, hallazgo real del
- * usuario en móvil): protege específicamente contra el bug de
- * `toISOString()` — Colombia es `UTC-5`, así que de 7 p. m. a medianoche hora
- * local, `toISOString()` ya devuelve la fecha de mañana en UTC.
+ * `todayLocalIsoDate` (CM-267/C-05): «"hoy" es la fecha UTC en cameia-web
+ * y en Cuentas». De 7 p. m. a medianoche hora de Colombia, la fecha UTC ya
+ * es la del día siguiente — es el comportamiento correcto porque el
+ * backend también usa UTC.
  *
- * `oldestPlausibleBirthDateIsoDate` (pedido explícito del usuario): el
- * mismo límite de `isImplausiblyOld` pero como fecha de calendario, para el
- * `min` del selector nativo — un día después de "hace 111 años", no
- * "hace 110 años" (esa fecha exacta todavía cumple 110, plausible).
+ * `oldestPlausibleBirthDateIsoDate`: el mismo límite de `isImplausiblyOld`
+ * pero como fecha de calendario UTC, para el `min` del selector nativo.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -95,13 +93,13 @@ describe('todayLocalIsoDate', () => {
     vi.unstubAllEnvs();
   });
 
-  it('de noche en Colombia (UTC-5), no se adelanta al día siguiente que ya rige en UTC', () => {
+  it('CM-267/C-05: devuelve la fecha UTC, no la local', () => {
     vi.stubEnv('TZ', 'America/Bogota');
     vi.useFakeTimers();
     // 8 p. m. del 19-sep-2026 en Bogotá = 1 a. m. del 20-sep-2026 en UTC.
     vi.setSystemTime(new Date('2026-09-20T01:00:00Z'));
 
-    expect(todayLocalIsoDate()).toBe('2026-09-19');
+    expect(todayLocalIsoDate()).toBe('2026-09-20');
   });
 });
 

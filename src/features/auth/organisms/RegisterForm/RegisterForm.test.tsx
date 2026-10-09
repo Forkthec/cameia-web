@@ -24,11 +24,11 @@ const baseProps = {
   nombreLabel: 'Nombre(s)',
   nombrePlaceholder: 'Escribe aquí',
   nombreErrorRequired: 'Ingresa tu nombre.',
-  nombreErrorFormato: 'El nombre solo puede contener letras.',
+  nombreErrorFormato: 'El nombre solo puede contener letras, espacios, apóstrofo y guion.',
   apellidoLabel: 'Apellido(s)',
   apellidoPlaceholder: 'Escribe aquí',
   apellidoErrorRequired: 'Ingresa tu apellido.',
-  apellidoErrorFormato: 'El apellido solo puede contener letras.',
+  apellidoErrorFormato: 'El apellido solo puede contener letras, espacios, apóstrofo y guion.',
   fechaNacimientoLabel: 'Fecha de nacimiento',
   fechaNacimientoAyuda: 'Debes ser mayor de edad',
   fechaNacimientoErrorFutura: 'Fecha de nacimiento inválida',
@@ -147,7 +147,7 @@ describe('RegisterForm', () => {
     renderRegisterForm();
 
     const now = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const today = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
     expect(screen.getByLabelText('Fecha de nacimiento')).toHaveAttribute('max', today);
   });
 
@@ -162,7 +162,7 @@ describe('RegisterForm', () => {
     vi.useRealTimers();
   });
 
-  it('de noche en Colombia (UTC-5), el límite de fecha no se adelanta al día que ya rige en UTC', () => {
+  it('de noche en Colombia (UTC-5), el límite de fecha usa la fecha UTC (CM-267/C-05)', () => {
     vi.stubEnv('TZ', 'America/Bogota');
     vi.useFakeTimers();
     // 8 p. m. del 19-sep-2026 en Bogotá = 1 a. m. del 20-sep-2026 en UTC.
@@ -170,23 +170,23 @@ describe('RegisterForm', () => {
 
     renderRegisterForm();
 
-    expect(screen.getByLabelText('Fecha de nacimiento')).toHaveAttribute('max', '2026-09-19');
+    expect(screen.getByLabelText('Fecha de nacimiento')).toHaveAttribute('max', '2026-09-20');
 
     vi.useRealTimers();
     vi.unstubAllEnvs();
   });
 
-  it('de noche en Colombia (UTC-5), elegir el día siguiente sí se marca como fecha futura', async () => {
+  it('de noche en Colombia (UTC-5), elegir un día posterior al UTC actual se marca como fecha futura', async () => {
     vi.stubEnv('TZ', 'America/Bogota');
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    // 8 p. m. del 19-sep-2026 en Bogotá = 1 a. m. del 20-sep-2026 en UTC:
-    // "mañana" para la persona (20-sep) ya es "hoy" en UTC.
+    // 8 p. m. del 19-sep-2026 en Bogotá = 1 a. m. del 20-sep-2026 en UTC.
+    // "Hoy" en UTC es 20-sep; ingresar 21-sep es fecha futura.
     vi.setSystemTime(new Date('2026-09-20T01:00:00Z'));
     const user = userEvent.setup();
     renderRegisterForm();
 
     fireEvent.change(screen.getByLabelText('Fecha de nacimiento'), {
-      target: { value: '2026-09-20' },
+      target: { value: '2026-09-21' },
     });
     await user.click(screen.getByRole('button', { name: 'Registrarse' }));
 
