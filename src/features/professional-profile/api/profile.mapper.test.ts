@@ -16,8 +16,37 @@ import {
   toAddSkillRequest,
   toAddTargetRoleRequest,
   toAddWorkExperienceRequest,
+  toProfile,
   toUpdateTargetRoleRequest,
 } from './profile.mapper';
+import type { ProfileDto } from './profile.dto';
+
+describe('toProfile', () => {
+  it('un perfil recién creado (name y summary nulos) llega al dominio con cadenas vacías (CA-2.2.4)', () => {
+    const dto: ProfileDto = {
+      id: 'profile-nuevo',
+      status: 'IN_PROGRESS',
+      reviewStatus: 'PENDING_REVIEW',
+      provenance: 'MANUAL',
+      name: null,
+      summary: null,
+      salaryExpectation: null,
+      preferredModality: null,
+      createdAt: '2026-10-09T12:00:00Z',
+      updatedAt: '2026-10-09T12:00:00Z',
+      educations: [],
+      workExperiences: [],
+      profileSkills: [],
+      targetRoles: [],
+    };
+
+    const profile = toProfile(dto);
+
+    expect(profile.name).toBe('');
+    expect(profile.summary).toBe('');
+    expect(profile.status).toBe('IN_PROGRESS');
+  });
+});
 
 describe('toAddEducationRequest', () => {
   it('trunca las fechas a YYYY-MM y fuerza la procedencia MANUAL', () => {

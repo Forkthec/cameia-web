@@ -53,6 +53,12 @@ describe('ProfileMethodSelector', () => {
     expect(onSelectManual).not.toHaveBeenCalled();
   });
 
+  it('la tarjeta de IA muestra la etiqueta «Próximamente» (CA-2.2.2)', () => {
+    render(<ProfileMethodSelector {...baseProps} />);
+
+    expect(screen.getByText('Próximamente')).toBeInTheDocument();
+  });
+
   it('tocar Llenado Manual dispara onSelectManual', async () => {
     const user = userEvent.setup();
     const onSelectManual = vi.fn();
