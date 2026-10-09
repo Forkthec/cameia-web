@@ -16,6 +16,11 @@
  * `LoginPage` muestre un mensaje informativo en vez de dejar a la persona
  * varada en un formulario que ya cumplió su propósito.
  *
+ * **CM-250:** si el `POST` falla por red/timeout (no `ApiError`), la cuenta
+ * pudo haberse creado en el backend antes de que la respuesta llegara. Se
+ * intenta `signIn()` con las mismas credenciales: si funciona, se continúa
+ * el flujo normal; si no, se muestra el error de red.
+ *
  * `errorInfo` (`ADR-0007`, ya no hay `code` propio del backend): expone
  * `httpStatus` + el primer `field` que `BusinessExceptionHandler.java` haya
  * etiquetado (`birthDate`/`password` — `phoneNumber` nunca llega etiquetado,
@@ -57,6 +62,20 @@ export function useRegister(): UseRegisterResult {
   const [errorInfo, setErrorInfo] = useState<RegisterErrorInfo | null>(null);
   const navigate = useNavigate();
 
+  async function signInAndSetSession(email: string, password: string): Promise<void> {
+    const user = await signIn(email, password);
+    await sendEmailVerification(user);
+    useAuthStore.getState().setUser(
+      {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        emailVerified: user.emailVerified,
+      },
+      useAuthStore.getState().plan,
+    );
+  }
+
   async function register(values: RegisterFormValues) {
     setIsSubmitting(true);
     setErrorInfo(null);
@@ -64,27 +83,30 @@ export function useRegister(): UseRegisterResult {
     try {
       await registerUser(values);
     } catch (error) {
-      setErrorInfo(
-        error instanceof ApiError
-          ? { httpStatus: error.httpStatus, field: error.errors[0]?.field }
-          : { httpStatus: 0 },
-      );
-      setIsSubmitting(false);
-      return;
+      if (error instanceof ApiError) {
+        setErrorInfo({ httpStatus: error.httpStatus, field: error.errors[0]?.field });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // CM-250: el POST pudo haber tenido éxito en el backend aunque la
+      // respuesta no llegara (timeout, corte de red). Antes de mostrar "No
+      // hay conexión", se intenta iniciar sesión: si funciona, la cuenta
+      // existe y se continúa el flujo normal.
+      try {
+        await signInAndSetSession(values.correo, values.contrasena);
+        setIsSubmitting(false);
+        setIsSuccessModalOpen(true);
+        return;
+      } catch {
+        setErrorInfo({ httpStatus: 0 });
+        setIsSubmitting(false);
+        return;
+      }
     }
 
     try {
-      const user = await signIn(values.correo, values.contrasena);
-      await sendEmailVerification(user);
-      useAuthStore.getState().setUser(
-        {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          emailVerified: user.emailVerified,
-        },
-        useAuthStore.getState().plan,
-      );
+      await signInAndSetSession(values.correo, values.contrasena);
       setIsSubmitting(false);
       setIsSuccessModalOpen(true);
     } catch {

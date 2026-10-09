@@ -139,13 +139,33 @@ describe('useRegister', () => {
     );
   });
 
-  it('con un fallo que no es ApiError, expone httpStatus 0', async () => {
+  it('con un fallo de red y signIn también falla, expone httpStatus 0', async () => {
     registerUserMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    signInMock.mockRejectedValue(new Error('auth failed'));
     const { result } = renderUseRegister();
 
     await result.current.register(formValues);
 
     await waitFor(() => expect(result.current.errorInfo).toEqual({ httpStatus: 0 }));
+  });
+
+  it('CM-250: con un fallo de red pero signIn exitoso, la cuenta se creó y continúa el flujo normal', async () => {
+    registerUserMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    signInMock.mockResolvedValue({
+      uid: 'u1',
+      email: 'ada@cameia.com',
+      displayName: null,
+      emailVerified: false,
+    });
+    sendEmailVerificationMock.mockResolvedValue(undefined);
+    const { result } = renderUseRegister();
+
+    await result.current.register(formValues);
+
+    await waitFor(() => expect(result.current.isSuccessModalOpen).toBe(true));
+    expect(result.current.errorInfo).toBeNull();
+    expect(result.current.isSubmitting).toBe(false);
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
   });
 
   it('si el POST tiene éxito pero signIn() falla después, redirige a /ingresar con el mensaje informativo', async () => {
