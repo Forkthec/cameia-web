@@ -12,6 +12,10 @@ describe('calculatePasswordStrength', () => {
     expect(calculatePasswordStrength('')).toBe('empty');
   });
 
+  it('solo espacios es empty (C-07)', () => {
+    expect(calculatePasswordStrength('                ')).toBe('empty');
+  });
+
   it('menos de 12 caracteres siempre es weak, sin importar la variedad', () => {
     expect(calculatePasswordStrength('Ab1!')).toBe('weak');
   });
