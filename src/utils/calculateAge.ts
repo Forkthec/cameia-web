@@ -96,11 +96,13 @@ export function isImplausiblyOld(birthDate: Date, referenceDate: Date = new Date
  */
 export function oldestPlausibleBirthDateIsoDate(): string {
   const now = new Date();
-  const date = new Date(Date.UTC(
-    now.getUTCFullYear() - (MAX_PLAUSIBLE_AGE + 1),
-    now.getUTCMonth(),
-    now.getUTCDate() + 1,
-  ));
+  const date = new Date(
+    Date.UTC(
+      now.getUTCFullYear() - (MAX_PLAUSIBLE_AGE + 1),
+      now.getUTCMonth(),
+      now.getUTCDate() + 1,
+    ),
+  );
   const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, '0');
   const day = String(date.getUTCDate()).padStart(2, '0');
