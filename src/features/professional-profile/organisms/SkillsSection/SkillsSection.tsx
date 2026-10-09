@@ -17,11 +17,13 @@
  * distinto de uno resuelto: mismo límite que ya acepta el uso de `Chip` en
  * `Combobox` (CM-61/CM-69) para sus seleccionados.
  *
- * El duplicado (mismo texto ignorando mayúsculas y espacios) se valida en
- * este organismo, no en el schema (`skill.schema.ts` no conoce `items`):
- * si el texto normalizado ya existe, se marca el campo con `setError`
- * manual en vez de llamar a `onAdd` — salvaguarda de cliente; el backend
- * real también lo rechaza con `409` (memo del PO del 13-sep, C-06).
+ * El duplicado (mismo texto ignorando mayúsculas, espacios y tildes) se
+ * valida en este organismo, no en el schema (`skill.schema.ts` no conoce
+ * `items`): si el texto normalizado ya existe, se marca el campo con
+ * `setError` manual en vez de llamar a `onAdd` — salvaguarda de cliente;
+ * el backend real también lo rechaza con `409` (memo del PO del 13-sep,
+ * C-06). La normalización de tildes usa `String.normalize('NFD')` +
+ * strip de diacríticos (CA-2.5.20, backlog v6).
  *
  * Sin `useTranslation` (CLAUDE.md §14.7): todo texto visible entra por prop
  * obligatoria.
@@ -56,6 +58,8 @@ interface SkillsSectionProps {
   onRemove: (skillId: string) => void;
   /** `true` mientras el `POST` de alta está en curso. */
   isAdding?: boolean;
+  /** Máximo de habilidades permitidas (CA-2.5.3/CA-2.5.19). */
+  maxItems: number;
   /** `false` en el acordeón `sm`, donde el encabezado del propio acordeón ya es el título. */
   showSectionTitle?: boolean;
 
@@ -73,8 +77,9 @@ interface SkillsSectionProps {
   formatItemLabel: (item: SkillItem) => string;
   addButtonLabel: string;
   addingButtonLabel: string;
-  /** Nombre accesible del botón de quitar un ítem concreto (p. ej. "Quitar React"). */
+  /** Nombre accesible del botón de quitar un ítem concreto (p. ej. "Eliminar React"). */
   removeItemLabel: (item: SkillItem) => string;
+  maxItemsMessage: string;
   emptyStateTitle: string;
   emptyStateDescription: string;
   addErrorMessage?: string;
@@ -89,6 +94,7 @@ export function SkillsSection({
   onAdd,
   onRemove,
   isAdding = false,
+  maxItems,
   showSectionTitle = true,
   sectionTitle,
   skillNameLabel,
@@ -104,6 +110,7 @@ export function SkillsSection({
   addButtonLabel,
   addingButtonLabel,
   removeItemLabel,
+  maxItemsMessage,
   emptyStateTitle,
   emptyStateDescription,
   addErrorMessage,
@@ -125,9 +132,18 @@ export function SkillsSection({
     previousItemCount.current = items.length;
   }, [items.length, reset]);
 
+  const isAtMax = items.length >= maxItems;
+
+  function stripDiacritics(text: string): string {
+    return text.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  }
+
   function onValid(values: SkillFormValues) {
-    const normalized = values.skillName.trim().toLowerCase();
-    const isDuplicate = items.some((item) => item.skillName.trim().toLowerCase() === normalized);
+    if (isAtMax) return;
+    const normalized = stripDiacritics(values.skillName.trim().toLowerCase());
+    const isDuplicate = items.some(
+      (item) => stripDiacritics(item.skillName.trim().toLowerCase()) === normalized,
+    );
     if (isDuplicate) {
       setError('skillName', { type: 'manual', message: skillSchemaErrorCodes.DUPLICATE });
       return;
@@ -169,69 +185,73 @@ export function SkillsSection({
       {addErrorMessage ? <AlertInline variant="error">{addErrorMessage}</AlertInline> : null}
       {removeErrorMessage ? <AlertInline variant="error">{removeErrorMessage}</AlertInline> : null}
 
-      <form
-        id={formId}
-        className="gap-space-4 flex flex-col"
-        onSubmit={(event) => void handleSubmit(onValid)(event)}
-        noValidate
-      >
-        <Controller
-          control={control}
-          name="skillName"
-          render={({ field, fieldState }) => (
-            <FormField
-              label={skillNameLabel}
-              error={
-                fieldState.error?.type === 'too_small'
-                  ? skillNameErrorRequired
-                  : fieldState.error?.type === 'too_big'
-                    ? skillNameErrorTooLong
-                    : fieldState.error?.message === skillSchemaErrorCodes.DUPLICATE
-                      ? skillNameErrorDuplicate
-                      : undefined
-              }
-            >
-              <Input
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                placeholder={skillNamePlaceholder}
-                state={isAdding ? 'disabled' : fieldState.error ? 'error' : 'default'}
-              />
-            </FormField>
-          )}
-        />
-
-        <Controller
-          control={control}
-          name="level"
-          render={({ field, fieldState }) => (
-            <FormField
-              label={levelLabel}
-              error={fieldState.error?.type === 'too_small' ? levelErrorRequired : undefined}
-            >
-              <Select
-                options={levelOptions}
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                placeholder={levelPlaceholder}
-                state={isAdding ? 'disabled' : fieldState.error ? 'error' : 'default'}
-              />
-            </FormField>
-          )}
-        />
-
-        <Button
-          type="submit"
-          variant="tertiary"
-          icon={<Icon name="plus" />}
-          className="self-start"
-          {...buttonLoadingProps(isAdding, addingButtonLabel)}
+      {isAtMax ? (
+        <AlertInline variant="info">{maxItemsMessage}</AlertInline>
+      ) : (
+        <form
+          id={formId}
+          className="gap-space-4 flex flex-col"
+          onSubmit={(event) => void handleSubmit(onValid)(event)}
+          noValidate
         >
-          {addButtonLabel}
-        </Button>
-      </form>
+          <Controller
+            control={control}
+            name="skillName"
+            render={({ field, fieldState }) => (
+              <FormField
+                label={skillNameLabel}
+                error={
+                  fieldState.error?.type === 'too_small'
+                    ? skillNameErrorRequired
+                    : fieldState.error?.type === 'too_big'
+                      ? skillNameErrorTooLong
+                      : fieldState.error?.message === skillSchemaErrorCodes.DUPLICATE
+                        ? skillNameErrorDuplicate
+                        : undefined
+                }
+              >
+                <Input
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder={skillNamePlaceholder}
+                  state={isAdding ? 'disabled' : fieldState.error ? 'error' : 'default'}
+                />
+              </FormField>
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="level"
+            render={({ field, fieldState }) => (
+              <FormField
+                label={levelLabel}
+                error={fieldState.error?.type === 'too_small' ? levelErrorRequired : undefined}
+              >
+                <Select
+                  options={levelOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder={levelPlaceholder}
+                  state={isAdding ? 'disabled' : fieldState.error ? 'error' : 'default'}
+                />
+              </FormField>
+            )}
+          />
+
+          <Button
+            type="submit"
+            variant="tertiary"
+            icon={<Icon name="plus" />}
+            className="self-start"
+            {...buttonLoadingProps(isAdding, addingButtonLabel)}
+          >
+            {addButtonLabel}
+          </Button>
+        </form>
+      )}
     </section>
   );
 }

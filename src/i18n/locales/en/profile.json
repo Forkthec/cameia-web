@@ -149,7 +149,7 @@
       "etiqueta": "Skill",
       "placeholder": "Type here",
       "errorRequerido": "Enter a skill.",
-      "errorLongitud": "The skill can't be longer than 255 characters.",
+      "errorLongitud": "The skill can't be longer than 60 characters.",
       "errorDuplicado": "That skill is already in your profile."
     },
     "nivel": {
@@ -163,14 +163,17 @@
     "chip": "{{nombre}} · {{nivel}}",
     "agregar": "Add skill",
     "agregando": "Adding…",
-    "quitar": "Remove {{nombre}}",
+    "eliminar": "Remove {{nombre}}",
     "vacio": {
       "titulo": "You haven't added any skills yet",
       "descripcion": "Add at least one to be able to finish your profile."
     },
     "confirmacionAgregada": "Skill added.",
+    "limiteAlcanzado": "You've reached the maximum of 20 skills.",
     "errorAgregar": "Couldn't add the skill.",
-    "errorEliminar": "Couldn't remove the skill."
+    "errorConflicto": "The skill already exists or the limit has been reached.",
+    "errorEliminar": "Couldn't remove the skill.",
+    "errorUltimaHabilidad": "You can't remove the last skill from an active profile. Add another one before removing this one."
   },
   "rolesObjetivo": {
     "titulo": "Target roles",

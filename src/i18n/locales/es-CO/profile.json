@@ -149,7 +149,7 @@
       "etiqueta": "Habilidad",
       "placeholder": "Escribe aquí",
       "errorRequerido": "Ingresa una habilidad.",
-      "errorLongitud": "La habilidad no puede superar los 255 caracteres.",
+      "errorLongitud": "La habilidad no puede superar los 60 caracteres.",
       "errorDuplicado": "Esa habilidad ya está en tu perfil."
     },
     "nivel": {
@@ -163,14 +163,17 @@
     "chip": "{{nombre}} · {{nivel}}",
     "agregar": "Agregar habilidad",
     "agregando": "Agregando…",
-    "quitar": "Quitar {{nombre}}",
+    "eliminar": "Eliminar {{nombre}}",
     "vacio": {
       "titulo": "Todavía no agregas habilidades",
       "descripcion": "Agrega al menos una para poder finalizar tu perfil."
     },
     "confirmacionAgregada": "Habilidad agregada.",
+    "limiteAlcanzado": "Ya tienes el máximo de 20 habilidades.",
     "errorAgregar": "No se pudo agregar la habilidad.",
-    "errorEliminar": "No se pudo eliminar la habilidad."
+    "errorConflicto": "La habilidad ya existe o se alcanzó el límite.",
+    "errorEliminar": "No se pudo eliminar la habilidad.",
+    "errorUltimaHabilidad": "No puedes eliminar la última habilidad de un perfil activo. Agrega otra antes de eliminar esta."
   },
   "rolesObjetivo": {
     "titulo": "Roles objetivo",
