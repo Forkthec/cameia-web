@@ -50,7 +50,10 @@ export function LoginPage() {
   const [formResetKey, setFormResetKey] = useState(0);
 
   const loadingProps = isResending
-    ? ({ primaryActionLoading: true, primaryActionLoadingLabel: t('common:estados.cargando') } as const)
+    ? ({
+        primaryActionLoading: true,
+        primaryActionLoadingLabel: t('common:estados.cargando'),
+      } as const)
     : ({} as const);
 
   const state = location.state as LoginLocationState | null;
@@ -112,9 +115,7 @@ export function LoginPage() {
               {t('verificacion.correoNoVerificado.reenviado')}
             </AlertInline>
           ) : null}
-          {resendErrorKey ? (
-            <AlertInline variant="error">{t(resendErrorKey)}</AlertInline>
-          ) : null}
+          {resendErrorKey ? <AlertInline variant="error">{t(resendErrorKey)}</AlertInline> : null}
         </Modal>
       ) : null}
     </AuthLayout>

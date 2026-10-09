@@ -110,10 +110,7 @@ export function useLogin(): UseLoginResult {
     setResendErrorKey(null);
 
     try {
-      const user = await signIn(
-        pendingCredentials.correo,
-        pendingCredentials.contrasena,
-      );
+      const user = await signIn(pendingCredentials.correo, pendingCredentials.contrasena);
       await sendEmailVerification(user);
       await signOut();
       useAuthStore.getState().setVerificationResent(true);
