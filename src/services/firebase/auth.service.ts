@@ -130,7 +130,10 @@ export async function signOut(): Promise<void> {
 /** Envía el correo de verificación (`CM-34`, `ADR-0006`) — no pasa por el Gateway, directo contra Firebase. */
 export async function sendEmailVerification(user: User): Promise<void> {
   try {
-    await sendFirebaseEmailVerification(user);
+    await sendFirebaseEmailVerification(user, {
+      url: `${window.location.origin}/verificar-correo`,
+      handleCodeInApp: true,
+    });
   } catch (error) {
     throw toAuthError(error);
   }
