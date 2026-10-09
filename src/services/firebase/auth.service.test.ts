@@ -13,6 +13,7 @@ const { firebaseSignOutMock } = vi.hoisted(() => ({ firebaseSignOutMock: vi.fn()
 // nivel de módulo; `firebaseApp.ts` importa una configuración real de
 // `.env.test` (dummy, sin red), así que no hace falta mockearlo aparte.
 vi.mock('firebase/auth', () => ({
+  connectAuthEmulator: vi.fn(),
   getAuth: vi.fn(() => ({})),
   getIdToken: vi.fn(),
   onAuthStateChanged: vi.fn(),

@@ -5,6 +5,7 @@
  * crudo, es lo que el resto de la app puede usar como llave de i18n).
  */
 import {
+  connectAuthEmulator,
   getAuth,
   getIdToken as getFirebaseIdToken,
   onAuthStateChanged as onFirebaseAuthStateChanged,
@@ -14,9 +15,14 @@ import {
   type Unsubscribe,
   type User,
 } from 'firebase/auth';
+import { env } from '@/config/env';
 import { firebaseApp } from './firebaseApp';
 
 const auth = getAuth(firebaseApp);
+
+if (env.appEnv === 'local') {
+  connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+}
 
 const DEFAULT_AUTH_ERROR_CODE = 'AUTH_UNKNOWN_ERROR';
 
