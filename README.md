@@ -94,9 +94,10 @@ pnpm dev
 ### Variables de entorno
 
 Se validan al arrancar con zod en `src/config/env.ts`: si falta una obligatoria, la app no arranca
-y el error nombra cuál es. **Los valores de Firebase no están en el repositorio**: el equipo los
-entrega aparte; `.env.example` los deja vacíos y `.env` nunca se
-versiona.
+y el error nombra cuál es. **Los valores reales de Firebase (staging/producción) no están en el
+repositorio**: el equipo los entrega aparte; `.env.example` los deja vacíos y `.env` nunca se
+versiona. Solo para desarrollo local hay valores ficticios listos para usar con el emulador (ver
+la sección siguiente).
 
 | Variable                      | ¿Obligatoria?                | Qué es                                                              |
 | ----------------------------- | ---------------------------- | ------------------------------------------------------------------- |
@@ -107,7 +108,20 @@ versiona.
 | `VITE_FIREBASE_PROJECT_ID`    | Sí                           | Ídem                                                                |
 | `VITE_FIREBASE_APP_ID`        | Sí                           | Ídem                                                                |
 | `VITE_API_BASE_URL`           | Solo si `VITE_APP_ENV=production` | URL del API Gateway; si falta en local o staging, el cliente no tiene a dónde llamar |
+| `VITE_FIREBASE_AUTH_EMULATOR_HOST` | No                      | Host `host:puerto` del emulador de Firebase Auth; solo aplica con `VITE_APP_ENV=local`. Por defecto `localhost:9099` |
 | `VITE_ENABLE_MSW`             | No                           | **Hoy no hace nada**, ver abajo                                     |
+
+### Desarrollo local con el emulador de Firebase Auth
+
+Con `VITE_APP_ENV=local` el cliente se conecta al emulador de Firebase Auth en lugar del proyecto
+real. En staging y producción nada cambia: el emulador nunca se usa fuera de `local`.
+
+1. Levanta el `docker compose` de `cameia-gateway`; publica el emulador en el puerto `9099`.
+2. En tu `.env`, usa los valores locales del bloque comentado de `.env.example`
+   (`VITE_FIREBASE_PROJECT_ID=demo-cameia` y los demás `VITE_FIREBASE_*` ficticios).
+3. `VITE_FIREBASE_PROJECT_ID` **debe coincidir** con `FIREBASE_PROJECT_ID` del gateway; si no, el
+   gateway rechaza los tokens del emulador.
+4. `VITE_FIREBASE_AUTH_EMULATOR_HOST` es opcional; sin ella se usa `localhost:9099`.
 
 ### Trabajar sin backend (MSW)
 
