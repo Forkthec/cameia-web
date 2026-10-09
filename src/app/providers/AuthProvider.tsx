@@ -20,7 +20,11 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
+    let version = 0;
+
     const unsubscribe = onAuthStateChanged((user) => {
+      const thisVersion = ++version;
+
       if (!user) {
         useAuthStore.getState().clear();
         // CA-1.8.3: este listener es el embudo común de las tres formas de
@@ -32,6 +36,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       void getIdTokenResult(user).then((tokenResult) => {
+        // Si onAuthStateChanged volvió a dispararse (p. ej. signOut inmediato
+        // tras signIn de un correo no verificado, CM-180), este resultado ya
+        // es obsoleto y aplicarlo re-pondría isAuthenticated en true.
+        if (thisVersion !== version) return;
+
         // PROVISIONAL — pendiente de contrato del backend: nombre y forma del
         // custom claim de plan todavía no está publicado en ningún OpenAPI.
         const plan = typeof tokenResult.claims.plan === 'string' ? tokenResult.claims.plan : null;

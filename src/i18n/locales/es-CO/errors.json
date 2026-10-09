@@ -5,6 +5,8 @@
     "NOT_FOUND": "No encontramos lo que buscabas.",
     "AUTH_INVALID_CREDENTIALS": "Correo o contraseña incorrectos",
     "AUTH_TOO_MANY_REQUESTS": "Demasiados intentos. Espera un momento y vuelve a intentarlo.",
-    "AUTH_USER_DISABLED": "Esta cuenta está deshabilitada. Contacta a soporte."
+    "AUTH_USER_DISABLED": "Esta cuenta está deshabilitada. Contacta a soporte.",
+    "AUTH_INVALID_ACTION_CODE": "El enlace de verificación no es válido o ya fue usado.",
+    "AUTH_EXPIRED_ACTION_CODE": "El enlace de verificación venció. Solicita uno nuevo."
   }
 }

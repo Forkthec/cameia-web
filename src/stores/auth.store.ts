@@ -47,10 +47,22 @@ interface AuthState {
    * de planes lo define el backend, no este store.
    */
   plan: string | null;
+  /**
+   * Correo del usuario que intentó ingresar sin verificar (CA-1.3.7, CM-180).
+   * Vive en el store global porque `useLogin` necesita que sobreviva al
+   * remount que causa el ciclo `signIn` → `onAuthStateChanged` → redirect →
+   * `signOut` → redirect back.
+   */
+  unverifiedEmail: string | null;
+  /** Indica que el correo de verificación se reenvió exitosamente (CM-180). */
+  verificationResent: boolean;
   /** Guarda la sesión ya resuelta. Pensado para llamarse desde `onAuthStateChanged`. */
   setUser: (user: AuthUser, plan: string | null) => void;
   /** Limpia la sesión: logout explícito, o un 401 del backend en httpClient. */
   clear: () => void;
+  /** Marca que un usuario intentó ingresar sin verificar su correo. */
+  setUnverifiedEmail: (email: string | null) => void;
+  setVerificationResent: (value: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -58,6 +70,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: true,
   isAuthenticated: false,
   plan: null,
+  unverifiedEmail: null,
+  verificationResent: false,
   setUser: (user, plan) => set({ user, plan, isAuthenticated: true, isLoading: false }),
   clear: () => set({ user: null, plan: null, isAuthenticated: false, isLoading: false }),
+  setUnverifiedEmail: (email) => set({ unverifiedEmail: email, verificationResent: false }),
+  setVerificationResent: (value) => set({ verificationResent: value }),
 }));
