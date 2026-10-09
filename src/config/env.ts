@@ -34,9 +34,9 @@ const rawEnvSchema = z
     VITE_FIREBASE_AUTH_DOMAIN: z.string().min(1),
     VITE_FIREBASE_PROJECT_ID: z.string().min(1),
     VITE_FIREBASE_APP_ID: z.string().min(1),
-    // Opcional a propósito: solo la define quien desarrolla en local con el emulador de
-    // Firebase Auth (CM-188). El valor efectivo se calcula abajo en "firebase.authEmulatorHost",
-    // que además solo lo respeta en local (mismo patrón que "enableMsw").
+    // Opcional a propósito: solo la define quien necesita un host distinto de localhost:9099 para
+    // el emulador de Firebase Auth. El emulador solo se usa en local y, si falta, auth.service.ts
+    // aplica el host por defecto.
     VITE_FIREBASE_AUTH_EMULATOR_HOST: z.optional(z.string()),
     // Opcional a propósito: puede no existir en .env. El valor efectivo se
     // calcula abajo en "enableMsw", que además solo lo respeta en local.

@@ -2,13 +2,16 @@
  * Comportamiento observable de `useLogout` (`CA-1.8.1`): con éxito limpia el
  * store de sesión y navega a `/ingresar`; si `signOut` falla, limpia igual
  * el store y navega con la marca de error para que `LoginPage` la muestre;
- * `isLoggingOut` refleja la llamada en curso.
+ * `isLoggingOut` refleja la llamada en curso. Además, `CA-1.8.3` (CM-243,
+ * DF-003): el cierre borra `lastUsedProfileId` para que otra cuenta en el
+ * mismo navegador no herede el perfil de la anterior, pero no el idioma.
  */
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useAuthStore } from '@/stores/auth.store';
+import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
 import { useLogout } from './useLogout';
 
 const { navigateMock } = vi.hoisted(() => ({ navigateMock: vi.fn() }));
@@ -69,6 +72,43 @@ describe('useLogout', () => {
       replace: true,
       state: { logoutError: true },
     });
+  });
+
+  it('con éxito, borra el último perfil usado del Usuario A (CA-1.8.3)', async () => {
+    useUiPreferencesStore.setState({ lastUsedProfileId: 'perfil-de-A' });
+    signOutMock.mockResolvedValue(undefined);
+    const { result } = renderUseLogout();
+
+    await act(async () => {
+      await result.current.logout();
+    });
+
+    expect(useUiPreferencesStore.getState().lastUsedProfileId).toBeNull();
+  });
+
+  it('cuando signOut falla, borra igual el último perfil usado (CA-1.8.3)', async () => {
+    useUiPreferencesStore.setState({ lastUsedProfileId: 'perfil-de-A' });
+    signOutMock.mockRejectedValue(new Error('AUTH_UNKNOWN_ERROR'));
+    const { result } = renderUseLogout();
+
+    await act(async () => {
+      await result.current.logout();
+    });
+
+    expect(useUiPreferencesStore.getState().lastUsedProfileId).toBeNull();
+  });
+
+  it('conserva el idioma de la interfaz al cerrar sesión: es del dispositivo, no del usuario', async () => {
+    useUiPreferencesStore.setState({ idioma: 'en', lastUsedProfileId: 'perfil-de-A' });
+    signOutMock.mockResolvedValue(undefined);
+    const { result } = renderUseLogout();
+
+    await act(async () => {
+      await result.current.logout();
+    });
+
+    expect(useUiPreferencesStore.getState().idioma).toBe('en');
+    useUiPreferencesStore.setState({ idioma: 'es-CO' });
   });
 
   it('mientras signOut está en curso, isLoggingOut es true, y vuelve a false al resolver', async () => {

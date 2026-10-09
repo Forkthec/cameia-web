@@ -23,24 +23,39 @@ import {
 import { env } from '@/config/env';
 import { firebaseApp } from './firebaseApp';
 
+/** Host del emulador de Firebase Auth cuando no se configura uno (puerto publicado por cameia-gateway). */
+export const DEFAULT_AUTH_EMULATOR_HOST = 'localhost:9099';
+
 /**
- * Solo en 'local' y solo si se configuró un emulador — nunca en staging/producción, donde la
- * variable no existe en el build (viene de las variables del Environment de GitHub Actions, ver
- * .github/workflows/desplegar-servicio.yml). Función pura y exportada para poder probarla sin
- * reimportar el módulo (la conexión real ocurre una sola vez, a nivel de módulo, más abajo).
+ * El emulador se usa si y solo si `VITE_APP_ENV === 'local'` (regla del PR #61) — nunca en
+ * staging ni production, aunque exista un host configurado. Función pura y exportada para
+ * probarla sin reimportar el módulo (la conexión real ocurre una sola vez, más abajo).
  */
-export function shouldUseAuthEmulator(
+export function shouldUseAuthEmulator(appEnv: string): boolean {
+  return appEnv === 'local';
+}
+
+/** Host `host:puerto` del emulador: el configurado, o {@link DEFAULT_AUTH_EMULATOR_HOST} si falta o está vacío. */
+export function resolveAuthEmulatorHost(configuredHost: string | undefined): string {
+  return configuredHost?.trim() || DEFAULT_AUTH_EMULATOR_HOST;
+}
+
+/** URL del emulador a la que conectar, o `undefined` si el entorno no debe usarlo. */
+export function getAuthEmulatorUrl(
   appEnv: string,
-  authEmulatorHost: string | undefined,
-): boolean {
-  return appEnv === 'local' && Boolean(authEmulatorHost);
+  configuredHost: string | undefined,
+): string | undefined {
+  return shouldUseAuthEmulator(appEnv)
+    ? `http://${resolveAuthEmulatorHost(configuredHost)}`
+    : undefined;
 }
 
 const auth = getAuth(firebaseApp);
 
 // `disableWarnings` evita el aviso del SDK en consola en cada arranque de la app en desarrollo.
-if (shouldUseAuthEmulator(env.appEnv, env.firebase.authEmulatorHost)) {
-  connectAuthEmulator(auth, `http://${env.firebase.authEmulatorHost}`, { disableWarnings: true });
+const authEmulatorUrl = getAuthEmulatorUrl(env.appEnv, env.firebase.authEmulatorHost);
+if (authEmulatorUrl) {
+  connectAuthEmulator(auth, authEmulatorUrl, { disableWarnings: true });
 }
 
 const DEFAULT_AUTH_ERROR_CODE = 'AUTH_UNKNOWN_ERROR';

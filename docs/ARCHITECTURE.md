@@ -5,9 +5,11 @@
 - **Estado:** PROPUESTO
 - **Responde:** `DEV-IN-03` de la solicitud de insumos de inicio de Sprint 1
 - **Jira:** CM-100
+- **Árbol de §2 contrastado con el código:** 6 de octubre de 2026
 
-Este documento describe el árbol objetivo completo del repositorio. **La mayor parte de estas
-carpetas todavía no existe, y es intencional.** Ver §5, «Qué se crea y qué no».
+Este documento describe el árbol del repositorio: lo que existe hoy y lo que sigue siendo objetivo.
+§2 los distingue con una leyenda. **Lo que todavía no existe es intencional**: ver §5, «Qué se crea
+y qué no».
 
 ---
 
@@ -25,56 +27,81 @@ entre sí, y tocar una sola historia obliga a saltar entre cuatro directorios.
 
 ---
 
-## 2. Árbol objetivo
+## 2. Árbol del repositorio (existe / objetivo)
+
+Leyenda: una línea **sin marca** existe hoy en el repositorio; `· objetivo` marca lo que todavía no
+existe y se crea cuando entre la historia que lo necesite; `· NO CREAR` y `· FUERA DEL MVP` se
+explican en §5. Contrastado con `git ls-files` el 6-oct-2026.
 
 ```
 cameia-web/
 ├── .nvmrc                              24
-├── .env.example
+├── .env.example · .env.test
+├── .editorconfig · .prettierrc · .prettierignore · .gitattributes
+├── .github/                            workflows de CI/CD, plantilla de PR, CODEOWNERS, dependabot
+├── .husky/pre-commit                   lint-staged: prettier + eslint --fix en cada commit
 ├── eslint.config.js
 ├── vite.config.ts
 ├── tsconfig.json · tsconfig.app.json · tsconfig.node.json
 ├── package.json                        versiones exactas, sin ^
-├── pnpm-lock.yaml                      se versiona siempre
+├── pnpm-lock.yaml · pnpm-workspace.yaml   el lockfile se versiona siempre
+├── firebase.json · .firebaserc         hosting (proyecto y canales)
+├── index.html
+├── README.md · CONTRIBUTING.md · CLAUDE.md
+├── scripts/
+│   └── spec-check.mjs                  `pnpm spec:check`, valida los SPEC.md de las features
 ├── docs/
 │   ├── ARCHITECTURE.md                 este archivo
+│   ├── GLOSSARY.md · SPEC-INDEX.md     vocabulario · índice de SPEC (lo regenera spec:check --write)
+│   ├── RUNBOOK-rollback-hosting.md · ADR-0001-ambientes-firebase-hosting.md
+│   ├── adr/                            decisiones estructurales (ver adr/README.md)
+│   ├── decisiones/                     lo que el PO resolvió por fuera del backlog
+│   ├── bitacora-ia/                    evidencia de sesiones asistidas por IA
+│   ├── referencias/                    copias de documentos con original externo
 │   └── _plantilla-feature/             esqueleto que se copia al crear una feature
-├── public/
+├── public/                             · objetivo (hoy no existe; no hay assets estáticos)
 └── src/
     ├── main.tsx
     │
     ├── app/                            arranque y cableado global
     │   ├── App.tsx
     │   ├── providers/
-    │   │   └── AppProviders.tsx        QueryClient · Auth · I18n · Toast · ErrorBoundary
+    │   │   ├── AppProviders.tsx        RootErrorBoundary › Helmet › QueryClient › I18n › Auth
+    │   │   │                           (sin Toast: no hay ningún host de Toast montado)
+    │   │   ├── AuthProvider.tsx        escucha a Firebase y alimenta auth.store
+    │   │   └── RootErrorBoundary.tsx
     │   └── router/
     │       ├── index.tsx
     │       ├── routes.ts               catálogo de rutas tipado
+    │       ├── AuthenticatedAppShell.tsx   envuelve AppShell para llamar useLogout()
+    │       ├── NotFoundPage.tsx · RouteErrorBoundary.tsx
     │       └── guards/
-    │           ├── RequireAuth.tsx             HU-1.3
-    │           ├── RequireCompletedProfile.tsx HU-2.1 · Sprint 2
-    │           └── RequirePlan.tsx             HE-06/07/08 · posterior
+    │           ├── RequireAuth.tsx             HU-1.3 · incluye RedirectIfAuthenticated
+    │           ├── RequireCompletedProfile.tsx HU-2.1 · Sprint 2 · objetivo
+    │           └── RequirePlan.tsx             HE-06/07/08 · posterior · objetivo
     │
     ├── design-system/                  ÁTOMOS · MOLÉCULAS · organismos sin dominio
     │   ├── atoms/
-    │   │   Button · IconButton · Input · TextArea · Select · Checkbox · Radio · Toggle
-    │   │   Label · HelperText · ErrorText · Pill · Chip · ProgressBar · Stat
-    │   │   Avatar · Spinner · Skeleton · Divider · Logo
+    │   │   Button · Input · Select · Checkbox · Radio · Toggle · Label · HelperText
+    │   │   ErrorText · Pill · Chip · ProgressBar · Stat · Avatar · Spinner · Skeleton
+    │   │   Divider · Logo
+    │   │   IconButton · TextArea                                          · objetivo
     │   ├── molecules/
-    │   │   FormField · PasswordField · PasswordStrength · OtpInput · Combobox
-    │   │   CharacterCounter · CardSelectable · AlertInline · Banner · Toast
-    │   │   EmptyState · StateLocked · Dropzone · Stepper · StepList · MetricCell
+    │   │   FormField · PasswordField · PasswordStrength · Combobox · CharacterCounter
+    │   │   CardSelectable · AlertInline · Banner · Toast · EmptyState · StateLocked
+    │   │   Stepper · StepList
+    │   │   OtpInput · Dropzone · MetricCell                               · objetivo
     │   ├── organisms/
-    │   │   Modal · BottomSheet · NavHeader · TabBar · Accordion · LanguageSwitcher
-    │   ├── icons/
-    │   │   ├── registry.tsx            ÚNICO punto que importa lucide-react
-    │   │   ├── Icon.tsx
-    │   │   └── svg/                    SVG exportados de Figma, se migran de a uno
-    │   └── index.ts
+    │   │   Modal · BottomSheet · NavHeader · TabBar · LanguageSwitcher · MenuUsuario
+    │   │   Accordion                                                      · objetivo
+    │   └── icons/
+    │       ├── registry.tsx            ÚNICO punto que importa lucide-react
+    │       ├── Icon.tsx · GoogleIcon.tsx
+    │       └── svg/                    SVG exportados de Figma (hoy solo google.svg)
     │
     ├── layouts/                        PLANTILLAS
     │   ├── AuthLayout.tsx              PRT-01.*
-    │   ├── AppShell.tsx                NavHeader + TabBar
+    │   ├── AppShell.tsx                NavHeader + TabBar + MenuUsuario
     │   ├── WizardLayout.tsx            PRT-04.* (PRT-02.03 no es un asistente, ver CM-53)
     │   └── SessionLayout.tsx           bg/inverse, sin navegación · PRT-05.*
     │
@@ -82,8 +109,8 @@ cameia-web/
     │   ├── landing/                    pública, antes de auth · PRT-00.01 · CM-186/HU-10.1, implementada
     │   ├── auth/                       HE-01 · Sprint 1
     │   ├── professional-profile/       HE-02 · Sprint 1
-    │   ├── interview-setup/            HE-04 · Sprint 1
-    │   ├── interview-session/          HE-05 · Sprint 1
+    │   ├── interview-setup/            HE-04 · Sprint 1 · hoy solo pages/, routes.tsx e index.ts
+    │   ├── interview-session/          HE-05 · Sprint 1 · hoy solo pages/, routes.tsx e index.ts
     │   ├── home/                       shell y dashboard autenticado · sin HU, riesgo declarado
     │   ├── account/                    HE-01 · NO CREAR todavía
     │   ├── evaluation-report/          HE-06 · NO CREAR todavía
@@ -94,48 +121,57 @@ cameia-web/
     │
     ├── services/                       infraestructura, sin dominio
     │   ├── http/
-    │   │   ├── httpClient.ts           envoltorio de fetch contra el API Gateway
-    │   │   ├── authTokenInterceptor.ts adjunta el ID Token de Firebase
-    │   │   ├── errorMap.ts             formato común de error → errores tipados
+    │   │   ├── httpClient.ts           envoltorio de fetch; adjunta el ID Token de Firebase
+    │   │   ├── errorMap.ts             ProblemDetail (ADR-0007) → ApiError tipado
     │   │   └── ApiError.ts
     │   ├── firebase/
     │   │   ├── firebaseApp.ts
     │   │   └── auth.service.ts
     │   └── queryClient.ts
     │
-    ├── stores/                         Zustand · estado de CLIENTE
+    ├── stores/                         Zustand · estado de CLIENTE (sin barril index.ts)
     │   ├── auth.store.ts               usuario y claims
-    │   ├── uiPreferences.store.ts      idioma de la app, último profileId usado
-    │   └── index.ts
+    │   ├── uiPreferences.store.ts      idioma de la app, último profileId usado (localStorage)
+    │   └── unsavedChanges.store.ts     bandera de «cambios sin guardar» (CM-194)
     │
     ├── hooks/                          agnósticos de dominio
     │   useDebounce · useMediaQuery · useDisclosure · usePrefersReducedMotion
     │
-    ├── lib/                            envoltorios de terceros
+    ├── lib/                            envoltorios de terceros                  · objetivo
     ├── utils/                          funciones puras, con test al lado
-    │   calculateAge.ts (regla ≥18 en UTC) · formatDuration.ts · cn.ts
+    │   calculateAge.ts (regla ≥18 en UTC) · formatDuration.ts · cn.ts · buttonLoadingProps.ts
+    │   focusTrap.ts · passwordStrength.ts · textFilters.ts
     │
     ├── i18n/
     │   ├── index.ts · config.ts
     │   └── locales/
-    │       └── es-CO/  common · auth · profile · interview · errors .json
+    │       ├── es-CO/  common · auth · profile · interview · errors · landing .json
+    │       └── en/     los mismos 6 namespaces (CM-186)
     │
     ├── mocks/
-    │   ├── browser.ts · server.ts
-    │   └── handlers/                   un archivo por feature
+    │   ├── browser.ts                  hoy no está cableado a main.tsx
+    │   ├── server.ts                   lo usa la suite de pruebas
+    │   ├── data/catalogs.ts
+    │   └── handlers/                   un archivo por recurso (auth, profiles, professionalRoles)
+    │
+    ├── test/                           setup de Vitest, stub de matchMedia, helper de MSW
     │
     ├── config/
     │   ├── env.ts                      valida import.meta.env con zod al arrancar
     │   └── features.ts                 flags de alcance
     │
     ├── types/
-    │   └── api/                        generado desde OpenAPI cuando exista
+    │   └── api/                        generado desde OpenAPI cuando exista    · objetivo
     │
     └── styles/
         ├── primitives.css              rampas crudas
         ├── semantic.css                tokens que usa la UI
         └── index.css                   @theme de Tailwind 4
 ```
+
+Dos reglas de §14.6 de `CLAUDE.md` explican lo que **no** aparece: no hay barril de categoría
+(`design-system/index.ts`, `atoms/index.ts`) ni de carpeta técnica (`stores/index.ts`,
+`hooks/index.ts`); se importa el archivo concreto.
 
 ---
 
@@ -152,14 +188,20 @@ features/<nombre>/
 ├── model/                  tipos de dominio, enums, máquinas de estado
 ├── schemas/                esquemas zod de formularios
 ├── hooks/                  queries, mutaciones y lógica de la feature
-├── organisms/              componentes con dominio
+├── organisms/              componentes con dominio, uno por carpeta (con su index.ts opcional)
 ├── pages/                  una página por PRT
-├── store/                  estado efímero (solo si hace falta)
+├── store/                  estado efímero (solo si hace falta; hoy ninguna feature lo usa)
+├── SPEC.md                 especificación viva de la feature (CLAUDE.md §16)
 ├── routes.tsx
 └── index.ts                superficie pública de la feature
 ```
 
-**Ejemplo, `interview-setup` (HE-04, Sprint 1):**
+**Ejemplos reales:** `features/auth/` y `features/professional-profile/` ya tienen `api/`, `model/`,
+`schemas/`, `hooks/`, `organisms/`, `pages/`, `routes.tsx`, `index.ts` y `SPEC.md` (`landing/` tiene
+`organisms/`, `pages/` y `SPEC.md`). Ninguna tiene todavía `store/`.
+
+**Ejemplo objetivo, `interview-setup` (HE-04, Sprint 1).** Es el plan, **no existe**: hoy la
+feature solo tiene `pages/`, `routes.tsx` e `index.ts`.
 
 ```
 features/interview-setup/
@@ -254,10 +296,10 @@ porque replican valores del backend.
 | #   | Riesgo                                                                                                                                 | Impacto                             | Necesita                           |
 | --- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ---------------------------------- |
 | 1   | **Resuelto para la Landing** (CM-186/HU-10.1, ya implementada). El Dashboard (PRT-00.02) sigue sin HU, aunque está dibujado y el login ya redirige a él. | Trabajo del Tablero sin ticket | HU o subtarea en CM-100 para el Tablero |
-| 2   | PRT-04.09 preselecciona AUDIO pero HU-5.8 es Sprint 2                                                                                  | Callejón sin salida en el flujo     | Decisión de PO                     |
+| 2   | ~~PRT-04.09 preselecciona AUDIO pero HU-5.8 es Sprint 2~~ **Resuelto** (D-04, `decisiones/11092026_v2`; `CLAUDE.md` §12, resuelta 4): Voz visible pero deshabilitada y Texto preseleccionado | —                                   | —                                  |
 | 3   | HU-1.2 (verificación de correo) fuera de Sprint 1                                                                                      | El registro no tiene destino        | Decisión de PO                     |
 | 4   | El selector de método ofrece «Autocompletar con IA», HU-2.6–2.10 son Sprint 2                                                          | Ruta muerta                         | Decisión de PO                     |
 | 5   | Sin OpenAPI, los DTO se escriben a mano                                                                                                | Retrabajo al publicarse el contrato | OpenAPI de backend                 |
-| 6   | Tres catálogos distintos de estados de sesión                                                                                          | Enum incorrecto en el front         | `GLO-TBD-02`                       |
+| 6   | ~~Tres catálogos distintos de estados de sesión~~ **Resuelto** (`GLOSSARY.md` §5; `CLAUDE.md` §12, resuelta 1): los estados oficiales son `CONFIGURADA`, `EN_CURSO`, `EVALUANDO`, `FINALIZADA`, `ABANDONADA` | —                                   | —                                  |
 | 7   | La matriz de trazabilidad del Figma usa numeración antigua                                                                             | Tester deriva casos equivocados     | Actualizar el anexo                |
-| 8   | 13 subtareas de pantalla + andamiaje, una persona, 24 días                                                                             | Riesgo de alcance                   | Visibilidad en Scrum               |
+| 8   | 13 subtareas de pantalla + andamiaje, una persona — **materializado al cierre de Sprint 1**: el estado por subtarea está en `CLAUDE.md` §11 | Riesgo de alcance                   | Visibilidad en Scrum               |
