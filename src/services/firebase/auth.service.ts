@@ -4,10 +4,11 @@
  * CAMEIA (mismo principio que ApiError — un código estable, no el mensaje
  * crudo, es lo que el resto de la app puede usar como llave de i18n).
  *
- * En local, con `VITE_FIREBASE_AUTH_EMULATOR_HOST` definida, se conecta al
- * emulador de Firebase Auth (CM-188) en vez de al proyecto real — mismo
- * mecanismo que ya usan `cameia-gateway` y `cameia-cuentas`, para desarrollar
- * sin credenciales de un proyecto de Firebase real.
+ * En local (`VITE_APP_ENV=local`) se conecta al emulador de Firebase Auth
+ * (CM-188) en vez de al proyecto real — mismo mecanismo que ya usan
+ * `cameia-gateway` y `cameia-cuentas`, para desarrollar sin credenciales de un
+ * proyecto de Firebase real. `VITE_FIREBASE_AUTH_EMULATOR_HOST` es opcional:
+ * si no se define, se usa `localhost:9099`.
  */
 import {
   connectAuthEmulator,
