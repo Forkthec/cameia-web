@@ -3,7 +3,7 @@ feature: auth
 estado: EN_CURSO
 hu: [HU-1.3, HU-1.1, HU-1.8]
 prt: [PRT-01.03, PRT-01.01, PRT-01.08]
-jira: [CM-40, CM-34, CM-194, CM-195, CM-243]
+jira: [CM-40, CM-34, CM-194, CM-195, CM-243, CM-267]
 rutas: [/ingresar, /registro]
 documentacion: tsdoc-es
 backlog: 16092026_01
@@ -321,11 +321,12 @@ cuerpo cuando entre su propia iteración.
 **Validaciones del lado del cliente**
 
 - `nombre`, `apellido`: obligatorios. **CM-195 (auditoría 20-sep-2026), replican
-  `RegisterUserRequest.java`/`AccountEntity.java` reales (`cameia-cuentas`):** solo letras (con
-  tildes y `ñ`/`Ñ`) y espacios — `filterToLettersAndSpaces` (`utils/textFilters.ts`) filtra a nivel
-  de tecleo, el regex del schema es defensa en profundidad — y `maxLength=120` (`VARCHAR(120)` en
-  BD). Ninguno de los dos límites está documentado en el backlog; se anota como divergencia
-  consciente, no bloquea.
+  `RegisterUserRequest.java`/`AccountEntity.java` reales (`cameia-cuentas`).** **CM-267 (backlog
+  v4, D2-05/CA-1.1.31):** admiten letras (con tildes, `ñ`/`Ñ`, `ü`/`Ü`), espacios, apóstrofo
+  (recto `'` y tipográfico `’`) y guion (`-`); se exige al menos una letra (lookahead en el
+  regex del schema). `filterToLettersAndSpaces` (`utils/textFilters.ts`) filtra a nivel de tecleo,
+  el regex del schema es defensa en profundidad. `maxLength=120` (`VARCHAR(120)` en BD). Ninguno de
+  los dos límites está documentado en el backlog; se anota como divergencia consciente, no bloquea.
 - `correo`: obligatorio, formato válido (la unicidad la valida el backend, `CA-1.1.1`).
   **CM-195:** el formato se valida contra el regex real de `EmailAddress.java` (`^[^@\s]+@[^@\s.]+
   (\.[^@\s.]+)+$`, más permisivo que el `.email()` de Zod que se usaba antes) y `maxLength=254`
@@ -334,8 +335,12 @@ cuerpo cuando entre su propia iteración.
   divergencia consciente que nombre/apellido.
 - `contraseña`: obligatoria, **replica `PasswordPolicy.java` real (confirmado 19-sep-2026,
   seguimiento de CM-34)** — entre 12 y 64 caracteres (contados por *code point*, no por unidad
-  UTF-16) y fuera de una lista cerrada de 32 contraseñas comunes
-  (`features/auth/model/commonPasswords.ts`, copia literal de `PasswordPolicy.COMMON_PASSWORDS`).
+  UTF-16) y fuera de una lista de 3000 contraseñas comunes
+  (`features/auth/model/commonPasswords.ts`, copia literal de
+  `cameia-cuentas/src/main/resources/security/common-passwords.txt`). **CM-267 (backlog v4,
+  CA-1.1.27/ASVS 6.2.4):** la lista pasó de 32 entradas hardcodeadas a 3000 en archivo `.txt`
+  importado con `?raw`; la comparación normaliza a NFC, ignora mayúsculas y espacios alrededor;
+  una contraseña de solo espacios se trata como vacía (falla por longitud mínima, no por "común").
   Ya no es "sin regla de fuerza mínima" — eso describía la SPEC antes de tener el archivo real.
   Bajo el campo se muestra un medidor de fuerza (`design-system/molecules/PasswordStrength`,
   Figma nodo `33:251`) con una escala de 4 niveles que es **decisión de Frontend, no del backend**
@@ -357,8 +362,11 @@ cuerpo cuando entre su propia iteración.
     mañana, y el selector nativo en móvil dejaba elegirla. El mismo desfase afectaba la validación
     de "fecha futura" (`isFutureDate(birthDate)` comparaba contra `new Date()` sin normalizar:
     elegir "mañana" a esa hora no se marcaba como futuro, porque en UTC ya era "hoy"). Se agregó
-    `utils/calculateAge.ts#todayLocalIsoDate()` (getters locales, no `toISOString()`) y ambos puntos
-    —el `max` del input y la comparación de `.superRefine`— lo usan como referencia de "hoy".
+    `utils/calculateAge.ts#todayLocalIsoDate()` y ambos puntos —el `max` del input y la comparación
+    de `.superRefine`— lo usan como referencia de "hoy". **CM-267 (backlog v4, C-05):**
+    `todayLocalIsoDate()` y `oldestPlausibleBirthDateIsoDate()` ahora usan getters UTC
+    (`getUTCFullYear`/`getUTCMonth`/`getUTCDate`), no locales — "hoy" es la fecha UTC, alineado con
+    `cameia-cuentas` (`AgePolicy.java`).
   - **Tercera corrección, mismo pedido aplicado al otro extremo (pedido explícito del usuario):**
     igual que no tiene sentido elegir una fecha futura, tampoco tiene sentido dejar elegir desde el
     calendario una fecha que ya implica más de 110 años. El `<input>` gana
@@ -386,9 +394,10 @@ cuerpo cuando entre su propia iteración.
     cliente), solo que el rechazo llega en la respuesta `4xx` del `POST` en vez de la validación de
     cliente. Mismo tratamiento visual, mismo texto ("Debes ser mayor de edad"), mismo nodo Figma
     (`73:449`/`75:1021`). Se detecta por `httpStatus === 422 && errors[].field === 'birthDate'`
-    (`ADR-0007`) — no hay código propio. `AgePolicy.java` (real, confirmado 19-sep-2026) usa el
-    mismo orden y los mismos umbrales que ya implementa `utils/calculateAge.ts` (futura → `>110`
-    estricto → `<18` estricto), así que este camino del backend es inalcanzable en operación
+    (`ADR-0007`) — no hay código propio. `AgePolicy.java` (real, confirmado 19-sep-2026) valida
+    futura → `>110` estricto → `<18` estricto; el frontend desde CM-267 valida futura → `<18` →
+    `>110` (el usuario ve el error más relevante primero). Mismos umbrales, así que este camino
+    del backend es inalcanzable en operación
     normal: el cliente ya replica la política exacta. Solo queda como defensa en profundidad, y
     como el backend no distingue las 3 causas por separado en el cuerpo (`BusinessExceptionHandler`
     solo copia `error.getMessage()`, no el `Reason` enum), cualquier `422` de `birthDate` que sí
@@ -669,8 +678,8 @@ variante `md`. En `lg`, Nombre(s)/Apellido(s) van lado a lado; en `sm` se apilan
 | Campo                | Tipo      | Regla                                                                              | Origen               |
 | --------------------- | --------- | ------------------------------------------------------------------------------------ | ---------------------- |
 | `correo`              | `string`  | Formato de correo válido, obligatorio                                               | `CA-1.3.1`, `CA-1.1.1` |
-| `contraseña`          | `string`  | Obligatorio; en Login sin regla de formato; en Registro 12–64 *code points*, fuera de la lista de comunes (`PasswordPolicy.java`, confirmado) | `CA-1.3.1`, `CA-1.1.1` |
-| `nombre`, `apellido`  | `string`  | Obligatorios                                                                         | `CA-1.1.1`             |
+| `contraseña`          | `string`  | Obligatorio; en Login sin regla de formato; en Registro 12–64 *code points*, NFC normalizado, solo-espacios = vacía, fuera de lista de 3000 comunes (`PasswordPolicy.java` + `common-passwords.txt`, CA-1.1.27/ASVS 6.2.4) | `CA-1.3.1`, `CA-1.1.1` |
+| `nombre`, `apellido`  | `string`  | Obligatorios; letras (tildes, ñ, ü), espacios, apóstrofo, guion; al menos una letra (D2-05/CA-1.1.31) | `CA-1.1.1`             |
 | `fechaNacimiento`     | `string` (fecha) | Obligatoria; ≥18 años UTC, no futura (contra `todayLocalIsoDate()`), no >110 años, formato válido, `max`/`min` nativos = `todayLocalIsoDate()`/`oldestPlausibleBirthDateIsoDate()`; viaja al backend como `dd/MM/yyyy` (`register.mapper.ts`) | `CA-1.1.1`, `CA-1.1.3` |
 | `celular`             | `{paisIso, numeroNacional}` | Opcional; con número, formato E.164 real vía `libphonenumber-js` (`PhoneNumber.java`, confirmado); campo del backend es `phoneNumber` (E.164 completo) | `CA-1.1.1` |
 | `pronombres`          | `string` (código) | Obligatorio en cliente; uno de `HE`/`SHE`/`THEY` — **catálogo confirmado**, es el enum real `Pronoun` del backend; campo del backend es `pronoun` (singular), opcional del lado del backend | `tech.cameia.cuentas.domain.model.Pronoun`, revisado 19-sep-2026 |

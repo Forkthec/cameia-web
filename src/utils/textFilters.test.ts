@@ -1,8 +1,8 @@
 /**
- * Contrato de `filterToLettersAndSpaces`/`filterToDigits` (CM-195): cada uno
- * conserva únicamente su alfabeto permitido y descarta todo lo demás,
- * incluidas tildes/ñ (sí permitidas en letras) y espacios repetidos (se
- * conservan tal cual, no se colapsan — no es responsabilidad de este filtro).
+ * Contrato de `filterToLettersAndSpaces`/`filterToDigits` (CM-195,
+ * CM-267/D2-05): cada uno conserva únicamente su alfabeto permitido y
+ * descarta todo lo demás. El filtro de nombres conserva letras (con tildes,
+ * ñ, ü), espacios, apóstrofo y guion (CA-1.1.31).
  */
 import { describe, expect, it } from 'vitest';
 import { filterToDigits, filterToLettersAndSpaces } from './textFilters';
@@ -12,11 +12,19 @@ describe('filterToLettersAndSpaces', () => {
     expect(filterToLettersAndSpaces('María José Ñáñez')).toBe('María José Ñáñez');
   });
 
-  it('descarta dígitos y símbolos', () => {
+  it('conserva ü/Ü, apóstrofo y guion (D2-05)', () => {
+    expect(filterToLettersAndSpaces("O'Neill-Müller")).toBe("O'Neill-Müller");
+  });
+
+  it('conserva apóstrofo tipográfico (’)', () => {
+    expect(filterToLettersAndSpaces('O’Neill')).toBe('O’Neill');
+  });
+
+  it('descarta dígitos y símbolos no permitidos', () => {
     expect(filterToLettersAndSpaces('Ada123!@# Lovelace')).toBe('Ada Lovelace');
   });
 
-  it('devuelve cadena vacía si no hay letras', () => {
+  it('devuelve cadena vacía si no hay caracteres permitidos', () => {
     expect(filterToLettersAndSpaces('12345')).toBe('');
   });
 });
