@@ -11,6 +11,7 @@
  * si no se define, se usa `localhost:9099`.
  */
 import {
+  applyActionCode as firebaseApplyActionCode,
   connectAuthEmulator,
   getAuth,
   getIdToken as getFirebaseIdToken,
@@ -79,6 +80,8 @@ const FIREBASE_ERROR_CODE_MAP: Record<string, string> = {
   'auth/too-many-requests': 'AUTH_TOO_MANY_REQUESTS',
   'auth/network-request-failed': 'AUTH_NETWORK_ERROR',
   'auth/user-disabled': 'AUTH_USER_DISABLED',
+  'auth/invalid-action-code': 'AUTH_INVALID_ACTION_CODE',
+  'auth/expired-action-code': 'AUTH_EXPIRED_ACTION_CODE',
 };
 
 /** Error tipado con un código de CAMEIA — nunca con el mensaje del SDK de Firebase. */
@@ -142,4 +145,13 @@ export async function getIdToken(): Promise<string | null> {
 
 export function onAuthStateChanged(callback: (user: User | null) => void): Unsubscribe {
   return onFirebaseAuthStateChanged(auth, callback);
+}
+
+/** Aplica un código de acción de Firebase (verificación de correo, CM-180). */
+export async function applyActionCode(oobCode: string): Promise<void> {
+  try {
+    await firebaseApplyActionCode(auth, oobCode);
+  } catch (error) {
+    throw toAuthError(error);
+  }
 }

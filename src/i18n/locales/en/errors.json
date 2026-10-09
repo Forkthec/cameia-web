@@ -5,6 +5,8 @@
     "NOT_FOUND": "We couldn't find what you were looking for.",
     "AUTH_INVALID_CREDENTIALS": "Incorrect email or password",
     "AUTH_TOO_MANY_REQUESTS": "Too many attempts. Wait a moment and try again.",
-    "AUTH_USER_DISABLED": "This account is disabled. Contact support."
+    "AUTH_USER_DISABLED": "This account is disabled. Contact support.",
+    "AUTH_INVALID_ACTION_CODE": "This verification link is invalid or has already been used.",
+    "AUTH_EXPIRED_ACTION_CODE": "This verification link has expired. Request a new one."
   }
 }

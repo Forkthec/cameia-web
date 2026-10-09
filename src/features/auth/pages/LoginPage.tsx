@@ -11,17 +11,18 @@
  *
  * `location.state.logoutError` (`CM-194`, `useLogout.ts`): cuando `signOut()`
  * de Firebase falla (raro), el cierre local ocurre igual y se llega aquí con
- * esta marca. Se muestra fuera de `LoginForm` —no es un error de este
- * formulario, no debe poner los campos en borde rojo— reutilizando el mismo
- * mecanismo de `location.state` que ya usa `registerInfo`, en vez de la
- * infraestructura de `Toast` que pedía el primer borrador de la SPEC:
- * `Toast.tsx` no tiene ningún consumidor real ni host montado en la app
- * todavía, y para este caso raro no vale la pena construirlo (decisión
- * explícita del usuario).
+ * esta marca.
+ *
+ * **Modal de correo no verificado (CA-1.3.7, CM-180):** cuando `useLogin`
+ * detecta que el usuario no tiene correo verificado, expone `unverifiedEmail`
+ * y esta página muestra un `Modal` con las opciones de reenviar el correo
+ * o usar otra cuenta.
  */
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
 import { AlertInline } from '@/design-system/molecules/AlertInline';
+import { Modal } from '@/design-system/organisms/Modal';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { SIGN_IN_AFTER_REGISTER_FAILED } from '../hooks/useRegister';
 import { useLogin } from '../hooks/useLogin';
@@ -33,9 +34,24 @@ interface LoginLocationState {
 }
 
 export function LoginPage() {
-  const { t } = useTranslation(['auth', 'errors']);
-  const { isSubmitting, errorMessageKey, login } = useLogin();
+  const { t } = useTranslation(['auth', 'errors', 'common']);
+  const {
+    isSubmitting,
+    errorMessageKey,
+    unverifiedEmail,
+    isResending,
+    resendSuccess,
+    resendErrorKey,
+    resendVerification,
+    dismissUnverified,
+    login,
+  } = useLogin();
   const location = useLocation();
+  const [formResetKey, setFormResetKey] = useState(0);
+
+  const loadingProps = isResending
+    ? ({ primaryActionLoading: true, primaryActionLoadingLabel: t('common:estados.cargando') } as const)
+    : ({} as const);
 
   const state = location.state as LoginLocationState | null;
   const infoMessage =
@@ -48,6 +64,7 @@ export function LoginPage() {
     <AuthLayout headline={t('ingreso.marca.titular')}>
       {logoutErrorMessage ? <AlertInline variant="error">{logoutErrorMessage}</AlertInline> : null}
       <LoginForm
+        key={formResetKey}
         isSubmitting={isSubmitting}
         genericErrorMessage={errorMessageKey ? t(errorMessageKey) : undefined}
         infoMessage={infoMessage}
@@ -71,6 +88,35 @@ export function LoginPage() {
         footerQuestion={t('ingreso.noTengoCuenta')}
         footerCta={t('ingreso.irARegistro')}
       />
+
+      {unverifiedEmail ? (
+        <Modal
+          title={t('verificacion.correoNoVerificado.titulo')}
+          closeLabel={t('common:acciones.cerrar')}
+          onClose={dismissUnverified}
+          primaryActionLabel={t('verificacion.correoNoVerificado.reenviar')}
+          onPrimaryAction={() => void resendVerification()}
+          {...loadingProps}
+          secondaryActionLabel={t('verificacion.correoNoVerificado.otraCuenta')}
+          onSecondaryAction={() => {
+            dismissUnverified();
+            setFormResetKey((k) => k + 1);
+          }}
+          className="[&>div:last-child]:flex-col-reverse [&>div:last-child]:items-stretch"
+        >
+          <p className="text-body text-text-secondary">
+            {t('verificacion.correoNoVerificado.mensaje')}
+          </p>
+          {resendSuccess ? (
+            <AlertInline variant="success">
+              {t('verificacion.correoNoVerificado.reenviado')}
+            </AlertInline>
+          ) : null}
+          {resendErrorKey ? (
+            <AlertInline variant="error">{t(resendErrorKey)}</AlertInline>
+          ) : null}
+        </Modal>
+      ) : null}
     </AuthLayout>
   );
 }
