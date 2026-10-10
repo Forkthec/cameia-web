@@ -161,7 +161,7 @@ describe('NewProfilePage', () => {
     expect(screen.queryByText('¿Cómo quieres completarlo?')).not.toBeInTheDocument();
   });
 
-  it('CM-195: si ya existe un perfil (409), muestra un mensaje específico, no el genérico', async () => {
+  it('CA-2.2.3: con el cupo agotado hoy (409 PROFILE_LIMIT_REACHED) muestra el mensaje del plan, no crea perfil y no navega', async () => {
     await waitUntilReady();
     useHandlers(
       http.post(
@@ -172,7 +172,10 @@ describe('NewProfilePage', () => {
               type: 'about:blank',
               title: 'Conflicto',
               status: 409,
-              detail: 'ya existe',
+              // Distinto del texto esperado a propósito: el mensaje sale del catálogo
+              // i18n, no del `detail` del backend (CLAUDE.md §8, SPEC §3.1).
+              detail: 'detalle del servidor',
+              code: 'PROFILE_LIMIT_REACHED',
               errors: [],
             },
             { status: 409 },
@@ -186,7 +189,44 @@ describe('NewProfilePage', () => {
     const manualCard = await screen.findByRole('radio', { name: /Llenado Manual/ });
     await user.click(manualCard);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Ya tienes un perfil creado.');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Tu Plan Free permite 1 Perfil Profesional.',
+    );
+    expect(screen.queryByText(/Editar perfil/)).not.toBeInTheDocument();
+    expect(useUiPreferencesStore.getState().lastUsedProfileId).toBeNull();
+  });
+
+  it('CA-2.2.3: con el cupo agotado mañana (403 PLAN_LIMIT) muestra el mismo mensaje, no crea perfil y no navega', async () => {
+    await waitUntilReady();
+    useHandlers(
+      http.post(
+        '*/api/v1/profiles',
+        () =>
+          HttpResponse.json(
+            {
+              type: 'about:blank',
+              title: 'Prohibido',
+              status: 403,
+              detail: 'detalle del servidor',
+              code: 'PLAN_LIMIT',
+              errors: [],
+            },
+            { status: 403 },
+          ),
+        { once: true },
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    const manualCard = await screen.findByRole('radio', { name: /Llenado Manual/ });
+    await user.click(manualCard);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Tu Plan Free permite 1 Perfil Profesional.',
+    );
+    expect(screen.queryByText(/Editar perfil/)).not.toBeInTheDocument();
+    expect(useUiPreferencesStore.getState().lastUsedProfileId).toBeNull();
   });
 
   it('expone un radiogroup con el nombre accesible del método de configuración', async () => {
