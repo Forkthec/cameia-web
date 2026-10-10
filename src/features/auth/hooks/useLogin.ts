@@ -5,20 +5,28 @@
  * No valida los campos — eso ya lo hizo `LoginForm` con `loginSchema` antes
  * de llamar a `login()` (CA-1.3.1).
  *
- * Actualiza `useAuthStore` con `isAuthenticated: true` en cuanto Firebase
- * confirma la sesión, **sin esperar** a `AuthProvider` (que solo reacciona a
- * `onAuthStateChanged` de forma asíncrona, con su propio `getIdTokenResult`
- * para el plan). Si se navegara al destino protegido antes de que el store
- * reflejara la sesión, `RequireAuth` podría alcanzar a evaluar
- * `isAuthenticated: false` primero y rebotar de vuelta a `/ingresar`. El
- * `plan` real llega segundos después, cuando `AuthProvider` sí resuelve el
- * custom claim — esta llamada solo se adelanta a marcar la sesión como
- * activa, no duplica esa lectura.
+ * **Verificación de correo (CA-1.3.7, CM-180):** si `emailVerified === false`,
+ * se cierra la sesión de Firebase inmediatamente y se guarda el correo no
+ * verificado en `useAuthStore.unverifiedEmail`. El estado vive en el store
+ * global (no en estado local del hook) porque el ciclo `signIn` →
+ * `onAuthStateChanged` → `signOut` → `onAuthStateChanged` causa remounts que
+ * destruyen cualquier `useState`.
+ *
+ * Para reenviar el correo de verificación necesitamos el `User` de Firebase,
+ * que se invalida tras `signOut`. Por eso `resendVerification` hace un
+ * `signIn` efímero: inicia sesión de nuevo, envía el correo y cierra sesión
+ * inmediatamente. El resultado (`verificationResent`) también vive en el store
+ * por la misma razón.
  */
 import { useState } from 'react';
 import { useLocation, useNavigate, type Location } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
-import { AuthError, signIn } from '@/services/firebase/auth.service';
+import {
+  AuthError,
+  sendEmailVerification,
+  signIn,
+  signOut,
+} from '@/services/firebase/auth.service';
 import { useAuthStore } from '@/stores/auth.store';
 import { getAuthErrorMessageKey } from '../model/authErrorMessage';
 
@@ -27,10 +35,14 @@ interface LoginLocationState {
 }
 
 interface UseLoginResult {
-  /** `true` desde que se envía el formulario hasta que Firebase resuelve (éxito o error). */
   isSubmitting: boolean;
-  /** Llave de i18n del error genérico a mostrar en `AlertInline`, o `null` si no hay error pendiente. */
   errorMessageKey: string | null;
+  unverifiedEmail: string | null;
+  isResending: boolean;
+  resendSuccess: boolean;
+  resendErrorKey: string | null;
+  resendVerification: () => Promise<void>;
+  dismissUnverified: () => void;
   login: (correo: string, contrasena: string) => Promise<void>;
 }
 
@@ -39,18 +51,39 @@ function resolveRedirectTarget(from: Location | undefined): string {
   return `${from.pathname}${from.search}${from.hash}`;
 }
 
+// Credenciales del último intento con correo no verificado. Vive a nivel de
+// módulo (no en useRef ni en el store) para sobrevivir al remount que causa el
+// ciclo signIn→signOut→redirect, sin exponer contraseñas en estado global
+// observable.
+let pendingCredentials: { correo: string; contrasena: string } | null = null;
+
 export function useLogin(): UseLoginResult {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessageKey, setErrorMessageKey] = useState<string | null>(null);
+  const [isResending, setIsResending] = useState(false);
+  const [resendErrorKey, setResendErrorKey] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  const unverifiedEmail = useAuthStore((s) => s.unverifiedEmail);
+  const resendSuccess = useAuthStore((s) => s.verificationResent);
 
   async function login(correo: string, contrasena: string) {
     setIsSubmitting(true);
     setErrorMessageKey(null);
+    useAuthStore.getState().setUnverifiedEmail(null);
 
     try {
       const user = await signIn(correo, contrasena);
+
+      if (!user.emailVerified) {
+        pendingCredentials = { correo, contrasena };
+        useAuthStore.getState().setUnverifiedEmail(user.email);
+        await signOut();
+        setIsSubmitting(false);
+        return;
+      }
+
       useAuthStore.getState().setUser(
         {
           uid: user.uid,
@@ -70,5 +103,44 @@ export function useLogin(): UseLoginResult {
     }
   }
 
-  return { isSubmitting, errorMessageKey, login };
+  async function resendVerification() {
+    if (!pendingCredentials) return;
+    setIsResending(true);
+    useAuthStore.getState().setVerificationResent(false);
+    setResendErrorKey(null);
+
+    try {
+      const user = await signIn(pendingCredentials.correo, pendingCredentials.contrasena);
+      await sendEmailVerification(user);
+      await signOut();
+      useAuthStore.getState().setVerificationResent(true);
+    } catch (error) {
+      const code = error instanceof AuthError ? error.code : '';
+      if (code === 'AUTH_TOO_MANY_REQUESTS') {
+        setResendErrorKey('auth:verificacion.correoNoVerificado.limiteReenvios');
+      } else {
+        setResendErrorKey('auth:verificacion.correoNoVerificado.errorReenvio');
+      }
+    } finally {
+      setIsResending(false);
+    }
+  }
+
+  function dismissUnverified() {
+    useAuthStore.getState().setUnverifiedEmail(null);
+    pendingCredentials = null;
+    setResendErrorKey(null);
+  }
+
+  return {
+    isSubmitting,
+    errorMessageKey,
+    unverifiedEmail,
+    isResending,
+    resendSuccess,
+    resendErrorKey,
+    resendVerification,
+    dismissUnverified,
+    login,
+  };
 }

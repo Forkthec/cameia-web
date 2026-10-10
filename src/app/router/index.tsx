@@ -14,7 +14,7 @@
  */
 import { createBrowserRouter, type RouteObject } from 'react-router';
 import { featureFlags } from '@/config/features';
-import { authRoutes } from '@/features/auth';
+import { authRoutes, verifyEmailRoutes } from '@/features/auth';
 import { homeRoutes } from '@/features/home';
 import { interviewSessionRoutes } from '@/features/interview-session';
 import { interviewSetupRoutes } from '@/features/interview-setup';
@@ -47,6 +47,7 @@ export const routeConfig: RouteObject[] = [
           ...interviewSessionRoutes,
         ],
       },
+      ...verifyEmailRoutes,
       { path: '*', element: <NotFoundPage /> },
     ],
   },

@@ -21,10 +21,10 @@ const BONUS_LENGTH = 16;
 
 /**
  * @param password valor actual del campo Contraseña.
- * @returns el nivel visual correspondiente; `'empty'` solo para cadena vacía.
+ * @returns el nivel visual correspondiente; `'empty'` para cadena vacía o solo espacios (C-07).
  */
 export function calculatePasswordStrength(password: string): PasswordStrengthLevel {
-  if (password.length === 0) return 'empty';
+  if (password.length === 0 || password.trim().length === 0) return 'empty';
 
   const length = Array.from(password).length;
   if (length < MIN_LENGTH) return 'weak';

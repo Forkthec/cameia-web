@@ -31,6 +31,7 @@ import {
   LoaderCircle,
   Lock,
   LogOut,
+  Mail,
   Mic,
   MessageCircle,
   Pencil,
@@ -88,6 +89,7 @@ export const icons = {
   // "intercambio" comunica mejor que un clic alterna el valor, en vez de
   // sugerir que se despliega un submenú.
   swap: ArrowLeftRight,
+  mail: Mail, // temporal · Lucide, reemplazar por SVG de Figma
   'loading-arc': LoaderCircle, // temporal · Lucide, reemplazar por SVG de Figma
   lock: Lock, // temporal · Lucide, reemplazar por SVG de Figma
   // "google" ya usa el SVG real exportado de Figma (icon/google, nodo

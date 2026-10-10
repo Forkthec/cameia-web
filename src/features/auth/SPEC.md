@@ -1,10 +1,10 @@
 ---
 feature: auth
 estado: EN_CURSO
-hu: [HU-1.3, HU-1.1, HU-1.8]
+hu: [HU-1.3, HU-1.1, HU-1.8, HU-1.2]
 prt: [PRT-01.03, PRT-01.01, PRT-01.08]
-jira: [CM-40, CM-34, CM-194, CM-195, CM-243]
-rutas: [/ingresar, /registro]
+jira: [CM-40, CM-34, CM-194, CM-195, CM-243, CM-267, CM-180]
+rutas: [/ingresar, /registro, /verificar-correo]
 documentacion: tsdoc-es
 backlog: 16092026_01
 decisiones: []
@@ -40,11 +40,11 @@ credenciales de forma permanente — eso es de Firebase — ni decide entitlemen
 consigue el ID Token, lo entrega al resto de la aplicación, y lo suelta cuando corresponde.
 
 Esta SPEC gobierna hoy el Inicio de Sesión (`HU-1.3` / `CM-40`, **implementado**), el Registro
-(`HU-1.1` / `CM-34`, **implementado**) y el Cierre de Sesión (`HU-1.8` / `CM-194`, **implementado,
-alcance acotado a `CA-1.8.1`** — ver §2). El resto de la feature (Verificación,
-Recuperación, Google, y el cierre de sesión en **todos los dispositivos** que la propia `HU-1.8`
-anticipa como trabajo de Backend) sigue descrito solo conceptualmente en el Anexo A y sube al
-cuerpo cuando entre su propia iteración.
+(`HU-1.1` / `CM-34`, **implementado**), el Cierre de Sesión (`HU-1.8` / `CM-194`, **implementado,
+alcance acotado a `CA-1.8.1`** — ver §2) y la Verificación de Correo Electrónico (`HU-1.2` /
+`CM-180`, **implementado** — ver §2). El resto de la feature (Recuperación, Google, y el cierre de
+sesión en **todos los dispositivos** que la propia `HU-1.8` anticipa como trabajo de Backend) sigue
+descrito solo conceptualmente en el Anexo A y sube al cuerpo cuando entre su propia iteración.
 
 ## 2. Alcance
 
@@ -72,10 +72,10 @@ cuerpo cuando entre su propia iteración.
   tiene ticket en el Sprint 1. Se muestra el botón (está en Figma) pero deshabilitado.
 - **Recuperación de contraseña** (`HU-1.4`) — `PRT-01.04` existe en Figma pero no se construye
   aquí; el enlace queda deshabilitado.
-- **Verificación de correo electrónico** (`HU-1.2`) — fuera del Sprint 1. Login **no** implementa
-  el flujo; solo deja constancia de si el correo está verificado, para consumo futuro.
 - El banner persistente de "correo sin verificar" que exige `CA-1.3.1` **no se renderiza en esta
   iteración** (Bloqueo B-03): su lugar natural es el shell autenticado (`AppShell`).
+  **Nota (CM-180):** el modal de correo no verificado en Login (ver subsección Verificación más
+  abajo) cubre el caso de intento de login, no el banner persistente de la sesión autenticada.
 - Cualquier llamada a un endpoint propio de CAMEIA para autenticar: no existe para este paso.
 - Lógica de «ya hay sesión» dentro de la propia página: no la hay. El guard `RedirectIfAuthenticated`
   (`src/app/router/guards/RequireAuth.tsx`) envuelve la landing y las rutas de `auth` (`/`,
@@ -188,6 +188,29 @@ cuerpo cuando entre su propia iteración.
 - Decidir si `CM-194` adelanta formalmente toda `HU-1.8` desde Sprint 3, o solo cubre `CA-1.8.1` —
   ver Bloqueo B-19.
 
+### Verificación de correo electrónico (`HU-1.2` / `CM-180`) — implementado
+
+**Entra:**
+
+- Página `/verificar-correo` que recibe `?oobCode=<code>` y aplica `applyActionCode` de Firebase
+  para verificar el correo electrónico del usuario (`CA-1.2.1`, `CA-1.2.2`).
+- Modal de correo no verificado en `/ingresar` (`CA-1.3.7`): cuando un usuario intenta iniciar
+  sesión sin correo verificado, se le impide el acceso y se muestra un modal con opciones de
+  reenviar el correo de verificación o usar otra cuenta.
+- Reenvío de correo de verificación (`CA-1.2.3`): `signIn` efímero → `sendEmailVerification` →
+  `signOut` inmediato, para obtener el objeto `User` necesario sin dejar sesión activa.
+- Manejo de límite de reenvíos (`CA-1.2.5`): `auth/too-many-requests` muestra mensaje de espera.
+- Textos alineados con backlog v6 (`09102026_01_Backlog_v6.xlsx`) en ambos idiomas.
+
+**No entra, y es deliberado:**
+
+- **Activación de cuenta en el backend** (`POST /api/v1/users/me/verification`,
+  `AccountActivationController`): verificar el correo en Firebase no activa la cuenta en el
+  backend — esa llamada es trabajo de una iteración posterior (ver §5, hallazgo del Anexo de
+  Registro). Esta implementación solo cubre el lado de Firebase.
+- **Banner persistente de correo sin verificar** (`CA-1.3.1`, B-03): sigue sin construirse — su
+  lugar natural es `AppShell`, no esta feature.
+
 ## 3. Comportamiento esperado
 
 ### `/ingresar` — Login · `PRT-01.03`
@@ -209,6 +232,21 @@ cuerpo cuando entre su propia iteración.
   llega marcado (`useRegister.ts`, caso de borde de §3 Registro), muestra un `AlertInline`
   informativo (`variant="info"`, no `"error"`) en vez de tratarlo como fallo de este formulario —
   la cuenta ya se creó, solo falló el paso de sesión/verificación posterior.
+- **Modal de correo no verificado (`CM-180`, `CA-1.3.7`):** si Firebase autentica pero
+  `emailVerified === false`, se cierra la sesión inmediatamente (`signOut`), se guarda el correo en
+  `useAuthStore.unverifiedEmail` (Zustand, no estado local — sobrevive al remount que causa el
+  ciclo `signIn` → `onAuthStateChanged` → `signOut` → remount), y se muestra un `Modal` con:
+  - Mensaje: "Tu correo aún no está verificado. Revisa tu bandeja de entrada o pide un nuevo enlace."
+  - Botón primario: "Reenviar correo de verificación" — hace un `signIn` efímero con las
+    credenciales guardadas a nivel de módulo (`pendingCredentials`, no en ref ni en store para no
+    exponer la contraseña en estado observable), envía `sendEmailVerification`, cierra sesión
+    inmediatamente y muestra `AlertInline` de éxito (`CA-1.2.3`).
+  - Botón secundario: "Usar otra cuenta" — cierra el modal, limpia credenciales y resetea el
+    formulario (vía `key` de React).
+  - Manejo de `AUTH_TOO_MANY_REQUESTS`: muestra "Espera unos minutos antes de volver a intentarlo"
+    (`CA-1.2.5`).
+  - Botones apilados verticalmente con CSS (`flex-col-reverse`) para que el texto largo del botón
+    primario no se trunque.
 
 **Estados**
 
@@ -288,6 +326,48 @@ cuerpo cuando entre su propia iteración.
 - Persistencia de sesión: comportamiento por defecto de Firebase (`browserLocalPersistence`),
   decisión de frontend por defecto.
 
+### `/verificar-correo` — Verificación de correo · `CM-180`
+
+**Qué hace**
+
+- Recibe `?oobCode=<code>` de la URL (enlace enviado por Firebase al correo del usuario).
+- Llama a `applyActionCode(auth, oobCode)` de Firebase para marcar el correo como verificado.
+- Si Firebase acepta (`CA-1.2.1`): muestra la pantalla de éxito con el mensaje "Tu correo quedó
+  verificado. Ya puedes iniciar sesión y empezar a practicar tus entrevistas con el Plan Free de
+  CAMEIA." y un botón "Iniciar sesión" que navega a `/ingresar`.
+- Si Firebase rechaza (código inválido o vencido, `CA-1.2.2`): muestra la pantalla de error con
+  "El enlace no es válido o ya venció. Solicita uno nuevo." y un botón "Iniciar sesión" que navega
+  a `/ingresar`.
+- Mientras se procesa la verificación, muestra un estado de carga con "Verificando tu correo…".
+
+**Estados**
+
+| Estado      | Qué muestra |
+| ----------- | ----------- |
+| Carga       | Spinner con "Verificando tu correo…" mientras `applyActionCode` está en curso. |
+| Vacío       | No aplica. |
+| Error       | Enlace inválido/vencido: ícono de error (`x-circle`), título "Enlace no válido", mensaje descriptivo y botón a Login. |
+| Sin permiso | No aplica: ruta pública, fuera de `RequireAuth`. |
+
+**Arquitectura y componentes**
+
+- Ruta pública, registrada en `features/auth/routes.tsx` como `verifyEmailRoutes`, montada en
+  `app/router/index.tsx` fuera de `RequireAuth` (el usuario aún no tiene sesión activa al hacer clic
+  en el enlace del correo).
+- `features/auth/hooks/useVerifyEmail.ts`: hook que extrae `oobCode` de `useSearchParams`, llama a
+  `applyActionCode` y expone `{status: 'loading' | 'success' | 'error'}`.
+- `features/auth/pages/VerifyEmailPage.tsx`: página puramente presentacional, compone `AuthLayout`
+  con el resultado del hook.
+- `services/firebase/auth.service.ts`: exporta `applyActionCode` (wrapper del SDK de Firebase).
+- `design-system/icons/registry.tsx`: ícono `mail` (`Mail` de Lucide) registrado para esta pantalla.
+- Componentes reutilizados: `AuthLayout`, `Button`, `Icon`.
+
+**Seguridad**
+
+- El `oobCode` viaja en la URL (query parameter), no en el cuerpo — es el mecanismo estándar de
+  Firebase para enlaces de verificación de correo.
+- No se persiste ningún dato sensible; `applyActionCode` es una operación de un solo uso.
+
 ### `/registro` — Registro · `PRT-01.01`
 
 **Qué hace**
@@ -321,11 +401,12 @@ cuerpo cuando entre su propia iteración.
 **Validaciones del lado del cliente**
 
 - `nombre`, `apellido`: obligatorios. **CM-195 (auditoría 20-sep-2026), replican
-  `RegisterUserRequest.java`/`AccountEntity.java` reales (`cameia-cuentas`):** solo letras (con
-  tildes y `ñ`/`Ñ`) y espacios — `filterToLettersAndSpaces` (`utils/textFilters.ts`) filtra a nivel
-  de tecleo, el regex del schema es defensa en profundidad — y `maxLength=120` (`VARCHAR(120)` en
-  BD). Ninguno de los dos límites está documentado en el backlog; se anota como divergencia
-  consciente, no bloquea.
+  `RegisterUserRequest.java`/`AccountEntity.java` reales (`cameia-cuentas`).** **CM-267 (backlog
+  v4, D2-05/CA-1.1.31):** admiten letras (con tildes, `ñ`/`Ñ`, `ü`/`Ü`), espacios, apóstrofo
+  (recto `'` y tipográfico `’`) y guion (`-`); se exige al menos una letra (lookahead en el
+  regex del schema). `filterToLettersAndSpaces` (`utils/textFilters.ts`) filtra a nivel de tecleo,
+  el regex del schema es defensa en profundidad. `maxLength=120` (`VARCHAR(120)` en BD). Ninguno de
+  los dos límites está documentado en el backlog; se anota como divergencia consciente, no bloquea.
 - `correo`: obligatorio, formato válido (la unicidad la valida el backend, `CA-1.1.1`).
   **CM-195:** el formato se valida contra el regex real de `EmailAddress.java` (`^[^@\s]+@[^@\s.]+
   (\.[^@\s.]+)+$`, más permisivo que el `.email()` de Zod que se usaba antes) y `maxLength=254`
@@ -334,8 +415,12 @@ cuerpo cuando entre su propia iteración.
   divergencia consciente que nombre/apellido.
 - `contraseña`: obligatoria, **replica `PasswordPolicy.java` real (confirmado 19-sep-2026,
   seguimiento de CM-34)** — entre 12 y 64 caracteres (contados por *code point*, no por unidad
-  UTF-16) y fuera de una lista cerrada de 32 contraseñas comunes
-  (`features/auth/model/commonPasswords.ts`, copia literal de `PasswordPolicy.COMMON_PASSWORDS`).
+  UTF-16) y fuera de una lista de 3000 contraseñas comunes
+  (`features/auth/model/commonPasswords.ts`, copia literal de
+  `cameia-cuentas/src/main/resources/security/common-passwords.txt`). **CM-267 (backlog v4,
+  CA-1.1.27/ASVS 6.2.4):** la lista pasó de 32 entradas hardcodeadas a 3000 en archivo `.txt`
+  importado con `?raw`; la comparación normaliza a NFC, ignora mayúsculas y espacios alrededor;
+  una contraseña de solo espacios se trata como vacía (falla por longitud mínima, no por "común").
   Ya no es "sin regla de fuerza mínima" — eso describía la SPEC antes de tener el archivo real.
   Bajo el campo se muestra un medidor de fuerza (`design-system/molecules/PasswordStrength`,
   Figma nodo `33:251`) con una escala de 4 niveles que es **decisión de Frontend, no del backend**
@@ -357,8 +442,11 @@ cuerpo cuando entre su propia iteración.
     mañana, y el selector nativo en móvil dejaba elegirla. El mismo desfase afectaba la validación
     de "fecha futura" (`isFutureDate(birthDate)` comparaba contra `new Date()` sin normalizar:
     elegir "mañana" a esa hora no se marcaba como futuro, porque en UTC ya era "hoy"). Se agregó
-    `utils/calculateAge.ts#todayLocalIsoDate()` (getters locales, no `toISOString()`) y ambos puntos
-    —el `max` del input y la comparación de `.superRefine`— lo usan como referencia de "hoy".
+    `utils/calculateAge.ts#todayLocalIsoDate()` y ambos puntos —el `max` del input y la comparación
+    de `.superRefine`— lo usan como referencia de "hoy". **CM-267 (backlog v4, C-05):**
+    `todayLocalIsoDate()` y `oldestPlausibleBirthDateIsoDate()` ahora usan getters UTC
+    (`getUTCFullYear`/`getUTCMonth`/`getUTCDate`), no locales — "hoy" es la fecha UTC, alineado con
+    `cameia-cuentas` (`AgePolicy.java`).
   - **Tercera corrección, mismo pedido aplicado al otro extremo (pedido explícito del usuario):**
     igual que no tiene sentido elegir una fecha futura, tampoco tiene sentido dejar elegir desde el
     calendario una fecha que ya implica más de 110 años. El `<input>` gana
@@ -386,9 +474,10 @@ cuerpo cuando entre su propia iteración.
     cliente), solo que el rechazo llega en la respuesta `4xx` del `POST` en vez de la validación de
     cliente. Mismo tratamiento visual, mismo texto ("Debes ser mayor de edad"), mismo nodo Figma
     (`73:449`/`75:1021`). Se detecta por `httpStatus === 422 && errors[].field === 'birthDate'`
-    (`ADR-0007`) — no hay código propio. `AgePolicy.java` (real, confirmado 19-sep-2026) usa el
-    mismo orden y los mismos umbrales que ya implementa `utils/calculateAge.ts` (futura → `>110`
-    estricto → `<18` estricto), así que este camino del backend es inalcanzable en operación
+    (`ADR-0007`) — no hay código propio. `AgePolicy.java` (real, confirmado 19-sep-2026) valida
+    futura → `>110` estricto → `<18` estricto; el frontend desde CM-267 valida futura → `<18` →
+    `>110` (el usuario ve el error más relevante primero). Mismos umbrales, así que este camino
+    del backend es inalcanzable en operación
     normal: el cliente ya replica la política exacta. Solo queda como defensa en profundidad, y
     como el backend no distingue las 3 causas por separado en el cuerpo (`BusinessExceptionHandler`
     solo copia `error.getMessage()`, no el `Reason` enum), cualquier `422` de `birthDate` que sí
@@ -669,8 +758,8 @@ variante `md`. En `lg`, Nombre(s)/Apellido(s) van lado a lado; en `sm` se apilan
 | Campo                | Tipo      | Regla                                                                              | Origen               |
 | --------------------- | --------- | ------------------------------------------------------------------------------------ | ---------------------- |
 | `correo`              | `string`  | Formato de correo válido, obligatorio                                               | `CA-1.3.1`, `CA-1.1.1` |
-| `contraseña`          | `string`  | Obligatorio; en Login sin regla de formato; en Registro 12–64 *code points*, fuera de la lista de comunes (`PasswordPolicy.java`, confirmado) | `CA-1.3.1`, `CA-1.1.1` |
-| `nombre`, `apellido`  | `string`  | Obligatorios                                                                         | `CA-1.1.1`             |
+| `contraseña`          | `string`  | Obligatorio; en Login sin regla de formato; en Registro 12–64 *code points*, NFC normalizado, solo-espacios = vacía, fuera de lista de 3000 comunes (`PasswordPolicy.java` + `common-passwords.txt`, CA-1.1.27/ASVS 6.2.4) | `CA-1.3.1`, `CA-1.1.1` |
+| `nombre`, `apellido`  | `string`  | Obligatorios; letras (tildes, ñ, ü), espacios, apóstrofo, guion; al menos una letra (D2-05/CA-1.1.31) | `CA-1.1.1`             |
 | `fechaNacimiento`     | `string` (fecha) | Obligatoria; ≥18 años UTC, no futura (contra `todayLocalIsoDate()`), no >110 años, formato válido, `max`/`min` nativos = `todayLocalIsoDate()`/`oldestPlausibleBirthDateIsoDate()`; viaja al backend como `dd/MM/yyyy` (`register.mapper.ts`) | `CA-1.1.1`, `CA-1.1.3` |
 | `celular`             | `{paisIso, numeroNacional}` | Opcional; con número, formato E.164 real vía `libphonenumber-js` (`PhoneNumber.java`, confirmado); campo del backend es `phoneNumber` (E.164 completo) | `CA-1.1.1` |
 | `pronombres`          | `string` (código) | Obligatorio en cliente; uno de `HE`/`SHE`/`THEY` — **catálogo confirmado**, es el enum real `Pronoun` del backend; campo del backend es `pronoun` (singular), opcional del lado del backend | `tech.cameia.cuentas.domain.model.Pronoun`, revisado 19-sep-2026 |
@@ -718,6 +807,12 @@ sistema de `AuthError` que Login.
 | Cualquier otro `4xx`/`0` (red) de `POST /api/v1/users` | Fallback genérico o de red                                          | `errors:generico` / `errors:red`         |
 | Cualquier otro código `auth/*` no mapeado (Login) | Fallback                                              | `errors:generico`                        |
 | **Falla de `signOut()` de Firebase** (rara, ej. problema interno del SDK) | **Excepción atrapada por `useLogout`, en el flujo de Cerrar sesión (`CM-194`)** | **`errors:generico`, en un `AlertInline` de `/ingresar` (vía `state.logoutError`)** |
+| **Correo no verificado (Login)** | `emailVerified === false` tras `signIn` exitoso (`CM-180`, `CA-1.3.7`) | Modal con `auth:verificacion.correoNoVerificado.mensaje` y opciones de reenviar/cambiar cuenta |
+| **Reenvío de verificación exitoso** | `sendEmailVerification` completado desde el modal (`CM-180`, `CA-1.2.3`) | `auth:verificacion.correoNoVerificado.reenviado` en `AlertInline` de éxito |
+| **Límite de reenvíos** | `auth/too-many-requests` al reenviar verificación (`CM-180`, `CA-1.2.5`) | `auth:verificacion.correoNoVerificado.limiteReenvios` |
+| **Error de reenvío genérico** | Cualquier otro error al reenviar (`CM-180`) | `auth:verificacion.correoNoVerificado.errorReenvio` |
+| **Verificación exitosa** | `applyActionCode` acepta el `oobCode` (`CM-180`, `CA-1.2.1`) | `auth:verificacion.exito.mensaje` + botón a Login |
+| **Enlace de verificación inválido/vencido** | `applyActionCode` rechaza el `oobCode` (`CM-180`, `CA-1.2.2`) | `auth:verificacion.error.mensaje` + botón a Login |
 
 ## 5. Enlace HTTP · PROVISIONAL
 
@@ -729,6 +824,7 @@ sistema de `AuthError` que Login.
 | Inicio de sesión    | SDK Firebase Auth `signInWithEmailAndPassword` — no es HTTP a CAMEIA             | Correo y contraseña, directo a Firebase                                 | `UserCredential` |
 | **Registro**        | **`POST /api/v1/users`** — sin sesión ("Caso B"), Gateway descarta `Authorization`/`X-User-*` del cliente y firma internamente con OIDC (`ADR-0006`) | `firstName`, `lastName`, `birthDate` (`dd/MM/yyyy`), `email`, `password`, `pronoun?`, `phoneNumber?` — **nombres confirmados** contra `RegisterUserRequest.java` (19-sep-2026); el contrato completo sigue `// PROVISIONAL` porque `CM-35` no ha cerrado el ticket, aunque el formato de error **ya no es provisional** (`ADR-0007`) | `201` con `{ id, firebaseUid, status, plan }` (`RegisteredUserResponse.java`, confirmado), o `4xx`/`409` con `ProblemDetail` real (RFC 7807: `title`/`detail`/`status` + `errors: [{field, message}]` — `ADR-0007`, confirmado contra `BusinessExceptionHandler.java`) |
 | Verificación de correo (envío) | SDK Firebase Auth `sendEmailVerification()` — no es HTTP a CAMEIA, y no pasa por el Gateway | — | — |
+| **Verificación de correo (aplicación)** | **SDK Firebase Auth `applyActionCode(auth, oobCode)`** — no es HTTP a CAMEIA, y no pasa por el Gateway (`CM-180`) | `oobCode` (de la URL) | Éxito o excepción (`auth/invalid-action-code`, `auth/expired-action-code`) |
 | **Cierre de sesión (dispositivo actual)** | **SDK Firebase Auth `signOut()`** — no es HTTP a CAMEIA, no pasa por el Gateway | — | — |
 
 Notas:
@@ -772,6 +868,11 @@ Notas:
 | `CA-1.1.1`  | Separa Nombre(s)/Apellido(s) en dos campos (Figma, no "nombre completo"); implementa el `Modal` de confirmación con copy provisional; distingue visualmente las cuatro causas de rechazo de fecha de nacimiento; encadena `signIn()` + `sendEmailVerification()` tras el `POST` exitoso, sin repetir lógica de Login. |
 | `CA-1.1.2`  | Muestra, junto al mensaje de correo duplicado, el bloque de dos acciones ("Iniciar sesión" funcional, "Recuperar contraseña" deshabilitado) que dibuja Figma — el criterio solo pide el mensaje. |
 | `CA-1.1.3`  | Extiende `utils/calculateAge.ts` con las guardas de fecha futura y >110 años, que hoy no existen; escribe el mensaje de ">110 años" (no viene literal en el backlog, queda marcado como propuesto). |
+| `CA-1.2.1`  | Página `/verificar-correo` aplica `applyActionCode` y muestra éxito con el copy del backlog v6 y botón a Login. |
+| `CA-1.2.2`  | Código inválido o vencido: muestra error con "El enlace no es válido o ya venció. Solicita uno nuevo." y botón a Login. |
+| `CA-1.2.3`  | Reenvío desde el modal de Login: `signIn` efímero → `sendEmailVerification` → `signOut` → `AlertInline` de éxito. |
+| `CA-1.2.5`  | `auth/too-many-requests` en reenvío: muestra "Espera unos minutos antes de volver a intentarlo." |
+| `CA-1.3.7`  | Login con correo no verificado: `signOut` inmediato, modal con opciones de reenviar o usar otra cuenta. |
 | `CA-1.8.1`  | Además de "ejecuta `signOut` y redirige a Login" (lo único que pide el criterio), agrega: confirmación previa (`Modal`/`BottomSheet` `destructive`); advertencia adicional cuando hay cambios sin guardar; ícono en el ítem del menú (desviación consciente de Figma); limpieza explícita del store antes de navegar, sin depender únicamente del listener asíncrono de `AuthProvider`; y construye el menú de usuario completo (`Mi cuenta`/`Planes`/idioma), no solo el ítem de logout, porque así lo define el único componente real de Figma para esta zona (`menu-usuario`). |
 
 ## 7. Estado de implementación
@@ -781,12 +882,14 @@ Notas:
 | `src/design-system/atoms/Logo/Logo.tsx` | Marca de Cameia, variantes `lockup`/`mark-only`, tono `default`/`inverse` | `Logo.test.tsx` |
 | `src/design-system/icons/GoogleIcon.tsx`, `src/design-system/icons/svg/google.svg` | Ícono real de Google | — |
 | `src/layouts/AuthLayout.tsx` | Panel de marca de dos columnas + colapso a una columna; logo y enlace "Volver a inicio" enlazan a `/` (§9) | `AuthLayout.test.tsx` |
-| `src/stores/auth.store.ts`, `src/app/providers/AuthProvider.tsx` | `emailVerified` en `AuthUser` | `AuthProvider.test.tsx` |
+| `src/stores/auth.store.ts`, `src/app/providers/AuthProvider.tsx` | `emailVerified` en `AuthUser`; **`unverifiedEmail`/`verificationResent` y version counter en AuthProvider (`CM-180`)**  | `AuthProvider.test.tsx` |
 | `src/features/auth/model/authErrorMessage.ts` | Código de `AuthError` → llave de i18n | `authErrorMessage.test.ts` |
 | `src/features/auth/schemas/login.schema.ts` | Validación zod de `correo`/`contraseña` | — |
 | `src/features/auth/organisms/LoginForm/LoginForm.tsx` | Formulario de Login | `LoginForm.test.tsx` |
-| `src/features/auth/hooks/useLogin.ts` | Orquesta `signIn()`, error y redirección | `useLogin.test.tsx` |
-| `src/features/auth/pages/LoginPage.tsx` | Compone `AuthLayout` + `LoginForm` | `LoginPage.test.tsx` |
+| `src/features/auth/hooks/useLogin.ts` | Orquesta `signIn()`, error, redirección, modal de correo no verificado y reenvío (`CM-180`) | `useLogin.test.tsx` |
+| `src/features/auth/hooks/useVerifyEmail.ts` | **Nuevo (`CM-180`).** Aplica `applyActionCode` con el `oobCode` de la URL | — |
+| `src/features/auth/pages/VerifyEmailPage.tsx` | **Nueva (`CM-180`).** Página de verificación de correo: éxito/error/carga | — |
+| `src/features/auth/pages/LoginPage.tsx` | Compone `AuthLayout` + `LoginForm` + modal de correo no verificado (`CM-180`) | `LoginPage.test.tsx` |
 | `src/features/auth/routes.tsx` | Ruta /ingresar → `LoginPage`; ruta /registro → `RegisterPage` | `src/app/router/index.test.tsx` |
 | `src/features/auth/model/pronouns.ts` | Catálogo `PRONOUNS` (`HE`/`SHE`/`THEY`, enum real del backend) | — |
 | `src/features/auth/model/commonPasswords.ts` | Copia literal de `PasswordPolicy.COMMON_PASSWORDS` (32 entradas) | `commonPasswords.test.ts` |
@@ -803,7 +906,7 @@ Notas:
 | `src/features/auth/organisms/RegisterForm/RegisterForm.tsx` | Formulario de Registro | `RegisterForm.test.tsx` |
 | `src/features/auth/hooks/useRegister.ts` | Orquesta `registerUser` → `signIn()` → `sendEmailVerification()`, caso de borde de sesión, `errorInfo` (`httpStatus`/`field`) | `useRegister.test.tsx` |
 | `src/features/auth/pages/RegisterPage.tsx` | Compone `AuthLayout` + `RegisterForm` + `Modal`; con el guard real, el modal no llega a verse (B-22) | `RegisterPage.test.tsx` (monta la página en MemoryRouter sin guards, por eso no lo detecta) |
-| `src/services/firebase/auth.service.ts` | `sendEmailVerification()` nueva; `signUp()` retirado (`ADR-0006`); **`signOut()` envuelto en `AuthError` (`CM-194`)** | `auth.service.test.ts` |
+| `src/services/firebase/auth.service.ts` | `sendEmailVerification()` nueva; `signUp()` retirado (`ADR-0006`); **`signOut()` envuelto en `AuthError` (`CM-194`)**; **`applyActionCode()` nueva (`CM-180`)** | `auth.service.test.ts` |
 | `src/services/http/ApiError.ts`, `errorMap.ts` | Reescritos contra `ProblemDetail` real (`ADR-0007`) | `errorMap.test.ts` |
 | `src/stores/unsavedChanges.store.ts` | **Nuevo (`CM-194`).** Bandera de cliente `hasUnsavedChanges`/`setUnsavedChanges` | `unsavedChanges.store.test.ts` |
 | `src/features/auth/hooks/useLogout.ts` | **Nuevo (`CM-194`).** Orquesta confirmación, `signOut()`, `clear()` explícito y navegación | `useLogout.test.tsx` |
@@ -1046,7 +1149,7 @@ Notas:
 | HU       | Qué es                          | Jira    | PRT        | Sprint (backlog) | Estado en esta SPEC |
 | -------- | ---------------------------------- | ------- | ---------- | ----------------- | ---------------------- |
 | `HU-1.1` | Registro con correo/contraseña + datos personales | `CM-14` (historia) / `CM-34` (subtarea Frontend) | `PRT-01.01`| 1 | **Gobernada por esta SPEC — implementada** |
-| `HU-1.2` | Verificación de correo electrónico | pendiente | `PRT-01.02`| 2 | Fuera de esta SPEC |
+| `HU-1.2` | Verificación de correo electrónico | `CM-180` | — | 2 | **Gobernada por esta SPEC — implementada (solo Firebase, sin activación backend)** |
 | `HU-1.3` | **Inicio de sesión**             | `CM-40` | `PRT-01.03`| 1                  | **Gobernada por esta SPEC — implementada** |
 | `HU-1.4` | Recuperación de contraseña        | pendiente | `PRT-01.04`| 2                  | Fuera de esta SPEC |
 | `HU-1.8` | **Cierre de sesión (dispositivo actual)** | `CM-194` | `PRT-01.08` | 3 (backlog) / adelantada en esta iteración | **Gobernada por esta SPEC — implementada, alcance `CA-1.8.1`; ver B-19** |

@@ -1,10 +1,10 @@
 /**
- * Validación del formulario de Registro (CA-1.1.1/CA-1.1.3). Sin mensajes de
- * texto (mismo patrón que `login.schema.ts`/`generalInfo.schema.ts`):
- * `RegisterForm` lee `fieldState.error?.type` para los campos simples y
- * `fieldState.error?.message` como código interno (nunca se muestra, solo
- * discrimina, igual que `educationSchema`) para las causas que van por
- * `.superRefine`.
+ * Validación del formulario de Registro (CA-1.1.1/CA-1.1.3, CM-267/C-07).
+ * Sin mensajes de texto (mismo patrón que `login.schema.ts`/
+ * `generalInfo.schema.ts`): `RegisterForm` lee `fieldState.error?.type` para
+ * los campos simples y `fieldState.error?.message` como código interno
+ * (nunca se muestra, solo discrimina, igual que `educationSchema`) para las
+ * causas que van por `.superRefine`.
  *
  * `pronombres` se valida como "no vacío", no contra el catálogo real
  * (`PRONOUNS`): el `<Select>` que lo edita solo ofrece esas tres opciones
@@ -12,17 +12,16 @@
  * desde la interfaz — mismo criterio que ya documenta `educationSchema.ts`
  * para `level`.
  *
- * Las cuatro causas de `fechaNacimiento` se evalúan en este orden:
- * formato inválido/vacío primero (no se puede calcular edad sobre una fecha
- * que no parsea), luego futura, luego >110 años, y por último menor de
- * edad — una fecha futura o implausible nunca debe leerse como "eres menor
- * de edad". Mismo orden que `AgePolicy.java` (confirmado 19-sep-2026).
+ * CM-267/C-07: las causas de `fechaNacimiento` se evalúan en este orden:
+ * formato inválido/vacío → futura → menor de 18 → más de 110. Una fecha
+ * futura nunca debe leerse como "eres menor de edad"; menor de edad se
+ * evalúa antes que implausible porque es la causa más frecuente.
  *
- * `contrasena` replica `PasswordPolicy.java` (confirmado 19-sep-2026): 12–64
- * caracteres contados por *code point* (`Array.from(value).length`, no
- * `.length`, que cuenta unidades UTF-16 — un emoji o una letra fuera del
- * alfabeto latino contaría doble) y la lista cerrada de contraseñas
- * comunes de `commonPasswords.ts`.
+ * `contrasena` replica `PasswordPolicy.java`: 12–64 caracteres contados por
+ * *code point* sobre la cadena normalizada a NFC (CM-267/C-07:
+ * «caracteres = puntos de código Unicode normalizados a NFC»). Una
+ * contraseña de solo espacios cuenta como vacía (C-07). La lista de 3000
+ * contraseñas comunes viene de `common-passwords.txt` (CA-1.1.27, ASVS 6.2.4).
  *
  * `celular` es un objeto `{ paisIso, numeroNacional }` (no un string libre):
  * lo arma `PhoneField` a partir del país elegido + el número nacional
@@ -30,11 +29,11 @@
  * `isValidPhoneNumber` de `libphonenumber-js` solo corre cuando hay número.
  *
  * `nombre`/`apellido` replican `RegisterUserRequest.java`/`AccountEntity.java`
- * (`cameia-cuentas`, confirmado 20-sep-2026, CM-195): solo letras (con tildes
- * y `ñ`/`Ñ`) y espacios, `maxLength=120`. `RegisterForm` ya filtra a nivel de
- * tecleo con `filterToLettersAndSpaces` (`utils/textFilters.ts`), así que
- * este regex/`.max()` es defensa en profundidad, no la primera barrera. No
- * documentado en el backlog — divergencia consciente.
+ * (`cameia-cuentas`, CM-267/D2-05): letras (con tildes, `ñ`/`Ñ` y `ü`/`Ü`),
+ * espacios, apóstrofo (recto o tipográfico) y guion, 1 a 120 caracteres, al
+ * menos una letra (CA-1.1.31). `RegisterForm` ya filtra a nivel de tecleo
+ * con `filterToLettersAndSpaces` (`utils/textFilters.ts`), así que este
+ * regex/`.max()` es defensa en profundidad, no la primera barrera.
  *
  * `correo` usa `emailSchema` compartido con `login.schema.ts`
  * (`email.schema.ts`, CM-195): mismo campo, mismo contrato real de
@@ -46,7 +45,7 @@ import { isAdult, isFutureDate, isImplausiblyOld, todayLocalIsoDate } from '@/ut
 import { isCommonPassword } from '../model/commonPasswords';
 import { emailSchema } from './email.schema';
 
-const NAME_REGEX = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/;
+const NAME_REGEX = /^(?=.*[A-Za-zÁÉÍÓÚáéíóúÑñÜü])[A-Za-zÁÉÍÓÚáéíóúÑñÜü\s'’-]+$/;
 const NAME_MAX_LENGTH = 120;
 
 const FECHA_NACIMIENTO_FORMATO_INVALIDO = 'FECHA_NACIMIENTO_FORMATO_INVALIDO';
@@ -90,11 +89,7 @@ export const registerSchema = z
   })
   .superRefine((values, ctx) => {
     const birthDate = parseBirthDate(values.fechaNacimiento);
-    // Ancla "hoy" a medianoche UTC del día local de la persona (seguimiento
-    // de CM-34: comparar contra `new Date()` sin normalizar dejaba pasar,
-    // por la noche en Colombia, una fecha que ya es "mañana" en UTC —
-    // ver `todayLocalIsoDate`). Mismo formato que `parseBirthDate`, así que
-    // ambos lados de la comparación quedan anclados a medianoche UTC.
+    // CM-267/C-05: «"hoy" es la fecha UTC en cameia-web y en Cuentas».
     const today = new Date(`${todayLocalIsoDate()}T00:00:00Z`);
 
     if (!birthDate) {
@@ -105,22 +100,24 @@ export const registerSchema = z
       });
     } else if (isFutureDate(birthDate, today)) {
       ctx.addIssue({ code: 'custom', path: ['fechaNacimiento'], message: FECHA_NACIMIENTO_FUTURA });
-    } else if (isImplausiblyOld(birthDate)) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['fechaNacimiento'],
-        message: FECHA_NACIMIENTO_IMPLAUSIBLE,
-      });
     } else if (!isAdult(birthDate)) {
       ctx.addIssue({
         code: 'custom',
         path: ['fechaNacimiento'],
         message: FECHA_NACIMIENTO_MENOR_DE_EDAD,
       });
+    } else if (isImplausiblyOld(birthDate)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['fechaNacimiento'],
+        message: FECHA_NACIMIENTO_IMPLAUSIBLE,
+      });
     }
 
-    const passwordLength = Array.from(values.contrasena).length;
-    if (passwordLength < PASSWORD_MIN_LENGTH) {
+    const normalizedPassword = values.contrasena.normalize('NFC');
+    const passwordLength = Array.from(normalizedPassword).length;
+    const isOnlySpaces = values.contrasena.trim().length === 0;
+    if (isOnlySpaces || passwordLength < PASSWORD_MIN_LENGTH) {
       ctx.addIssue({ code: 'custom', path: ['contrasena'], message: CONTRASENA_MUY_CORTA });
     } else if (passwordLength > PASSWORD_MAX_LENGTH) {
       ctx.addIssue({ code: 'custom', path: ['contrasena'], message: CONTRASENA_MUY_LARGA });
