@@ -3,25 +3,24 @@ feature: professional-profile
 estado: EN_CURSO
 hu: [HU-2.2, HU-2.3, HU-2.4, HU-2.5, HU-2.11]
 prt: [PRT-02.02, PRT-02.03, PRT-02.07]
-jira: [CM-46, CM-53, CM-61, CM-65, CM-69, CM-195, CM-243]
+jira: [CM-46, CM-53, CM-61, CM-65, CM-69, CM-195, CM-243, CM-270]
 rutas: [/perfiles/nuevo, /perfiles/:id/editar, /perfiles/:id/roles]
 documentacion: tsdoc-es
-backlog: 12092026_01
+backlog: 09102026_01
 decisiones: [10092026_v1, 11092026_v2, 11092026_v1, 13092026_v1]
 figma: Cameia · Mockups MVP
-revisado: 2026-09-20
+revisado: 2026-10-09
 ---
 
 # Feature · Perfil Profesional
 
-> **Nota sobre el backlog (6-oct-2026).** Hasta la entrega del frontend (2026-10-06) esta feature se
-> construyó contra versiones anteriores del backlog (la que indica el campo `backlog` del
-> encabezado y las que cita el cuerpo: 6, 12 y 13-sep). Existe una versión más reciente,
-> `05102026_01_Backlog.xlsx` (v4, con la hoja «Cambios v4»), que **no se tuvo en cuenta** en lo ya
-> construido y que **no se cruzó contra el código**. El backlog sigue cambiando: el equipo debe
-> contrastar este SPEC con la versión vigente antes de tocar la feature. El campo `backlog` del
-> encabezado no se cambia a propósito: indica contra qué versión se escribió el SPEC, no cuál es la
-> vigente.
+> **Nota sobre el backlog (actualizada el 9-oct-2026, CM-270).** Hasta la entrega del frontend
+> (2026-10-06) esta feature se construyó contra versiones anteriores del backlog (6, 12 y 13-sep).
+> El campo `backlog` del encabezado indica ahora `09102026_01`, el archivo «v6» (el libro se titula
+> «versión 5» y no trae hoja «Cambios v6»: pregunta abierta a Diego y al PO). **Solo HU-2.2 se
+> contrastó con esa versión**: §3.1 y las filas de HU-2.2 de §4, §5, §6, §7 y §9. Las secciones de
+> HU-2.3, HU-2.4, HU-2.5 y HU-2.11 siguen escritas contra versiones anteriores y no se cruzaron con
+> «Cambios v4» ni con v6: el equipo debe contrastarlas antes de tocarlas.
 
 ## 1. Propósito
 
@@ -97,50 +96,81 @@ observable todavía**: los mocks no modelan un 403 — `GET /api/v1/profiles/:id
 (los handlers de `src/mocks/handlers/profiles.handlers.ts` que responden 404). Se anota como parte de **C-01**: sin
 contrato real, no se puede afirmar que el backend distinga "no existe" de "no es tuyo".
 
-### 3.1 · `/perfiles/nuevo` — Selección del método · `PRT-02.02` · CM-46
+### 3.1 · `/perfiles/nuevo` — Selección del método · `PRT-02.02` · CM-46 · CM-270
 
-Fuente: backlog 12092026_01, hoja «Criterios de aceptación», HU-2.2, CA-2.2.1 a CA-2.2.4.
+Fuente: backlog `09102026_01` (v6), hoja HE-02, HU-2.2, CA-2.2.1 a CA-2.2.7.
 
 **Qué hace**
 
 - Punto de entrada para crear un perfil nuevo: dos tarjetas excluyentes, «Llenado Manual» y
   «Autocompletar con IA». Tocar una tarjeta ES la acción — no hay campo para el nombre del perfil
-  ni botón «Continuar» (CA-2.2.1: «El Perfil Profesional se crea vacío, sin nombre_perfil ni ningún
-  otro dato; el POST de creación no recibe cuerpo (body)»; `nombre_perfil` se fija después por
-  `PATCH /api/v1/profiles/{id}`, ver HU-2.3 / §3.2).
-- **CA-2.2.1 (ruta manual) — implementado, salvo la validación de cupo del plan.** Tocar «Llenado
-  Manual» crea el perfil vacío en `IN_PROGRESS` (`POST /api/v1/profiles` sin body) y navega al
-  Formulario de Perfil Profesional (`/perfiles/:id/editar`) con el `id` devuelto. La precondición
-  de cupo que describe el criterio («El sistema valida el cupo del plan... si se excede, dirigir al
-  Paywall») **no se implementa**: el mock no modela ningún límite de plan ni el Paywall de HU-2.12
-  (Sprint 3), y no hay forma de descartar un perfil vacío creado de más (consulta C-03, §8).
-  Mientras la creación está en curso, la tarjeta manual da realimentación inmediata (queda marcada
-  como seleccionada) y se anuncia un indicador de carga; un segundo toque durante ese lapso se
-  ignora, para no crear dos perfiles con el mismo cupo antes de que responda el primero.
+  ni botón «Continuar». El perfil nace vacío, sin nombre y en Borrador; `POST /api/v1/profiles` va
+  sin cuerpo; el método elegido no se guarda como dato del perfil; el nombre se fija después por
+  `PATCH /api/v1/profiles/{id}` (HU-2.3, §3.2).
+- **CA-2.2.1 (ruta manual) — implementado.** Con cupo disponible, tocar «Llenado Manual» crea el
+  perfil (`POST /api/v1/profiles` sin cuerpo → 201, `IN_PROGRESS`, `name` nulo) y navega al
+  Formulario de Perfil Profesional (`/perfiles/:id/editar`) con el `id` devuelto. No hay forma de
+  descartar un perfil vacío creado de más (consulta C-03, §8).
 - **Perfil ya existente (CM-195).** Con `lastUsedProfileId` guardado (`stores/uiPreferences.store.ts`,
   conveniencia de solo cliente, ADR-0004), `NewProfilePage` redirige de inmediato a
   `/perfiles/:id/editar` al montarse (`replace`); al crear con éxito guarda el id en
-  `lastUsedProfileId`. Si `POST /api/v1/profiles` responde `409` (el backend real admite un solo
-  perfil por usuario, memo del PO del 13-sep, C-03) se muestra `profile:metodo.errorYaExiste` en vez
-  del error genérico (`ApiError.isConflict()`). **El mock de `POST /api/v1/profiles` no simula ese
-  `409`.**
-- **CA-2.2.2 (ruta de IA) — NO implementado en Sprint 1.** La tarjeta «Autocompletar con IA» se
-  muestra deshabilitada con la insignia «Próximamente» en vez de navegar a la Carga de CV (HU-2.6),
-  que es Sprint 2 (`CLAUDE.md` §12, abierta 7). Diverge del frame de Figma, que la dibuja habilitada
-  con una insignia «Recomendado» — ver §9.
-- **CA-2.2.3 (rechazo por límite de cupo) — NO implementado.** Ninguna ruta dirige al Paywall
-  (HU-2.12, Sprint 3); el mock no modela ningún rechazo por cupo de plan.
-- **CA-2.2.4 (convergencia de ambas rutas en el mismo perfil) — no aplica a esta pantalla.**
-  Describe el comportamiento posterior, ya dentro del Formulario de Perfil Profesional (§3.2 a
-  §3.4), no la selección del método.
+  `lastUsedProfileId`. Efecto a tener presente: con ese id guardado el selector no se muestra, así que
+  el mensaje de cupo de CA-2.2.3 solo es alcanzable sin él (otro navegador o dispositivo). Si eso es
+  lo que se quiere frente a CA-2.2.3 y CA-2.2.5, está por confirmar.
+- **CA-2.2.2 (ruta de IA) — implementado.** La tarjeta «Autocompletar con IA» se muestra
+  deshabilitada con la etiqueta «Próximamente» (`StateLocked`); no crea ningún perfil, no navega a la
+  carga de la Hoja de Vida (HU-2.6, Sprint 2) y no llama al backend. Diverge del frame de Figma, que
+  la dibuja habilitada con «Recomendado» — ver §9.
+- **CA-2.2.3 (cupo del Plan Free agotado) — implementado en CM-270.**
+  - *Qué se muestra:* la creación se rechaza, no se crea ningún perfil, no se navega, y se muestra
+    «Tu Plan Free permite 1 Perfil Profesional.». Es la versión **provisional del Sprint 2**, sin los
+    botones «Ver planes» y «Ahora no»: el Paywall completo (CA-2.12.1, HU-2.12) es Sprint 3 y
+    reemplazará este mensaje; desde él se irá a «Planes y precios» (HU-8.2).
+  - *Cómo se reconoce:* con una función aislada de la feature, `isProfileLimitReached`
+    (`model/profileLimit.ts`): `error.isConflict() || error.isForbidden()`, acotada a la creación
+    de perfil (en otros endpoints un 409 o un 403
+    significan otra cosa). Se aceptan **los dos contratos a la vez**: 409 `PROFILE_LIMIT_REACHED`
+    hoy y 403 `PLAN_LIMIT` (backlog v6) cuando Backend lo despliegue; Backend avisará cuando esté en
+    `develop` y en staging. Backend pide resolver el caso por `code`; el cliente todavía no lo lee
+    (`ApiError` y `errorMap` no lo exponen y son compartidos con CM-267), así que se decide por
+    estado, conforme al ADR-0007 y a `CLAUDE.md` §8. No se toca `ApiError` ni `errorMap`.
+  - *Riesgo aceptado:* un 403 `EMAIL_NOT_VERIFIED` (GW-TBD-17, pendiente en el Gateway) se mostraría
+    como cupo agotado.
+  - *Presentación:* `AlertInline variant="error"` en la ranura de error que `ProfileMethodSelector`
+    ya tiene; solo cambia el texto que le pasa `NewProfilePage`. No se añade ninguna prop al
+    selector. El texto vive en `profile.json` (`profile:metodo.errorCupoPlan`), no se toma del
+    `detail` del backend (`CLAUDE.md` §8). `profile:metodo.errorYaExiste` («Ya tienes un perfil
+    creado.») se eliminó. El «1» está escrito en el texto provisional, lo que roza `CLAUDE.md` §3.7 (los límites de
+    plan vienen del backend): tensión conocida que resuelve el Paywall.
+- **CA-2.2.4 (perfil vacío y sin método registrado) — vive en el formulario**, no en esta pantalla:
+  `GET /api/v1/profiles/{id}` → 200, `IN_PROGRESS`, `name` nulo, sin campo de método (PRT-02.03,
+  §3.2 a §3.5). El mapper convierte `name` y `summary` nulos en `''` (`profile.mapper.ts`), con prueba
+  en `profile.mapper.test.ts`. Cobertura pendiente: la prueba de «perfil recién creado» de la página
+  usa el mock, que devuelve `name: ''`, y no hay un indicador visible de «Borrador» verificado.
+- **CA-2.2.5 y CA-2.2.6 (Plan Premium: quinto y sexto perfil) — Sprint 3, fuera del Sprint 2.** El
+  PO los movió el 05-oct-2026 («Cambios v4», fila 33) porque requieren el Plan Premium de HU-8.2. No
+  se implementan. Para CA-2.2.6 el rechazo es 403 `PLAN_LIMIT` con «Alcanzaste el máximo de 5
+  Perfiles Profesionales de tu plan.»; el cliente hoy no conoce el plan (`GET /api/v1/users/me` lo
+  devolverá, pero aún no existe) y la redirección por `lastUsedProfileId` impide llegar al selector
+  con un perfil ya creado.
+- **CA-2.2.7 (selección repetida) — comportamiento implementado, literal no.** Mientras la creación
+  está en curso, un segundo toque en «Llenado Manual» se ignora (guarda en `ProfileMethodSelector`):
+  una sola petición, sin Paywall. El backlog dice «el botón queda deshabilitado»; la implementación
+  marca la tarjeta como seleccionada, con `aria-busy` y un `Spinner` con etiqueta, sin atributo
+  `disabled` — ver §9. Backend además nunca crea un segundo perfil.
+- **503 `PROFILE_CREATION_TIMEOUT` — pendiente abierto.** Si otra creación del mismo usuario no
+  termina en 5 s, Backend responde 503 y no crea nada; se puede reintentar. El texto para el
+  usuario no existe en el backlog ni en los documentos de Backend, y no se inventa. Hoy cae en el
+  error genérico (`errors:generico`). El documento de Backend propone mostrar su `detail`, lo que
+  choca con `CLAUDE.md` §8: decisión pendiente.
 
 **Estados**
 
 | Estado      | Qué muestra                                                                                                                                                                       |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Carga       | No aplica al render inicial: la pantalla no depende de datos remotos para mostrar las dos tarjetas. Mientras la creación está en curso, la tarjeta manual queda marcada como seleccionada y se anuncia un indicador de carga; un segundo toque se ignora (ver CA-2.2.1 arriba) |
+| Carga       | No aplica al render inicial: la pantalla no depende de datos remotos para mostrar las dos tarjetas. Mientras la creación está en curso, la tarjeta manual queda marcada como seleccionada, con `aria-busy`, y se anuncia un indicador de carga; un segundo toque se ignora (CA-2.2.7) |
 | Vacío       | No aplica: no hay una colección que pueda estar vacía en esta pantalla                                                                                                            |
-| Error       | `409` de `POST /api/v1/profiles` (ya existe un perfil) → `profile:metodo.errorYaExiste`; cualquier otro fallo, mensaje genérico (`errors:generico`); en ambos casos permite reintentar tocando la tarjeta de nuevo |
+| Error       | Cupo agotado (409 hoy, 403 después) → mensaje de CA-2.2.3 en `AlertInline variant="error"`; cualquier otro fallo, incluido el 503 mientras su texto siga pendiente, mensaje genérico (`errors:generico`); en ambos casos permite reintentar tocando la tarjeta de nuevo |
 | Sin permiso | Ver nota transversal arriba                                                                                                                                                       |
 
 **Validaciones del lado del cliente**
@@ -388,10 +418,17 @@ aquí; cada caso se discrimina por `httpStatus` (confirmado por `ProfileControll
 contexto de su propia mutación, con la llave de i18n movida al namespace de la feature
 (`profile.json`).
 
+> **Nota (9-oct-2026, CM-270).** El documento de Backend del 8-oct publica un catálogo de códigos
+> estables (`code`, `requestId`, y `errors[].code` en validación) que contradice la frase anterior
+> de «sin `code` propio». El cliente todavía no los lee: `ApiError` y `errorMap` no los exponen y son
+> compartidos con CM-267. Hasta que eso se resuelva, esta tabla sigue discriminando por estado HTTP;
+> la fila de cupo acepta los dos contratos (§3.1).
+
 | Causa                 | Cuándo ocurre                                      | Llave de i18n                                       |
 | ---------------------- | -------------------------------------------------- | --------------------------------------------------- |
 | Nombre de perfil inválido | `400` al guardar Información General (`name` vacío o mayor a 255) — inalcanzable en operación normal, el cliente ya bloquea antes de llamar | `profile:general.nombre.errorLongitud` (cliente; residual sin llave propia, cae a `errors:generico`) |
-| Ya existe un perfil    | `409` de `POST /api/v1/profiles` (un solo perfil por usuario; el mock no lo simula) | `profile:metodo.errorYaExiste` |
+| Cupo del Plan Free agotado | `409` `PROFILE_LIMIT_REACHED` (hoy) o `403` `PLAN_LIMIT` (backlog v6, aún sin desplegar) de `POST /api/v1/profiles`; se reconoce por estado, solo en la creación (§3.1) | `profile:metodo.errorCupoPlan` (CM-270) — «Tu Plan Free permite 1 Perfil Profesional.» |
+| Creación que espera demasiado | `503` `PROFILE_CREATION_TIMEOUT` de `POST /api/v1/profiles`: otra creación del mismo usuario no terminó en 5 s; no se crea nada | `errors:generico` hasta que se decida el texto (pendiente abierto, §3.1) |
 | Perfil no encontrado   | `404` de cualquier mutación/consulta sobre `:id` (ver nota §3) | `errors:codigos.NOT_FOUND` — sigue existiendo, es genérico por `httpStatus` |
 | Fecha de experiencia inválida | `422` al agregar experiencia (`ENDED` sin `endDate`, `endDate < startDate`, o `endDate` en un estado que no la admite) | `profile:experiencia.errorFechaInvalida` |
 | Fecha de educación inválida | `422` al agregar educación (`inProgress=true` y `endDate` presente) | `profile:educacion.errorFechaInvalida` |
@@ -435,7 +472,7 @@ columna «Recibe» lista solo estados HTTP.
 
 | Operación                | Método y ruta                        | Envía                                                                     | Recibe                                                                                |
 | ------------------------ | ------------------------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Crear                    | `POST /api/v1/profiles`              | Body opcional; sin `name` crea vacío (memo 11-sep); con `name`, se valida | 201 `ProfileRecord` · 400 (nombre inválido) · 409 (el usuario ya tiene un perfil)     |
+| Crear                    | `POST /api/v1/profiles`              | Sin cuerpo (backlog v6, CA-2.2.1). El mock todavía acepta un `name` opcional y responde 400 si es inválido: residuo que no forma parte del contrato | 201 `ProfileRecord` (`IN_PROGRESS`, `name` nulo) · 409 `PROFILE_LIMIT_REACHED` (cupo agotado, hoy) · 403 `PLAN_LIMIT` (cupo agotado, backlog v6; aún sin desplegar) · 503 `PROFILE_CREATION_TIMEOUT` |
 | Obtener                  | `GET /api/v1/profiles/:id`           | Sin body                                                                  | 200 `ProfileRecord` · 404                                                             |
 | Actualizar información general | `PATCH /api/v1/profiles/:id`   | `name`/`summary` (CM-61: **ya no acepta** `workExperience`/`education` — gestión por ítem, ver abajo) | 200 `ProfileRecord` · 400 (nombre inválido) · 404                                     |
 | Agregar experiencia laboral | `POST /api/v1/profiles/:id/work-experiences` | `AddWorkExperienceRequestDto` (real: `company`, `position`, `description`, `startDate`, `endDate`, `employmentStatus`, `provenance`) | 201 `ProfileRecord` · 400 (validación) · 404 · 422 (fecha inválida) |
@@ -496,7 +533,13 @@ específico).
 
 | Criterio                                                           | Qué hace el frontend que el criterio no dice                                                           |
 | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| CA-2.2.1 a CA-2.2.3 (nombre 1-255)                                 | Bloquea sin llamar al servidor y repite la misma validación al guardar por `PATCH` (§4)                |
+| CA-2.2.1 a CA-2.2.3 del backlog del 6-sep (nombre 1-255) — en v6 esos ids ya no son de nombre | Bloquea sin llamar al servidor y repite la misma validación al guardar por `PATCH` (§4) |
+| CA-2.2.1 (v6) | Guarda `lastUsedProfileId` al crear y, si ya existe, redirige al montar; el método elegido no se guarda en ningún sitio |
+| CA-2.2.2 | La tarjeta de IA queda visible y deshabilitada; sin llamada al backend |
+| CA-2.2.3 | Reconoce el cupo agotado por 409 o 403 a la vez, solo en la creación; texto provisional, sin botones (el Paywall es Sprint 3) |
+| CA-2.2.4 | El mapper convierte `name` y `summary` nulos en `''` |
+| CA-2.2.5, CA-2.2.6 | Sprint 3: no se implementan |
+| CA-2.2.7 | Ignora el segundo toque con la tarjeta seleccionada, `aria-busy` y `Spinner`; no usa `disabled` (§9) |
 | CA-2.4.1 (experiencia `CURRENT`/`UNKNOWN_END` sin fecha de fin)   | Oculta y limpia el campo «Fecha de fin» cuando cualquiera de los dos checkboxes está marcado, en vez de solo omitir el envío |
 | J-01 (gestión por ítem, no PATCH de colección)                    | `POST`/`DELETE` inmediato por ítem; sin `useFieldArray` — la lista visible es siempre la caché del servidor (SPEC.md §9, decisión D-A) |
 | HU-2.4 (educación obligatoria)                                     | El botón «Finalizar» ya valida los 5 requisitos server-side (`POST .../completion`, CM-65) |
@@ -514,8 +557,9 @@ específico).
 | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `src/mocks/handlers/profiles.handlers.ts`                                                       | Infraestructura de apoyo: ciclo completo de mocks del perfil; deriva `summaryProvenance`/`summaryProvenanceOrigin` en el `PATCH` (CA-2.3.1/2/4; solo mock, el backend real no los tiene); CM-61 agrega 4 handlers por ítem (POST/DELETE de experiencia y educación) con las reglas reales de `WorkExperience.java`/`Education.java`; CM-65 agrega 2 handlers por ítem de habilidades y reemplaza el endpoint de finalización por el real (ver §5); CM-69 agrega 3 handlers por ítem de Roles Objetivo (POST/PATCH/DELETE) con las reglas reales de `ProfileController.java`, reemplazando el `PATCH` masivo de `targetRoleIds` que solo existía por no conocer el contrato | `src/mocks/handlers/profiles.handlers.test.ts`                                                     |
 | `src/mocks/handlers/professionalRoles.handlers.ts`                                              | CM-69: simula el catálogo real de roles TI vía GET (ver §5), a partir de `src/mocks/data/catalogs.ts` | `src/mocks/handlers/professionalRoles.handlers.test.ts`                                             |
-| `src/features/professional-profile/organisms/ProfileMethodSelector/ProfileMethodSelector.tsx`  | §3.1 (CM-46): las dos tarjetas excluyentes y la guarda contra doble creación mientras la mutación está en curso            | `src/features/professional-profile/organisms/ProfileMethodSelector/ProfileMethodSelector.test.tsx` |
-| `src/features/professional-profile/pages/NewProfilePage.tsx`                                    | §3.1: la ruta «/perfiles/nuevo» — crea el perfil sin cuerpo al elegir «Llenado Manual» y navega al formulario con el id devuelto; CM-195: redirige si hay lastUsedProfileId y distingue el 409 («ya existe») del error genérico | `src/features/professional-profile/pages/NewProfilePage.test.tsx`                            |
+| `src/features/professional-profile/organisms/ProfileMethodSelector/ProfileMethodSelector.tsx`  | §3.1 (CM-46): las dos tarjetas excluyentes y la guarda contra doble creación mientras la mutación está en curso (CA-2.2.7); CM-270: sin cambios, el mensaje de cupo entra por `errorMessage` y no se añaden props; la prueba suma la afirmación de «Próximamente» (CA-2.2.2) | `src/features/professional-profile/organisms/ProfileMethodSelector/ProfileMethodSelector.test.tsx` |
+| `src/features/professional-profile/pages/NewProfilePage.tsx`                                    | §3.1: la ruta «/perfiles/nuevo» — crea el perfil sin cuerpo al elegir «Llenado Manual» y navega al formulario con el id devuelto; CM-195: redirige si hay lastUsedProfileId; CM-270: sustituye el 409 «ya existe» por el reconocimiento del cupo agotado (409 o 403) con `profile:metodo.errorCupoPlan`, el texto provisional de CA-2.2.3; la creación sigue en la página (deuda, nota técnica 4) | `src/features/professional-profile/pages/NewProfilePage.test.tsx`                            |
+| `src/features/professional-profile/model/profileLimit.ts`                                       | §3.1 (CM-270): `isProfileLimitReached` — reconoce el cupo agotado de la creación de perfil por estado, `409` o `403` a la vez (CA-2.2.3); acotada a esa llamada, con el riesgo aceptado del `403 EMAIL_NOT_VERIFIED` en su TSDoc | `src/features/professional-profile/model/profileLimit.test.ts`                                      |
 | `src/features/professional-profile/model/profile.constants.ts`                                  | §3.2/§3.3/§3.4/§3.5: límites y constantes de negocio; CM-61 agrega `DESCRIPTION_MAX_LENGTH`, `EDUCATION_LEVELS`, `MANUAL_PROVENANCE`, `PROFILE_COMPLETENESS_MAX`, ids de formulario, `DESKTOP_MEDIA_QUERY`; CM-65 agrega `SKILL_LEVELS`, `SKILL_NAME_MAX_LENGTH`, `SKILLS_FORM_ID`; CM-69 agrega `MAX_TARGET_ROLES` | cubierto por las pruebas de los organismos y `EditProfilePage`                                    |
 | `src/features/professional-profile/model/profile.types.ts`                                      | §3.2/§3.3/§3.4/§3.5: tipos de dominio; CM-61 agrega `EducationItem`, `WorkExperienceItem`, `EducationLevel`, `EmploymentStatus`, `DataProvenance`, `YearMonth` (valores confirmados contra el backend real); CM-65 agrega `SkillItem`, `SkillLevel`; CM-69 agrega `ProfessionalRole`, `TargetRoleItem` (mismo nivel de confianza) | cubierto por las pruebas de los organismos y `EditProfilePage`                                    |
 | `src/features/professional-profile/model/yearMonth.ts`                                          | §3.3 (CM-61): `toYearMonth`/`formatYearMonth` — trunca la fecha del selector nativo a `YearMonth` (bloqueo C-14)            | `src/features/professional-profile/model/yearMonth.test.ts`                                          |
@@ -611,13 +655,13 @@ global ya corriendo, es un segundo reset inocuo, no un conflicto.
    «Recomendado». Se implementa deshabilitada, con la insignia «Próximamente», porque HU-2.6 a
    HU-2.10 son Sprint 2 (`CLAUDE.md` §12 abierta 7) y por la regla de autoridad de `CLAUDE.md` §16.
    El tratamiento visual se alinea con el de voz y video (D-04, D-05). Figma se actualiza después.
-2. Texto de pie del frame PRT-02.02, omitido en esta implementación. El frame muestra, debajo de
-   las dos tarjetas, esta frase literal: «Puedes combinar las dos: empezar manual y subir tu CV
-   después, o al revés.» Se omite porque promete la carga de CV, que es HU-2.6 (Sprint 2) y no
-   existe en Sprint 1; con la tarjeta de IA deshabilitada, el texto ofrecería al usuario una salida
-   inexistente. Queda transcrito aquí para recuperarlo desde el repositorio cuando entre HU-2.6,
-   sin volver a consultar Figma. Reescribirlo en vez de omitirlo sería inventar contenido de
-   producto.
+2. Texto de pie del frame PRT-02.02, **descartado**. El frame muestra, debajo de las dos tarjetas,
+   esta frase literal: «Puedes combinar las dos: empezar manual y subir tu CV después, o al
+   revés.» Contradice el backlog v6 (en el MVP solo «Llenado Manual» está habilitado; la IA se
+   muestra deshabilitada con «Próximamente»), así que no se implementa ni se guarda para
+   recuperarlo: ya no es «omitido para Sprint 1» ni vuelve con HU-2.6. La frase queda transcrita aquí
+   únicamente como registro de lo que dibuja el frame. El prototipo está congelado hasta fin de
+   semestre como referencia estética; su corrección en Figma queda pendiente.
 3. Cabecera de `AppShell` (layout compartido de `/inicio`, `/perfiles/nuevo` y
    `/perfiles/:id/roles`, no exclusivo de esta feature): el frame dibuja un logotipo compuesto de
    glifo vectorial + wordmark «cameia» (nodo `logo`, `121:184` en sm, `191:500` en lg). Se
@@ -628,6 +672,17 @@ global ya corriendo, es un segundo reset inocuo, no un conflicto.
    avatar y el menú de usuario del `nav-header` del frame lg quedaron fuera en CM-46; **hoy ya
    existen** (`MenuUsuario` en el `<header>` de `AppShell` y cierre de sesión, CM-194 — ver
    `src/features/auth/SPEC.md` §3). Solo sigue vigente la parte del glifo del logo.
+
+**Divergencias respecto al backlog v6, HU-2.2 (CM-270, 9-oct-2026).**
+
+1. CA-2.2.7: el backlog dice «el botón queda deshabilitado mientras la creación está en curso»; la
+   implementación mantiene la tarjeta activa, la marca como seleccionada con `aria-busy` y un
+   `Spinner`, e ignora el segundo toque. Usar `CardSelectable state="disabled"` la haría verse igual
+   que la tarjeta de IA. El comportamiento (una sola petición) cumple; el literal no.
+2. CA-2.2.3: se implementa la versión provisional del criterio, con el texto corto y sin «Ver planes»
+   ni «Ahora no», porque el Paywall (CA-2.12.1) es Sprint 3.
+3. CA-2.2.3: el cupo se reconoce por estado HTTP (409 o 403), no por `code` como pide Backend, porque
+   `ApiError` y `errorMap` son compartidos con CM-267 y no se tocan en esta tarea.
 
 **Divergencias respecto a Figma, PRT-02.03 (CM-53, verificadas 14-sep-2026 — nodos `140:960` lg /
 `142:638` sm).**
@@ -887,3 +942,17 @@ nombreCompleto`/`fechaNacimiento`/`ciudad`, `educacion.confirmacionEliminada`,
 `experiencia.confirmacionEliminada`, `rolesObjetivo.confirmacionSustituido` y
 `rolesObjetivo.confirmacionEliminado`. No se limpian aquí (el SPEC no toca `profile.json`); la
 segunda divergencia de arriba queda, por tanto, solo parcialmente cerrada.
+
+**Pendiente explícito, fuera de CM-270: las eliminaciones responden 204 y el cliente aún lee cuerpo.**
+
+- **Qué:** `profile.api.ts` lee el cuerpo de la respuesta en las cuatro eliminaciones
+  (`removeEducation`, `removeWorkExperience`, `removeSkill` y `removeTargetRole`; la última en las
+  líneas 128-131). `httpClient` devuelve `undefined` ante un 204 (`httpClient.ts:104`), así que
+  `toProfile(undefined)` fallaría. El backend ya responde 204 según el documento de Backend del
+  8-oct-2026 (no verificado contra el servicio).
+- **Origen:** documento de Backend del 8-oct-2026, cambio 2, que lo atribuye a CM-270.
+- **Por qué queda fuera:** pertenece a HU-2.4, HU-2.5 y HU-2.11, no a HU-2.2. Decisión registrada
+  al abrir CM-270.
+- **Dueño:** por definir en la reunión.
+- **Aviso de coordinación:** toca `profile.api.ts`, el mismo archivo que CM-270 modificará al sacar
+  la creación del perfil de `NewProfilePage`. Quien lo tome debe coordinar el orden con CM-270.

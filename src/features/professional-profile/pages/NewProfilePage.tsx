@@ -14,16 +14,15 @@
  * menciona para HU-2.2 (C-02) — funciona contra el mock, no necesariamente
  * contra el backend real.
  *
- * CA-2.2.2 (ruta de IA) y CA-2.2.3 (rechazo por límite de cupo) NO se
- * implementan: la tarjeta de IA está deshabilitada (Sprint 2) y el mock no
- * modela ningún límite de plan. Ver SPEC §3.1 y §9.
+ * CA-2.2.2 (ruta de IA): la tarjeta de IA está deshabilitada, no hace nada
+ * aquí. Ver SPEC §3.1 y §9.
  *
- * **CM-195 (decisión D-I):** `ProfileAlreadyExistsException`/`409` es real
- * (`ProfileController.java#createProfile`, confirmado contra el código
- * fuente) — un usuario que ya tiene un perfil y de todas formas llega aquí
- * (p. ej. por el botón atrás del navegador) ve un mensaje propio, no el
- * genérico de `errors:generico`. Sin `errors[]` en ese `409` (no es un
- * campo inválido), así que basta `ApiError.isConflict()`.
+ * **CM-270 (CA-2.2.3):** el rechazo por cupo agotado (`409` hoy, `403` cuando
+ * Backend despliegue `PLAN_LIMIT`) se reconoce con `isProfileLimitReached` y
+ * muestra `profile:metodo.errorCupoPlan`, versión provisional del Paywall
+ * (Sprint 3). Sustituye al mensaje de CM-195 (decisión D-I), que trataba
+ * cualquier `409` como «ya tienes un perfil». Cualquier otro fallo sigue
+ * mostrando `errors:generico`.
  *
  * Al crear con éxito, guarda el id en `lastUsedProfileId`
  * (`stores/uiPreferences.store.ts`) — conveniencia de cliente ya prevista
@@ -38,9 +37,9 @@ import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
-import { ApiError } from '@/services/http/ApiError';
 import { httpClient } from '@/services/http/httpClient';
 import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
+import { isProfileLimitReached } from '../model/profileLimit';
 import { ProfileMethodSelector } from '../organisms/ProfileMethodSelector';
 
 interface CreateProfileResponse {
@@ -70,10 +69,7 @@ export function NewProfilePage() {
     },
   });
 
-  const isAlreadyExists =
-    createProfile.isError &&
-    createProfile.error instanceof ApiError &&
-    createProfile.error.isConflict();
+  const isLimitReached = createProfile.isError && isProfileLimitReached(createProfile.error);
 
   return (
     <section className="py-space-6 mx-auto max-w-[45rem]">
@@ -90,8 +86,8 @@ export function NewProfilePage() {
         loading={createProfile.isPending}
         errorMessage={
           createProfile.isError
-            ? isAlreadyExists
-              ? t('profile:metodo.errorYaExiste')
+            ? isLimitReached
+              ? t('profile:metodo.errorCupoPlan')
               : t('errors:generico')
             : undefined
         }
