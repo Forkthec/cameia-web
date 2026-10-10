@@ -7,8 +7,9 @@
  * de mutaciones de esta feature.
  *
  * Un 422 (perfil incompleto) también es un `ApiError` normal: el llamador
- * lo distingue por `httpStatus === 422` (sin `code` propio, `ADR-0007`) y
- * lee `error.errors` (un `{field, message}` por requisito incumplido) para
+ * lo distingue por `httpStatus === 422` (el backend también envía el `code`
+ * `PROFILE_INCOMPLETE`, `ADR-0008`; migrar este consumidor a `code` queda fuera
+ * de CM-298) y lee `error.errors` (un `{field, message}` por requisito incumplido) para
  * mostrarlos todos a la vez, nunca solo el primero.
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';

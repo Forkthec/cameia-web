@@ -3,13 +3,13 @@ feature: professional-profile
 estado: EN_CURSO
 hu: [HU-2.2, HU-2.3, HU-2.4, HU-2.5, HU-2.11]
 prt: [PRT-02.02, PRT-02.03, PRT-02.07]
-jira: [CM-46, CM-53, CM-61, CM-65, CM-69, CM-195, CM-243, CM-270]
+jira: [CM-46, CM-53, CM-61, CM-65, CM-69, CM-195, CM-243, CM-270, CM-298]
 rutas: [/perfiles/nuevo, /perfiles/:id/editar, /perfiles/:id/roles]
 documentacion: tsdoc-es
 backlog: 09102026_01
 decisiones: [10092026_v1, 11092026_v2, 11092026_v1, 13092026_v1]
 figma: Cameia · Mockups MVP
-revisado: 2026-10-09
+revisado: 2026-10-10
 ---
 
 # Feature · Perfil Profesional
@@ -126,16 +126,18 @@ Fuente: backlog `09102026_01` (v6), hoja HE-02, HU-2.2, CA-2.2.1 a CA-2.2.7.
     «Tu Plan Free permite 1 Perfil Profesional.». Es la versión **provisional del Sprint 2**, sin los
     botones «Ver planes» y «Ahora no»: el Paywall completo (CA-2.12.1, HU-2.12) es Sprint 3 y
     reemplazará este mensaje; desde él se irá a «Planes y precios» (HU-8.2).
-  - *Cómo se reconoce:* con una función aislada de la feature, `isProfileLimitReached`
-    (`model/profileLimit.ts`): `error.isConflict() || error.isForbidden()`, acotada a la creación
-    de perfil (en otros endpoints un 409 o un 403
-    significan otra cosa). Se aceptan **los dos contratos a la vez**: 409 `PROFILE_LIMIT_REACHED`
-    hoy y 403 `PLAN_LIMIT` (backlog v6) cuando Backend lo despliegue; Backend avisará cuando esté en
-    `develop` y en staging. Backend pide resolver el caso por `code`; el cliente todavía no lo lee
-    (`ApiError` y `errorMap` no lo exponen y son compartidos con CM-267), así que se decide por
-    estado, conforme al ADR-0007 y a `CLAUDE.md` §8. No se toca `ApiError` ni `errorMap`.
-  - *Riesgo aceptado:* un 403 `EMAIL_NOT_VERIFIED` (GW-TBD-17, pendiente en el Gateway) se mostraría
-    como cupo agotado.
+  - *Cómo se reconoce (CM-298, `ADR-0008`):* por `code`, no por estado HTTP, con una función
+    aislada de la feature, `isProfileLimitReached` (`model/profileLimit.ts`), acotada a la creación
+    de perfil (en otros endpoints el mismo estado significa otra cosa). Reconoce
+    `PROFILE_LIMIT_REACHED` (`409`, hoy) y `PLAN_LIMIT` (`403`, backlog v6) a la vez, porque Backend
+    cambia estado y código juntos al desplegar el segundo y el front no debe tocarse de nuevo.
+    **Es estricto:** un `409` o un `403` sin `code`, o con otro `code`, **no** es cupo agotado y cae
+    en el mensaje genérico (`errors:generico`). CM-270 lo resolvió por estado
+    (`error.isConflict() || error.isForbidden()`) porque `ApiError` no exponía el `code`; ese criterio
+    mostraba como cupo agotado el `409 PROFILE_CREATION_IN_PROGRESS` y el `403 EMAIL_NOT_VERIFIED`.
+  - *Qué ya no es cupo agotado:* `PROFILE_CREATION_IN_PROGRESS` (`409`, ver más abajo),
+    `EMAIL_NOT_VERIFIED` (`403` del Gateway, cuerpo `{code, message}`; su manejo es de la
+    verificación de correo, HU-1.2, no de esta pantalla) y cualquier otro código del catálogo.
   - *Presentación:* `AlertInline variant="error"` en la ranura de error que `ProfileMethodSelector`
     ya tiene; solo cambia el texto que le pasa `NewProfilePage`. No se añade ninguna prop al
     selector. El texto vive en `profile.json` (`profile:metodo.errorCupoPlan`), no se toma del
@@ -158,11 +160,18 @@ Fuente: backlog `09102026_01` (v6), hoja HE-02, HU-2.2, CA-2.2.1 a CA-2.2.7.
   una sola petición, sin Paywall. El backlog dice «el botón queda deshabilitado»; la implementación
   marca la tarjeta como seleccionada, con `aria-busy` y un `Spinner` con etiqueta, sin atributo
   `disabled` — ver §9. Backend además nunca crea un segundo perfil.
-- **503 `PROFILE_CREATION_TIMEOUT` — pendiente abierto.** Si otra creación del mismo usuario no
-  termina en 5 s, Backend responde 503 y no crea nada; se puede reintentar. El texto para el
-  usuario no existe en el backlog ni en los documentos de Backend, y no se inventa. Hoy cae en el
-  error genérico (`errors:generico`). El documento de Backend propone mostrar su `detail`, lo que
-  choca con `CLAUDE.md` §8: decisión pendiente.
+- **Creación en curso (CM-298) — `409 PROFILE_CREATION_IN_PROGRESS`.** Si otra creación del mismo
+  usuario no termina en 5 s, Backend responde `409` y no crea nada; se puede reintentar. Sustituye
+  al `503 PROFILE_CREATION_TIMEOUT`, que ya no existe en `cameia-perfil` (commit `147d1e8`, PR #80,
+  en `develop`). Se muestra «Estamos creando tu perfil. Inténtalo de nuevo en unos segundos.», el
+  texto literal publicado por Backend (documento del 9-oct, §2.2; el del 8-oct, §3 y §7.1, ya lo
+  traía para el `503`), en `AlertInline variant="error"` y por la misma ranura de error que el
+  cupo agotado, pero **no** con el texto de CA-2.2.3. El texto vive en `profile.json`
+  (`profile:metodo.errorCreacionEnCurso`, llave nueva), no se toma del `detail` (`CLAUDE.md` §8). La
+  tarjeta sigue activa y el usuario reintenta tocándola; no se navega ni se guarda
+  `lastUsedProfileId`. El texto en inglés es una traducción de trabajo, como el resto de `en`
+  (`CLAUDE.md` §7). La nota anterior de este SPEC decía que el texto «no existía en el backlog ni en
+  los documentos de Backend»: era un error, ya estaba en el documento del 8-oct.
 
 **Estados**
 
@@ -170,7 +179,7 @@ Fuente: backlog `09102026_01` (v6), hoja HE-02, HU-2.2, CA-2.2.1 a CA-2.2.7.
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Carga       | No aplica al render inicial: la pantalla no depende de datos remotos para mostrar las dos tarjetas. Mientras la creación está en curso, la tarjeta manual queda marcada como seleccionada, con `aria-busy`, y se anuncia un indicador de carga; un segundo toque se ignora (CA-2.2.7) |
 | Vacío       | No aplica: no hay una colección que pueda estar vacía en esta pantalla                                                                                                            |
-| Error       | Cupo agotado (409 hoy, 403 después) → mensaje de CA-2.2.3 en `AlertInline variant="error"`; cualquier otro fallo, incluido el 503 mientras su texto siga pendiente, mensaje genérico (`errors:generico`); en ambos casos permite reintentar tocando la tarjeta de nuevo |
+| Error       | Cupo agotado (`code` `PROFILE_LIMIT_REACHED` hoy, `PLAN_LIMIT` después) → mensaje de CA-2.2.3 en `AlertInline variant="error"`; `PROFILE_CREATION_IN_PROGRESS` → «Estamos creando tu perfil. Inténtalo de nuevo en unos segundos.»; cualquier otro fallo, incluido un `409` o `403` sin `code`, mensaje genérico (`errors:generico`); en todos permite reintentar tocando la tarjeta de nuevo |
 | Sin permiso | Ver nota transversal arriba                                                                                                                                                       |
 
 **Validaciones del lado del cliente**
@@ -214,7 +223,7 @@ Fuente: backlog `09102026_01` (v6), hoja HE-02, HU-2.2, CA-2.2.1 a CA-2.2.7.
 
 - `name`: vacío o mayor a 255 caracteres bloquea sin llamar al servidor (CA-2.2.1 a CA-2.2.3,
   límite confirmado por la respuesta oficial del PO del 13-sep — ver §8, C-01). El backend real
-  (`400`, sin `code` propio, `ADR-0007`) es solo defensa en profundidad — ver §4.
+  (hoy `422` `VALIDATION_FAILED` según el catálogo del 8-oct, `ADR-0008`) es solo defensa en profundidad — ver §4.
 - `summary`: más de 2000 caracteres bloquea sin llamar al servidor (`maxLength` del campo) y muestra
   el contador de caracteres restantes (CA-2.3.3, `GLOSSARY.md` §2). El frame de Figma muestra el
   contador en 600, no 2000 — se mantiene 2000 por decisión explícita (bloqueo **C-11**, §8).
@@ -409,9 +418,9 @@ CM-65.
 
 **Errores que el usuario puede ver**
 
-**Actualizado 19-sep-2026 (`ADR-0007`, seguimiento de CM-34):** el backend real
-(`ApiExceptionHandler.java`, `cameia-perfil`) responde `ProblemDetail` (RFC 7807) **sin `code`
-propio** — se confirmó al reescribir `ApiError`/`errorMap.ts` contra el mismo contrato que
+**Actualizado 19-sep-2026 (`ADR-0007`, seguimiento de CM-34; sustituido por `ADR-0008` el
+10-oct-2026, que sí contempla `code`):** el backend real (`ApiExceptionHandler.java`,
+`cameia-perfil`) respondía entonces `ProblemDetail` (RFC 7807) **sin `code` propio** — se confirmó al reescribir `ApiError`/`errorMap.ts` contra el mismo contrato que
 `cameia-cuentas`. Los códigos de esta tabla (`PROFILE_NAME_INVALID`, `WORK_EXPERIENCE_DATE_INVALID`,
 etc.) eran invenciones del mock, nunca confirmadas con backend — se retiran de `errors.json` y de
 aquí; cada caso se discrimina por `httpStatus` (confirmado por `ProfileController.java`) dentro del
@@ -420,15 +429,16 @@ contexto de su propia mutación, con la llave de i18n movida al namespace de la 
 
 > **Nota (9-oct-2026, CM-270).** El documento de Backend del 8-oct publica un catálogo de códigos
 > estables (`code`, `requestId`, y `errors[].code` en validación) que contradice la frase anterior
-> de «sin `code` propio». El cliente todavía no los lee: `ApiError` y `errorMap` no los exponen y son
-> compartidos con CM-267. Hasta que eso se resuelva, esta tabla sigue discriminando por estado HTTP;
-> la fila de cupo acepta los dos contratos (§3.1).
+> de «sin `code` propio». Con CM-298 (`ADR-0008`) `ApiError` y `errorMap` pasan a exponerlos; hasta
+> que se implemente, y para todo lo que no sea la creación del perfil, esta tabla sigue discriminando
+> por estado HTTP. Solo las filas de la creación (cupo agotado y creación en curso) se resuelven por
+> `code` (§3.1).
 
 | Causa                 | Cuándo ocurre                                      | Llave de i18n                                       |
 | ---------------------- | -------------------------------------------------- | --------------------------------------------------- |
 | Nombre de perfil inválido | `400` al guardar Información General (`name` vacío o mayor a 255) — inalcanzable en operación normal, el cliente ya bloquea antes de llamar | `profile:general.nombre.errorLongitud` (cliente; residual sin llave propia, cae a `errors:generico`) |
-| Cupo del Plan Free agotado | `409` `PROFILE_LIMIT_REACHED` (hoy) o `403` `PLAN_LIMIT` (backlog v6, aún sin desplegar) de `POST /api/v1/profiles`; se reconoce por estado, solo en la creación (§3.1) | `profile:metodo.errorCupoPlan` (CM-270) — «Tu Plan Free permite 1 Perfil Profesional.» |
-| Creación que espera demasiado | `503` `PROFILE_CREATION_TIMEOUT` de `POST /api/v1/profiles`: otra creación del mismo usuario no terminó en 5 s; no se crea nada | `errors:generico` hasta que se decida el texto (pendiente abierto, §3.1) |
+| Cupo del Plan Free agotado | `409` `PROFILE_LIMIT_REACHED` (hoy) o `403` `PLAN_LIMIT` (backlog v6, aún sin desplegar) de `POST /api/v1/profiles`; se reconoce por `code`, sin respaldo por estado, solo en la creación (§3.1, `ADR-0008`) | `profile:metodo.errorCupoPlan` (CM-270) — «Tu Plan Free permite 1 Perfil Profesional.» |
+| Creación en curso | `409` `PROFILE_CREATION_IN_PROGRESS` de `POST /api/v1/profiles` (sustituye al `503 PROFILE_CREATION_TIMEOUT`): otra creación del mismo usuario no terminó en 5 s; no se crea nada (CM-298, §3.1) | `profile:metodo.errorCreacionEnCurso` (llave nueva, CM-298) — «Estamos creando tu perfil. Inténtalo de nuevo en unos segundos.» |
 | Perfil no encontrado   | `404` de cualquier mutación/consulta sobre `:id` (ver nota §3) | `errors:codigos.NOT_FOUND` — sigue existiendo, es genérico por `httpStatus` |
 | Fecha de experiencia inválida | `422` al agregar experiencia (`ENDED` sin `endDate`, `endDate < startDate`, o `endDate` en un estado que no la admite) | `profile:experiencia.errorFechaInvalida` |
 | Fecha de educación inválida | `422` al agregar educación (`inProgress=true` y `endDate` presente) | `profile:educacion.errorFechaInvalida` |
@@ -464,26 +474,28 @@ De paso se confirmaron y agregaron al DTO los campos reales que faltaban: `revie
 (regla de crecimiento, `CLAUDE.md §4`). `name`/`summary` también se corrigieron a `string | null`:
 el backend real los manda `null` en un perfil recién creado, no `''`.
 
-**Los errores se discriminan por `httpStatus` y, cuando el backend lo etiqueta, por `errors[].field`
-(`ADR-0007`, `CLAUDE.md` §8).** El backend real no envía ningún código propio: los identificadores
+**Los errores se discriminan por `code` (`ADR-0008`, `CLAUDE.md` §8); `httpStatus` y
+`errors[].field` valen para las clases amplias y la ubicación por campo.** Esta sección (HU-2.3, 2.4,
+2.5 y 2.11) se escribió cuando el backend no enviaba código (`ADR-0007`) y sigue por estado: migrarla
+es trabajo aparte (§9). Entonces, los identificadores
 `PROFILE_NAME_INVALID`, `VALIDATION_ERROR`, `SKILL_DUPLICATE`, `TARGET_ROLE_*`, `PROFILE_INCOMPLETE`,
 etc. que traía esta tabla eran invenciones del mock (el mock tampoco los envía) y se retiraron: la
 columna «Recibe» lista solo estados HTTP.
 
 | Operación                | Método y ruta                        | Envía                                                                     | Recibe                                                                                |
 | ------------------------ | ------------------------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Crear                    | `POST /api/v1/profiles`              | Sin cuerpo (backlog v6, CA-2.2.1). El mock todavía acepta un `name` opcional y responde 400 si es inválido: residuo que no forma parte del contrato | 201 `ProfileRecord` (`IN_PROGRESS`, `name` nulo) · 409 `PROFILE_LIMIT_REACHED` (cupo agotado, hoy) · 403 `PLAN_LIMIT` (cupo agotado, backlog v6; aún sin desplegar) · 503 `PROFILE_CREATION_TIMEOUT` |
+| Crear                    | `POST /api/v1/profiles`              | Sin cuerpo (backlog v6, CA-2.2.1). El mock todavía acepta un `name` opcional y responde 400 si es inválido: residuo que no forma parte del contrato | 201 `ProfileRecord` (`IN_PROGRESS`, `name` nulo) · 409 `PROFILE_LIMIT_REACHED` (cupo agotado, hoy) · 403 `PLAN_LIMIT` (cupo agotado, backlog v6; aún sin desplegar) · 409 `PROFILE_CREATION_IN_PROGRESS` (otra creación sin terminar; sustituye al 503 `PROFILE_CREATION_TIMEOUT`) |
 | Obtener                  | `GET /api/v1/profiles/:id`           | Sin body                                                                  | 200 `ProfileRecord` · 404                                                             |
 | Actualizar información general | `PATCH /api/v1/profiles/:id`   | `name`/`summary` (CM-61: **ya no acepta** `workExperience`/`education` — gestión por ítem, ver abajo) | 200 `ProfileRecord` · 400 (nombre inválido) · 404                                     |
 | Agregar experiencia laboral | `POST /api/v1/profiles/:id/work-experiences` | `AddWorkExperienceRequestDto` (real: `company`, `position`, `description`, `startDate`, `endDate`, `employmentStatus`, `provenance`) | 201 `ProfileRecord` · 400 (validación) · 404 · 422 (fecha inválida) |
-| Eliminar experiencia laboral | `DELETE /api/v1/profiles/:id/work-experiences/:workExperienceId` | Sin body | 200 `ProfileRecord` · 404 |
+| Eliminar experiencia laboral | `DELETE /api/v1/profiles/:id/work-experiences/:workExperienceId` | Sin body | 204 sin cuerpo · 404 |
 | Agregar educación | `POST /api/v1/profiles/:id/educations` | `AddEducationRequestDto` (real: `institution`, `degree`, `fieldOfStudy`, `level`, `startDate`, `endDate`, `inProgress`, `provenance`) | 201 `ProfileRecord` · 400 (validación) · 404 · 422 (fecha inválida) |
-| Eliminar educación | `DELETE /api/v1/profiles/:id/educations/:educationId` | Sin body | 200 `ProfileRecord` · 404 |
+| Eliminar educación | `DELETE /api/v1/profiles/:id/educations/:educationId` | Sin body | 204 sin cuerpo · 404 |
 | Agregar habilidad | `POST /api/v1/profiles/:id/skills` | `AddSkillRequestDto` (real: `skillName`, `level`, `provenance`) | 201 `ProfileRecord` · 400 (validación) · 404 · 409 (duplicada, cuando Backend lo active — C-06) |
-| Eliminar habilidad | `DELETE /api/v1/profiles/:id/skills/:skillId` | Sin body | 200 `ProfileRecord` · 404 |
+| Eliminar habilidad | `DELETE /api/v1/profiles/:id/skills/:skillId` | Sin body | 204 sin cuerpo · 404 |
 | Agregar rol objetivo | `POST /api/v1/profiles/:id/target-roles` | `AddTargetRoleRequestDto` (real: `professionalRoleId`, `provenance`) | 201 `ProfileRecord` · 400 (validación) · 404 · 409 (duplicado) · 422 (tope de roles) |
 | Sustituir rol objetivo | `PATCH /api/v1/profiles/:id/target-roles/:roleId` | `UpdateTargetRoleRequestDto` (real: `professionalRoleId`) | 200 `ProfileRecord` · 400 (validación) · 404 · 409 (duplicado) |
-| Eliminar rol objetivo | `DELETE /api/v1/profiles/:id/target-roles/:roleId` | Sin body | 200 `ProfileRecord` · 404 · 422 (último rol de un perfil `COMPLETED`) |
+| Eliminar rol objetivo | `DELETE /api/v1/profiles/:id/target-roles/:roleId` | Sin body | 204 sin cuerpo · 404 · 422 (último rol de un perfil `COMPLETED`) |
 | Catálogo de roles profesionales | `GET /api/v1/profiles/professional-roles` | Sin body | 200 `ProfessionalRoleDto[]` (`{id, nombre, categoria}`) |
 | Finalizar                | `POST /api/v1/profiles/:id/completion` | Sin body                                                                  | 201 `ProfileRecord` (status `COMPLETED`) · 404 · 409 (ya completado) · 422 (requisitos incumplidos: todos a la vez en `errors[]`, un `{field, message}` por requisito) |
 
@@ -558,8 +570,8 @@ específico).
 | `src/mocks/handlers/profiles.handlers.ts`                                                       | Infraestructura de apoyo: ciclo completo de mocks del perfil; deriva `summaryProvenance`/`summaryProvenanceOrigin` en el `PATCH` (CA-2.3.1/2/4; solo mock, el backend real no los tiene); CM-61 agrega 4 handlers por ítem (POST/DELETE de experiencia y educación) con las reglas reales de `WorkExperience.java`/`Education.java`; CM-65 agrega 2 handlers por ítem de habilidades y reemplaza el endpoint de finalización por el real (ver §5); CM-69 agrega 3 handlers por ítem de Roles Objetivo (POST/PATCH/DELETE) con las reglas reales de `ProfileController.java`, reemplazando el `PATCH` masivo de `targetRoleIds` que solo existía por no conocer el contrato | `src/mocks/handlers/profiles.handlers.test.ts`                                                     |
 | `src/mocks/handlers/professionalRoles.handlers.ts`                                              | CM-69: simula el catálogo real de roles TI vía GET (ver §5), a partir de `src/mocks/data/catalogs.ts` | `src/mocks/handlers/professionalRoles.handlers.test.ts`                                             |
 | `src/features/professional-profile/organisms/ProfileMethodSelector/ProfileMethodSelector.tsx`  | §3.1 (CM-46): las dos tarjetas excluyentes y la guarda contra doble creación mientras la mutación está en curso (CA-2.2.7); CM-270: sin cambios, el mensaje de cupo entra por `errorMessage` y no se añaden props; la prueba suma la afirmación de «Próximamente» (CA-2.2.2) | `src/features/professional-profile/organisms/ProfileMethodSelector/ProfileMethodSelector.test.tsx` |
-| `src/features/professional-profile/pages/NewProfilePage.tsx`                                    | §3.1: la ruta «/perfiles/nuevo» — crea el perfil sin cuerpo al elegir «Llenado Manual» y navega al formulario con el id devuelto; CM-195: redirige si hay lastUsedProfileId; CM-270: sustituye el 409 «ya existe» por el reconocimiento del cupo agotado (409 o 403) con `profile:metodo.errorCupoPlan`, el texto provisional de CA-2.2.3; la creación sigue en la página (deuda, nota técnica 4) | `src/features/professional-profile/pages/NewProfilePage.test.tsx`                            |
-| `src/features/professional-profile/model/profileLimit.ts`                                       | §3.1 (CM-270): `isProfileLimitReached` — reconoce el cupo agotado de la creación de perfil por estado, `409` o `403` a la vez (CA-2.2.3); acotada a esa llamada, con el riesgo aceptado del `403 EMAIL_NOT_VERIFIED` en su TSDoc | `src/features/professional-profile/model/profileLimit.test.ts`                                      |
+| `src/features/professional-profile/pages/NewProfilePage.tsx`                                    | §3.1: la ruta «/perfiles/nuevo» — crea el perfil sin cuerpo al elegir «Llenado Manual» y navega al formulario con el id devuelto; CM-195: redirige si hay lastUsedProfileId; CM-270: sustituye el 409 «ya existe» por el reconocimiento del cupo agotado con `profile:metodo.errorCupoPlan`, el texto provisional de CA-2.2.3 (CM-298: por `code`, y suma `profile:metodo.errorCreacionEnCurso` para `PROFILE_CREATION_IN_PROGRESS`); la creación sigue en la página (deuda, nota técnica 4) | `src/features/professional-profile/pages/NewProfilePage.test.tsx`                            |
+| `src/features/professional-profile/model/profileLimit.ts`                                       | §3.1 (CM-270): `isProfileLimitReached` — reconoce el cupo agotado de la creación de perfil por `code` (`PROFILE_LIMIT_REACHED` o `PLAN_LIMIT`), sin respaldo por estado (CA-2.2.3, CM-298, `ADR-0008`); acotada a esa llamada; CM-298 suma `isProfileCreationInProgress` para `PROFILE_CREATION_IN_PROGRESS` | `src/features/professional-profile/model/profileLimit.test.ts`                                      |
 | `src/features/professional-profile/model/profile.constants.ts`                                  | §3.2/§3.3/§3.4/§3.5: límites y constantes de negocio; CM-61 agrega `DESCRIPTION_MAX_LENGTH`, `EDUCATION_LEVELS`, `MANUAL_PROVENANCE`, `PROFILE_COMPLETENESS_MAX`, ids de formulario, `DESKTOP_MEDIA_QUERY`; CM-65 agrega `SKILL_LEVELS`, `SKILL_NAME_MAX_LENGTH`, `SKILLS_FORM_ID`; CM-69 agrega `MAX_TARGET_ROLES` | cubierto por las pruebas de los organismos y `EditProfilePage`                                    |
 | `src/features/professional-profile/model/profile.types.ts`                                      | §3.2/§3.3/§3.4/§3.5: tipos de dominio; CM-61 agrega `EducationItem`, `WorkExperienceItem`, `EducationLevel`, `EmploymentStatus`, `DataProvenance`, `YearMonth` (valores confirmados contra el backend real); CM-65 agrega `SkillItem`, `SkillLevel`; CM-69 agrega `ProfessionalRole`, `TargetRoleItem` (mismo nivel de confianza) | cubierto por las pruebas de los organismos y `EditProfilePage`                                    |
 | `src/features/professional-profile/model/yearMonth.ts`                                          | §3.3 (CM-61): `toYearMonth`/`formatYearMonth` — trunca la fecha del selector nativo a `YearMonth` (bloqueo C-14)            | `src/features/professional-profile/model/yearMonth.test.ts`                                          |
@@ -634,6 +646,7 @@ seguimiento de Frontend a la respuesta del PO del 11-sep).
 | C-15 | El frame usa un componente `select` (nodo `32:150`, confirmado real) para «Nivel educativo» y un ícono `calendar` en los campos de fecha; ninguno de los dos existía en `design-system` antes de CM-61. Se construyó el átomo `Select`; el ícono de calendario no hizo falta (`<input type="date">` nativo ya trae el suyo del navegador) — ¿debería `design-system/icons/registry.tsx` tener un `calendar` propio para otros usos futuros? | Diseño                        | detectado 14-sep-2026, CM-61        |
 | C-16 | ~~El endpoint real de finalización no es `POST /api/v1/profiles/:id/finalize` (como lo simulaba el mock desde CM-61) sino `POST /api/v1/profiles/:id/completion`~~ — **cerrado, 15-sep-2026 (CM-65).** Confirmado por `ProfileController.java#completeProfile` (detectado en la sesión que construyó CM-69, corregido en la que construyó CM-65, dueña de la pantalla de finalizar — §5 ya lo refleja). Existe además `POST /api/v1/profiles/:id/review-requests` (transición a `IN_REVIEW`), que no aplica en Sprint 1 (`GLOSSARY.md` §3) | Frontend                     | resuelto 15-sep-2026, CM-65         |
 | C-17 | ~~**Defecto abierto:** `lastUsedProfileId` no se limpiaba al cerrar sesión, y otra cuenta en el mismo navegador cargaba el perfil de la anterior (`403`)~~ — **cerrado por CM-243 (DF-003, `CA-1.8.3`).** `useLogout` y `AuthProvider` (al reportar Firebase que no hay usuario: logout, `401` o sesión vencida) ponen `lastUsedProfileId` en `null`; ver `features/auth/SPEC.md` §9. Prueba manual en navegador pendiente | Frontend | detectado 6-oct-2026; cerrado 7-oct-2026 |
+| C-18 | Backend debe confirmar que `code`, `requestId` y `errors[].code` ya viajan en las respuestas de error de Perfil en staging (documento del 6-oct, cambio 1: «Perfil desde el 9 oct»; el del 9-oct sobre HU-2.3 a 2.5 dice que parte de ese contrato aún no está en `develop`), y avisar cuando `PROFILE_CREATION_IN_PROGRESS` (en `develop` de `cameia-perfil` desde el commit `147d1e8`, PR #80) llegue a staging. Sin el `code`, la pantalla muestra el mensaje genérico (`ADR-0008`, estricto). **Contradicción por confirmar:** el cambio 10 del documento del 6-oct da el `403 EMAIL_NOT_VERIFIED` del Gateway como hecho «desde el 9 oct», pero en `cameia-gateway` (`develop`, `53fbe30`) es `GW-TBD-17` abierto, y su `docs/estandar-backend.md` dice que `EMAIL_NOT_VERIFIED`, `PLAN_LIMIT` y `LLM_UNAVAILABLE` son códigos reservados que ningún servicio emite todavía. Que el estándar del Gateway dé también `PLAN_LIMIT` como no emitido refuerza que el `403` del cupo (CA-2.2.3) sigue sin desplegarse | Backend (Paula Andrea Muñoz Delgado) | solicitado 9-oct-2026 (CM-270); abierto, CM-298 |
 
 ## 9. Notas
 
@@ -943,16 +956,16 @@ nombreCompleto`/`fechaNacimiento`/`ciudad`, `educacion.confirmacionEliminada`,
 `rolesObjetivo.confirmacionEliminado`. No se limpian aquí (el SPEC no toca `profile.json`); la
 segunda divergencia de arriba queda, por tanto, solo parcialmente cerrada.
 
-**Pendiente explícito, fuera de CM-270: las eliminaciones responden 204 y el cliente aún lee cuerpo.**
+**Resuelto: las eliminaciones responden 204 y el cliente ya no lee cuerpo.** Lo corrigió Ana Sofía en
+el PR #65 (commit `24abb58`, CM-65, ya en `develop`): `removeEducation`, `removeWorkExperience`,
+`removeSkill` y `removeTargetRole` (`profile.api.ts`) devuelven `Promise<void>` y los hooks invalidan
+la consulta del perfil para que TanStack Query lo rehaga con `GET`. Origen: documento de Backend del
+8-oct-2026, cambio 2 (que lo atribuía a CM-270, pero pertenece a HU-2.4, HU-2.5 y HU-2.11). La
+tabla de §5 ya dice 204. La nota anterior lo daba como pendiente y «no verificado contra el
+servicio»; el 204 sigue sin comprobarse aquí contra un backend desplegado.
 
-- **Qué:** `profile.api.ts` lee el cuerpo de la respuesta en las cuatro eliminaciones
-  (`removeEducation`, `removeWorkExperience`, `removeSkill` y `removeTargetRole`; la última en las
-  líneas 128-131). `httpClient` devuelve `undefined` ante un 204 (`httpClient.ts:104`), así que
-  `toProfile(undefined)` fallaría. El backend ya responde 204 según el documento de Backend del
-  8-oct-2026 (no verificado contra el servicio).
-- **Origen:** documento de Backend del 8-oct-2026, cambio 2, que lo atribuye a CM-270.
-- **Por qué queda fuera:** pertenece a HU-2.4, HU-2.5 y HU-2.11, no a HU-2.2. Decisión registrada
-  al abrir CM-270.
-- **Dueño:** por definir en la reunión.
-- **Aviso de coordinación:** toca `profile.api.ts`, el mismo archivo que CM-270 modificará al sacar
-  la creación del perfil de `NewProfilePage`. Quien lo tome debe coordinar el orden con CM-270.
+**Pendiente, fuera de CM-298 (tarjeta aparte): errores por estado en HU-2.3 a 2.11.** `EditProfilePage`
+trata cualquier `409` de finalizar como «Este perfil ya está activo», de modo que
+`PROFILE_UPDATE_IN_PROGRESS` (`409`, toda escritura del perfil) se mostraría con ese mensaje; el
+mismo patrón por estado está en las secciones de experiencia, formación, habilidades y roles.
+Migrarlas a `code` queda para otra tarea (`ADR-0008`).

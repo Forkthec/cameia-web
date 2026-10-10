@@ -217,6 +217,7 @@
       "descripcion": "Subes tu Hoja de Vida (CV) y la IA prellena lo que encuentre. Tú revisas y corriges antes de guardar.",
       "insignia": "Próximamente"
     },
-    "errorCupoPlan": "Tu Plan Free permite 1 Perfil Profesional."
+    "errorCupoPlan": "Tu Plan Free permite 1 Perfil Profesional.",
+    "errorCreacionEnCurso": "Estamos creando tu perfil. Inténtalo de nuevo en unos segundos."
   }
 }

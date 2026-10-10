@@ -217,6 +217,7 @@
       "descripcion": "Upload your résumé (CV) and AI fills in what it finds. You review and correct before saving.",
       "insignia": "Coming soon"
     },
-    "errorCupoPlan": "Your Free plan allows 1 Professional Profile."
+    "errorCupoPlan": "Your Free plan allows 1 Professional Profile.",
+    "errorCreacionEnCurso": "We're creating your profile. Try again in a few seconds."
   }
 }

@@ -17,12 +17,17 @@
  * CA-2.2.2 (ruta de IA): la tarjeta de IA está deshabilitada, no hace nada
  * aquí. Ver SPEC §3.1 y §9.
  *
- * **CM-270 (CA-2.2.3):** el rechazo por cupo agotado (`409` hoy, `403` cuando
- * Backend despliegue `PLAN_LIMIT`) se reconoce con `isProfileLimitReached` y
- * muestra `profile:metodo.errorCupoPlan`, versión provisional del Paywall
- * (Sprint 3). Sustituye al mensaje de CM-195 (decisión D-I), que trataba
- * cualquier `409` como «ya tienes un perfil». Cualquier otro fallo sigue
- * mostrando `errors:generico`.
+ * **CM-270 (CA-2.2.3):** el rechazo por cupo agotado (`PROFILE_LIMIT_REACHED`
+ * hoy, `PLAN_LIMIT` cuando Backend lo despliegue) se reconoce con
+ * `isProfileLimitReached` y muestra `profile:metodo.errorCupoPlan`, versión
+ * provisional del Paywall (Sprint 3). Sustituye al mensaje de CM-195
+ * (decisión D-I), que trataba cualquier `409` como «ya tienes un perfil».
+ *
+ * **CM-298 (`ADR-0008`):** ambos casos se reconocen por `code`, no por estado
+ * HTTP. `PROFILE_CREATION_IN_PROGRESS` (otra creación sin terminar) muestra
+ * `profile:metodo.errorCreacionEnCurso` y la tarjeta sigue activa para
+ * reintentar. Cualquier otro fallo, incluido un `409` o `403` sin `code`,
+ * muestra `errors:generico`.
  *
  * Al crear con éxito, guarda el id en `lastUsedProfileId`
  * (`stores/uiPreferences.store.ts`) — conveniencia de cliente ya prevista
@@ -39,7 +44,7 @@ import { useNavigate } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
 import { httpClient } from '@/services/http/httpClient';
 import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
-import { isProfileLimitReached } from '../model/profileLimit';
+import { isProfileCreationInProgress, isProfileLimitReached } from '../model/profileLimit';
 import { ProfileMethodSelector } from '../organisms/ProfileMethodSelector';
 
 interface CreateProfileResponse {
@@ -69,7 +74,16 @@ export function NewProfilePage() {
     },
   });
 
-  const isLimitReached = createProfile.isError && isProfileLimitReached(createProfile.error);
+  let errorMessage: string | undefined;
+  if (createProfile.isError) {
+    if (isProfileLimitReached(createProfile.error)) {
+      errorMessage = t('profile:metodo.errorCupoPlan');
+    } else if (isProfileCreationInProgress(createProfile.error)) {
+      errorMessage = t('profile:metodo.errorCreacionEnCurso');
+    } else {
+      errorMessage = t('errors:generico');
+    }
+  }
 
   return (
     <section className="py-space-6 mx-auto max-w-[45rem]">
@@ -84,13 +98,7 @@ export function NewProfilePage() {
         loadingLabel={t('common:estados.cargando')}
         onSelectManual={() => createProfile.mutate()}
         loading={createProfile.isPending}
-        errorMessage={
-          createProfile.isError
-            ? isLimitReached
-              ? t('profile:metodo.errorCupoPlan')
-              : t('errors:generico')
-            : undefined
-        }
+        errorMessage={errorMessage}
       />
     </section>
   );
