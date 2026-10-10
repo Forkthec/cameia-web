@@ -317,10 +317,11 @@ describe('profilesHandlers', () => {
     const educationId = withEducation.educations.at(0)?.id;
     if (!educationId) throw new Error('El perfil sembrado no tiene educación.');
 
-    const updated = await httpClient.del<ProfileResponse & { educations: unknown[] }>(
-      `/api/v1/profiles/${created.id}/educations/${educationId}`,
-    );
+    await httpClient.del(`/api/v1/profiles/${created.id}/educations/${educationId}`);
 
+    const updated = await httpClient.get<ProfileResponse & { educations: unknown[] }>(
+      `/api/v1/profiles/${created.id}`,
+    );
     expect(updated.educations).toHaveLength(0);
   });
 
@@ -433,10 +434,11 @@ describe('profilesHandlers', () => {
     const workExperienceId = withExperience.workExperiences.at(0)?.id;
     if (!workExperienceId) throw new Error('El perfil sembrado no tiene experiencia laboral.');
 
-    const updated = await httpClient.del<ProfileResponse & { workExperiences: unknown[] }>(
-      `/api/v1/profiles/${created.id}/work-experiences/${workExperienceId}`,
-    );
+    await httpClient.del(`/api/v1/profiles/${created.id}/work-experiences/${workExperienceId}`);
 
+    const updated = await httpClient.get<ProfileResponse & { workExperiences: unknown[] }>(
+      `/api/v1/profiles/${created.id}`,
+    );
     expect(updated.workExperiences).toHaveLength(0);
   });
 
@@ -527,10 +529,11 @@ describe('profilesHandlers', () => {
     const skillId = withSkill.profileSkills[0]?.id;
     if (!skillId) throw new Error('El perfil sembrado no tiene habilidad.');
 
-    const updated = await httpClient.del<ProfileResponse & { profileSkills: unknown[] }>(
-      `/api/v1/profiles/${created.id}/skills/${skillId}`,
-    );
+    await httpClient.del(`/api/v1/profiles/${created.id}/skills/${skillId}`);
 
+    const updated = await httpClient.get<ProfileResponse & { profileSkills: unknown[] }>(
+      `/api/v1/profiles/${created.id}`,
+    );
     expect(updated.profileSkills).toHaveLength(0);
   });
 
@@ -697,10 +700,11 @@ describe('profilesHandlers', () => {
     const roleId = withRole.targetRoles[0]?.id;
     if (!roleId) throw new Error('El perfil sembrado no tiene rol objetivo.');
 
-    const updated = await httpClient.del<ProfileResponse & { targetRoles: unknown[] }>(
-      `/api/v1/profiles/${created.id}/target-roles/${roleId}`,
-    );
+    await httpClient.del(`/api/v1/profiles/${created.id}/target-roles/${roleId}`);
 
+    const updated = await httpClient.get<ProfileResponse & { targetRoles: unknown[] }>(
+      `/api/v1/profiles/${created.id}`,
+    );
     expect(updated.targetRoles).toHaveLength(0);
   });
 
@@ -740,10 +744,11 @@ describe('profilesHandlers', () => {
       ],
     });
 
-    const updated = await httpClient.del<ProfileResponse & { targetRoles: unknown[] }>(
-      `/api/v1/profiles/${seeded.id}/target-roles/target-role-1`,
-    );
+    await httpClient.del(`/api/v1/profiles/${seeded.id}/target-roles/target-role-1`);
 
+    const updated = await httpClient.get<ProfileResponse & { targetRoles: unknown[] }>(
+      `/api/v1/profiles/${seeded.id}`,
+    );
     expect(updated.targetRoles).toHaveLength(0);
   });
 });

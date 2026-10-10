@@ -1,7 +1,6 @@
 /**
  * Comportamiento observable de `useRemoveSkill` contra el mock real: el
- * `DELETE` retira la habilidad y la respuesta se escribe directo en la
- * caché.
+ * `DELETE` devuelve 204 e invalida la caché de `useProfileQuery`.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
@@ -19,7 +18,7 @@ interface ProfileWithSkills {
 }
 
 describe('useRemoveSkill', () => {
-  it('elimina la habilidad y actualiza la caché de useProfileQuery', async () => {
+  it('elimina la habilidad e invalida la caché de useProfileQuery', async () => {
     const created = await httpClient.post<CreatedProfile>('/api/v1/profiles', {
       name: 'Ana María Pérez',
     });
@@ -33,6 +32,8 @@ describe('useRemoveSkill', () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     });
+    queryClient.setQueryData(['profile', created.id], { skills: [{ id: skillId }] });
+
     function Wrapper({ children }: { children: ReactNode }) {
       return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
     }
@@ -41,6 +42,7 @@ describe('useRemoveSkill', () => {
     result.current.mutate(skillId);
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(queryClient.getQueryData(['profile', created.id])).toMatchObject({ skills: [] });
+    const state = queryClient.getQueryState(['profile', created.id]);
+    expect(state?.isInvalidated).toBe(true);
   });
 });

@@ -4,9 +4,10 @@
  * backend/mock a partir del valor anterior (SPEC.md §5). Las de CM-61
  * (Educación, Experiencia Laboral), CM-65 (Habilidades) y CM-69 (Roles
  * Objetivo) son gestión por ítem — `POST` para agregar, `DELETE` para
- * eliminar, nunca un `PATCH` de colección (SPEC.md §9, decisión D-A/D-C) —
- * y devuelven el perfil completo, igual que el `PATCH`: no hay un endpoint
- * que devuelva solo el ítem creado. Roles Objetivo además admite `PATCH`
+ * eliminar, nunca un `PATCH` de colección (SPEC.md §9, decisión D-A/D-C).
+ * Los `POST` devuelven el perfil completo (201); los `DELETE` devuelven
+ * 204 sin body — el hook invalida la caché y TanStack Query rehace el
+ * `GET`. Roles Objetivo además admite `PATCH`
  * por ítem para sustituir el catálogo referenciado sin perder el id del
  * Rol Objetivo (memo del PO del 13-sep, C-05).
  *
@@ -64,9 +65,8 @@ export async function addEducation(id: string, values: EducationFormValues): Pro
   return toProfile(dto);
 }
 
-export async function removeEducation(id: string, educationId: string): Promise<Profile> {
-  const dto = await httpClient.del<ProfileDto>(`/api/v1/profiles/${id}/educations/${educationId}`);
-  return toProfile(dto);
+export async function removeEducation(id: string, educationId: string): Promise<void> {
+  await httpClient.del(`/api/v1/profiles/${id}/educations/${educationId}`);
 }
 
 export async function addWorkExperience(
@@ -80,11 +80,8 @@ export async function addWorkExperience(
   return toProfile(dto);
 }
 
-export async function removeWorkExperience(id: string, workExperienceId: string): Promise<Profile> {
-  const dto = await httpClient.del<ProfileDto>(
-    `/api/v1/profiles/${id}/work-experiences/${workExperienceId}`,
-  );
-  return toProfile(dto);
+export async function removeWorkExperience(id: string, workExperienceId: string): Promise<void> {
+  await httpClient.del(`/api/v1/profiles/${id}/work-experiences/${workExperienceId}`);
 }
 
 export async function addSkill(id: string, values: SkillFormValues): Promise<Profile> {
@@ -95,9 +92,8 @@ export async function addSkill(id: string, values: SkillFormValues): Promise<Pro
   return toProfile(dto);
 }
 
-export async function removeSkill(id: string, skillId: string): Promise<Profile> {
-  const dto = await httpClient.del<ProfileDto>(`/api/v1/profiles/${id}/skills/${skillId}`);
-  return toProfile(dto);
+export async function removeSkill(id: string, skillId: string): Promise<void> {
+  await httpClient.del(`/api/v1/profiles/${id}/skills/${skillId}`);
 }
 
 export async function finalizeProfile(id: string): Promise<Profile> {
@@ -125,9 +121,8 @@ export async function substituteTargetRole(
   return toProfile(dto);
 }
 
-export async function removeTargetRole(id: string, roleId: string): Promise<Profile> {
-  const dto = await httpClient.del<ProfileDto>(`/api/v1/profiles/${id}/target-roles/${roleId}`);
-  return toProfile(dto);
+export async function removeTargetRole(id: string, roleId: string): Promise<void> {
+  await httpClient.del(`/api/v1/profiles/${id}/target-roles/${roleId}`);
 }
 
 export async function fetchProfessionalRoles(): Promise<ProfessionalRole[]> {
