@@ -39,7 +39,9 @@ describe('useRemoveWorkExperience', () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     });
-    queryClient.setQueryData(['profile', created.id], { workExperience: [{ id: workExperienceId }] });
+    queryClient.setQueryData(['profile', created.id], {
+      workExperience: [{ id: workExperienceId }],
+    });
 
     function Wrapper({ children }: { children: ReactNode }) {
       return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
