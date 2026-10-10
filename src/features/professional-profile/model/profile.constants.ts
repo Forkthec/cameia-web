@@ -29,9 +29,11 @@
  * un catálogo consultado por HTTP — a diferencia de los roles profesionales
  * (HU-2.11), que sí vienen de un endpoint.
  *
- * `SKILL_NAME_MAX_LENGTH` (CM-65) viene del memo del PO del 13-sep (C-06) y
- * del código real (`AddSkillRequest`, `ProfileController.java`): 1-255
- * caracteres, sin catálogo. Sin máximo de habilidades por perfil.
+ * `SKILL_NAME_MAX_LENGTH` (CM-65) actualizado a 60 por el backlog v6
+ * (CA-2.5.8/CA-2.5.9, hallazgo 26/27 de Juan José, PO 05-oct).
+ *
+ * `SKILLS_MAX_COUNT` (CM-65) es 20, por el backlog v6 (CA-2.5.3/CA-2.5.19,
+ * hallazgo 26 de Juan José, PO 05-oct).
  *
  * `PROFILE_COMPLETENESS_MAX` son los 5 requisitos reales de finalización
  * (HU-2.5): nombre, resumen, ≥1 educación, ≥1 habilidad, ≥1 rol objetivo.
@@ -58,7 +60,9 @@ export const NAME_MAX_LENGTH = 255;
 export const SUMMARY_MAX_LENGTH = 2000;
 
 export const DESCRIPTION_MAX_LENGTH = 500;
-export const SKILL_NAME_MAX_LENGTH = 255;
+export const SKILL_NAME_MAX_LENGTH = 60;
+
+export const SKILLS_MAX_COUNT = 20;
 
 export const EDUCATION_LEVELS: readonly EducationLevel[] = [
   'TECHNICAL',

@@ -489,7 +489,7 @@ export const profilesHandlers: HttpHandler[] = [
         return HttpResponse.json(notFound('Experiencia laboral no encontrada.'), { status: 404 });
       }
       profile.workExperiences.splice(index, 1);
-      return HttpResponse.json(profile, { status: 200 });
+      return new HttpResponse(null, { status: 204 });
     },
   ),
 
@@ -563,7 +563,7 @@ export const profilesHandlers: HttpHandler[] = [
         return HttpResponse.json(notFound('Educación no encontrada.'), { status: 404 });
       }
       profile.educations.splice(index, 1);
-      return HttpResponse.json(profile, { status: 200 });
+      return new HttpResponse(null, { status: 204 });
     },
   ),
 
@@ -624,7 +624,7 @@ export const profilesHandlers: HttpHandler[] = [
         return HttpResponse.json(notFound('Habilidad no encontrada.'), { status: 404 });
       }
       profile.profileSkills.splice(index, 1);
-      return HttpResponse.json(profile, { status: 200 });
+      return new HttpResponse(null, { status: 204 });
     },
   ),
 
@@ -750,7 +750,7 @@ export const profilesHandlers: HttpHandler[] = [
         );
       }
       profile.targetRoles.splice(index, 1);
-      return HttpResponse.json(profile, { status: 200 });
+      return new HttpResponse(null, { status: 204 });
     },
   ),
 

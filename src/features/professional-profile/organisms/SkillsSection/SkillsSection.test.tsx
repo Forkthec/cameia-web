@@ -35,7 +35,7 @@ const baseProps = {
   skillNameLabel: 'Habilidad',
   skillNamePlaceholder: 'Escribe aquí',
   skillNameErrorRequired: 'Ingresa una habilidad.',
-  skillNameErrorTooLong: 'La habilidad no puede superar los 255 caracteres.',
+  skillNameErrorTooLong: 'La habilidad no puede superar los 60 caracteres.',
   skillNameErrorDuplicate: 'Esa habilidad ya está en tu perfil.',
   levelLabel: 'Nivel',
   levelPlaceholder: 'Selecciona una opción',
@@ -44,7 +44,9 @@ const baseProps = {
   formatItemLabel: (item: SkillItem) => `${item.skillName} · ${item.level}`,
   addButtonLabel: 'Agregar habilidad',
   addingButtonLabel: 'Agregando…',
-  removeItemLabel: (item: SkillItem) => `Quitar ${item.skillName}`,
+  removeItemLabel: (item: SkillItem) => `Eliminar ${item.skillName}`,
+  maxItems: 20,
+  maxItemsMessage: 'Ya tienes el máximo de 20 habilidades.',
   emptyStateTitle: 'Todavía no agregas habilidades',
   emptyStateDescription: 'Agrega al menos una para poder finalizar tu perfil.',
 };
@@ -101,7 +103,7 @@ describe('SkillsSection', () => {
     const onRemove = vi.fn();
     render(<SkillsSection {...baseProps} items={[existingItem]} onRemove={onRemove} />);
 
-    await user.click(screen.getByRole('button', { name: 'Quitar React' }));
+    await user.click(screen.getByRole('button', { name: 'Eliminar React' }));
 
     expect(onRemove).toHaveBeenCalledWith('skill-1');
   });

@@ -170,7 +170,7 @@ describe('EditProfilePage', () => {
     expect(await screen.findByText('React · Avanzado')).toBeInTheDocument();
     expect(screen.getByText('Habilidad agregada.')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Quitar React' }));
+    await user.click(screen.getByRole('button', { name: 'Eliminar React' }));
 
     await waitFor(() => expect(screen.queryByText('React · Avanzado')).not.toBeInTheDocument());
   });

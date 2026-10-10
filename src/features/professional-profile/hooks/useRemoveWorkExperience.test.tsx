@@ -1,7 +1,6 @@
 /**
  * Comportamiento observable de `useRemoveWorkExperience` contra el mock
- * real: el `DELETE` retira el ítem y la respuesta se escribe directo en la
- * caché.
+ * real: el `DELETE` devuelve 204 e invalida la caché de `useProfileQuery`.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
@@ -19,7 +18,7 @@ interface ProfileWithWorkExperience {
 }
 
 describe('useRemoveWorkExperience', () => {
-  it('elimina la experiencia y actualiza la caché de useProfileQuery', async () => {
+  it('elimina la experiencia e invalida la caché de useProfileQuery', async () => {
     const created = await httpClient.post<CreatedProfile>('/api/v1/profiles', {
       name: 'Ana María Pérez',
     });
@@ -40,6 +39,10 @@ describe('useRemoveWorkExperience', () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     });
+    queryClient.setQueryData(['profile', created.id], {
+      workExperience: [{ id: workExperienceId }],
+    });
+
     function Wrapper({ children }: { children: ReactNode }) {
       return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
     }
@@ -48,6 +51,7 @@ describe('useRemoveWorkExperience', () => {
     result.current.mutate(workExperienceId);
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(queryClient.getQueryData(['profile', created.id])).toMatchObject({ workExperience: [] });
+    const state = queryClient.getQueryState(['profile', created.id]);
+    expect(state?.isInvalidated).toBe(true);
   });
 });

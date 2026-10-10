@@ -82,6 +82,7 @@ import {
   GENERAL_INFO_FORM_ID,
   PROFILE_COMPLETENESS_MAX,
   SKILLS_FORM_ID,
+  SKILLS_MAX_COUNT,
   WORK_EXPERIENCE_FORM_ID,
 } from '../model/profile.constants';
 import { getMissingRequirementFields } from '../model/missingRequirements';
@@ -379,6 +380,7 @@ export function EditProfilePage() {
           onAdd={(values) => addSkill.mutate(values)}
           onRemove={(skillId) => removeSkill.mutate(skillId)}
           isAdding={addSkill.isPending}
+          maxItems={SKILLS_MAX_COUNT}
           showSectionTitle={isDesktop}
           sectionTitle={t('profile:habilidades.titulo')}
           skillNameLabel={t('profile:habilidades.nombre.etiqueta')}
@@ -402,18 +404,23 @@ export function EditProfilePage() {
           }
           addButtonLabel={t('profile:habilidades.agregar')}
           addingButtonLabel={t('profile:habilidades.agregando')}
-          removeItemLabel={(item) => t('profile:habilidades.quitar', { nombre: item.skillName })}
+          removeItemLabel={(item) => t('profile:habilidades.eliminar', { nombre: item.skillName })}
+          maxItemsMessage={t('profile:habilidades.limiteAlcanzado')}
           emptyStateTitle={t('profile:habilidades.vacio.titulo')}
           emptyStateDescription={t('profile:habilidades.vacio.descripcion')}
           addErrorMessage={
             addSkill.isError
               ? getItemErrorMessage(addSkill.error, t('profile:habilidades.errorAgregar'), {
-                  409: t('profile:habilidades.nombre.errorDuplicado'),
+                  409: t('profile:habilidades.errorConflicto'),
                 })
               : undefined
           }
           removeErrorMessage={
-            removeSkill.isError ? t('profile:habilidades.errorEliminar') : undefined
+            removeSkill.isError
+              ? getItemErrorMessage(removeSkill.error, t('profile:habilidades.errorEliminar'), {
+                  409: t('profile:habilidades.errorUltimaHabilidad'),
+                })
+              : undefined
           }
           confirmationMessage={
             addSkill.isSuccess ? t('profile:habilidades.confirmacionAgregada') : undefined
