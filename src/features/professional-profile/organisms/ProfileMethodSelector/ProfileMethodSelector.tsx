@@ -13,12 +13,17 @@
  * (CLAUDE.md §14.7): no llama `useTranslation`, todo texto visible entra
  * como prop obligatoria. `NewProfilePage` es quien traduce.
  *
- * Guarda contra doble creación: mientras `loading` es true, tocar la
- * tarjeta manual no dispara `onSelectManual`. TanStack Query no ignora por
- * sí solo una segunda llamada a `mutate` mientras la primera está en
- * vuelo — sin esta guarda, dos toques rápidos crearían dos perfiles, y el
- * Plan Gratis solo permite uno sin que exista todavía forma de borrar el
- * sobrante (consulta C-03).
+ * Mientras `loading` es true, la tarjeta manual queda marcada como
+ * seleccionada Y con el atributo `disabled` (CA-2.2.7: «el botón queda
+ * deshabilitado»), sin verse bloqueada: `disabled` es independiente de
+ * `state` en `CardSelectable`. `if (loading) return` queda como segunda
+ * línea de defensa, pero NO basta como guarda contra la doble creación:
+ * `loading` es una prop, y dos clics muy seguidos (DF-004: 2,9 ms) llegan
+ * antes de que React renderice el `isPending` de la mutación. La guarda
+ * síncrona vive en `NewProfilePage` (un `useRef`), porque es quien llama a
+ * `mutate`. Sin ella, dos toques crearían dos perfiles, y el Plan Gratis
+ * solo permite uno sin que exista todavía forma de borrar el sobrante
+ * (consulta C-03).
  */
 import { cn } from '@/utils/cn';
 import { Spinner } from '@/design-system/atoms/Spinner';
@@ -55,7 +60,7 @@ interface ProfileMethodSelectorProps {
   aiBadgeLabel: string;
   /** Anunciado a lectores de pantalla mientras se crea el perfil. */
   loadingLabel: string;
-  /** Se dispara al elegir "Llenado Manual". Se ignora mientras `loading` es true (ver TSDoc de cabecera). */
+  /** Se dispara al elegir "Llenado Manual". No se dispara mientras `loading` es true (ver TSDoc de cabecera). */
   onSelectManual: () => void;
   /** `true` mientras la creación del perfil está en curso. */
   loading?: boolean;
@@ -96,6 +101,7 @@ export function ProfileMethodSelector({
         >
           <CardSelectable
             state={loading ? 'selected' : 'default'}
+            disabled={loading}
             onClick={handleSelectManual}
             icon={<Icon name="edit" />}
             title={manualTitle}

@@ -17,9 +17,9 @@
  * real.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter, Route, Routes, useParams } from 'react-router';
 import { describe, expect, it } from 'vitest';
@@ -113,6 +113,52 @@ describe('NewProfilePage', () => {
     await user.click(manualCard);
 
     expect(await screen.findByText('Editar perfil profile-doble-toque')).toBeInTheDocument();
+    expect(requestCount).toBe(1);
+  });
+
+  // DF-004 (QA, 11-oct-2026, staging): `userEvent` cede un turno entre clics y deja que
+  // React renderice `isPending`; en el navegador los dos clics llegaron con 2,9 ms de
+  // diferencia y la guarda por render no alcanzó. Estas pruebas despachan ambos clics sin
+  // ceder el turno, que es lo que el `userEvent` de arriba no puede reproducir.
+  it('dos clics síncronos en un mismo turno producen una sola petición (DF-004)', async () => {
+    await waitUntilReady();
+    let requestCount = 0;
+    useHandlers(
+      http.post('*/api/v1/profiles', async () => {
+        requestCount += 1;
+        await delay(100);
+        return HttpResponse.json({ id: 'profile-df-004' }, { status: 201 });
+      }),
+    );
+    renderPage();
+
+    const manualCard = await screen.findByRole('radio', { name: /Llenado Manual/ });
+    act(() => {
+      manualCard.click();
+      manualCard.click();
+    });
+
+    expect(await screen.findByText('Editar perfil profile-df-004')).toBeInTheDocument();
+    expect(requestCount).toBe(1);
+  });
+
+  it('dos fireEvent.click seguidos producen una sola petición (DF-004)', async () => {
+    await waitUntilReady();
+    let requestCount = 0;
+    useHandlers(
+      http.post('*/api/v1/profiles', async () => {
+        requestCount += 1;
+        await delay(100);
+        return HttpResponse.json({ id: 'profile-df-004-fe' }, { status: 201 });
+      }),
+    );
+    renderPage();
+
+    const manualCard = await screen.findByRole('radio', { name: /Llenado Manual/ });
+    fireEvent.click(manualCard);
+    fireEvent.click(manualCard);
+
+    expect(await screen.findByText('Editar perfil profile-df-004-fe')).toBeInTheDocument();
     expect(requestCount).toBe(1);
   });
 
