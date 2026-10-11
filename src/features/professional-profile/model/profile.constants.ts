@@ -59,7 +59,11 @@ import type { DataProvenance, EducationLevel, SkillLevel } from './profile.types
 export const NAME_MAX_LENGTH = 255;
 export const SUMMARY_MAX_LENGTH = 2000;
 
+export const COMPANY_MAX_LENGTH = 100;
+export const POSITION_MAX_LENGTH = 100;
 export const DESCRIPTION_MAX_LENGTH = 500;
+export const INSTITUTION_MAX_LENGTH = 150;
+export const DEGREE_MAX_LENGTH = 150;
 export const SKILL_NAME_MAX_LENGTH = 60;
 
 export const SKILLS_MAX_COUNT = 20;

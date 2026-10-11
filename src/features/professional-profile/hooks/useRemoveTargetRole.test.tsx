@@ -24,7 +24,7 @@ describe('useRemoveTargetRole', () => {
     });
     const withRole = await httpClient.post<ProfileWithTargetRoles>(
       `/api/v1/profiles/${created.id}/target-roles`,
-      { professionalRoleId: 'backend-developer', provenance: 'MANUAL' },
+      { professionalRoleId: 'backend-developer' },
     );
     const roleId = withRole.targetRoles[0]?.id;
     if (!roleId) throw new Error('El perfil sembrado no tiene rol objetivo.');

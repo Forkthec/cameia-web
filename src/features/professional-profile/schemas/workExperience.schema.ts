@@ -14,7 +14,11 @@
  * en `education.schema.ts`, que ahí es solo una salvaguarda de UX.
  */
 import { z } from 'zod';
-import { DESCRIPTION_MAX_LENGTH } from '../model/profile.constants';
+import {
+  COMPANY_MAX_LENGTH,
+  DESCRIPTION_MAX_LENGTH,
+  POSITION_MAX_LENGTH,
+} from '../model/profile.constants';
 
 const BOTH_STATUS_CHECKBOXES = 'BOTH_STATUS_CHECKBOXES';
 const END_DATE_REQUIRED = 'END_DATE_REQUIRED';
@@ -23,8 +27,8 @@ const END_DATE_NOT_ALLOWED = 'END_DATE_NOT_ALLOWED';
 
 export const workExperienceSchema = z
   .object({
-    position: z.string().trim().min(1),
-    company: z.string().trim().min(1),
+    position: z.string().trim().min(1).max(POSITION_MAX_LENGTH),
+    company: z.string().trim().min(1).max(COMPANY_MAX_LENGTH),
     startDate: z.string().min(1),
     endDate: z.string(),
     description: z.string().max(DESCRIPTION_MAX_LENGTH),

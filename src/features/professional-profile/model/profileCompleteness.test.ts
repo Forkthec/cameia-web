@@ -42,7 +42,7 @@ describe('getCompletenessValue', () => {
           id: 'edu-1',
           institution: 'Universidad del Cauca',
           degree: 'Ingeniería',
-          fieldOfStudy: 'Sistemas',
+
           level: 'UNDERGRADUATE',
           startDate: '2018-01',
           endDate: '2023-12',
@@ -60,7 +60,6 @@ describe('getCompletenessValue', () => {
       id: `edu-${index}`,
       institution: 'Universidad del Cauca',
       degree: 'Ingeniería',
-      fieldOfStudy: 'Sistemas',
       level: 'UNDERGRADUATE' as const,
       startDate: '2018-01',
       endDate: '2023-12',
@@ -80,7 +79,7 @@ describe('getCompletenessValue', () => {
           id: 'edu-1',
           institution: 'Universidad del Cauca',
           degree: 'Ingeniería',
-          fieldOfStudy: 'Sistemas',
+
           level: 'UNDERGRADUATE',
           startDate: '2018-01',
           endDate: '2023-12',
@@ -114,7 +113,7 @@ describe('getCompletenessValue', () => {
           id: 'edu-1',
           institution: 'Universidad del Cauca',
           degree: 'Ingeniería',
-          fieldOfStudy: 'Sistemas',
+
           level: 'UNDERGRADUATE',
           startDate: '2018-01',
           endDate: '2023-12',
@@ -170,7 +169,7 @@ describe('getSectionStatuses', () => {
             id: 'edu-1',
             institution: 'Universidad del Cauca',
             degree: 'Ingeniería',
-            fieldOfStudy: 'Sistemas',
+
             level: 'UNDERGRADUATE',
             startDate: '2018-01',
             endDate: '2023-12',
@@ -195,7 +194,7 @@ describe('getSectionStatuses', () => {
             id: 'edu-1',
             institution: 'Universidad del Cauca',
             degree: 'Ingeniería',
-            fieldOfStudy: 'Sistemas',
+
             level: 'UNDERGRADUATE',
             startDate: '2018-01',
             endDate: '2023-12',
@@ -220,7 +219,7 @@ describe('getSectionStatuses', () => {
           id: 'edu-1',
           institution: 'Universidad del Cauca',
           degree: 'Ingeniería',
-          fieldOfStudy: 'Sistemas',
+
           level: 'UNDERGRADUATE',
           startDate: '2018-01',
           endDate: '2023-12',

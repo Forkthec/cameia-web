@@ -18,7 +18,6 @@
  * `toAddTargetRoleRequest`/`toUpdateTargetRoleRequest` solo añaden la
  * procedencia (`MANUAL_PROVENANCE`), sin derivar nada.
  */
-import { MANUAL_PROVENANCE } from '../model/profile.constants';
 import type {
   DataProvenance,
   EducationItem,
@@ -54,7 +53,6 @@ function toEducationItem(dto: EducationDto): EducationItem {
     id: dto.id,
     institution: dto.institution,
     degree: dto.degree,
-    fieldOfStudy: dto.fieldOfStudy,
     level: dto.level as EducationLevel,
     startDate: dto.startDate,
     endDate: dto.endDate,
@@ -128,12 +126,10 @@ export function toAddEducationRequest(values: EducationFormValues): AddEducation
   return {
     institution: values.institution.trim(),
     degree: values.degree.trim(),
-    fieldOfStudy: values.fieldOfStudy.trim(),
     level: values.level,
     startDate: toYearMonth(values.startDate),
     endDate: !values.inProgress && values.endDate.length > 0 ? toYearMonth(values.endDate) : null,
     inProgress: values.inProgress,
-    provenance: MANUAL_PROVENANCE,
   };
 }
 
@@ -161,7 +157,6 @@ export function toAddWorkExperienceRequest(
     startDate: toYearMonth(values.startDate),
     endDate: employmentStatus === 'ENDED' ? toYearMonth(values.endDate) : null,
     employmentStatus,
-    provenance: MANUAL_PROVENANCE,
   };
 }
 
@@ -169,13 +164,11 @@ export function toAddSkillRequest(values: SkillFormValues): AddSkillRequestDto {
   return {
     skillName: values.skillName.trim(),
     level: values.level,
-    provenance: MANUAL_PROVENANCE,
   };
 }
 
-/** No hay Rol Objetivo `AI_SUGGESTED` real en Sprint 1 (memo del PO del 13-sep, C-05): toda alta manual lleva `MANUAL_PROVENANCE`. */
 export function toAddTargetRoleRequest(professionalRoleId: string): AddTargetRoleRequestDto {
-  return { professionalRoleId, provenance: MANUAL_PROVENANCE };
+  return { professionalRoleId };
 }
 
 export function toUpdateTargetRoleRequest(professionalRoleId: string): UpdateTargetRoleRequestDto {

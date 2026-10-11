@@ -63,10 +63,6 @@
       "placeholder": "Type here",
       "errorRequerido": "Enter the degree obtained."
     },
-    "campoEstudio": {
-      "etiqueta": "Field of study",
-      "placeholder": "Type here"
-    },
     "institucion": {
       "etiqueta": "Institution",
       "placeholder": "Type here",

@@ -63,10 +63,6 @@
       "placeholder": "Escribe aquí",
       "errorRequerido": "Ingresa el título obtenido."
     },
-    "campoEstudio": {
-      "etiqueta": "Campo de estudio",
-      "placeholder": "Escribe aquí"
-    },
     "institucion": {
       "etiqueta": "Institución",
       "placeholder": "Escribe aquí",

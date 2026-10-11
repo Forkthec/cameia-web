@@ -30,7 +30,6 @@ describe('useRemoveEducation', () => {
         level: 'UNDERGRADUATE',
         startDate: '2018-01',
         inProgress: false,
-        provenance: 'MANUAL',
       },
     );
     const [firstEducation] = withEducation.educations;

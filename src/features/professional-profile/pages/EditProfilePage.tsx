@@ -276,8 +276,6 @@ export function EditProfilePage() {
           degreeLabel={t('profile:educacion.tituloObtenido.etiqueta')}
           degreePlaceholder={t('profile:educacion.tituloObtenido.placeholder')}
           degreeErrorRequired={t('profile:educacion.tituloObtenido.errorRequerido')}
-          fieldOfStudyLabel={t('profile:educacion.campoEstudio.etiqueta')}
-          fieldOfStudyPlaceholder={t('profile:educacion.campoEstudio.placeholder')}
           institutionLabel={t('profile:educacion.institucion.etiqueta')}
           institutionPlaceholder={t('profile:educacion.institucion.placeholder')}
           institutionErrorRequired={t('profile:educacion.institucion.errorRequerido')}
