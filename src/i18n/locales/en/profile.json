@@ -21,6 +21,7 @@
     "confirmacionFinalizado": "Your profile is now active.",
     "errorFinalizarIncompleto": "You still don't meet these requirements:",
     "errorFinalizarGenerico": "Couldn't finish the profile. Please try again.",
+    "errorPerfilOcupado": "We're processing your profile. Try again in a few seconds.",
     "requisitos": {
       "name": "Profile name",
       "summary": "Professional summary",
@@ -91,7 +92,10 @@
     "confirmacionEliminada": "Education removed.",
     "errorAgregar": "Couldn't add the education entry.",
     "errorEliminar": "Couldn't remove the education entry.",
-    "errorFechaInvalida": "Check the education entry's dates."
+    "errorLimite": "You've reached the maximum of 5 education entries.",
+    "errorFechaInvalida": "Check the education entry's dates.",
+    "errorFechaAnteriorNacimiento": "The date can't be earlier than your date of birth.",
+    "errorCaracteresInvalidos": "The field contains invalid characters."
   },
   "experiencia": {
     "titulo": "Work Experience",
@@ -137,7 +141,11 @@
     "confirmacionEliminada": "Experience removed.",
     "errorAgregar": "Couldn't add the work experience.",
     "errorEliminar": "Couldn't remove the work experience.",
-    "errorFechaInvalida": "Check the work experience's dates."
+    "errorLimite": "You've reached the maximum of 4 work experiences.",
+    "errorFechaInvalida": "Check the work experience's dates.",
+    "errorFechaEdadMinima": "Work experience can't start before the month you turned 15.",
+    "errorFechaFinEdadMinima": "The end date can't be earlier than the month you turned 15.",
+    "errorCaracteresInvalidos": "The field contains invalid characters."
   },
   "habilidades": {
     "titulo": "Skills",
@@ -167,7 +175,7 @@
     "confirmacionAgregada": "Skill added.",
     "limiteAlcanzado": "You've reached the maximum of 20 skills.",
     "errorAgregar": "Couldn't add the skill.",
-    "errorConflicto": "The skill already exists or the limit has been reached.",
+    "errorYaExiste": "That skill is already in your profile.",
     "errorEliminar": "Couldn't remove the skill.",
     "errorUltimaHabilidad": "You can't remove the last skill from an active profile. Add another one before removing this one."
   },

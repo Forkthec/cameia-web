@@ -21,6 +21,7 @@
     "confirmacionFinalizado": "Tu perfil ya está activo.",
     "errorFinalizarIncompleto": "Todavía no cumples estos requisitos:",
     "errorFinalizarGenerico": "No se pudo finalizar el perfil. Inténtalo de nuevo.",
+    "errorPerfilOcupado": "Estamos procesando tu perfil. Inténtalo de nuevo en unos segundos.",
     "requisitos": {
       "name": "Nombre del perfil",
       "summary": "Resumen profesional",
@@ -91,7 +92,10 @@
     "confirmacionEliminada": "Formación eliminada.",
     "errorAgregar": "No se pudo agregar la formación académica.",
     "errorEliminar": "No se pudo eliminar la formación académica.",
-    "errorFechaInvalida": "Revisa las fechas de la formación académica."
+    "errorLimite": "Ya tienes el máximo de 5 formaciones académicas.",
+    "errorFechaInvalida": "Revisa las fechas de la formación académica.",
+    "errorFechaAnteriorNacimiento": "La fecha no puede ser anterior a tu fecha de nacimiento.",
+    "errorCaracteresInvalidos": "El campo contiene caracteres no permitidos."
   },
   "experiencia": {
     "titulo": "Experiencia Laboral",
@@ -137,7 +141,11 @@
     "confirmacionEliminada": "Experiencia eliminada.",
     "errorAgregar": "No se pudo agregar la experiencia laboral.",
     "errorEliminar": "No se pudo eliminar la experiencia laboral.",
-    "errorFechaInvalida": "Revisa las fechas de la experiencia laboral."
+    "errorLimite": "Ya tienes el máximo de 4 experiencias laborales.",
+    "errorFechaInvalida": "Revisa las fechas de la experiencia laboral.",
+    "errorFechaEdadMinima": "La experiencia laboral no puede iniciar antes del mes en que cumpliste 15 años.",
+    "errorFechaFinEdadMinima": "La fecha de fin no puede ser anterior al mes en que cumpliste 15 años.",
+    "errorCaracteresInvalidos": "El campo contiene caracteres no permitidos."
   },
   "habilidades": {
     "titulo": "Habilidades",
@@ -167,7 +175,7 @@
     "confirmacionAgregada": "Habilidad agregada.",
     "limiteAlcanzado": "Ya tienes el máximo de 20 habilidades.",
     "errorAgregar": "No se pudo agregar la habilidad.",
-    "errorConflicto": "La habilidad ya existe o se alcanzó el límite.",
+    "errorYaExiste": "Esa habilidad ya está en tu perfil.",
     "errorEliminar": "No se pudo eliminar la habilidad.",
     "errorUltimaHabilidad": "No puedes eliminar la última habilidad de un perfil activo. Agrega otra antes de eliminar esta."
   },
