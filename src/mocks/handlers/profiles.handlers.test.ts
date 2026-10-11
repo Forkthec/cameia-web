@@ -606,7 +606,8 @@ describe('profilesHandlers', () => {
       .catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ApiError);
-    expect((error as ApiError).httpStatus).toBe(422);
+    expect((error as ApiError).httpStatus).toBe(409);
+    expect((error as ApiError).hasCode('TARGET_ROLE_LIMIT_REACHED')).toBe(true);
   });
 
   // C-05: sustituir es un PATCH real que conserva el id del Rol Objetivo.
@@ -702,7 +703,8 @@ describe('profilesHandlers', () => {
       .catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(ApiError);
-    expect((error as ApiError).httpStatus).toBe(422);
+    expect((error as ApiError).httpStatus).toBe(409);
+    expect((error as ApiError).hasCode('TARGET_ROLE_NOT_ALLOWED')).toBe(true);
   });
 
   it('eliminar el único rol objetivo de un perfil IN_PROGRESS sí se permite', async () => {

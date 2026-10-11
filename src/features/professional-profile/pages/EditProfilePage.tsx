@@ -170,19 +170,25 @@ export function EditProfilePage() {
   const completenessValue = getCompletenessValue(profile);
 
   /**
-   * Prefiere el mensaje específico de `httpStatus` cuando quien llama lo
-   * tiene en `byStatus`, y cae al mensaje genérico de la sección cuando no
-   * (`ADR-0007`: ya no hay `code` propio del backend — cada mutación conoce
-   * de antemano qué `httpStatus` puede devolver y qué significa cada uno,
-   * porque los confirma `ProfileController.java`, no un catálogo compartido).
+   * Resuelve el mensaje de error de una mutación de sección por `code`
+   * (`ADR-0008`): primero busca el `code` de nivel superior del `ApiError`,
+   * luego los `code` de cada elemento de `errors[]` (errores de campo dentro
+   * de un `422 VALIDATION_FAILED`). Sin coincidencia devuelve el `fallback`
+   * genérico de la sección — sin respaldo por `httpStatus` (`CLAUDE.md` §8).
    */
   function getItemErrorMessage(
     error: unknown,
     fallback: string,
-    byStatus: Record<number, string> = {},
+    byCode: Record<string, string> = {},
   ): string {
-    const specific = error instanceof ApiError ? byStatus[error.httpStatus] : undefined;
-    return specific ?? fallback;
+    if (!(error instanceof ApiError)) return fallback;
+    const topMatch = error.code ? byCode[error.code] : undefined;
+    if (topMatch) return topMatch;
+    for (const fieldError of error.errors) {
+      const fieldMatch = fieldError.code ? byCode[fieldError.code] : undefined;
+      if (fieldMatch) return fieldMatch;
+    }
+    return fallback;
   }
 
   /**
@@ -294,7 +300,10 @@ export function EditProfilePage() {
           addErrorMessage={
             addEducation.isError
               ? getItemErrorMessage(addEducation.error, t('profile:educacion.errorAgregar'), {
-                  422: t('profile:educacion.errorFechaInvalida'),
+                  EDUCATION_LIMIT_REACHED: t('profile:educacion.errorLimite'),
+                  START_DATE_BEFORE_BIRTH: t('profile:educacion.errorFechaAnteriorNacimiento'),
+                  INSTITUTION_INVALID_CHARACTERS: t('profile:educacion.errorCaracteresInvalidos'),
+                  DEGREE_INVALID_CHARACTERS: t('profile:educacion.errorCaracteresInvalidos'),
                 })
               : undefined
           }
@@ -354,7 +363,16 @@ export function EditProfilePage() {
               ? getItemErrorMessage(
                   addWorkExperience.error,
                   t('profile:experiencia.errorAgregar'),
-                  { 422: t('profile:experiencia.errorFechaInvalida') },
+                  {
+                    WORK_EXPERIENCE_LIMIT_REACHED: t('profile:experiencia.errorLimite'),
+                    START_DATE_BEFORE_MINIMUM_AGE: t('profile:experiencia.errorFechaEdadMinima'),
+                    END_DATE_BEFORE_MINIMUM_AGE: t('profile:experiencia.errorFechaFinEdadMinima'),
+                    COMPANY_INVALID_CHARACTERS: t('profile:experiencia.errorCaracteresInvalidos'),
+                    POSITION_INVALID_CHARACTERS: t('profile:experiencia.errorCaracteresInvalidos'),
+                    DESCRIPTION_INVALID_CHARACTERS: t(
+                      'profile:experiencia.errorCaracteresInvalidos',
+                    ),
+                  },
                 )
               : undefined
           }
@@ -409,14 +427,16 @@ export function EditProfilePage() {
           addErrorMessage={
             addSkill.isError
               ? getItemErrorMessage(addSkill.error, t('profile:habilidades.errorAgregar'), {
-                  409: t('profile:habilidades.errorConflicto'),
+                  SKILL_LIMIT_REACHED: t('profile:habilidades.limiteAlcanzado'),
+                  SKILL_ALREADY_EXISTS: t('profile:habilidades.errorYaExiste'),
+                  SKILL_NAME_INVALID_CHARACTERS: t('profile:habilidades.errorAgregar'),
                 })
               : undefined
           }
           removeErrorMessage={
             removeSkill.isError
               ? getItemErrorMessage(removeSkill.error, t('profile:habilidades.errorEliminar'), {
-                  409: t('profile:habilidades.errorUltimaHabilidad'),
+                  LAST_SKILL_NOT_ALLOWED: t('profile:habilidades.errorUltimaHabilidad'),
                 })
               : undefined
           }
@@ -466,8 +486,8 @@ export function EditProfilePage() {
           addErrorMessage={
             addTargetRole.isError
               ? getItemErrorMessage(addTargetRole.error, t('profile:rolesObjetivo.errorAgregar'), {
-                  422: t('profile:rolesObjetivo.agregar.tope'),
-                  409: t('profile:rolesObjetivo.errorDuplicado'),
+                  TARGET_ROLE_LIMIT_REACHED: t('profile:rolesObjetivo.agregar.tope'),
+                  TARGET_ROLE_ALREADY_EXISTS: t('profile:rolesObjetivo.errorDuplicado'),
                 })
               : undefined
           }
@@ -476,7 +496,7 @@ export function EditProfilePage() {
               ? getItemErrorMessage(
                   substituteTargetRole.error,
                   t('profile:rolesObjetivo.errorSustituir'),
-                  { 409: t('profile:rolesObjetivo.errorDuplicado') },
+                  { TARGET_ROLE_ALREADY_EXISTS: t('profile:rolesObjetivo.errorDuplicado') },
                 )
               : undefined
           }
@@ -485,7 +505,7 @@ export function EditProfilePage() {
               ? getItemErrorMessage(
                   removeTargetRole.error,
                   t('profile:rolesObjetivo.errorEliminar'),
-                  { 422: t('profile:rolesObjetivo.eliminarUltimoBloqueado') },
+                  { TARGET_ROLE_NOT_ALLOWED: t('profile:rolesObjetivo.eliminarUltimoBloqueado') },
                 )
               : undefined
           }
@@ -527,14 +547,16 @@ export function EditProfilePage() {
       {finalizeProfile.isError
         ? (() => {
             const error = finalizeProfile.error;
-            // `ProfileAlreadyCompletedException` (`409`, confirmado contra
-            // `ProfileController.java#completeProfile`): el botón ya debería
-            // estar deshabilitado antes de esto — cubre solo una caché
-            // vieja/condición de carrera, con el mismo mensaje que el aviso
-            // de arriba, no el error genérico.
-            if (error instanceof ApiError && error.isConflict()) {
+            if (error instanceof ApiError && error.hasCode('PROFILE_ALREADY_COMPLETED')) {
               return (
                 <AlertInline variant="success">{t('profile:formulario.yaActivo')}</AlertInline>
+              );
+            }
+            if (error instanceof ApiError && error.hasCode('PROFILE_UPDATE_IN_PROGRESS')) {
+              return (
+                <AlertInline variant="error">
+                  {t('profile:formulario.errorPerfilOcupado')}
+                </AlertInline>
               );
             }
             const missingLabels = getMissingRequirementsLabels(error);

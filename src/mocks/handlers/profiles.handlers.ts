@@ -212,9 +212,15 @@ interface MockErrorField {
   message: string;
 }
 
-/** Misma forma que un `ProblemDetail` real (RFC 7807, `ADR-0007`) — sin `code` propio. */
-function errorBody(status: number, title: string, detail: string, errors: MockErrorField[] = []) {
-  return { type: 'about:blank', title, status, detail, errors };
+/** Misma forma que un `ProblemDetail` real (RFC 7807, `ADR-0008`) con `code` estable. */
+function errorBody(
+  status: number,
+  title: string,
+  detail: string,
+  errors: MockErrorField[] = [],
+  code?: string,
+) {
+  return { type: 'about:blank', title, status, detail, errors, ...(code && { code }) };
 }
 
 function notFound(detail: string) {
@@ -587,7 +593,13 @@ export const profilesHandlers: HttpHandler[] = [
       profile.profileSkills.some((skill) => skill.skillName.trim().toLowerCase() === normalized)
     ) {
       return HttpResponse.json(
-        errorBody(409, 'Habilidad duplicada', 'Esa habilidad ya está en tu perfil.'),
+        errorBody(
+          409,
+          'Habilidad duplicada',
+          'Esa habilidad ya está en tu perfil.',
+          [],
+          'SKILL_ALREADY_EXISTS',
+        ),
         { status: 409 },
       );
     }
@@ -644,17 +656,25 @@ export const profilesHandlers: HttpHandler[] = [
     if (profile.targetRoles.length >= MAX_TARGET_ROLES) {
       return HttpResponse.json(
         errorBody(
-          422,
+          409,
           'Máximo de roles alcanzado',
           `Ya tienes el máximo de ${MAX_TARGET_ROLES} roles objetivo.`,
+          [],
+          'TARGET_ROLE_LIMIT_REACHED',
         ),
-        { status: 422 },
+        { status: 409 },
       );
     }
 
     if (profile.targetRoles.some((role) => role.professionalRoleId === professionalRoleId)) {
       return HttpResponse.json(
-        errorBody(409, 'Rol objetivo duplicado', 'Ese rol objetivo ya está en tu perfil.'),
+        errorBody(
+          409,
+          'Rol objetivo duplicado',
+          'Ese rol objetivo ya está en tu perfil.',
+          [],
+          'TARGET_ROLE_ALREADY_EXISTS',
+        ),
         { status: 409 },
       );
     }
@@ -703,7 +723,13 @@ export const profilesHandlers: HttpHandler[] = [
         )
       ) {
         return HttpResponse.json(
-          errorBody(409, 'Rol objetivo duplicado', 'Ese rol objetivo ya está en tu perfil.'),
+          errorBody(
+            409,
+            'Rol objetivo duplicado',
+            'Ese rol objetivo ya está en tu perfil.',
+            [],
+            'TARGET_ROLE_ALREADY_EXISTS',
+          ),
           { status: 409 },
         );
       }
@@ -731,11 +757,13 @@ export const profilesHandlers: HttpHandler[] = [
       if (profile.targetRoles.length === 1 && profile.status === 'COMPLETED') {
         return HttpResponse.json(
           errorBody(
-            422,
+            409,
             'No se puede eliminar',
             'No puedes quedarte sin roles objetivo con el perfil activo.',
+            [],
+            'TARGET_ROLE_NOT_ALLOWED',
           ),
-          { status: 422 },
+          { status: 409 },
         );
       }
       profile.targetRoles.splice(index, 1);
@@ -754,9 +782,16 @@ export const profilesHandlers: HttpHandler[] = [
     }
 
     if (profile.status === 'COMPLETED') {
-      return HttpResponse.json(errorBody(409, 'Perfil ya activo', 'Este perfil ya está activo.'), {
-        status: 409,
-      });
+      return HttpResponse.json(
+        errorBody(
+          409,
+          'Perfil ya activo',
+          'Este perfil ya está activo.',
+          [],
+          'PROFILE_ALREADY_COMPLETED',
+        ),
+        { status: 409 },
+      );
     }
 
     const missing: MockErrorField[] = [];
@@ -781,8 +816,9 @@ export const profilesHandlers: HttpHandler[] = [
         errorBody(
           422,
           'Perfil incompleto',
-          'Todavía no cumples los requisitos para finalizar.',
+          'Revisa los campos marcados.',
           missing,
+          'PROFILE_INCOMPLETE',
         ),
         { status: 422 },
       );

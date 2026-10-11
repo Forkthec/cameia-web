@@ -1,8 +1,7 @@
 /**
- * Protege que `getMissingRequirementFields` lea `error.errors` (no un
- * `missingRequirements` aparte) y solo para un `422` con requisitos —
- * cualquier otro `httpStatus` o clase de error debe ignorarse, para no
- * confundir un error real distinto con una lista vacía de requisitos.
+ * Protege que `getMissingRequirementFields` discrimine por
+ * `code: 'PROFILE_INCOMPLETE'` (`ADR-0008`) y lea los requisitos de
+ * `error.errors[]` — cualquier otro `code` o clase de error se ignora.
  */
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '@/services/http/ApiError';
@@ -13,7 +12,8 @@ describe('getMissingRequirementFields', () => {
     const error = new ApiError({
       httpStatus: 422,
       title: 'Perfil incompleto',
-      detail: 'Todavía no cumples los requisitos para finalizar.',
+      detail: 'Revisa los campos marcados.',
+      code: 'PROFILE_INCOMPLETE',
       errors: [
         { field: 'name', message: 'Obligatorio' },
         { field: 'skills', message: 'Obligatorio' },
@@ -24,21 +24,35 @@ describe('getMissingRequirementFields', () => {
     expect(getMissingRequirementFields(error)).toEqual(['name', 'skills', 'targetRoles']);
   });
 
-  it('un 422 sin errors por campo devuelve undefined', () => {
+  it('un PROFILE_INCOMPLETE sin errors por campo devuelve undefined', () => {
     const error = new ApiError({
       httpStatus: 422,
-      title: 'Datos no válidos',
-      detail: 'Revisa los datos enviados.',
+      title: 'Perfil incompleto',
+      detail: 'Revisa los campos marcados.',
+      code: 'PROFILE_INCOMPLETE',
     });
 
     expect(getMissingRequirementFields(error)).toBeUndefined();
   });
 
-  it('un ApiError con otro httpStatus devuelve undefined', () => {
+  it('un 422 con otro code devuelve undefined', () => {
     const error = new ApiError({
-      httpStatus: 404,
-      title: 'No encontrado',
-      detail: 'No encontrado.',
+      httpStatus: 422,
+      title: 'Datos no válidos',
+      detail: 'Revisa los campos marcados.',
+      code: 'VALIDATION_FAILED',
+      errors: [{ field: 'name', message: 'Requerido' }],
+    });
+
+    expect(getMissingRequirementFields(error)).toBeUndefined();
+  });
+
+  it('un 422 sin code devuelve undefined', () => {
+    const error = new ApiError({
+      httpStatus: 422,
+      title: 'Datos no válidos',
+      detail: 'Revisa los datos enviados.',
+      errors: [{ field: 'name', message: 'Requerido' }],
     });
 
     expect(getMissingRequirementFields(error)).toBeUndefined();
