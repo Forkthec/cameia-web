@@ -2,7 +2,10 @@
  * Formulario de Login (`form-inner` de `PRT-01.03`, nodos `94:1126`/`97:1273`
  * de Figma): título, botón de Google y enlace de recuperación deshabilitados
  * (D-04/D-05, fuera de alcance de `HU-1.3`), campos de correo/contraseña,
- * botón "Ingresar" y el enlace a Registro.
+ * botón "Ingresar" y el enlace a Registro. El enlace de recuperación lleva
+ * dentro la insignia «Próximamente» (`Pill`, CA-1.3.13 / RT-04-CA01), así que
+ * forma parte de su nombre accesible; mientras `HU-1.4` no exista no lleva a
+ * ninguna parte.
  *
  * Sigue el mismo patrón que `GeneralInfoForm` (`professional-profile`): no
  * llama `useTranslation` (CLAUDE.md §14.7, aplicado por consistencia aunque
@@ -21,8 +24,10 @@
  * señalar cuál campo falló, es la forma visual de cumplir CA-1.3.1.
  *
  * `correo` usa `emailSchema` (`login.schema.ts`), compartido con
- * `register.schema.ts` (CM-195): mismo regex/`maxLength=254` que el backend
- * real (`EmailAddress.java`). `correoErrorMuyLargo` cubre el caso `too_big`.
+ * `register.schema.ts` (CM-195): mismo regex y límite de 254 caracteres que el
+ * backend real (`EmailAddress.java`). El límite vive solo en el esquema: el
+ * `<input>` no lleva `maxLength`, porque truncaría el valor y haría inalcanzable
+ * el mensaje de `CA-1.3.12`. `correoErrorMuyLargo` cubre el caso `too_big`.
  */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
@@ -35,6 +40,7 @@ import { Icon } from '@/design-system/icons/Icon';
 import { AlertInline } from '@/design-system/molecules/AlertInline';
 import { FormField } from '@/design-system/molecules/FormField';
 import { Input } from '@/design-system/atoms/Input';
+import { Pill } from '@/design-system/atoms/Pill';
 import { PasswordField } from '@/design-system/molecules/PasswordField';
 import { loginSchema, type LoginFormValues } from '../../schemas/login.schema';
 
@@ -64,6 +70,8 @@ interface LoginFormProps {
   showPasswordLabel: string;
   hidePasswordLabel: string;
   forgotPasswordLabel: string;
+  /** Etiqueta «Próximamente» del enlace de recuperación (CA-1.3.13, RT-04-CA01): visible y parte del nombre accesible. */
+  forgotPasswordBadgeLabel: string;
   submitLabel: string;
   submitLoadingLabel: string;
   footerQuestion: string;
@@ -90,6 +98,7 @@ export function LoginForm({
   showPasswordLabel,
   hidePasswordLabel,
   forgotPasswordLabel,
+  forgotPasswordBadgeLabel,
   submitLabel,
   submitLoadingLabel,
   footerQuestion,
@@ -155,7 +164,6 @@ export function LoginForm({
               onBlur={field.onBlur}
               placeholder={correoPlaceholder}
               autoComplete="email"
-              maxLength={254}
               state={
                 isSubmitting
                   ? 'disabled'
@@ -196,8 +204,12 @@ export function LoginForm({
       />
 
       <div className="flex justify-end">
-        <button type="button" disabled className="text-small text-text-disabled cursor-not-allowed">
-          {forgotPasswordLabel}
+        <button
+          type="button"
+          disabled
+          className="gap-space-2 text-small text-text-disabled inline-flex cursor-not-allowed items-center"
+        >
+          {forgotPasswordLabel} <Pill>{forgotPasswordBadgeLabel}</Pill>
         </button>
       </div>
 
