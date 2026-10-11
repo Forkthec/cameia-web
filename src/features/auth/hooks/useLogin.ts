@@ -17,6 +17,11 @@
  * `signIn` efímero: inicia sesión de nuevo, envía el correo y cierra sesión
  * inmediatamente. El resultado (`verificationResent`) también vive en el store
  * por la misma razón.
+ *
+ * **DF-003 (10-oct-2026):** si `sendEmailVerification` falla (p. ej. Firebase
+ * responde 400 al segundo reenvío), la sesión efímera debe cerrarse en el
+ * `catch`; de lo contrario la app queda con `isAuthenticated=true` y
+ * `emailVerified=false`, dando acceso al área privada.
  */
 import { useState } from 'react';
 import { useLocation, useNavigate, type Location } from 'react-router';
@@ -109,12 +114,18 @@ export function useLogin(): UseLoginResult {
     useAuthStore.getState().setVerificationResent(false);
     setResendErrorKey(null);
 
+    let signedIn = false;
     try {
       const user = await signIn(pendingCredentials.correo, pendingCredentials.contrasena);
+      signedIn = true;
       await sendEmailVerification(user);
       await signOut();
+      signedIn = false;
       useAuthStore.getState().setVerificationResent(true);
     } catch (error) {
+      if (signedIn) {
+        await signOut().catch(() => {});
+      }
       const code = error instanceof AuthError ? error.code : '';
       if (code === 'AUTH_TOO_MANY_REQUESTS') {
         setResendErrorKey('auth:verificacion.correoNoVerificado.limiteReenvios');
