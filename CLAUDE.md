@@ -292,18 +292,22 @@ Regla de anidado de radios: un hijo siempre lleva un radio menor que su contened
 - `services/http/httpClient.ts` es un envoltorio delgado de `fetch`. **No usamos axios.**
 - El cliente adjunta el ID Token de Firebase (`await getIdToken()`) en cada petición y maneja el refresh.
 - `services/http/errorMap.ts` traduce el cuerpo de error del backend a un `ApiError` tipado.
-  **Contrato real, confirmado 19-sep-2026 (`ADR-0007`):** `ProblemDetail`, **RFC 7807** —
-  `title`/`detail`/`status` estándar del RFC, más la extensión propia `errors: [{field, message}]`.
-  Confirmado contra el código real de dos microservicios (`BusinessExceptionHandler.java` en
-  `cameia-cuentas`, `ApiExceptionHandler.java` en `cameia-perfil`) y ya cerrado por el PO desde el
-  11-sep-2026 (`docs/decisiones/11092026_v2_…`, «Cierre de TBD obsoletos», API-TBD-14) — el código
-  simplemente no se había actualizado hasta esta fecha.
-  **El backend no envía ningún código estable propio** (`codigoCameia`/`correlationId` de la
-  propuesta original en `docs/referencias/03092026_v1_reglas-codigo-backend-cameia.md` §7.1 no
-  llegaron a implementarse). **El frontend nunca renderiza `title`/`detail` crudos**: discrimina
-  por `httpStatus` + `errors[].field` (cuando el backend lo etiqueta; no todas las excepciones lo
-  hacen — p. ej. `EmailAlreadyRegisteredException`/`IllegalArgumentException` no traen `errors[]`),
-  nunca por un código inventado por el mock ni por el propio frontend.
+  **Contrato (`ADR-0008`, que sustituye al `ADR-0007`):** `ProblemDetail`, **RFC 7807** —
+  `title`/`detail`/`status` estándar del RFC, más las extensiones propias `code`, `requestId` y
+  `errors: [{field, code, message}]`. El backend envía `code` estable desde el 8-oct-2026
+  (documentos de Backend del 6, 8 y 9-oct; ver `ADR-0008` para las fuentes). El Gateway responde
+  además `{code, message}` sin `title` ni `detail` (p. ej. `401 AUTH_REQUIRED`), y `errorMap.ts`
+  también lo acepta.
+  **El frontend nunca renderiza `title`/`detail` crudos, ni `code`, ni `requestId`.** Siguen
+  prohibidos: el texto visible sale de i18n (§3.2, §7). El `code` no se muestra, **elige una llave
+  de i18n**.
+  **Discriminación.** La decisión de negocio sobre un error se toma por `code` (`error.hasCode(…)`),
+  acotada al endpoint cuyo contrato lo define, con los códigos copiados tal cual del backend. **Es
+  estricto: sin `code` no hay respaldo por `httpStatus`, y la pantalla muestra el mensaje genérico**
+  (`errors:generico`): un genérico es honesto, uno específico equivocado no. El `httpStatus` queda
+  para las clases amplias: `401` (cierre de sesión), `404`, `5xx` y los reintentos de
+  `queryClient.ts`. `errors[].field` ubica un mensaje bajo un campo. Nunca se discrimina por un código
+  inventado por el mock ni por el propio frontend: los mocks usan los `code` del catálogo de Backend.
 - Los DTO viven en `features/*/api/*.dto.ts` y se convierten a modelo de UI en `*.mapper.ts`.
   Ningún componente toca un DTO directamente.
 - Mientras no exista el OpenAPI del backend, los DTO se escriben a mano y se marcan con

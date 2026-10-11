@@ -14,7 +14,8 @@ que ya se discutió, y para que quien entre nuevo entienda por qué el código e
 | [0004](0004-perfil-activo-como-seleccion-efimera.md) | El perfil activo es una selección efímera del cliente | Aceptada, con revisión pendiente | 06-sep-2026 |
 | [0005](0005-tema-claro-unico-en-el-mvp.md)           | Un solo tema visual en el MVP                         | Aceptada                         | 06-sep-2026 |
 | [0006](0006-registro-orquestado-por-backend-via-post-users.md) | El registro lo orquesta el backend; el cliente no crea la cuenta en Firebase | Aceptada | 18-sep-2026 |
-| [0007](0007-contrato-de-error-problemdetail.md)      | El contrato de error real es `ProblemDetail` (RFC 7807), sin código propio | Aceptada                    | 19-sep-2026 |
+| [0007](0007-contrato-de-error-problemdetail.md)      | El contrato de error real es `ProblemDetail` (RFC 7807), sin código propio | Sustituida por 0008         | 19-sep-2026 |
+| [0008](0008-codigo-estable-del-backend-como-discriminador-de-errores.md) | El `code` estable del backend es el discriminador de errores de negocio | Aceptada | 10-oct-2026 |
 
 Notas al índice (los ADR no se editan, ver regla 1):
 
@@ -23,6 +24,9 @@ Notas al índice (los ADR no se editan, ver regla 1):
 - **0003:** sus menciones a un «código estable» como llave de error y a la migración pendiente del
   formato de error las superó el 0007 (el backend no envía código propio).
 - **0006:** su «formato provisional `{code, message, details}`» lo superó el 0007.
+- **0007:** lo sustituye el 0008. Sigue vigente su contrato `ProblemDetail` y la prohibición de
+  renderizar `title`/`detail`; ya no lo está que el backend no envíe `code` ni que el discriminador
+  sea `httpStatus` + `errors[].field`.
 
 ## Reglas
 

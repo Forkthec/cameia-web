@@ -1,6 +1,6 @@
 # 0007 · El contrato de error real es `ProblemDetail` (RFC 7807), sin código propio
 
-- **Estado:** Aceptada
+- **Estado:** Sustituida por 0008
 - **Fecha:** 19-sep-2026
 - **Decide:** Frontend (Juan Diego Gómez Garcés), con el código real de dos microservicios como
   evidencia

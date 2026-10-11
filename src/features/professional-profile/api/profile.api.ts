@@ -18,9 +18,10 @@
  * real responde 422 con "la lista de requisitos faltantes" — este mock la
  * transporta en `ApiError.errors` (un `{field, message}` por requisito
  * incumplido, misma extensión `errors` del `ProblemDetail` real,
- * `ADR-0007`), no en un campo `missingRequirements` aparte: `errorMap.ts` ya
- * sabe leerla, y así no hace falta un DTO de error especial solo para este
- * endpoint.
+ * `ADR-0007`/`ADR-0008`), no en un campo `missingRequirements` aparte:
+ * `errorMap.ts` ya sabe leerla, y así no hace falta un DTO de error especial
+ * solo para este endpoint. El backend además envía `code` `PROFILE_INCOMPLETE`
+ * en ese `422` (`ApiError.code`, `ADR-0008`); esta función no lo usa todavía.
  *
  * `fetchProfessionalRoles` (CM-69) es el único endpoint de esta feature que
  * no pertenece al perfil sino a un catálogo compartido (`GET

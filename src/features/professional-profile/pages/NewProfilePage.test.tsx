@@ -6,7 +6,10 @@
  * devuelto, que dos toques seguidos no crean dos perfiles (guarda contra
  * doble creación — el Plan Gratis permite uno solo, consulta C-03), que un
  * fallo de red muestra `errors:generico` y permite reintentar, que el grupo
- * expone su nombre accesible, y que la pantalla no tiene ningún campo de
+ * expone su nombre accesible, que el cupo agotado se reconoce por `code`
+ * (CM-298, `ADR-0008`) y no se confunde con `PROFILE_CREATION_IN_PROGRESS`
+ * (mensaje propio) ni con un 409 sin `code` (mensaje genérico), y que la
+ * pantalla no tiene ningún campo de
  * texto (CA-2.2.1: el perfil se crea vacío, el nombre se fija después por
  * PATCH en HU-2.3). No prueba el guard de sesión: `RequireAuth` vive en
  * `app` y esta feature no puede importarlo (docs/ARCHITECTURE.md §4); esa
@@ -225,6 +228,75 @@ describe('NewProfilePage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Tu Plan Free permite 1 Perfil Profesional.',
     );
+    expect(screen.queryByText(/Editar perfil/)).not.toBeInTheDocument();
+    expect(useUiPreferencesStore.getState().lastUsedProfileId).toBeNull();
+  });
+
+  it('CM-298: con 409 PROFILE_CREATION_IN_PROGRESS muestra el mensaje de creación en curso, no el del cupo, no navega y no guarda lastUsedProfileId', async () => {
+    await waitUntilReady();
+    useHandlers(
+      http.post(
+        '*/api/v1/profiles',
+        () =>
+          HttpResponse.json(
+            {
+              type: 'about:blank',
+              title: 'Conflicto',
+              status: 409,
+              // Distinto del texto esperado a propósito: el mensaje sale del catálogo
+              // i18n, no del `detail` del backend (CLAUDE.md §8).
+              detail: 'detalle del servidor',
+              code: 'PROFILE_CREATION_IN_PROGRESS',
+              errors: [],
+            },
+            { status: 409 },
+          ),
+        { once: true },
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    const manualCard = await screen.findByRole('radio', { name: /Llenado Manual/ });
+    await user.click(manualCard);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(
+      'Estamos creando tu perfil. Inténtalo de nuevo en unos segundos.',
+    );
+    expect(alert).not.toHaveTextContent('Tu Plan Free permite 1 Perfil Profesional.');
+    expect(screen.queryByText(/Editar perfil/)).not.toBeInTheDocument();
+    expect(useUiPreferencesStore.getState().lastUsedProfileId).toBeNull();
+  });
+
+  it('CM-298: con un 409 sin code muestra el mensaje genérico, no el del cupo', async () => {
+    await waitUntilReady();
+    useHandlers(
+      http.post(
+        '*/api/v1/profiles',
+        () =>
+          HttpResponse.json(
+            {
+              type: 'about:blank',
+              title: 'Conflicto',
+              status: 409,
+              detail: 'detalle del servidor',
+              errors: [],
+            },
+            { status: 409 },
+          ),
+        { once: true },
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    const manualCard = await screen.findByRole('radio', { name: /Llenado Manual/ });
+    await user.click(manualCard);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Ocurrió un error. Inténtalo de nuevo.');
+    expect(alert).not.toHaveTextContent('Tu Plan Free permite 1 Perfil Profesional.');
     expect(screen.queryByText(/Editar perfil/)).not.toBeInTheDocument();
     expect(useUiPreferencesStore.getState().lastUsedProfileId).toBeNull();
   });
