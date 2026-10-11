@@ -9,7 +9,7 @@ documentacion: tsdoc-es
 backlog: 09102026_01
 decisiones: [10092026_v1, 11092026_v2, 11092026_v1, 13092026_v1]
 figma: Cameia · Mockups MVP
-revisado: 2026-10-10
+revisado: 2026-10-11
 ---
 
 # Feature · Perfil Profesional
@@ -136,6 +136,8 @@ Fuente: backlog `09102026_01` (v6), hoja HE-02, HU-2.2, CA-2.2.1 a CA-2.2.7.
     (`error.isConflict() || error.isForbidden()`) porque `ApiError` no exponía el `code`; ese criterio
     mostraba como cupo agotado el `409 PROFILE_CREATION_IN_PROGRESS` y el `403 EMAIL_NOT_VERIFIED`.
   - *Qué ya no es cupo agotado:* `PROFILE_CREATION_IN_PROGRESS` (`409`, ver más abajo),
+    `PROFILE_NOT_ALLOWED` (`403`, perfil ajeno; documento de Backend del 10-oct), que comparte
+    estado con el cupo y se distingue solo por el `code`,
     `EMAIL_NOT_VERIFIED` (`403` del Gateway, cuerpo `{code, message}`; su manejo es de la
     verificación de correo, HU-1.2, no de esta pantalla) y cualquier otro código del catálogo.
   - *Presentación:* `AlertInline variant="error"` en la ranura de error que `ProfileMethodSelector`
@@ -155,13 +157,14 @@ Fuente: backlog `09102026_01` (v6), hoja HE-02, HU-2.2, CA-2.2.1 a CA-2.2.7.
   Perfiles Profesionales de tu plan.»; el cliente hoy no conoce el plan (`GET /api/v1/users/me` lo
   devolverá, pero aún no existe) y la redirección por `lastUsedProfileId` impide llegar al selector
   con un perfil ya creado.
-- **CA-2.2.7 (selección repetida) — comportamiento implementado, literal no.** Mientras la creación
-  está en curso, un segundo toque en «Llenado Manual» se ignora (guarda en `ProfileMethodSelector`):
-  una sola petición, sin Paywall. El backlog dice «el botón queda deshabilitado»; la implementación
-  marca la tarjeta como seleccionada, con `aria-busy` y un `Spinner` con etiqueta, sin atributo
-  `disabled` — ver §9. Backend además nunca crea un segundo perfil.
+- **CA-2.2.7 (selección repetida) — cumplido, también el literal (DF-004).** Mientras la creación
+  está en curso, la tarjeta «Llenado Manual» queda con el atributo `disabled`, marcada como
+  seleccionada, con `aria-busy` y un `Spinner` con etiqueta, y un segundo toque no produce otra
+  petición: una sola, sin Paywall. La defensa es una guarda síncrona (`useRef`) en `NewProfilePage`,
+  que se baja en `onSettled`; el `disabled` muestra el estado pero no es la defensa, porque llega con
+  el re-render (ver §9, nota sobre la carrera). Backend además nunca crea un segundo perfil.
 - **Creación en curso (CM-298) — `409 PROFILE_CREATION_IN_PROGRESS`.** Si otra creación del mismo
-  usuario no termina en 5 s, Backend responde `409` y no crea nada; se puede reintentar. Sustituye
+  usuario no termina en 2 s, Backend responde `409` y no crea nada; se puede reintentar. Sustituye
   al `503 PROFILE_CREATION_TIMEOUT`, que ya no existe en `cameia-perfil` (commit `147d1e8`, PR #80,
   en `develop`). Se muestra «Estamos creando tu perfil. Inténtalo de nuevo en unos segundos.», el
   texto literal publicado por Backend (documento del 9-oct, §2.2; el del 8-oct, §3 y §7.1, ya lo
@@ -177,7 +180,7 @@ Fuente: backlog `09102026_01` (v6), hoja HE-02, HU-2.2, CA-2.2.1 a CA-2.2.7.
 
 | Estado      | Qué muestra                                                                                                                                                                       |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Carga       | No aplica al render inicial: la pantalla no depende de datos remotos para mostrar las dos tarjetas. Mientras la creación está en curso, la tarjeta manual queda marcada como seleccionada, con `aria-busy`, y se anuncia un indicador de carga; un segundo toque se ignora (CA-2.2.7) |
+| Carga       | No aplica al render inicial: la pantalla no depende de datos remotos para mostrar las dos tarjetas. Mientras la creación está en curso, la tarjeta manual queda marcada como seleccionada y deshabilitada (`disabled`), con `aria-busy`, y se anuncia un indicador de carga; un segundo toque no produce otra petición (CA-2.2.7) |
 | Vacío       | No aplica: no hay una colección que pueda estar vacía en esta pantalla                                                                                                            |
 | Error       | Cupo agotado (`code` `PROFILE_LIMIT_REACHED` hoy, `PLAN_LIMIT` después) → mensaje de CA-2.2.3 en `AlertInline variant="error"`; `PROFILE_CREATION_IN_PROGRESS` → «Estamos creando tu perfil. Inténtalo de nuevo en unos segundos.»; cualquier otro fallo, incluido un `409` o `403` sin `code`, mensaje genérico (`errors:generico`); en todos permite reintentar tocando la tarjeta de nuevo |
 | Sin permiso | Ver nota transversal arriba                                                                                                                                                       |
@@ -438,7 +441,7 @@ contexto de su propia mutación, con la llave de i18n movida al namespace de la 
 | ---------------------- | -------------------------------------------------- | --------------------------------------------------- |
 | Nombre de perfil inválido | `400` al guardar Información General (`name` vacío o mayor a 255) — inalcanzable en operación normal, el cliente ya bloquea antes de llamar | `profile:general.nombre.errorLongitud` (cliente; residual sin llave propia, cae a `errors:generico`) |
 | Cupo del Plan Free agotado | `409` `PROFILE_LIMIT_REACHED` (hoy) o `403` `PLAN_LIMIT` (backlog v6, aún sin desplegar) de `POST /api/v1/profiles`; se reconoce por `code`, sin respaldo por estado, solo en la creación (§3.1, `ADR-0008`) | `profile:metodo.errorCupoPlan` (CM-270) — «Tu Plan Free permite 1 Perfil Profesional.» |
-| Creación en curso | `409` `PROFILE_CREATION_IN_PROGRESS` de `POST /api/v1/profiles` (sustituye al `503 PROFILE_CREATION_TIMEOUT`): otra creación del mismo usuario no terminó en 5 s; no se crea nada (CM-298, §3.1) | `profile:metodo.errorCreacionEnCurso` (llave nueva, CM-298) — «Estamos creando tu perfil. Inténtalo de nuevo en unos segundos.» |
+| Creación en curso | `409` `PROFILE_CREATION_IN_PROGRESS` de `POST /api/v1/profiles` (sustituye al `503 PROFILE_CREATION_TIMEOUT`): otra creación del mismo usuario no terminó en 2 s; no se crea nada (CM-298, §3.1) | `profile:metodo.errorCreacionEnCurso` (llave nueva, CM-298) — «Estamos creando tu perfil. Inténtalo de nuevo en unos segundos.» |
 | Perfil no encontrado   | `404` de cualquier mutación/consulta sobre `:id` (ver nota §3) | `errors:codigos.NOT_FOUND` — sigue existiendo, es genérico por `httpStatus` |
 | Fecha de experiencia inválida | `422` al agregar experiencia (`ENDED` sin `endDate`, `endDate < startDate`, o `endDate` en un estado que no la admite) | `profile:experiencia.errorFechaInvalida` |
 | Fecha de educación inválida | `422` al agregar educación (`inProgress=true` y `endDate` presente) | `profile:educacion.errorFechaInvalida` |
@@ -551,7 +554,7 @@ específico).
 | CA-2.2.3 | Reconoce el cupo agotado por 409 o 403 a la vez, solo en la creación; texto provisional, sin botones (el Paywall es Sprint 3) |
 | CA-2.2.4 | El mapper convierte `name` y `summary` nulos en `''` |
 | CA-2.2.5, CA-2.2.6 | Sprint 3: no se implementan |
-| CA-2.2.7 | Ignora el segundo toque con la tarjeta seleccionada, `aria-busy` y `Spinner`; no usa `disabled` (§9) |
+| CA-2.2.7 | Una sola petición ante dos clics síncronos (`NewProfilePage`, `act` y `fireEvent`, DF-004); la tarjeta queda `disabled` mientras se crea (`ProfileMethodSelector`) y conserva el aspecto de seleccionada (`CardSelectable`, `state="selected"` + `disabled`), con `aria-busy` y `Spinner` |
 | CA-2.4.1 (experiencia `CURRENT`/`UNKNOWN_END` sin fecha de fin)   | Oculta y limpia el campo «Fecha de fin» cuando cualquiera de los dos checkboxes está marcado, en vez de solo omitir el envío |
 | J-01 (gestión por ítem, no PATCH de colección)                    | `POST`/`DELETE` inmediato por ítem; sin `useFieldArray` — la lista visible es siempre la caché del servidor (SPEC.md §9, decisión D-A) |
 | HU-2.4 (educación obligatoria)                                     | El botón «Finalizar» ya valida los 5 requisitos server-side (`POST .../completion`, CM-65) |
@@ -569,8 +572,9 @@ específico).
 | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `src/mocks/handlers/profiles.handlers.ts`                                                       | Infraestructura de apoyo: ciclo completo de mocks del perfil; deriva `summaryProvenance`/`summaryProvenanceOrigin` en el `PATCH` (CA-2.3.1/2/4; solo mock, el backend real no los tiene); CM-61 agrega 4 handlers por ítem (POST/DELETE de experiencia y educación) con las reglas reales de `WorkExperience.java`/`Education.java`; CM-65 agrega 2 handlers por ítem de habilidades y reemplaza el endpoint de finalización por el real (ver §5); CM-69 agrega 3 handlers por ítem de Roles Objetivo (POST/PATCH/DELETE) con las reglas reales de `ProfileController.java`, reemplazando el `PATCH` masivo de `targetRoleIds` que solo existía por no conocer el contrato | `src/mocks/handlers/profiles.handlers.test.ts`                                                     |
 | `src/mocks/handlers/professionalRoles.handlers.ts`                                              | CM-69: simula el catálogo real de roles TI vía GET (ver §5), a partir de `src/mocks/data/catalogs.ts` | `src/mocks/handlers/professionalRoles.handlers.test.ts`                                             |
-| `src/features/professional-profile/organisms/ProfileMethodSelector/ProfileMethodSelector.tsx`  | §3.1 (CM-46): las dos tarjetas excluyentes y la guarda contra doble creación mientras la mutación está en curso (CA-2.2.7); CM-270: sin cambios, el mensaje de cupo entra por `errorMessage` y no se añaden props; la prueba suma la afirmación de «Próximamente» (CA-2.2.2) | `src/features/professional-profile/organisms/ProfileMethodSelector/ProfileMethodSelector.test.tsx` |
-| `src/features/professional-profile/pages/NewProfilePage.tsx`                                    | §3.1: la ruta «/perfiles/nuevo» — crea el perfil sin cuerpo al elegir «Llenado Manual» y navega al formulario con el id devuelto; CM-195: redirige si hay lastUsedProfileId; CM-270: sustituye el 409 «ya existe» por el reconocimiento del cupo agotado con `profile:metodo.errorCupoPlan`, el texto provisional de CA-2.2.3 (CM-298: por `code`, y suma `profile:metodo.errorCreacionEnCurso` para `PROFILE_CREATION_IN_PROGRESS`); la creación sigue en la página (deuda, nota técnica 4) | `src/features/professional-profile/pages/NewProfilePage.test.tsx`                            |
+| `src/features/professional-profile/organisms/ProfileMethodSelector/ProfileMethodSelector.tsx`  | §3.1 (CM-46): las dos tarjetas excluyentes; DF-004: la tarjeta manual queda `disabled` (`disabled={loading}`) mientras se crea, y la guarda contra la doble creación pasa a `NewProfilePage` (CA-2.2.7); CM-270: sin cambios, el mensaje de cupo entra por `errorMessage` y no se añaden props; la prueba suma la afirmación de «Próximamente» (CA-2.2.2) | `src/features/professional-profile/organisms/ProfileMethodSelector/ProfileMethodSelector.test.tsx` |
+| `src/design-system/molecules/CardSelectable/CardSelectable.tsx`                                 | Design system (DF-004): prop `disabled`, independiente de `state` — pone el atributo nativo sin cambiar la apariencia; `state="disabled"` la implica. Único consumidor: `ProfileMethodSelector` | `src/design-system/molecules/CardSelectable/CardSelectable.test.tsx`                                |
+| `src/features/professional-profile/pages/NewProfilePage.tsx`                                    | §3.1: la ruta «/perfiles/nuevo» — crea el perfil sin cuerpo al elegir «Llenado Manual» y navega al formulario con el id devuelto; CM-195: redirige si hay lastUsedProfileId; CM-270: sustituye el 409 «ya existe» por el reconocimiento del cupo agotado con `profile:metodo.errorCupoPlan`, el texto provisional de CA-2.2.3 (CM-298: por `code`, y suma `profile:metodo.errorCreacionEnCurso` para `PROFILE_CREATION_IN_PROGRESS`); DF-004: guarda síncrona `isCreatingRef` contra la doble creación (CA-2.2.7); la creación sigue en la página (deuda, nota técnica 4) | `src/features/professional-profile/pages/NewProfilePage.test.tsx`                            |
 | `src/features/professional-profile/model/profileLimit.ts`                                       | §3.1 (CM-270): `isProfileLimitReached` — reconoce el cupo agotado de la creación de perfil por `code` (`PROFILE_LIMIT_REACHED` o `PLAN_LIMIT`), sin respaldo por estado (CA-2.2.3, CM-298, `ADR-0008`); acotada a esa llamada; CM-298 suma `isProfileCreationInProgress` para `PROFILE_CREATION_IN_PROGRESS` | `src/features/professional-profile/model/profileLimit.test.ts`                                      |
 | `src/features/professional-profile/model/profile.constants.ts`                                  | §3.2/§3.3/§3.4/§3.5: límites y constantes de negocio; CM-61 agrega `DESCRIPTION_MAX_LENGTH`, `EDUCATION_LEVELS`, `MANUAL_PROVENANCE`, `PROFILE_COMPLETENESS_MAX`, ids de formulario, `DESKTOP_MEDIA_QUERY`; CM-65 agrega `SKILL_LEVELS`, `SKILL_NAME_MAX_LENGTH`, `SKILLS_FORM_ID`; CM-69 agrega `MAX_TARGET_ROLES` | cubierto por las pruebas de los organismos y `EditProfilePage`                                    |
 | `src/features/professional-profile/model/profile.types.ts`                                      | §3.2/§3.3/§3.4/§3.5: tipos de dominio; CM-61 agrega `EducationItem`, `WorkExperienceItem`, `EducationLevel`, `EmploymentStatus`, `DataProvenance`, `YearMonth` (valores confirmados contra el backend real); CM-65 agrega `SkillItem`, `SkillLevel`; CM-69 agrega `ProfessionalRole`, `TargetRoleItem` (mismo nivel de confianza) | cubierto por las pruebas de los organismos y `EditProfilePage`                                    |
@@ -688,10 +692,15 @@ global ya corriendo, es un segundo reset inocuo, no un conflicto.
 
 **Divergencias respecto al backlog v6, HU-2.2 (CM-270, 9-oct-2026).**
 
-1. CA-2.2.7: el backlog dice «el botón queda deshabilitado mientras la creación está en curso»; la
-   implementación mantiene la tarjeta activa, la marca como seleccionada con `aria-busy` y un
-   `Spinner`, e ignora el segundo toque. Usar `CardSelectable state="disabled"` la haría verse igual
-   que la tarjeta de IA. El comportamiento (una sola petición) cumple; el literal no.
+1. ~~CA-2.2.7: el literal «el botón queda deshabilitado» no se cumplía.~~ **Retirada: QA la rechazó
+   (DF-004, 11-oct-2026, staging, `cameia-web@fb274a5`).** Además existía una carrera: la guarda
+   dependía del re-render (`if (loading) return` sobre una prop derivada de `isPending`), y dos
+   clics separados por 2,9 ms se colaban y producían dos `POST /api/v1/profiles`; la nota anterior
+   («el comportamiento cumple») era una hipótesis sin prueba. Corregido: guarda síncrona con
+   `useRef` en `NewProfilePage` y atributo `disabled` en la tarjeta, que conserva el aspecto de
+   seleccionada gracias a la prop `disabled` de `CardSelectable`, independiente de `state`.
+   **Pendiente de Figma:** falta el `node-id` de `card-selectable`; no se revisó si el prototipo
+   contempla «seleccionada y deshabilitada». Manda el backlog en comportamiento (`CLAUDE.md` §16).
 2. CA-2.2.3: se implementa la versión provisional del criterio, con el texto corto y sin «Ver planes»
    ni «Ahora no», porque el Paywall (CA-2.12.1) es Sprint 3.
 3. CA-2.2.3: el cupo se reconoce por estado HTTP (409 o 403), no por `code` como pide Backend, porque

@@ -3,6 +3,15 @@
  * una puede estar seleccionada, como el modo de entrevista o el método de
  * armar el perfil. El agrupamiento (`role="radiogroup"`) es responsabilidad
  * de quien la usa, no de esta pieza individual.
+ *
+ * `state` y `disabled` son independientes y conviven:
+ * - `state="disabled"` es la apariencia de deshabilitada (fondo y texto
+ *   atenuados, cursor bloqueado) e implica `disabled`: la tarjeta tampoco
+ *   responde a clics.
+ * - `disabled` es el comportamiento: pone el atributo nativo y bloquea
+ *   `onClick`. Por sí solo NO cambia el aspecto, que sigue lo que diga
+ *   `state`. Así una tarjeta `state="selected"` puede bloquearse sin dejar de
+ *   verse seleccionada (p. ej. mientras se crea el perfil, CA-2.2.7, DF-004).
  */
 import { cloneElement, type ReactElement } from 'react';
 import { cn } from '@/utils/cn';
@@ -11,6 +20,8 @@ export type CardSelectableState = 'default' | 'selected' | 'disabled';
 
 interface CardSelectableProps {
   state?: CardSelectableState;
+  /** Bloquea el control (atributo nativo y clics) sin cambiar su apariencia; no hace falta con state="disabled", que ya lo implica. */
+  disabled?: boolean;
   onClick?: () => void;
   icon?: ReactElement<{ size?: number }>;
   title: string;
@@ -20,6 +31,7 @@ interface CardSelectableProps {
 
 export function CardSelectable({
   state = 'default',
+  disabled = false,
   onClick,
   icon,
   title,
@@ -34,7 +46,7 @@ export function CardSelectable({
       type="button"
       role="radio"
       aria-checked={isSelected}
-      disabled={isDisabled}
+      disabled={isDisabled || disabled}
       onClick={onClick}
       className={cn(
         'gap-space-2 p-space-4 flex flex-col items-start rounded-lg border text-left transition-colors',

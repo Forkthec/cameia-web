@@ -29,6 +29,13 @@
  * reintentar. Cualquier otro fallo, incluido un `409` o `403` sin `code`,
  * muestra `errors:generico`.
  *
+ * **DF-004 (CA-2.2.7):** `createProfile.isPending` llega al selector solo tras
+ * un re-render, y dos clics a 2,9 ms (QA, staging) se colaron antes de él: dos
+ * `POST`. `isCreatingRef` es la guarda síncrona: se levanta en el primer clic y
+ * `onSettled` la baja, en éxito y en error, para poder reintentar. Mismo patrón
+ * que `isSubmittingRef` de `GeneralInfoForm`. `loading` sigue mostrando el
+ * estado (seleccionada y `disabled`) pero ya no es la defensa.
+ *
  * Al crear con éxito, guarda el id en `lastUsedProfileId`
  * (`stores/uiPreferences.store.ts`) — conveniencia de cliente ya prevista
  * (`GLO-TBD-06`) pero nunca conectada hasta ahora: es lo que permite que
@@ -37,7 +44,7 @@
  * ya existe al montar esta página — cubre exactamente el caso de "atrás del
  * navegador" que motivó este mensaje de error en primer lugar.
  */
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -66,6 +73,8 @@ export function NewProfilePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const isCreatingRef = useRef(false);
+
   const createProfile = useMutation({
     mutationFn: () => httpClient.post<CreateProfileResponse>('/api/v1/profiles'),
     onSuccess: (profile) => {
@@ -73,6 +82,17 @@ export function NewProfilePage() {
       void navigate(ROUTES.perfilEditar(profile.id));
     },
   });
+
+  /** Guarda síncrona contra la doble creación — ver TSDoc de cabecera (DF-004). */
+  function handleSelectManual() {
+    if (isCreatingRef.current) return;
+    isCreatingRef.current = true;
+    createProfile.mutate(undefined, {
+      onSettled: () => {
+        isCreatingRef.current = false;
+      },
+    });
+  }
 
   let errorMessage: string | undefined;
   if (createProfile.isError) {
@@ -96,7 +116,7 @@ export function NewProfilePage() {
         aiDescription={t('profile:metodo.ia.descripcion')}
         aiBadgeLabel={t('profile:metodo.ia.insignia')}
         loadingLabel={t('common:estados.cargando')}
-        onSelectManual={() => createProfile.mutate()}
+        onSelectManual={handleSelectManual}
         loading={createProfile.isPending}
         errorMessage={errorMessage}
       />
