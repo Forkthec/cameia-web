@@ -182,9 +182,11 @@ export function EditProfilePage() {
     byCode: Record<string, string> = {},
   ): string {
     if (!(error instanceof ApiError)) return fallback;
-    if (error.code && byCode[error.code]) return byCode[error.code];
+    const topMatch = error.code ? byCode[error.code] : undefined;
+    if (topMatch) return topMatch;
     for (const fieldError of error.errors) {
-      if (fieldError.code && byCode[fieldError.code]) return byCode[fieldError.code];
+      const fieldMatch = fieldError.code ? byCode[fieldError.code] : undefined;
+      if (fieldMatch) return fieldMatch;
     }
     return fallback;
   }
