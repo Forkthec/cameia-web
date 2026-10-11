@@ -86,6 +86,7 @@ export function LoginPage() {
         showPasswordLabel={t('ingreso.mostrarContrasena')}
         hidePasswordLabel={t('ingreso.ocultarContrasena')}
         forgotPasswordLabel={t('ingreso.olvideContrasena')}
+        forgotPasswordBadgeLabel={t('ingreso.olvideContrasenaProximamente')}
         submitLabel={t('ingreso.cta')}
         submitLoadingLabel={t('ingreso.cargando')}
         footerQuestion={t('ingreso.noTengoCuenta')}
