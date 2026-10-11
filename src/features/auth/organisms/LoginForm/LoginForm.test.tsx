@@ -29,6 +29,7 @@ const baseProps = {
   showPasswordLabel: 'Mostrar contraseña',
   hidePasswordLabel: 'Ocultar contraseña',
   forgotPasswordLabel: '¿Olvidaste tu contraseña?',
+  forgotPasswordBadgeLabel: 'Próximamente',
   submitLabel: 'Ingresar',
   submitLoadingLabel: 'Ingresando…',
   footerQuestion: '¿No tienes cuenta?',
@@ -104,6 +105,17 @@ describe('LoginForm', () => {
     renderLoginForm();
 
     expect(screen.getByRole('button', { name: 'Continuar con Google' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '¿Olvidaste tu contraseña?' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: '¿Olvidaste tu contraseña? Próximamente' }),
+    ).toBeDisabled();
+  });
+
+  it('CA-1.3.13: el enlace de recuperación deshabilitado lleva «Próximamente» visible y en su nombre accesible', () => {
+    renderLoginForm();
+
+    const forgotPassword = screen.getByRole('button', { name: /¿Olvidaste tu contraseña\?/ });
+    expect(forgotPassword).toBeDisabled();
+    expect(forgotPassword).toHaveAccessibleName('¿Olvidaste tu contraseña? Próximamente');
+    expect(screen.getByText('Próximamente')).toBeVisible();
   });
 });

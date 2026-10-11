@@ -3,13 +3,13 @@ feature: auth
 estado: EN_CURSO
 hu: [HU-1.3, HU-1.1, HU-1.8, HU-1.2]
 prt: [PRT-01.03, PRT-01.01, PRT-01.08]
-jira: [CM-40, CM-34, CM-194, CM-195, CM-243, CM-267, CM-180]
+jira: [CM-40, CM-34, CM-194, CM-195, CM-243, CM-267, CM-180, CM-15, CM-41]
 rutas: [/ingresar, /registro, /verificar-correo]
 documentacion: tsdoc-es
 backlog: 16092026_01
 decisiones: []
 figma: Cameia · Mockups MVP
-revisado: 2026-09-20
+revisado: 2026-10-10
 ---
 
 # Feature · Autenticación (auth)
@@ -48,7 +48,7 @@ descrito solo conceptualmente en el Anexo A y sube al cuerpo cuando entre su pro
 
 ## 2. Alcance
 
-### Login (`HU-1.3` / `CM-40`) — implementado
+### Login (`HU-1.3` / `CM-40`) — implementado; en revisión contra el backlog v6 (`CM-41`)
 
 **Entra:**
 
@@ -72,15 +72,84 @@ descrito solo conceptualmente en el Anexo A y sube al cuerpo cuando entre su pro
   tiene ticket en el Sprint 1. Se muestra el botón (está en Figma) pero deshabilitado.
 - **Recuperación de contraseña** (`HU-1.4`) — `PRT-01.04` existe en Figma pero no se construye
   aquí; el enlace queda deshabilitado.
-- El banner persistente de "correo sin verificar" que exige `CA-1.3.1` **no se renderiza en esta
-  iteración** (Bloqueo B-03): su lugar natural es el shell autenticado (`AppShell`).
-  **Nota (CM-180):** el modal de correo no verificado en Login (ver subsección Verificación más
-  abajo) cubre el caso de intento de login, no el banner persistente de la sesión autenticada.
+- ~~El banner persistente de «correo sin verificar» que exigía `CA-1.3.1`~~ **Ya no aplica
+  (backlog v6, `CM-41`):** el v6 no lo pide en ningún criterio, y una cuenta con el correo sin
+  verificar no inicia sesión (`CA-1.3.7`), así que no hay sesión autenticada en la que mostrarlo.
+  El Bloqueo B-03 queda cerrado por esa razón.
 - Cualquier llamada a un endpoint propio de CAMEIA para autenticar: no existe para este paso.
 - Lógica de «ya hay sesión» dentro de la propia página: no la hay. El guard `RedirectIfAuthenticated`
   (`src/app/router/guards/RequireAuth.tsx`) envuelve la landing y las rutas de `auth` (`/`,
   `/ingresar`, `/registro`) y, con sesión activa, redirige a `/inicio` (ver B-22 para un efecto
   colateral en el registro).
+
+#### Revisión contra el backlog v6 (`CM-15` / `CM-41`, 10-oct-2026)
+
+Fuente: `09102026_01_Backlog_v6.xlsx`, hoja HE-01, HU-1.3 (15 criterios, Sprint 2, dependencia dura
+de `HU-1.1` y `HU-1.2`). Es una **revisión de lo construido en `CM-40`**, no una construcción nueva.
+El campo `backlog` del encabezado sigue indicando la versión contra la que se escribió el resto de
+esta SPEC. Cambios del v6 que afectan a esta pantalla: `CA-1.3.1` ya no exige llamar al Gateway tras
+el `signIn` (el Gateway verifica el token en las peticiones autenticadas siguientes), por lo que
+`useLogin` se queda en Firebase; `CA-1.3.7` pasa a ser solo de Frontend; `CA-1.3.2` a `CA-1.3.6` y
+`CA-1.3.12` exigen «sin llamada a Firebase» o «sin llamada al backend»; `CA-1.3.9` pasa a
+`POST /api/v1/users` (201/200) y sigue fuera del MVP; el límite de 254 caracteres del correo sube a
+regla del campo.
+
+**Estado por criterio** (a: ¿el comportamiento cumple el v6?; b: ¿hay prueba?; un criterio que
+funciona sin prueba es PARCIAL). Estado al cierre del tramo 2 de `CM-41` (10-oct-2026):
+
+| CA | Estado | Comportamiento (a) | Prueba (b) |
+| -- | ------ | ------------------ | ---------- |
+| `CA-1.3.1` | CUMPLE (con una diferencia deliberada) | `signIn` → `setUser` → `navigate(from ?? /inicio)`; `RedirectIfAuthenticated` también respeta `from`. El v6 dice «Tablero de inicio» y el código vuelve a `from` si existe: ver «Decisiones», punto 1. `/inicio` sigue siendo un placeholder (`HU-10.4`). | `loginRedirect.test.tsx` (sin `from` llega a `/inicio`; con `from` vuelve a la pantalla de origen, con los guards reales), `useLogin.test.tsx`, `LoginPage.test.tsx`. |
+| `CA-1.3.2` | CUMPLE | `auth/invalid-credential` se mapea a «Correo o contraseña incorrectos.» (con punto final), sin decir qué campo falló. Firebase se llama una vez; no hay llamada al backend. | `LoginPage.test.tsx`, bloque «criterios del backlog v6»: texto completo, `signIn` llamado una vez, `fetch` no llamado. |
+| `CA-1.3.3` | CUMPLE | `auth/user-not-found` e `invalid-credential` van al mismo código y al mismo mensaje exacto de `CA-1.3.2`. | Misma sección de `LoginPage.test.tsx`. |
+| `CA-1.3.4` | CUMPLE | `emailSchema` (`trim().min(1)`); el texto coincide. | `LoginForm.test.tsx` y `LoginPage.test.tsx` (`signIn` no llamado). Nota: el `<input type="email">` descarta los espacios, así que «solo espacios» llega como vacío. |
+| `CA-1.3.5` | CUMPLE | `loginSchema` (`contrasena.min(1)`); el texto coincide. | `LoginForm.test.tsx` (campos vacíos). |
+| `CA-1.3.6` | CUMPLE | Regex de `EmailAddress.java`; el texto coincide. | `LoginForm.test.tsx` y `LoginPage.test.tsx` (`signIn` no llamado). |
+| `CA-1.3.7` | CUMPLE | `signOut` inmediato, sin navegar; modal con el aviso exacto y los dos botones del v6; «Usar otra cuenta» cierra el modal y vacía los campos. El título del modal («Correo sin verificar») no viene en el v6. | `LoginPage.test.tsx`, tres pruebas de `CA-1.3.7`. |
+| `CA-1.3.8` | CUMPLE | `auth/too-many-requests` se mapea a «Demasiados intentos. Espera un momento y vuelve a intentarlo.»; el texto coincide. | `useLogin.test.tsx:106` (llave de mensaje), `LoginPage.test.tsx:113` (mensaje en pantalla) y `authErrorMessage.test.ts:14` (mapeo). Todas con doble de Firebase: en staging no se puede forzar el límite. |
+| `CA-1.3.9` | FALTA — **fuera del MVP** | Login no llama a `POST /api/v1/users`. | — |
+| `CA-1.3.10` | CUMPLE | `RequireAuth` redirige a `/ingresar` con `state.from`. | `index.test.tsx`, `RequireAuth.test.tsx`, `loginRedirect.test.tsx`. |
+| `CA-1.3.11` | CUMPLE | `auth/user-disabled` se mapea a «Esta cuenta está deshabilitada.», sin «Contacta a soporte» (no hay canal de soporte definido). | `LoginPage.test.tsx`: mensaje exacto en pantalla. |
+| `CA-1.3.12` | CUMPLE (lectura del CA; **pendiente de `CP-018`**) | El esquema (`max(254)`) rechaza 255 caracteres con el mensaje del v6 y no se llama a Firebase; `LoginForm` ya no lleva `maxLength`. Ver «Decisiones», punto 2. | `LoginPage.test.tsx`: correo de 255 caracteres, mensaje visible, `signIn` no llamado. |
+| `CA-1.3.13` | CUMPLE | El enlace está deshabilitado y lleva la insignia «Próximamente» (`Pill`) dentro del botón, por lo que también forma parte de su nombre accesible. Mientras `HU-1.4` no exista no lleva a ninguna parte. | `LoginForm.test.tsx` y `LoginPage.test.tsx`. |
+| `CA-1.3.14` | CUMPLE | `Link` a `ROUTES.registro`. | `LoginPage.test.tsx`: «Crear cuenta» navega a Registro. |
+| `CA-1.3.15` | PARCIAL | `RedirectIfAuthenticated` redirige a `/inicio` sin mostrar el formulario cuando la sesión ya resolvió; mientras `isLoading` es `true` devuelve el `Outlet`, es decir, el formulario (asimetría con `RequireAuth`, compartida con la landing y `/registro`; ver `landing/SPEC.md`). | `RequireAuth.test.tsx:97`, con rutas de prueba, no con `routeConfig`. |
+
+**Decisiones de `CM-41`** (10-oct-2026):
+
+1. **`from` se conserva** (diferencia deliberada, **pendiente de confirmar con el PO**). Tras un
+   login exitoso, quien llegó desde una pantalla privada vuelve a ella. `RT-02-CA01` no pide la
+   vuelta y `CA-1.3.1` dice «Tablero de inicio», así que esto difiere del v6. Sin `from`, el destino
+   es el Tablero (`/inicio`), y esa es la ruta que cubre la prueba de `CA-1.3.1`.
+   **Estado:** funciona. La prueba de `loginRedirect.test.tsx` (con el `routeConfig` real, sin mockear
+   `useNavigate`) demostró que antes `RedirectIfAuthenticated` le ganaba a `useLogin` y mandaba siempre
+   a `/inicio`. Ahora `RedirectIfAuthenticated` (`app/router/guards/RequireAuth.tsx`) redirige a
+   `location.state.from` si existe y a `/inicio` si no. `/` y `/registro` nunca reciben `from`, así que
+   no cambian. **Esto no corrige B-22** (el modal del registro): `/registro` no recibe `from` y el guard
+   sigue redirigiendo a `/inicio` en cuanto ve la sesión.
+2. **`maxLength={254}` se quita** de `LoginForm` para que el mensaje de `CA-1.3.12` sea alcanzable.
+   **Pendiente de `CP-018`, que QA escaló al Product Owner el 10-oct:** está por decidir si limitar la
+   escritura cumple el CA o si el mensaje debe verse. Se implementa la lectura del CA (el mensaje
+   debe verse); **se revierte si el PO decide lo contrario**. El límite sigue siendo regla del campo
+   vía `emailSchema`.
+3. **`CA-1.3.13`:** `RT-04-CA01` pide «mostrar la opción deshabilitada con la etiqueta
+   "Próximamente" y no debe seleccionarla». La etiqueta es visible y va dentro del botón
+   deshabilitado (átomo `Pill`), con la llave `auth:ingreso.olvideContrasenaProximamente`. Mientras
+   `HU-1.4` no exista, el enlace no lleva a ninguna parte.
+
+**Defectos de QA que cierra este tramo:**
+
+- `DF-001` (`CA-1.3.2` y `CA-1.3.3`): faltaba el punto final de «Correo o contraseña incorrectos.».
+  Evidencias `EJ-015` y `EJ-016`. Corregido en `errors.json` (es-CO y en).
+- `DF-002` (`CA-1.3.13`): faltaba la etiqueta «Próximamente». Evidencia `EJ-010`.
+- QA pidió además la prueba automatizada de `CA-1.3.8` (`auth/too-many-requests`): ya existía y
+  está verde (ver la fila de `CA-1.3.8`).
+- De paso, `CA-1.3.11` dejó de decir «Contacta a soporte.», como pide el v6.
+
+**Pruebas de `CM-41`:** el tramo 1 las escribió en rojo (`loginRedirect.test.tsx` y el segundo
+`describe` de `LoginPage.test.tsx`) y el tramo 2 las puso en verde. Nota: en `CA-1.3.2`/`CA-1.3.3`
+el v6 pide «sin llamada al backend» (Firebase **sí** se llama y devuelve `auth/invalid-credential`);
+la ausencia de llamada a Firebase aplica a `CA-1.3.4` a `CA-1.3.6` y `CA-1.3.12`.
 
 ### Registro (`HU-1.1` / `CM-34`) — implementado
 
@@ -208,8 +277,8 @@ descrito solo conceptualmente en el Anexo A y sube al cuerpo cuando entre su pro
   `AccountActivationController`): verificar el correo en Firebase no activa la cuenta en el
   backend — esa llamada es trabajo de una iteración posterior (ver §5, hallazgo del Anexo de
   Registro). Esta implementación solo cubre el lado de Firebase.
-- **Banner persistente de correo sin verificar** (`CA-1.3.1`, B-03): sigue sin construirse — su
-  lugar natural es `AppShell`, no esta feature.
+- ~~**Banner persistente de correo sin verificar** (`CA-1.3.1`, B-03)~~: ya no se pide (backlog v6,
+  `CM-41`); ver la nota en «Login».
 
 ## 3. Comportamiento esperado
 
@@ -262,8 +331,9 @@ descrito solo conceptualmente en el Anexo A y sube al cuerpo cuando entre su pro
 - `correo`: obligatorio y con formato de correo válido. Llaves:
   `auth:ingreso.errores.correoRequerido` / `correoInvalido` / `correoMuyLargo`. **CM-195 (auditoría
   20-sep-2026):** usa el mismo `emailSchema` compartido con Registro (`schemas/email.schema.ts`) —
-  regex real de `EmailAddress.java` y `maxLength=254` — en vez del `.email()` de Zod que traía
-  antes.
+  regex real de `EmailAddress.java` y límite de 254 caracteres — en vez del `.email()` de Zod que
+  traía antes. En Login el límite vive solo en el esquema: el `<input>` no lleva `maxLength`
+  (`CM-41`, `CA-1.3.12`).
 - `contraseña`: obligatorio. Sin regla de formato/longitud en Login. Llave:
   `auth:ingreso.errores.contrasenaRequerida`.
 - Mostrar/ocultar contraseña: afordancia de `PasswordField`, no una validación.
@@ -308,7 +378,7 @@ descrito solo conceptualmente en el Anexo A y sube al cuerpo cuando entre su pro
   derecha. `sm` (390px, una columna): el panel de marca no existe, no se oculta con CSS — Figma
   no lo dibuja. Sin variante `md` (decisión de Frontend: por debajo de `lg:` se usa una columna).
 - Estado de error: `AlertInline` (`variant="error"`) entre el título y el botón de Google, texto
-  literal "Correo o contraseña incorrectos"; ambos campos pasan a borde rojo a la vez, sin mensaje
+  literal "Correo o contraseña incorrectos." (con punto final desde `CM-41`, `DF-001`); ambos campos pasan a borde rojo a la vez, sin mensaje
   individual — así se cumple `CA-1.3.1` sin revelar cuál campo falló. Mismo tratamiento para
   cualquier otro error de Firebase (rate limit, red).
 - Diferencia consciente con el design system: `AlertInline` usa el ícono `alert-circle` (ya fijo
@@ -886,6 +956,7 @@ Notas:
 | `src/features/auth/model/authErrorMessage.ts` | Código de `AuthError` → llave de i18n | `authErrorMessage.test.ts` |
 | `src/features/auth/schemas/login.schema.ts` | Validación zod de `correo`/`contraseña` | — |
 | `src/features/auth/organisms/LoginForm/LoginForm.tsx` | Formulario de Login | `LoginForm.test.tsx` |
+| `src/app/router/guards/RequireAuth.tsx` | `RequireAuth` y `RedirectIfAuthenticated`; este último redirige a la pantalla de origen (`location.state.from`) si existe y al Tablero si no (`CM-41`) | `src/app/router/guards/RequireAuth.test.tsx`, `src/app/router/loginRedirect.test.tsx` |
 | `src/features/auth/hooks/useLogin.ts` | Orquesta `signIn()`, error, redirección, modal de correo no verificado y reenvío (`CM-180`) | `useLogin.test.tsx` |
 | `src/features/auth/hooks/useVerifyEmail.ts` | **Nuevo (`CM-180`).** Aplica `applyActionCode` con el `oobCode` de la URL | — |
 | `src/features/auth/pages/VerifyEmailPage.tsx` | **Nueva (`CM-180`).** Página de verificación de correo: éxito/error/carga | — |
@@ -927,7 +998,7 @@ Notas:
 | ---- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------- | ----------- |
 | B-01 | ~~Confirmar `/registro`~~ | — | **Resuelto:** existe en `ROUTES.registro`. |
 | B-02 | Ticket Jira y `PRT` para `HU-1.10` (Google) | Product Owner / Scrum Master | Abierto — no bloquea. |
-| B-03 | Dónde se renderiza el banner de correo no verificado (`CA-1.3.1`) | Decisión de Frontend | Abierto — `auth.store.ts` ya persiste `emailVerified`. |
+| B-03 | ~~Dónde se renderiza el banner de correo no verificado (`CA-1.3.1`)~~ | — | **Resuelto por el backlog v6 (10-oct-2026, `CM-41`):** ningún criterio pide el banner y `CA-1.3.7` impide iniciar sesión sin correo verificado. |
 | B-04 | ~~Estado real de `services/firebase/*`, `auth.store.ts`, `AuthLayout.tsx`~~ | — | **Resuelto.** |
 | B-05 | ~~Breakpoints reales de `PRT-01.03`~~ | — | **Resuelto.** |
 | B-06 | ~~Código/formato exacto de error de `POST /api/v1/users`~~ | — | **Resuelto 19-sep-2026 (`ADR-0007`):** no hay código propio — `ProblemDetail` real (RFC 7807), `httpStatus` + `errors[].field`, confirmado contra `BusinessExceptionHandler.java`. |
@@ -947,6 +1018,7 @@ Notas:
 | B-20 | Valor `estado: PARCIAL` del encabezado de esta SPEC no confirmado contra el enumerado real de `docs/_plantilla-feature/SPEC.md` | Frontend / `pnpm spec:check` | **Resuelto, 20-sep-2026** — `pnpm spec:check` tras implementar `CM-194` lo confirmó como el único error real; corregido a `EN_CURSO` (ver nota del encabezado). |
 | B-21 | La fila `context="menu-row"` de `language-switcher` (Figma, nodo `49:421`) mide 258px de ancho de forma nativa, pero el slot real donde se usa dentro de `menu-usuario` mide 224px — el texto "Idioma de la app" + el valor del idioma no cabían en una sola línea, ni en la app ni en el propio archivo de Figma | Diseño | **Resuelto, 20-sep-2026, a petición explícita del usuario** (no un hallazgo de Figma ni un CA del backlog): etiqueta acortada a "Idioma" y el ícono `chevron-right` (sugería que el clic despliega algo, cuando en realidad alterna el valor al instante) se reemplazó por un ícono de intercambio (`swap`, `icons/registry.tsx`). Queda como desviación consciente de Figma, no como pendiente de Diseño — se documenta por si Diseño quiere alinear el archivo fuente más adelante. |
 | B-22 | **Defecto abierto, solo documentado (no se corrigió código).** El `Modal` de Plan Gratis del registro no llega a verse: `useRegister` marca la sesión (`useAuthStore.getState().setUser(...)`) antes de abrirlo (`setIsSuccessModalOpen(true)`), y `/registro` vive bajo `RedirectIfAuthenticated` (`src/app/router/index.tsx`, `src/app/router/guards/RequireAuth.tsx`), que redirige a `/inicio` en cuanto ve sesión y desmonta `RegisterPage` con el modal dentro. Ninguna prueba lo cubre: `RegisterPage.test.tsx` monta la página en `MemoryRouter` sin guards. Conclusión sacada de leer código y pruebas; no se reprodujo en navegador. Cuando se corrija (mostrar el modal antes de marcar sesión, excluirlo del guard, o retirar el modal), añadir una prueba que monte `/registro` con los guards reales (`routeConfig` sobre `createMemoryRouter`). Relacionado con B-08 (copy del modal). | Frontend | Abierto — vigente desde que existe `RedirectIfAuthenticated` (9-sep-2026). |
+| B-23 | **Hallazgo, solo documentado (no se corrigió código; es de `HU-1.1`/`HU-1.2`).** `useRegister.ts:68-120` inicia sesión con el correo **sin verificar** (`signIn` + `sendEmailVerification`), guarda la sesión con `setUser` y navega a `/inicio`. El backlog v6 dice en `HU-1.3` que «una cuenta con el correo sin verificar no puede ingresar» (`CA-1.3.7`, `RN-015`), de modo que justo después de registrarse la persona queda dentro con un correo que `CA-1.3.7` no dejaría pasar por Login. Hallado en `CM-41`. | Frontend, con el Product Owner (`HU-1.1`/`HU-1.2`) | Abierto. |
 
 ## 9. Notas
 
@@ -1150,7 +1222,7 @@ Notas:
 | -------- | ---------------------------------- | ------- | ---------- | ----------------- | ---------------------- |
 | `HU-1.1` | Registro con correo/contraseña + datos personales | `CM-14` (historia) / `CM-34` (subtarea Frontend) | `PRT-01.01`| 1 | **Gobernada por esta SPEC — implementada** |
 | `HU-1.2` | Verificación de correo electrónico | `CM-180` | — | 2 | **Gobernada por esta SPEC — implementada (solo Firebase, sin activación backend)** |
-| `HU-1.3` | **Inicio de sesión**             | `CM-40` | `PRT-01.03`| 1                  | **Gobernada por esta SPEC — implementada** |
+| `HU-1.3` | **Inicio de sesión**             | `CM-40`, `CM-15`/`CM-41` | `PRT-01.03`| 1 (v6: Sprint 2)   | **Gobernada por esta SPEC — implementada; en revisión contra el backlog v6 (`CM-41`)** |
 | `HU-1.4` | Recuperación de contraseña        | pendiente | `PRT-01.04`| 2                  | Fuera de esta SPEC |
 | `HU-1.8` | **Cierre de sesión (dispositivo actual)** | `CM-194` | `PRT-01.08` | 3 (backlog) / adelantada en esta iteración | **Gobernada por esta SPEC — implementada, alcance `CA-1.8.1`; ver B-19** |
 | `HU-1.10`| Registro/login con Google         | pendiente | `[TBD]` (backlog) | 3          | Fuera de esta SPEC |
@@ -1175,8 +1247,8 @@ sesión server-side propia) — ver §3 y §5.
 ## Anexo C · Preguntas que esta SPEC no puede cerrar por sí sola
 
 - Las vigentes son las marcadas «Abierto» en §8 (a 6-oct-2026: B-02, B-03, B-07, B-08, B-10, B-11,
-  B-13 a B-19 y B-22). Ninguna impide construir la pantalla; B-22 es un defecto visible del
-  registro, no una pregunta.
+  B-13 a B-19 y B-22; B-03 quedó resuelto el 10-oct-2026 y B-23 es un hallazgo de `CM-41`).
+  Ninguna impide construir la pantalla; B-22 es un defecto visible del registro, no una pregunta.
 - ~~¿`RequireAuth` propaga la ruta de origen?~~ **Resuelto:** sí.
 - ~~¿Existe un prototipo de logout en Figma?~~ **Resuelto, 20-sep-2026:** sí, `PRT-01.08` (nodo
   `228:6443`) — corrige una premisa inicial equivocada del propio proceso de análisis de `CM-194`.
