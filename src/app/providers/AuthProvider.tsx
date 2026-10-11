@@ -41,6 +41,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // es obsoleto y aplicarlo re-pondría isAuthenticated en true.
         if (thisVersion !== version) return;
 
+        // DF-003: el signIn efímero de resendVerification dispara este
+        // listener; si el usuario no ha verificado su correo, no lo
+        // autenticamos desde aquí — quien lo necesite (registro) lo hace
+        // explícitamente con setUser.
+        if (!user.emailVerified) return;
+
         // PROVISIONAL — pendiente de contrato del backend: nombre y forma del
         // custom claim de plan todavía no está publicado en ningún OpenAPI.
         const plan = typeof tokenResult.claims.plan === 'string' ? tokenResult.claims.plan : null;
