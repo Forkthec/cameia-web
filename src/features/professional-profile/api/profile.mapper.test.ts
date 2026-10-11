@@ -49,7 +49,7 @@ describe('toProfile', () => {
 });
 
 describe('toAddEducationRequest', () => {
-  it('trunca las fechas a YYYY-MM y fuerza la procedencia MANUAL', () => {
+  it('trunca las fechas a YYYY-MM', () => {
     const request = toAddEducationRequest({
       ...EMPTY_EDUCATION_VALUES,
       level: 'UNDERGRADUATE',
@@ -61,7 +61,6 @@ describe('toAddEducationRequest', () => {
 
     expect(request.startDate).toBe('2018-01');
     expect(request.endDate).toBe('2023-12');
-    expect(request.provenance).toBe('MANUAL');
   });
 
   it('inProgress=true manda endDate en null aunque el campo tenga un valor', () => {
@@ -78,17 +77,6 @@ describe('toAddEducationRequest', () => {
     expect(request.endDate).toBeNull();
   });
 
-  it('un campo de estudio vacío se manda como cadena vacía, no se inventa', () => {
-    const request = toAddEducationRequest({
-      ...EMPTY_EDUCATION_VALUES,
-      level: 'UNDERGRADUATE',
-      degree: 'Ingeniería de Sistemas',
-      institution: 'Universidad del Cauca',
-      startDate: '2018-01-15',
-    });
-
-    expect(request.fieldOfStudy).toBe('');
-  });
 });
 
 describe('toAddWorkExperienceRequest', () => {
@@ -146,22 +134,21 @@ describe('toAddWorkExperienceRequest', () => {
 });
 
 describe('toAddSkillRequest', () => {
-  it('recorta el texto y fuerza la procedencia MANUAL', () => {
+  it('recorta el texto del nombre de la habilidad', () => {
     const request = toAddSkillRequest({
       ...EMPTY_SKILL_VALUES,
       skillName: '  React  ',
       level: 'ADVANCED',
     });
 
-    expect(request).toEqual({ skillName: 'React', level: 'ADVANCED', provenance: 'MANUAL' });
+    expect(request).toEqual({ skillName: 'React', level: 'ADVANCED' });
   });
 });
 
 describe('toAddTargetRoleRequest', () => {
-  it('siempre fija la procedencia MANUAL', () => {
+  it('envía solo el id del rol profesional', () => {
     expect(toAddTargetRoleRequest('backend-developer')).toEqual({
       professionalRoleId: 'backend-developer',
-      provenance: 'MANUAL',
     });
   });
 });

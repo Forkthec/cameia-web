@@ -6,12 +6,8 @@
  * como código interno — nunca se muestra, solo se usa como discriminador,
  * igual que `type` ya lo es) y elige la prop de texto ya traducida.
  *
- * `fieldOfStudy` es el único campo de texto NO obligatorio: el backend real
- * (`AddEducationRequest`/`Education.java` de `cameia-perfil`) no lo valida
- * en absoluto (ni `@NotBlank` en el DTO ni `requireNonBlankMax` en el
- * dominio, a diferencia de `institution` y `degree`, que sí lo exigen) —
- * exigirlo aquí sería una regla más estricta que la que el propio backend
- * define. Bloqueo C-12 de `SPEC.md` §8: Figma tampoco dibuja este campo.
+ * `fieldOfStudy` eliminado por contrato HU-2.3–2.5 (09-oct-2026): el backend
+ * dejó de leerlo y de devolverlo.
  *
  * La regla `endDate >= startDate` no la exige `Education.java` (a diferencia
  * de `WorkExperience.java`, que sí la valida) — se mantiene aquí solo como
@@ -25,6 +21,7 @@
  * alcanzable desde la interfaz — validarlo aquí de nuevo sería redundante.
  */
 import { z } from 'zod';
+import { DEGREE_MAX_LENGTH, INSTITUTION_MAX_LENGTH } from '../model/profile.constants';
 
 const IN_PROGRESS_WITH_END_DATE = 'IN_PROGRESS_WITH_END_DATE';
 const END_BEFORE_START = 'END_BEFORE_START';
@@ -32,9 +29,8 @@ const END_BEFORE_START = 'END_BEFORE_START';
 export const educationSchema = z
   .object({
     level: z.string().min(1),
-    degree: z.string().trim().min(1),
-    fieldOfStudy: z.string().trim(),
-    institution: z.string().trim().min(1),
+    degree: z.string().trim().min(1).max(DEGREE_MAX_LENGTH),
+    institution: z.string().trim().min(1).max(INSTITUTION_MAX_LENGTH),
     startDate: z.string().min(1),
     endDate: z.string(),
     inProgress: z.boolean(),
@@ -60,7 +56,6 @@ export type EducationFormValues = z.infer<typeof educationSchema>;
 export const EMPTY_EDUCATION_VALUES: EducationFormValues = {
   level: '',
   degree: '',
-  fieldOfStudy: '',
   institution: '',
   startDate: '',
   endDate: '',

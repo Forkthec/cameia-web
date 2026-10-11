@@ -76,8 +76,6 @@ interface EducationSectionProps {
   degreeLabel: string;
   degreePlaceholder: string;
   degreeErrorRequired: string;
-  fieldOfStudyLabel: string;
-  fieldOfStudyPlaceholder: string;
   institutionLabel: string;
   institutionPlaceholder: string;
   institutionErrorRequired: string;
@@ -118,8 +116,6 @@ export function EducationSection({
   degreeLabel,
   degreePlaceholder,
   degreeErrorRequired,
-  fieldOfStudyLabel,
-  fieldOfStudyPlaceholder,
   institutionLabel,
   institutionPlaceholder,
   institutionErrorRequired,
@@ -247,22 +243,6 @@ export function EducationSection({
                 onBlur={field.onBlur}
                 placeholder={degreePlaceholder}
                 state={isAdding ? 'disabled' : fieldState.error ? 'error' : 'default'}
-              />
-            </FormField>
-          )}
-        />
-
-        <Controller
-          control={control}
-          name="fieldOfStudy"
-          render={({ field }) => (
-            <FormField label={fieldOfStudyLabel}>
-              <Input
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                placeholder={fieldOfStudyPlaceholder}
-                state={isAdding ? 'disabled' : 'default'}
               />
             </FormField>
           )}

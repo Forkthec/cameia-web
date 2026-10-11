@@ -45,7 +45,6 @@ export interface EducationDto {
   id: string;
   institution: string;
   degree: string;
-  fieldOfStudy: string;
   level: string;
   /** `"YYYY-MM"` (backend real: `java.time.YearMonth`, sin día). */
   startDate: string;
@@ -124,19 +123,17 @@ export interface ProfileDto {
   targetRoles: TargetRoleDto[];
 }
 
-/** Body real de `POST /api/v1/profiles/:id/educations` (`AddEducationRequest.java`). */
+/** Body real de `POST /api/v1/profiles/:id/educations` (`AddEducationRequest.java`). `fieldOfStudy` y `provenance` eliminados por contrato HU-2.3–2.5 (09-oct-2026). */
 export interface AddEducationRequestDto {
   institution: string;
   degree: string;
-  fieldOfStudy: string;
   level: string;
   startDate: string;
   endDate: string | null;
   inProgress: boolean;
-  provenance: string;
 }
 
-/** Body real de `POST /api/v1/profiles/:id/work-experiences` (`AddWorkExperienceRequest.java`). */
+/** Body real de `POST /api/v1/profiles/:id/work-experiences` (`AddWorkExperienceRequest.java`). `provenance` eliminado por contrato HU-2.3–2.5 (09-oct-2026). */
 export interface AddWorkExperienceRequestDto {
   company: string;
   position: string;
@@ -144,20 +141,17 @@ export interface AddWorkExperienceRequestDto {
   startDate: string;
   endDate: string | null;
   employmentStatus: string;
-  provenance: string;
 }
 
-/** Body real de `POST /api/v1/profiles/:id/skills` (parámetros de `AddSkillCommand`, `ProfileController.java`). */
+/** Body real de `POST /api/v1/profiles/:id/skills` (parámetros de `AddSkillCommand`, `ProfileController.java`). `provenance` eliminado por contrato HU-2.3–2.5 (09-oct-2026). */
 export interface AddSkillRequestDto {
   skillName: string;
   level: string;
-  provenance: string;
 }
 
-/** Body real de `POST /api/v1/profiles/:id/target-roles` (parámetros de `AddTargetRoleCommand`, `ProfileController.java`). */
+/** Body real de `POST /api/v1/profiles/:id/target-roles` (parámetros de `AddTargetRoleCommand`, `ProfileController.java`). `provenance` eliminado por contrato HU-2.3–2.5 (09-oct-2026): el backend lo fija como `MANUAL` internamente. */
 export interface AddTargetRoleRequestDto {
   professionalRoleId: string;
-  provenance: string;
 }
 
 /** Body real de `PATCH /api/v1/profiles/:id/target-roles/:roleId` — sustituye el rol referenciado conservando el id del Rol Objetivo (`UpdateTargetRoleCommand`, `ProfileController.java`). */

@@ -24,7 +24,7 @@ describe('useRemoveSkill', () => {
     });
     const withSkill = await httpClient.post<ProfileWithSkills>(
       `/api/v1/profiles/${created.id}/skills`,
-      { skillName: 'React', level: 'ADVANCED', provenance: 'MANUAL' },
+      { skillName: 'React', level: 'ADVANCED' },
     );
     const skillId = withSkill.profileSkills[0]?.id;
     if (!skillId) throw new Error('El perfil sembrado no tiene habilidad.');

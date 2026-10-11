@@ -24,8 +24,8 @@
  * `endDate` cuando `employmentStatus=ENDED` (y que no sea anterior a
  * `startDate`) y prohíbe `endDate` en cualquier otro estado;
  * `Education.java` prohíbe `endDate` cuando `inProgress=true`. `fieldOfStudy`
- * no se valida en `Education.java` (ni `@NotBlank` en el DTO ni
- * `requireNonBlankMax` en el dominio) — por eso aquí tampoco es obligatorio,
+ * eliminado por contrato HU-2.3–2.5 (09-oct-2026). `provenance` dejó de
+ * enviarse — el backend lo fija internamente como `MANUAL`. En respuestas,
  * a diferencia de `institution`/`degree`, que el dominio real sí exige.
  *
  * CM-65: Habilidades es gestión por ítem (`POST`/`DELETE`), igual que
@@ -103,19 +103,16 @@ const MAX_TARGET_ROLES = 5;
 const EDUCATION_LEVELS = ['TECHNICAL', 'UNDERGRADUATE', 'POSTGRADUATE'] as const;
 const EMPLOYMENT_STATUSES = ['CURRENT', 'UNKNOWN_END', 'ENDED'] as const;
 const SKILL_LEVELS = ['BASIC', 'INTERMEDIATE', 'ADVANCED'] as const;
-const DATA_PROVENANCES = ['MANUAL', 'AI_SUGGESTED', 'AI_EDITED'] as const;
-
 type EducationLevel = (typeof EDUCATION_LEVELS)[number];
 type EmploymentStatus = (typeof EMPLOYMENT_STATUSES)[number];
 type SkillLevel = (typeof SKILL_LEVELS)[number];
-type DataProvenance = (typeof DATA_PROVENANCES)[number];
+type DataProvenance = 'MANUAL' | 'AI_SUGGESTED' | 'AI_EDITED';
 
 /** `"YYYY-MM"` — el backend real almacena `java.time.YearMonth`, sin día. */
 interface EducationItem {
   id: string;
   institution: string;
   degree: string;
-  fieldOfStudy: string;
   level: EducationLevel;
   startDate: string;
   endDate: string | null;
@@ -416,15 +413,13 @@ export const profilesHandlers: HttpHandler[] = [
       }
 
       const body = (await safeJson(request)) ?? {};
-      const { company, position, description, startDate, endDate, employmentStatus, provenance } =
-        body;
+      const { company, position, description, startDate, endDate, employmentStatus } = body;
 
       if (
         !isNonBlankString(company) ||
         !isNonBlankString(position) ||
         !isYearMonth(startDate) ||
         !EMPLOYMENT_STATUSES.includes(employmentStatus as EmploymentStatus) ||
-        !DATA_PROVENANCES.includes(provenance as DataProvenance) ||
         (description !== undefined && description !== null && typeof description !== 'string') ||
         (typeof description === 'string' && description.length > DESCRIPTION_MAX_LENGTH)
       ) {
@@ -468,7 +463,7 @@ export const profilesHandlers: HttpHandler[] = [
         startDate,
         endDate: status === 'ENDED' ? (endDate as string) : null,
         employmentStatus: status,
-        provenance: provenance as DataProvenance,
+        provenance: 'MANUAL',
       };
       profile.workExperiences.push(item);
       return HttpResponse.json(profile, { status: 201 });
@@ -494,8 +489,8 @@ export const profilesHandlers: HttpHandler[] = [
   ),
 
   // CM-61: alta de educación. Reglas de `Education.java` (backend real):
-  // `institution`/`degree`/`startDate` obligatorias; `fieldOfStudy` NO se
-  // valida (a diferencia de los otros dos); `inProgress=true` prohíbe `endDate`.
+  // `institution`/`degree`/`startDate` obligatorias; `inProgress=true` prohíbe `endDate`.
+  // `fieldOfStudy` y `provenance` eliminados por contrato HU-2.3–2.5 (09-oct-2026).
   http.post<{ id: string }>('*/api/v1/profiles/:id/educations', async ({ request, params }) => {
     const profile = findProfile(params.id);
     if (!profile) {
@@ -503,17 +498,14 @@ export const profilesHandlers: HttpHandler[] = [
     }
 
     const body = (await safeJson(request)) ?? {};
-    const { institution, degree, fieldOfStudy, level, startDate, endDate, inProgress, provenance } =
-      body;
+    const { institution, degree, level, startDate, endDate, inProgress } = body;
 
     if (
       !isNonBlankString(institution) ||
       !isNonBlankString(degree) ||
       !EDUCATION_LEVELS.includes(level as EducationLevel) ||
       !isYearMonth(startDate) ||
-      typeof inProgress !== 'boolean' ||
-      !DATA_PROVENANCES.includes(provenance as DataProvenance) ||
-      (fieldOfStudy !== undefined && fieldOfStudy !== null && typeof fieldOfStudy !== 'string')
+      typeof inProgress !== 'boolean'
     ) {
       return HttpResponse.json(
         errorBody(400, 'Datos no válidos', 'Revisa los datos de la formación académica.'),
@@ -540,12 +532,11 @@ export const profilesHandlers: HttpHandler[] = [
       id: `education-${nextEducationId++}`,
       institution,
       degree,
-      fieldOfStudy: typeof fieldOfStudy === 'string' ? fieldOfStudy : '',
       level: level as EducationLevel,
       startDate,
       endDate: !inProgress && hasEndDate ? endDate : null,
       inProgress,
-      provenance: provenance as DataProvenance,
+      provenance: 'MANUAL',
     };
     profile.educations.push(item);
     return HttpResponse.json(profile, { status: 201 });
@@ -578,13 +569,12 @@ export const profilesHandlers: HttpHandler[] = [
     }
 
     const body = (await safeJson(request)) ?? {};
-    const { skillName, level, provenance } = body;
+    const { skillName, level } = body;
 
     if (
       !isNonBlankString(skillName) ||
       skillName.trim().length > SKILL_NAME_MAX_LENGTH ||
-      !SKILL_LEVELS.includes(level as SkillLevel) ||
-      !DATA_PROVENANCES.includes(provenance as DataProvenance)
+      !SKILL_LEVELS.includes(level as SkillLevel)
     ) {
       return HttpResponse.json(
         errorBody(400, 'Datos no válidos', 'Revisa los datos de la habilidad.'),
@@ -606,7 +596,7 @@ export const profilesHandlers: HttpHandler[] = [
       id: `skill-${nextSkillId++}`,
       skillName: skillName.trim(),
       level: level as SkillLevel,
-      provenance: provenance as DataProvenance,
+      provenance: 'MANUAL',
     };
     profile.profileSkills.push(item);
     return HttpResponse.json(profile, { status: 201 });
@@ -639,12 +629,11 @@ export const profilesHandlers: HttpHandler[] = [
     }
 
     const body = (await safeJson(request)) ?? {};
-    const { professionalRoleId, provenance } = body;
+    const { professionalRoleId } = body;
 
     if (
       !isNonBlankString(professionalRoleId) ||
-      !PROFESSIONAL_ROLES.some((role) => role.id === professionalRoleId) ||
-      !DATA_PROVENANCES.includes(provenance as DataProvenance)
+      !PROFESSIONAL_ROLES.some((role) => role.id === professionalRoleId)
     ) {
       return HttpResponse.json(
         errorBody(400, 'Datos no válidos', 'Revisa el rol objetivo enviado.'),
@@ -674,7 +663,7 @@ export const profilesHandlers: HttpHandler[] = [
       id: `target-role-${nextTargetRoleId++}`,
       professionalRoleId,
       roleTitle: resolveRoleTitle(professionalRoleId),
-      provenance: provenance as DataProvenance,
+      provenance: 'MANUAL',
     };
     profile.targetRoles.push(item);
     return HttpResponse.json(profile, { status: 201 });

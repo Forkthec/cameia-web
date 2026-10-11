@@ -135,7 +135,10 @@ export function SkillsSection({
   const isAtMax = items.length >= maxItems;
 
   function stripDiacritics(text: string): string {
-    return text.normalize('NFD').replace(/[̀-ͯ]/g, '');
+    return text
+      .normalize('NFD')
+      .replace(/\p{M}/gu, '')
+      .replace(/\s+/g, ' ');
   }
 
   function onValid(values: SkillFormValues) {

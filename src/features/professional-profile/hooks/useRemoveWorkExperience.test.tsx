@@ -29,7 +29,6 @@ describe('useRemoveWorkExperience', () => {
         position: 'Desarrolladora backend',
         startDate: '2022-01',
         employmentStatus: 'CURRENT',
-        provenance: 'MANUAL',
       },
     );
     const [firstExperience] = withExperience.workExperiences;

@@ -53,12 +53,11 @@ export type EducationLevel = 'TECHNICAL' | 'UNDERGRADUATE' | 'POSTGRADUATE';
  */
 export type EmploymentStatus = 'CURRENT' | 'UNKNOWN_END' | 'ENDED';
 
-/** Formación académica ya persistida (HU-2.4). `fieldOfStudy` y `startDate` los exige el contrato real aunque Figma no los dibuje — bloqueo C-12 de `SPEC.md` §8. */
+/** Formación académica ya persistida (HU-2.4). `fieldOfStudy` eliminado por contrato HU-2.3–2.5 (09-oct-2026): el backend dejó de leerlo y de devolverlo. */
 export interface EducationItem {
   id: string;
   institution: string;
   degree: string;
-  fieldOfStudy: string;
   level: EducationLevel;
   startDate: YearMonth;
   /** `null` cuando `inProgress` es `true` (regla de dominio: `Education.java`). */

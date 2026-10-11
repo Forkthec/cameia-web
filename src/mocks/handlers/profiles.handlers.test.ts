@@ -83,7 +83,6 @@ describe('profilesHandlers', () => {
       level: 'UNDERGRADUATE',
       startDate: '2018-01',
       inProgress: false,
-      provenance: 'MANUAL',
     });
 
     const error = await httpClient
@@ -116,12 +115,10 @@ describe('profilesHandlers', () => {
       level: 'UNDERGRADUATE',
       startDate: '2018-01',
       inProgress: false,
-      provenance: 'MANUAL',
     });
     await httpClient.post(`/api/v1/profiles/${seeded.id}/skills`, {
       skillName: 'Node.js',
       level: 'ADVANCED',
-      provenance: 'MANUAL',
     });
 
     // GLOSSARY.md §3: transición única IN_PROGRESS → COMPLETED, sin pasar
@@ -244,12 +241,10 @@ describe('profilesHandlers', () => {
       {
         institution: 'Universidad del Cauca',
         degree: 'Ingeniería de Sistemas',
-        fieldOfStudy: 'Sistemas',
         level: 'UNDERGRADUATE',
         startDate: '2018-01',
         endDate: '2023-12',
         inProgress: false,
-        provenance: 'MANUAL',
       },
     );
 
@@ -270,7 +265,6 @@ describe('profilesHandlers', () => {
         startDate: '2018-01',
         endDate: '2023-12',
         inProgress: true,
-        provenance: 'MANUAL',
       })
       .catch((e: unknown) => e);
 
@@ -291,7 +285,6 @@ describe('profilesHandlers', () => {
         level: 'DOCTORADO',
         startDate: '2018-01',
         inProgress: false,
-        provenance: 'MANUAL',
       })
       .catch((e: unknown) => e);
 
@@ -311,7 +304,6 @@ describe('profilesHandlers', () => {
         level: 'UNDERGRADUATE',
         startDate: '2018-01',
         inProgress: false,
-        provenance: 'MANUAL',
       },
     );
     const educationId = withEducation.educations.at(0)?.id;
@@ -350,7 +342,6 @@ describe('profilesHandlers', () => {
         position: 'Desarrolladora backend',
         startDate: '2022-01',
         employmentStatus: 'ENDED',
-        provenance: 'MANUAL',
       })
       .catch((e: unknown) => e);
 
@@ -371,7 +362,6 @@ describe('profilesHandlers', () => {
         startDate: '2022-01',
         endDate: '2021-01',
         employmentStatus: 'ENDED',
-        provenance: 'MANUAL',
       })
       .catch((e: unknown) => e);
 
@@ -391,7 +381,6 @@ describe('profilesHandlers', () => {
         startDate: '2022-01',
         endDate: '2023-01',
         employmentStatus: 'CURRENT',
-        provenance: 'MANUAL',
       })
       .catch((e: unknown) => e);
 
@@ -411,7 +400,6 @@ describe('profilesHandlers', () => {
         position: 'Desarrolladora backend',
         startDate: '2022-01',
         employmentStatus: 'CURRENT',
-        provenance: 'MANUAL',
       },
     );
 
@@ -429,7 +417,6 @@ describe('profilesHandlers', () => {
       position: 'Desarrolladora backend',
       startDate: '2022-01',
       employmentStatus: 'CURRENT',
-      provenance: 'MANUAL',
     });
     const workExperienceId = withExperience.workExperiences.at(0)?.id;
     if (!workExperienceId) throw new Error('El perfil sembrado no tiene experiencia laboral.');
@@ -455,7 +442,6 @@ describe('profilesHandlers', () => {
         description: 'a'.repeat(501),
         startDate: '2022-01',
         employmentStatus: 'CURRENT',
-        provenance: 'MANUAL',
       })
       .catch((e: unknown) => e);
 
@@ -471,7 +457,7 @@ describe('profilesHandlers', () => {
 
     const updated = await httpClient.post<ProfileResponse & { profileSkills: unknown[] }>(
       `/api/v1/profiles/${created.id}/skills`,
-      { skillName: 'React', level: 'ADVANCED', provenance: 'MANUAL' },
+      { skillName: 'React', level: 'ADVANCED' },
     );
 
     expect(updated.profileSkills).toHaveLength(1);
@@ -486,7 +472,6 @@ describe('profilesHandlers', () => {
       .post(`/api/v1/profiles/${created.id}/skills`, {
         skillName: 'React',
         level: 'EXPERTO',
-        provenance: 'MANUAL',
       })
       .catch((e: unknown) => e);
 
@@ -503,14 +488,12 @@ describe('profilesHandlers', () => {
     await httpClient.post(`/api/v1/profiles/${created.id}/skills`, {
       skillName: 'React',
       level: 'ADVANCED',
-      provenance: 'MANUAL',
     });
 
     const error = await httpClient
       .post(`/api/v1/profiles/${created.id}/skills`, {
         skillName: '  react  ',
         level: 'BASIC',
-        provenance: 'MANUAL',
       })
       .catch((e: unknown) => e);
 
@@ -524,7 +507,7 @@ describe('profilesHandlers', () => {
     });
     const withSkill = await httpClient.post<ProfileResponse & { profileSkills: { id: string }[] }>(
       `/api/v1/profiles/${created.id}/skills`,
-      { skillName: 'React', level: 'ADVANCED', provenance: 'MANUAL' },
+      { skillName: 'React', level: 'ADVANCED' },
     );
     const skillId = withSkill.profileSkills[0]?.id;
     if (!skillId) throw new Error('El perfil sembrado no tiene habilidad.');
@@ -558,7 +541,7 @@ describe('profilesHandlers', () => {
 
     const updated = await httpClient.post<ProfileResponse & { targetRoles: unknown[] }>(
       `/api/v1/profiles/${created.id}/target-roles`,
-      { professionalRoleId: 'backend-developer', provenance: 'MANUAL' },
+      { professionalRoleId: 'backend-developer' },
     );
 
     expect(updated.targetRoles).toHaveLength(1);
@@ -572,7 +555,6 @@ describe('profilesHandlers', () => {
     const error = await httpClient
       .post(`/api/v1/profiles/${created.id}/target-roles`, {
         professionalRoleId: 'no-existe-en-el-catalogo',
-        provenance: 'MANUAL',
       })
       .catch((e: unknown) => e);
 
@@ -587,13 +569,11 @@ describe('profilesHandlers', () => {
     });
     await httpClient.post(`/api/v1/profiles/${created.id}/target-roles`, {
       professionalRoleId: 'backend-developer',
-      provenance: 'MANUAL',
     });
 
     const error = await httpClient
       .post(`/api/v1/profiles/${created.id}/target-roles`, {
         professionalRoleId: 'backend-developer',
-        provenance: 'MANUAL',
       })
       .catch((e: unknown) => e);
 
@@ -616,14 +596,12 @@ describe('profilesHandlers', () => {
     for (const professionalRoleId of roleIds) {
       await httpClient.post(`/api/v1/profiles/${created.id}/target-roles`, {
         professionalRoleId,
-        provenance: 'MANUAL',
       });
     }
 
     const error = await httpClient
       .post(`/api/v1/profiles/${created.id}/target-roles`, {
         professionalRoleId: 'qa-analyst',
-        provenance: 'MANUAL',
       })
       .catch((e: unknown) => e);
 
@@ -640,7 +618,6 @@ describe('profilesHandlers', () => {
       ProfileResponse & { targetRoles: { id: string; professionalRoleId: string }[] }
     >(`/api/v1/profiles/${created.id}/target-roles`, {
       professionalRoleId: 'backend-developer',
-      provenance: 'MANUAL',
     });
     const roleId = withRole.targetRoles[0]?.id;
     if (!roleId) throw new Error('El perfil sembrado no tiene rol objetivo.');
@@ -664,13 +641,11 @@ describe('profilesHandlers', () => {
     });
     await httpClient.post(`/api/v1/profiles/${created.id}/target-roles`, {
       professionalRoleId: 'frontend-developer',
-      provenance: 'MANUAL',
     });
     const withRole = await httpClient.post<ProfileResponse & { targetRoles: { id: string }[] }>(
       `/api/v1/profiles/${created.id}/target-roles`,
       {
         professionalRoleId: 'backend-developer',
-        provenance: 'MANUAL',
       },
     );
     const roleId = withRole.targetRoles.at(-1)?.id;
@@ -694,7 +669,6 @@ describe('profilesHandlers', () => {
       `/api/v1/profiles/${created.id}/target-roles`,
       {
         professionalRoleId: 'backend-developer',
-        provenance: 'MANUAL',
       },
     );
     const roleId = withRole.targetRoles[0]?.id;
