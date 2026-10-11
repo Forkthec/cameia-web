@@ -169,7 +169,7 @@ describe('getSectionStatuses', () => {
             id: 'edu-1',
             institution: 'Universidad del Cauca',
             degree: 'Ingeniería',
-  
+
             level: 'UNDERGRADUATE',
             startDate: '2018-01',
             endDate: '2023-12',
@@ -194,7 +194,7 @@ describe('getSectionStatuses', () => {
             id: 'edu-1',
             institution: 'Universidad del Cauca',
             degree: 'Ingeniería',
-  
+
             level: 'UNDERGRADUATE',
             startDate: '2018-01',
             endDate: '2023-12',

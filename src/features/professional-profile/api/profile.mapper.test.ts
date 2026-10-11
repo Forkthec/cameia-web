@@ -76,7 +76,6 @@ describe('toAddEducationRequest', () => {
 
     expect(request.endDate).toBeNull();
   });
-
 });
 
 describe('toAddWorkExperienceRequest', () => {
