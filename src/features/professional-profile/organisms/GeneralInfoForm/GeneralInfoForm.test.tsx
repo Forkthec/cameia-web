@@ -239,3 +239,107 @@ describe('GeneralInfoForm', () => {
     expect(useUnsavedChangesStore.getState().hasUnsavedChanges).toBe(false);
   });
 });
+
+/**
+ * CM-272 (HU-2.3, CA-2.3.13 y CA-2.3.14; `SPEC.md` §3.2 «Alcance de CM-272»,
+ * puntos 3 y 4, y D-J): el autoguardado pasa de «el foco sale del formulario»
+ * a «el foco sale de CADA campo», y solo se envía si el formulario tiene
+ * cambios (`formState.isDirty`). **Conflicto deliberado con el test
+ * `CM-195: tabular entre Nombre y Resumen (dentro del formulario) no guarda`
+ * de arriba**, que afirma hoy lo contrario: se deja intacto y la decisión de
+ * reemplazarlo o reescribirlo queda para la implementación. Aquí `onSubmit`
+ * es un doble: lo que se prueba es cuándo el formulario decide guardar, no la
+ * red.
+ */
+function settle() {
+  return new Promise<void>((resolve) => setTimeout(resolve, 100));
+}
+
+describe('GeneralInfoForm · autoguardado por campo y solo con cambios (CM-272)', () => {
+  afterEach(() => {
+    useUnsavedChangesStore.setState({ hasUnsavedChanges: false });
+  });
+
+  it('CM-272: tabular de Nombre a Resumen habiendo cambiado el nombre guarda', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<GeneralInfoForm {...baseProps} onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText('Nombre del perfil'), ' Jr.');
+    await user.tab();
+
+    expect(screen.getByLabelText('Resumen profesional')).toHaveFocus();
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+    expect(onSubmit).toHaveBeenCalledWith({
+      name: 'Ana María Pérez Jr.',
+      summary: baseProps.summary,
+    });
+  });
+
+  it('CM-272: salir del campo Nombre con un valor inválido muestra el mensaje y no guarda', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<GeneralInfoForm {...baseProps} onSubmit={onSubmit} />);
+
+    await user.clear(screen.getByLabelText('Nombre del perfil'));
+    await user.tab();
+
+    expect(await screen.findByText(baseProps.nameErrorRequired)).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('CM-272: salir de un campo sin haber modificado nada no guarda (salida fuera del formulario)', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(
+      <div>
+        <GeneralInfoForm {...baseProps} onSubmit={onSubmit} />
+        <button type="button">Fuera del formulario</button>
+      </div>,
+    );
+
+    await user.click(screen.getByLabelText('Nombre del perfil'));
+    await user.click(screen.getByRole('button', { name: 'Fuera del formulario' }));
+    await settle();
+
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('CM-272: tabular entre Nombre y Resumen sin haber modificado nada no guarda', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<GeneralInfoForm {...baseProps} onSubmit={onSubmit} />);
+
+    await user.click(screen.getByLabelText('Nombre del perfil'));
+    await user.tab();
+    await settle();
+
+    expect(screen.getByLabelText('Resumen profesional')).toHaveFocus();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('CM-272: tras un guardado fallido el formulario sigue sucio y la siguiente salida de campo reintenta', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('network'))
+      .mockResolvedValue(undefined);
+    render(
+      <div>
+        <GeneralInfoForm {...baseProps} onSubmit={onSubmit} />
+        <button type="button">Fuera del formulario</button>
+      </div>,
+    );
+    const outside = screen.getByRole('button', { name: 'Fuera del formulario' });
+
+    await user.type(screen.getByLabelText('Resumen profesional'), ' Node.js.');
+    await user.click(outside);
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+    expect(useUnsavedChangesStore.getState().hasUnsavedChanges).toBe(true);
+
+    await user.click(screen.getByLabelText('Resumen profesional'));
+    await user.click(outside);
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(2));
+  });
+});

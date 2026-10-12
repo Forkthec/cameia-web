@@ -16,7 +16,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { describe, expect, it } from 'vitest';
@@ -368,5 +368,276 @@ describe('EditProfilePage', () => {
       .post(`/api/v1/profiles/${created.id}/completion`)
       .catch((e: unknown) => e);
     expect(error).toMatchObject({ httpStatus: 422 });
+  });
+});
+
+/**
+ * CM-272 (HU-2.3, `SPEC.md` §3.2 «Alcance de CM-272» y D-J): lo que la
+ * PÁGINA hace con el `PATCH` de Información General, porque ahí viven el
+ * `useMutation` y la confirmación. Errores resueltos por `code` (puntos 1,
+ * `ADR-0008`), confirmación «Cambios guardados.» solo mientras sea cierta
+ * (punto 2), guardado por campo que no deshabilita el campo con foco
+ * (punto 3) y sin `PATCH` si no hay cambios, salvo «Guardar borrador»
+ * (punto 4). Los textos se resuelven con `i18n.t(...)`, no se escriben a
+ * mano; las respuestas del servidor se montan con `useHandlers` en cada
+ * prueba, sin tocar el handler compartido de `profiles.handlers.ts`.
+ */
+const KEYS = {
+  saved: 'profile:general.confirmacionGuardado',
+  nameLabel: 'profile:general.nombre.etiqueta',
+  nameRequired: 'profile:general.nombre.errorRequerido',
+  summaryLabel: 'profile:general.resumen.etiqueta',
+  saveDraft: 'profile:general.guardarBorrador',
+  title: 'profile:formulario.titulo',
+  foreignProfile: 'errors:codigos.NOT_FOUND',
+  activeSummary: 'profile:general.resumen.errorPerfilActivo',
+  generic: 'errors:generico',
+  network: 'errors:red',
+} as const;
+
+const RAW_SERVER_TEXT = 'Texto crudo del servidor que la pantalla nunca debe mostrar';
+
+/** Espera una ventana corta para poder afirmar que NO ocurrió un `PATCH` (una afirmación negativa necesita dejar pasar el tiempo). */
+function settle() {
+  return new Promise<void>((resolve) => setTimeout(resolve, 100));
+}
+
+/** `ProblemDetail` mínimo que `errorMap.ts` acepta, con el texto crudo que la pantalla no debe renderizar. */
+function problem(status: number, extra: Record<string, unknown> = {}) {
+  return HttpResponse.json(
+    { type: 'about:blank', title: RAW_SERVER_TEXT, status, detail: RAW_SERVER_TEXT, ...extra },
+    { status },
+  );
+}
+
+/**
+ * Cuenta los `PATCH` de Información General y los responde 200 como el mock (con espera opcional).
+ * Devuelve el handler en vez de instalarlo: `useHandlers` lo llama cada prueba, porque la regla
+ * `react-hooks/rules-of-hooks` prohíbe llamar a algo con nombre de hook desde una función auxiliar.
+ */
+async function spyOnGeneralInfoPatch(profileId: string, holdMs = 0) {
+  const current = await httpClient.get<Record<string, unknown>>(`/api/v1/profiles/${profileId}`);
+  let calls = 0;
+  const handler = http.patch('*/api/v1/profiles/:id', async ({ request }) => {
+    calls += 1;
+    const body = (await request.json()) as Record<string, unknown>;
+    if (holdMs > 0) await delay(holdMs);
+    return HttpResponse.json({ ...current, ...body }, { status: 200 });
+  });
+  return { count: () => calls, handler };
+}
+
+async function openEditor(profileId: string) {
+  setViewportMatches(true);
+  renderPage(profileId);
+  await screen.findByRole('heading', { name: i18n.t(KEYS.title) });
+}
+
+describe('EditProfilePage · Información General: errores y autoguardado (CM-272)', () => {
+  describe('punto 1: errores del PATCH resueltos por code', () => {
+    it('un 403 PROFILE_NOT_ALLOWED muestra «No encontramos lo que buscabas.» (CA-2.3.11)', async () => {
+      await waitUntilReady();
+      const user = userEvent.setup();
+      useHandlers(
+        http.patch('*/api/v1/profiles/:id', () => problem(403, { code: 'PROFILE_NOT_ALLOWED' })),
+      );
+      const created = await createProfile();
+      await openEditor(created.id);
+
+      await user.click(screen.getByRole('button', { name: i18n.t(KEYS.saveDraft) }));
+
+      expect(await screen.findByText(i18n.t(KEYS.foreignProfile))).toBeInTheDocument();
+      expect(screen.queryByText(RAW_SERVER_TEXT)).not.toBeInTheDocument();
+    });
+
+    it('la llave del mensaje de CA-2.3.12 existe en es-CO y en', () => {
+      expect(i18n.exists(KEYS.activeSummary, { lng: 'es-CO' })).toBe(true);
+      expect(i18n.exists(KEYS.activeSummary, { lng: 'en' })).toBe(true);
+    });
+
+    it('un 422 VALIDATION_FAILED con errors[].code SUMMARY_NOT_ALLOWED muestra el mensaje del resumen activo (CA-2.3.12)', async () => {
+      await waitUntilReady();
+      const user = userEvent.setup();
+      useHandlers(
+        http.patch('*/api/v1/profiles/:id', () =>
+          problem(422, {
+            code: 'VALIDATION_FAILED',
+            errors: [{ field: 'summary', code: 'SUMMARY_NOT_ALLOWED', message: RAW_SERVER_TEXT }],
+          }),
+        ),
+      );
+      const created = await createProfile();
+      await openEditor(created.id);
+
+      await user.click(screen.getByRole('button', { name: i18n.t(KEYS.saveDraft) }));
+
+      expect(await screen.findByText(i18n.t(KEYS.activeSummary))).toBeInTheDocument();
+      expect(screen.queryByText(RAW_SERVER_TEXT)).not.toBeInTheDocument();
+    });
+
+    it.each([
+      ['un 403 sin code', 403, {}],
+      ['un 403 con un code desconocido', 403, { code: 'ALGO_DESCONOCIDO' }],
+      ['un 422 sin code ni errors', 422, {}],
+      [
+        'un 422 VALIDATION_FAILED con un errors[].code desconocido',
+        422,
+        { code: 'VALIDATION_FAILED', errors: [{ field: 'summary', code: 'OTRO', message: 'x' }] },
+      ],
+      [
+        'un 422 con errors[] del campo summary pero sin code (sin respaldo por campo)',
+        422,
+        { errors: [{ field: 'summary', message: 'x' }] },
+      ],
+      ['un 409 PROFILE_UPDATE_IN_PROGRESS', 409, { code: 'PROFILE_UPDATE_IN_PROGRESS' }],
+    ])(
+      '%s muestra el mensaje genérico y nunca uno específico (ADR-0008)',
+      async (_caso, status, extra) => {
+        await waitUntilReady();
+        const user = userEvent.setup();
+        useHandlers(http.patch('*/api/v1/profiles/:id', () => problem(status, extra)));
+        const created = await createProfile();
+        await openEditor(created.id);
+
+        await user.click(screen.getByRole('button', { name: i18n.t(KEYS.saveDraft) }));
+
+        expect(await screen.findByText(i18n.t(KEYS.generic))).toBeInTheDocument();
+        expect(screen.queryByText(i18n.t(KEYS.foreignProfile))).not.toBeInTheDocument();
+        expect(screen.queryByText(i18n.t(KEYS.activeSummary))).not.toBeInTheDocument();
+        expect(screen.queryByText(RAW_SERVER_TEXT)).not.toBeInTheDocument();
+      },
+    );
+
+    it('un fallo de red (no ApiError) muestra errors:red', async () => {
+      await waitUntilReady();
+      const user = userEvent.setup();
+      useHandlers(http.patch('*/api/v1/profiles/:id', () => HttpResponse.error()));
+      const created = await createProfile();
+      await openEditor(created.id);
+
+      await user.click(screen.getByRole('button', { name: i18n.t(KEYS.saveDraft) }));
+
+      expect(await screen.findByText(i18n.t(KEYS.network))).toBeInTheDocument();
+    });
+  });
+
+  describe('punto 2: «Cambios guardados.» solo mientras sea cierta (CA-2.3.14)', () => {
+    it('tras guardar, salir de un campo con el nombre vacío quita la confirmación y deja el error del campo', async () => {
+      await waitUntilReady();
+      const user = userEvent.setup();
+      const created = await createProfile();
+      await openEditor(created.id);
+      await user.click(screen.getByRole('button', { name: i18n.t(KEYS.saveDraft) }));
+      await screen.findByText(i18n.t(KEYS.saved));
+
+      await user.clear(screen.getByLabelText(i18n.t(KEYS.nameLabel)));
+      // Clic en un título no enfocable: el foco sale del formulario entero, que
+      // es una salida que el código de hoy ya trata como autoguardado.
+      await user.click(screen.getByRole('heading', { name: i18n.t(KEYS.title) }));
+
+      expect(await screen.findByText(i18n.t(KEYS.nameRequired))).toBeInTheDocument();
+      expect(screen.queryByText(i18n.t(KEYS.saved))).not.toBeInTheDocument();
+    });
+
+    it('tras guardar, editar un campo quita la confirmación', async () => {
+      await waitUntilReady();
+      const user = userEvent.setup();
+      const created = await createProfile();
+      await openEditor(created.id);
+      await user.click(screen.getByRole('button', { name: i18n.t(KEYS.saveDraft) }));
+      await screen.findByText(i18n.t(KEYS.saved));
+
+      await user.type(screen.getByLabelText(i18n.t(KEYS.summaryLabel)), 'Nuevo texto');
+
+      expect(screen.queryByText(i18n.t(KEYS.saved))).not.toBeInTheDocument();
+    });
+
+    it('tras guardar, salir de un campo sin cambios conserva la confirmación y no envía PATCH', async () => {
+      await waitUntilReady();
+      const user = userEvent.setup();
+      const created = await createProfile();
+      const spy = await spyOnGeneralInfoPatch(created.id);
+      useHandlers(spy.handler);
+      await openEditor(created.id);
+      await user.click(screen.getByRole('button', { name: i18n.t(KEYS.saveDraft) }));
+      await screen.findByText(i18n.t(KEYS.saved));
+      expect(spy.count()).toBe(1);
+
+      await user.click(screen.getByLabelText(i18n.t(KEYS.nameLabel)));
+      await user.click(screen.getByRole('heading', { name: i18n.t(KEYS.title) }));
+      await settle();
+
+      expect(spy.count()).toBe(1);
+      expect(screen.getByText(i18n.t(KEYS.saved))).toBeInTheDocument();
+    });
+
+    it('si un guardado falla, no hay confirmación y sí un mensaje de error', async () => {
+      await waitUntilReady();
+      const user = userEvent.setup();
+      const created = await createProfile();
+      await openEditor(created.id);
+      await user.click(screen.getByRole('button', { name: i18n.t(KEYS.saveDraft) }));
+      await screen.findByText(i18n.t(KEYS.saved));
+      useHandlers(http.patch('*/api/v1/profiles/:id', () => problem(500)));
+
+      await user.click(screen.getByRole('button', { name: i18n.t(KEYS.saveDraft) }));
+
+      expect(await screen.findByText(i18n.t(KEYS.generic))).toBeInTheDocument();
+      expect(screen.queryByText(i18n.t(KEYS.saved))).not.toBeInTheDocument();
+    });
+  });
+
+  describe('punto 3: el autoguardado por campo no deshabilita el campo con foco', () => {
+    it('el campo que acaba de recibir el foco sigue habilitado y enfocado mientras el PATCH está en curso', async () => {
+      await waitUntilReady();
+      const user = userEvent.setup();
+      const created = await createProfile();
+      const spy = await spyOnGeneralInfoPatch(created.id, 400);
+      useHandlers(spy.handler);
+      await openEditor(created.id);
+      const summary = screen.getByLabelText(i18n.t(KEYS.summaryLabel));
+
+      await user.type(screen.getByLabelText(i18n.t(KEYS.nameLabel)), ' Jr.');
+      await user.tab();
+
+      // Precondición: sin un PATCH en vuelo esta prueba no mide nada.
+      await waitFor(() => expect(spy.count()).toBe(1));
+      expect(summary).toHaveFocus();
+      expect(summary).toBeEnabled();
+    });
+
+    it('lo que el usuario escribe en el campo con foco durante el guardado no se pierde', async () => {
+      await waitUntilReady();
+      const user = userEvent.setup();
+      const created = await createProfile();
+      const spy = await spyOnGeneralInfoPatch(created.id, 400);
+      useHandlers(spy.handler);
+      await openEditor(created.id);
+      const summary = screen.getByLabelText(i18n.t(KEYS.summaryLabel));
+
+      await user.type(screen.getByLabelText(i18n.t(KEYS.nameLabel)), ' Jr.');
+      await user.tab();
+      await waitFor(() => expect(spy.count()).toBe(1));
+      await user.keyboard('texto en vuelo');
+      await screen.findByText(i18n.t(KEYS.saved));
+
+      expect(summary).toHaveValue('texto en vuelo');
+    });
+  });
+
+  describe('punto 4: sin cambios, sin PATCH; «Guardar borrador» siempre envía', () => {
+    it('«Guardar borrador» envía el PATCH aunque no haya ningún cambio', async () => {
+      await waitUntilReady();
+      const user = userEvent.setup();
+      const created = await createProfile();
+      const spy = await spyOnGeneralInfoPatch(created.id);
+      useHandlers(spy.handler);
+      await openEditor(created.id);
+
+      await user.click(screen.getByRole('button', { name: i18n.t(KEYS.saveDraft) }));
+
+      await screen.findByText(i18n.t(KEYS.saved));
+      expect(spy.count()).toBe(1);
+    });
   });
 });
