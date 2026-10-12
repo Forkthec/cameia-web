@@ -21,6 +21,10 @@
  * **RT-02-CA06 (CM-180):** cuando `httpClient` recibe `403 EMAIL_NOT_VERIFIED`
  * del Gateway, cierra sesión y redirige aquí con `?correoNoVerificado=1`.
  * Esta página detecta el query param y muestra un aviso de warning.
+ *
+ * **CA-1.3.11 (CM-180):** cuando `activateAccount()` en `useLogin` recibe
+ * `403 ACCOUNT_DISABLED`, cierra sesión y redirige aquí con
+ * `?cuentaDeshabilitada=1`. Se muestra un aviso de error.
  */
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -55,6 +59,7 @@ export function LoginPage() {
   const [formResetKey, setFormResetKey] = useState(0);
 
   const redirectedForUnverifiedEmail = searchParams.get('correoNoVerificado') === '1';
+  const redirectedForDisabledAccount = searchParams.get('cuentaDeshabilitada') === '1';
 
   const loadingProps = isResending
     ? ({
@@ -74,6 +79,9 @@ export function LoginPage() {
     <AuthLayout headline={t('ingreso.marca.titular')}>
       {redirectedForUnverifiedEmail ? (
         <AlertInline variant="warning">{t('verificacion.correoNoVerificado.mensaje')}</AlertInline>
+      ) : null}
+      {redirectedForDisabledAccount ? (
+        <AlertInline variant="error">{t('verificacion.cuentaDeshabilitada.mensaje')}</AlertInline>
       ) : null}
       {logoutErrorMessage ? <AlertInline variant="error">{logoutErrorMessage}</AlertInline> : null}
       <LoginForm

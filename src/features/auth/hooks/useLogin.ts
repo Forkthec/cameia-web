@@ -111,7 +111,9 @@ export function useLogin(): UseLoginResult {
       // por red o 5xx, se reintenta en el siguiente inicio de sesión.
       void activateAccount().catch((error) => {
         if (error instanceof ApiError && error.hasCode('ACCOUNT_DISABLED')) {
-          void signOut();
+          void signOut().then(() => {
+            window.location.href = '/ingresar?cuentaDeshabilitada=1';
+          });
         }
       });
 
