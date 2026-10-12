@@ -92,9 +92,7 @@ describe('RegisterPage', () => {
     await fillValidForm(user, 'nueva@cameia.com');
     await user.click(screen.getByRole('button', { name: 'Registrarse' }));
 
-    expect(
-      await screen.findByText(/Te enviamos un enlace de verificación/),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Te enviamos un enlace de verificación/)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Ir a iniciar sesión' }));
 

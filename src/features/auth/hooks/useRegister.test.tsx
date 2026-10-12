@@ -23,14 +23,12 @@ vi.mock('react-router', async (importOriginal) => {
   return { ...actual, useNavigate: () => navigateMock };
 });
 
-const { registerUserMock, signInMock, sendEmailVerificationMock, signOutMock } = vi.hoisted(
-  () => ({
-    registerUserMock: vi.fn(),
-    signInMock: vi.fn(),
-    sendEmailVerificationMock: vi.fn(),
-    signOutMock: vi.fn(),
-  }),
-);
+const { registerUserMock, signInMock, sendEmailVerificationMock, signOutMock } = vi.hoisted(() => ({
+  registerUserMock: vi.fn(),
+  signInMock: vi.fn(),
+  sendEmailVerificationMock: vi.fn(),
+  signOutMock: vi.fn(),
+}));
 
 vi.mock('../api/register.api', () => ({ registerUser: registerUserMock }));
 
