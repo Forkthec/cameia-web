@@ -1,7 +1,7 @@
 /**
  * `/registro` · HU-1.1 / CM-34 / `PRT-01.01`. Compone `AuthLayout` (mismo
  * `headline` que ya usa Login, `ingreso.marca.titular` — SPEC.md §3
- * Registro) + `RegisterForm` + el `Modal` de confirmación de Plan Gratis.
+ * Registro) + `RegisterForm` + la pantalla de «Verifica tu correo» (CM-180).
  * Única pieza de la feature que llama `useTranslation`/`useRegister`;
  * `RegisterForm` es puramente presentacional (ver su TSDoc de cabecera).
  *
@@ -12,6 +12,11 @@
  * tratamiento visual que ya tenía cada campo; cualquier otra combinación
  * cae al mensaje genérico (`errors:generico`) o al de red (`errors:red`,
  * `httpStatus: 0`).
+ *
+ * **CA-1.1.1 (CM-180):** tras el registro exitoso se muestra la pantalla de
+ * «Verifica tu correo» en lugar de iniciar sesión. Si el envío del correo
+ * falló, se muestra el mensaje de CA-1.1.36 con el mismo botón «Ir a iniciar
+ * sesión».
  */
 import { useTranslation } from 'react-i18next';
 import { AuthLayout } from '@/layouts/AuthLayout';
@@ -21,9 +26,8 @@ import { useRegister } from '../hooks/useRegister';
 import { RegisterForm } from '../organisms/RegisterForm';
 
 export function RegisterPage() {
-  const { t } = useTranslation(['auth', 'errors']);
-  const { isSubmitting, isSuccessModalOpen, errorInfo, register, closeSuccessModal } =
-    useRegister();
+  const { t } = useTranslation(['auth', 'errors', 'common']);
+  const { isSubmitting, verificationResult, errorInfo, register, goToLogin } = useRegister();
 
   const isDuplicateEmail = errorInfo?.httpStatus === 409;
   const isBirthDateRejected = errorInfo?.httpStatus === 422 && errorInfo.field === 'birthDate';
@@ -111,15 +115,19 @@ export function RegisterPage() {
         footerCta={t('registro.irAIngresar')}
       />
 
-      {isSuccessModalOpen ? (
+      {verificationResult ? (
         <Modal
-          title={t('registro.modal.titulo')}
-          closeLabel={t('registro.modal.cerrar')}
-          primaryActionLabel={t('registro.modal.cta')}
-          onPrimaryAction={closeSuccessModal}
-          onClose={closeSuccessModal}
+          title={t('registro.verificacion.titulo')}
+          closeLabel={t('common:acciones.cerrar')}
+          primaryActionLabel={t('registro.verificacion.cta')}
+          onPrimaryAction={goToLogin}
+          onClose={goToLogin}
         >
-          {t('registro.modal.mensaje')}
+          <p className="text-body text-text-secondary">
+            {verificationResult.emailSent
+              ? t('registro.verificacion.mensajeExito', { correo: verificationResult.email })
+              : t('registro.verificacion.mensajeFallo')}
+          </p>
         </Modal>
       ) : null}
     </AuthLayout>
