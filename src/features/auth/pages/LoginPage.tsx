@@ -17,10 +17,14 @@
  * detecta que el usuario no tiene correo verificado, expone `unverifiedEmail`
  * y esta página muestra un `Modal` con las opciones de reenviar el correo
  * o usar otra cuenta.
+ *
+ * **RT-02-CA06 (CM-180):** cuando `httpClient` recibe `403 EMAIL_NOT_VERIFIED`
+ * del Gateway, cierra sesión y redirige aquí con `?correoNoVerificado=1`.
+ * Esta página detecta el query param y muestra un aviso de warning.
  */
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation } from 'react-router';
+import { useLocation, useSearchParams } from 'react-router';
 import { AlertInline } from '@/design-system/molecules/AlertInline';
 import { Modal } from '@/design-system/organisms/Modal';
 import { AuthLayout } from '@/layouts/AuthLayout';
@@ -47,7 +51,10 @@ export function LoginPage() {
     login,
   } = useLogin();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [formResetKey, setFormResetKey] = useState(0);
+
+  const redirectedForUnverifiedEmail = searchParams.get('correoNoVerificado') === '1';
 
   const loadingProps = isResending
     ? ({
@@ -65,6 +72,9 @@ export function LoginPage() {
 
   return (
     <AuthLayout headline={t('ingreso.marca.titular')}>
+      {redirectedForUnverifiedEmail ? (
+        <AlertInline variant="warning">{t('verificacion.correoNoVerificado.mensaje')}</AlertInline>
+      ) : null}
       {logoutErrorMessage ? <AlertInline variant="error">{logoutErrorMessage}</AlertInline> : null}
       <LoginForm
         key={formResetKey}

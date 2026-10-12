@@ -1,14 +1,19 @@
 /**
  * Comportamiento observable de `RegisterPage` de punta a punta (CA-1.1.1/
- * CA-1.1.3): valida el mismo alcance que `RegisterForm.test.tsx` y
+ * CA-1.1.3, CM-180): valida el mismo alcance que `RegisterForm.test.tsx` y
  * `useRegister.test.tsx` por separado, pero aquí verificando que las tres
  * piezas (traducción, hook, formulario) quedan bien cableadas — solo el
  * camino feliz y el caso de correo duplicado.
  *
+ * **CM-180:** tras el registro exitoso se muestra la pantalla de «Verifica tu
+ * correo» en lugar del modal de Plan Gratis, y al pulsar «Ir a iniciar
+ * sesión» se redirige a `/ingresar`.
+ *
  * `POST /api/v1/users` pasa por el servidor de MSW real (`register.api.ts`
  * intacto, `mocks/handlers/auth.handlers.ts`) — es la primera llamada de
  * red propia de esta feature (`ADR-0006`); solo se mockea el módulo de
- * Firebase (`signIn`/`sendEmailVerification`), igual que `LoginPage.test.tsx`.
+ * Firebase (`signIn`/`sendEmailVerification`/`signOut`), igual que
+ * `LoginPage.test.tsx`.
  */
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -20,19 +25,17 @@ import { httpClient } from '@/services/http/httpClient';
 import { useAuthStore } from '@/stores/auth.store';
 import { RegisterPage } from './RegisterPage';
 
-const { signInMock, sendEmailVerificationMock } = vi.hoisted(() => ({
+const { signInMock, sendEmailVerificationMock, signOutMock } = vi.hoisted(() => ({
   signInMock: vi.fn(),
   sendEmailVerificationMock: vi.fn(),
+  signOutMock: vi.fn(),
 }));
 
-// `httpClient` (usado por `register.api.ts` vía MSW) también importa este
-// módulo para `getIdToken()` — un registro es siempre sin sesión, así que
-// se deja resolver `null`, igual que lo haría el SDK real sin usuario.
 vi.mock('@/services/firebase/auth.service', () => ({
   signIn: signInMock,
   sendEmailVerification: sendEmailVerificationMock,
+  signOut: signOutMock,
   getIdToken: vi.fn().mockResolvedValue(null),
-  signOut: vi.fn(),
 }));
 
 async function waitUntilReady() {
@@ -48,7 +51,7 @@ function renderRegisterPage() {
       <MemoryRouter initialEntries={['/registro']}>
         <Routes>
           <Route path="/registro" element={<RegisterPage />} />
-          <Route path="/inicio" element={<p>Tablero</p>} />
+          <Route path="/ingresar" element={<p>Iniciar sesión</p>} />
         </Routes>
       </MemoryRouter>
     </I18nextProvider>,
@@ -73,7 +76,7 @@ describe('RegisterPage', () => {
     useAuthStore.setState({ user: null, plan: null, isAuthenticated: false, isLoading: false });
   });
 
-  it('con datos válidos, muestra el modal de confirmación y al cerrarlo redirige a /inicio', async () => {
+  it('con datos válidos, muestra la pantalla de verificación y al cerrarla redirige a /ingresar', async () => {
     await waitUntilReady();
     signInMock.mockResolvedValue({
       uid: 'u1',
@@ -82,15 +85,42 @@ describe('RegisterPage', () => {
       emailVerified: false,
     });
     sendEmailVerificationMock.mockResolvedValue(undefined);
+    signOutMock.mockResolvedValue(undefined);
     const user = userEvent.setup();
     renderRegisterPage();
 
     await fillValidForm(user, 'nueva@cameia.com');
     await user.click(screen.getByRole('button', { name: 'Registrarse' }));
 
-    await user.click(await screen.findByRole('button', { name: 'Entendido' }));
+    expect(
+      await screen.findByText(/Te enviamos un enlace de verificación/),
+    ).toBeInTheDocument();
 
-    expect(await screen.findByText('Tablero')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Ir a iniciar sesión' }));
+
+    expect(await screen.findByText('Iniciar sesión')).toBeInTheDocument();
+  });
+
+  it('si el envío del correo falla, muestra el mensaje de fallo con el botón a /ingresar', async () => {
+    await waitUntilReady();
+    signInMock.mockResolvedValue({
+      uid: 'u2',
+      email: 'fallo-envio@cameia.com',
+      displayName: null,
+      emailVerified: false,
+    });
+    sendEmailVerificationMock.mockRejectedValue(new Error('too-many-requests'));
+    signOutMock.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderRegisterPage();
+
+    await fillValidForm(user, 'fallo-envio@cameia.com');
+    await user.click(screen.getByRole('button', { name: 'Registrarse' }));
+
+    expect(
+      await screen.findByText(/No pudimos enviar el correo de verificación/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ir a iniciar sesión' })).toBeInTheDocument();
   });
 
   it('un correo ya registrado muestra el error con el bloque de dos acciones', async () => {
