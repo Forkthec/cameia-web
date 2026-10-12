@@ -18,6 +18,12 @@
  * inmediatamente. El resultado (`verificationResent`) también vive en el store
  * por la misma razón.
  *
+ * **Activación de cuenta (CA-1.2.14, CM-180):** al iniciar sesión con
+ * `emailVerified === true`, se llama a `POST /api/v1/users/me/verification`
+ * fire-and-forget. Si responde `ACCOUNT_DISABLED`, se cierra la sesión y se
+ * muestra el error. Si falla por red o 5xx, el ingreso continúa y se
+ * reintenta en el siguiente inicio de sesión.
+ *
  * **DF-003 (10-oct-2026):** si `sendEmailVerification` falla (p. ej. Firebase
  * responde 400 al segundo reenvío), la sesión efímera debe cerrarse en el
  * `catch`; de lo contrario la app queda con `isAuthenticated=true` y
@@ -26,6 +32,7 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, type Location } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
+import { ApiError } from '@/services/http/ApiError';
 import {
   AuthError,
   sendEmailVerification,
@@ -33,6 +40,7 @@ import {
   signOut,
 } from '@/services/firebase/auth.service';
 import { useAuthStore } from '@/stores/auth.store';
+import { activateAccount } from '../api/verification.api';
 import { getAuthErrorMessageKey } from '../model/authErrorMessage';
 
 interface LoginLocationState {
@@ -98,6 +106,16 @@ export function useLogin(): UseLoginResult {
         },
         useAuthStore.getState().plan,
       );
+
+      // CA-1.2.14: activar la cuenta en el backend. Fire-and-forget: si falla
+      // por red o 5xx, se reintenta en el siguiente inicio de sesión.
+      void activateAccount().catch((error) => {
+        if (error instanceof ApiError && error.hasCode('ACCOUNT_DISABLED')) {
+          void signOut().then(() => {
+            window.location.href = '/ingresar?cuentaDeshabilitada=1';
+          });
+        }
+      });
 
       const state = location.state as LoginLocationState | null;
       void navigate(resolveRedirectTarget(state?.from), { replace: true });

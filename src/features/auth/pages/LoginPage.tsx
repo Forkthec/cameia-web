@@ -17,10 +17,23 @@
  * detecta que el usuario no tiene correo verificado, expone `unverifiedEmail`
  * y esta página muestra un `Modal` con las opciones de reenviar el correo
  * o usar otra cuenta.
+ *
+ * **RT-02-CA06 (CM-180):** cuando `httpClient` recibe `403 EMAIL_NOT_VERIFIED`
+ * del Gateway, cierra sesión y redirige aquí con `?correoNoVerificado=1`.
+ * Esta página detecta el query param y muestra un aviso de warning.
+ *
+ * **CA-1.3.11 (CM-180):** cuando `activateAccount()` en `useLogin` recibe
+ * `403 ACCOUNT_DISABLED`, cierra sesión y redirige aquí con
+ * `?cuentaDeshabilitada=1`. Se muestra un aviso de error.
+ *
+ * **CM-255 (opción 1b):** Firebase aplica el código de verificación en su
+ * propia página y redirige al `continueUrl` sin `oobCode`. El `continueUrl`
+ * apunta a `/ingresar?correoVerificado=1` y esta página muestra un aviso de
+ * éxito: «Tu correo fue verificado. Ya puedes iniciar sesión.»
  */
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation } from 'react-router';
+import { useLocation, useSearchParams } from 'react-router';
 import { AlertInline } from '@/design-system/molecules/AlertInline';
 import { Modal } from '@/design-system/organisms/Modal';
 import { AuthLayout } from '@/layouts/AuthLayout';
@@ -47,7 +60,12 @@ export function LoginPage() {
     login,
   } = useLogin();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [formResetKey, setFormResetKey] = useState(0);
+
+  const redirectedForUnverifiedEmail = searchParams.get('correoNoVerificado') === '1';
+  const redirectedForDisabledAccount = searchParams.get('cuentaDeshabilitada') === '1';
+  const redirectedForVerifiedEmail = searchParams.get('correoVerificado') === '1';
 
   const loadingProps = isResending
     ? ({
@@ -65,6 +83,15 @@ export function LoginPage() {
 
   return (
     <AuthLayout headline={t('ingreso.marca.titular')}>
+      {redirectedForVerifiedEmail ? (
+        <AlertInline variant="success">{t('verificacion.correoVerificado.mensaje')}</AlertInline>
+      ) : null}
+      {redirectedForUnverifiedEmail ? (
+        <AlertInline variant="warning">{t('verificacion.correoNoVerificado.mensaje')}</AlertInline>
+      ) : null}
+      {redirectedForDisabledAccount ? (
+        <AlertInline variant="error">{t('verificacion.cuentaDeshabilitada.mensaje')}</AlertInline>
+      ) : null}
       {logoutErrorMessage ? <AlertInline variant="error">{logoutErrorMessage}</AlertInline> : null}
       <LoginForm
         key={formResetKey}

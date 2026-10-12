@@ -1,8 +1,8 @@
 /**
  * Comportamiento observable de `useRegister` (`ADR-0006`, `SPEC.md` §3
- * Registro): éxito encadena `registerUser` → `signIn()` →
- * `sendEmailVerification()`, guarda la sesión y abre el modal; cerrar el
- * modal redirige a `/inicio`; un `ApiError` de correo duplicado o de fecha
+ * Registro, CA-1.1.1/CM-180): éxito encadena `registerUser` → `signIn()` →
+ * `sendEmailVerification()` → `signOut()` y muestra la pantalla de
+ * verificación con el correo; un `ApiError` de correo duplicado o de fecha
  * de nacimiento expone `httpStatus`/`field` (`ADR-0007`, sin `code` propio)
  * sin llamar a Firebase; y el caso de borde (`POST` exitoso, `signIn()`
  * falla después) redirige a `/ingresar` con la marca `registerInfo`, no
@@ -23,10 +23,11 @@ vi.mock('react-router', async (importOriginal) => {
   return { ...actual, useNavigate: () => navigateMock };
 });
 
-const { registerUserMock, signInMock, sendEmailVerificationMock } = vi.hoisted(() => ({
+const { registerUserMock, signInMock, sendEmailVerificationMock, signOutMock } = vi.hoisted(() => ({
   registerUserMock: vi.fn(),
   signInMock: vi.fn(),
   sendEmailVerificationMock: vi.fn(),
+  signOutMock: vi.fn(),
 }));
 
 vi.mock('../api/register.api', () => ({ registerUser: registerUserMock }));
@@ -34,6 +35,7 @@ vi.mock('../api/register.api', () => ({ registerUser: registerUserMock }));
 vi.mock('@/services/firebase/auth.service', () => ({
   signIn: signInMock,
   sendEmailVerification: sendEmailVerificationMock,
+  signOut: signOutMock,
 }));
 
 function renderUseRegister() {
@@ -60,7 +62,7 @@ describe('useRegister', () => {
     useAuthStore.setState({ user: null, plan: null, isAuthenticated: false, isLoading: false });
   });
 
-  it('con el POST y la sesión exitosos, guarda la sesión y abre el modal de confirmación', async () => {
+  it('con el POST y la verificación exitosos, cierra sesión y muestra la pantalla de verificación', async () => {
     registerUserMock.mockResolvedValue({
       id: 'account-1',
       firebaseUid: 'u1',
@@ -74,18 +76,52 @@ describe('useRegister', () => {
       emailVerified: false,
     });
     sendEmailVerificationMock.mockResolvedValue(undefined);
+    signOutMock.mockResolvedValue(undefined);
     const { result } = renderUseRegister();
 
     await result.current.register(formValues);
 
-    await waitFor(() => expect(result.current.isSuccessModalOpen).toBe(true));
+    await waitFor(() =>
+      expect(result.current.verificationResult).toEqual({
+        email: 'ada@cameia.com',
+        emailSent: true,
+      }),
+    );
     expect(result.current.isSubmitting).toBe(false);
     expect(sendEmailVerificationMock).toHaveBeenCalledOnce();
-    expect(useAuthStore.getState().isAuthenticated).toBe(true);
-    expect(useAuthStore.getState().user?.uid).toBe('u1');
+    expect(signOutMock).toHaveBeenCalledOnce();
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
   });
 
-  it('al cerrar el modal de confirmación, redirige a /inicio', async () => {
+  it('si sendEmailVerification falla, cierra sesión y muestra el mensaje de fallo', async () => {
+    registerUserMock.mockResolvedValue({
+      id: 'account-1',
+      firebaseUid: 'u1',
+      status: 'PENDING_VERIFICATION',
+      plan: 'FREE',
+    });
+    signInMock.mockResolvedValue({
+      uid: 'u1',
+      email: 'ada@cameia.com',
+      displayName: null,
+      emailVerified: false,
+    });
+    sendEmailVerificationMock.mockRejectedValue(new Error('too-many-requests'));
+    signOutMock.mockResolvedValue(undefined);
+    const { result } = renderUseRegister();
+
+    await result.current.register(formValues);
+
+    await waitFor(() =>
+      expect(result.current.verificationResult).toEqual({
+        email: 'ada@cameia.com',
+        emailSent: false,
+      }),
+    );
+    expect(signOutMock).toHaveBeenCalledOnce();
+  });
+
+  it('al pulsar «Ir a iniciar sesión», redirige a /ingresar', async () => {
     registerUserMock.mockResolvedValue({
       id: 'account-1',
       firebaseUid: 'u1',
@@ -99,13 +135,14 @@ describe('useRegister', () => {
       emailVerified: false,
     });
     sendEmailVerificationMock.mockResolvedValue(undefined);
+    signOutMock.mockResolvedValue(undefined);
     const { result } = renderUseRegister();
     await result.current.register(formValues);
-    await waitFor(() => expect(result.current.isSuccessModalOpen).toBe(true));
+    await waitFor(() => expect(result.current.verificationResult).not.toBeNull());
 
-    result.current.closeSuccessModal();
+    result.current.goToLogin();
 
-    expect(navigateMock).toHaveBeenCalledWith('/inicio', { replace: true });
+    expect(navigateMock).toHaveBeenCalledWith('/ingresar', { replace: true });
   });
 
   it('con correo duplicado, expone el httpStatus 409 sin llamar a Firebase', async () => {
@@ -149,7 +186,7 @@ describe('useRegister', () => {
     await waitFor(() => expect(result.current.errorInfo).toEqual({ httpStatus: 0 }));
   });
 
-  it('CM-250: con un fallo de red pero signIn exitoso, la cuenta se creó y continúa el flujo normal', async () => {
+  it('CM-250: con un fallo de red pero signIn exitoso, cierra sesión y muestra verificación', async () => {
     registerUserMock.mockRejectedValue(new TypeError('Failed to fetch'));
     signInMock.mockResolvedValue({
       uid: 'u1',
@@ -158,14 +195,20 @@ describe('useRegister', () => {
       emailVerified: false,
     });
     sendEmailVerificationMock.mockResolvedValue(undefined);
+    signOutMock.mockResolvedValue(undefined);
     const { result } = renderUseRegister();
 
     await result.current.register(formValues);
 
-    await waitFor(() => expect(result.current.isSuccessModalOpen).toBe(true));
+    await waitFor(() =>
+      expect(result.current.verificationResult).toEqual({
+        email: 'ada@cameia.com',
+        emailSent: true,
+      }),
+    );
     expect(result.current.errorInfo).toBeNull();
     expect(result.current.isSubmitting).toBe(false);
-    expect(useAuthStore.getState().isAuthenticated).toBe(true);
+    expect(signOutMock).toHaveBeenCalledOnce();
   });
 
   it('si el POST tiene éxito pero signIn() falla después, redirige a /ingresar con el mensaje informativo', async () => {
@@ -185,7 +228,7 @@ describe('useRegister', () => {
         state: { registerInfo: SIGN_IN_AFTER_REGISTER_FAILED },
       }),
     );
-    expect(result.current.isSuccessModalOpen).toBe(false);
+    expect(result.current.verificationResult).toBeNull();
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
   });
 });

@@ -131,8 +131,8 @@ export async function signOut(): Promise<void> {
 export async function sendEmailVerification(user: User): Promise<void> {
   try {
     await sendFirebaseEmailVerification(user, {
-      url: `${window.location.origin}/verificar-correo`,
-      handleCodeInApp: true,
+      url: `${window.location.origin}/ingresar?correoVerificado=1`,
+      handleCodeInApp: false,
     });
   } catch (error) {
     throw toAuthError(error);

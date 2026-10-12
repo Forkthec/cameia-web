@@ -67,6 +67,12 @@ async function handleUnauthorized(): Promise<void> {
   window.location.href = LOGIN_PATH;
 }
 
+/** RT-02-CA06 (CM-180): el Gateway rechazó la petición porque el correo no está verificado. */
+async function handleEmailNotVerified(): Promise<void> {
+  await signOut();
+  window.location.href = `${LOGIN_PATH}?correoNoVerificado=1`;
+}
+
 async function request<T>(
   method: string,
   path: string,
@@ -97,6 +103,9 @@ async function request<T>(
       const apiError = await mapErrorResponse(response);
       if (apiError.isUnauthorized()) {
         await handleUnauthorized();
+      }
+      if (apiError.hasCode('EMAIL_NOT_VERIFIED')) {
+        await handleEmailNotVerified();
       }
       throw apiError;
     }
