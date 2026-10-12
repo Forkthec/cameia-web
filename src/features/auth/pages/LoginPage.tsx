@@ -25,6 +25,11 @@
  * **CA-1.3.11 (CM-180):** cuando `activateAccount()` en `useLogin` recibe
  * `403 ACCOUNT_DISABLED`, cierra sesión y redirige aquí con
  * `?cuentaDeshabilitada=1`. Se muestra un aviso de error.
+ *
+ * **CM-255 (opción 1b):** Firebase aplica el código de verificación en su
+ * propia página y redirige al `continueUrl` sin `oobCode`. El `continueUrl`
+ * apunta a `/ingresar?correoVerificado=1` y esta página muestra un aviso de
+ * éxito: «Tu correo fue verificado. Ya puedes iniciar sesión.»
  */
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -60,6 +65,7 @@ export function LoginPage() {
 
   const redirectedForUnverifiedEmail = searchParams.get('correoNoVerificado') === '1';
   const redirectedForDisabledAccount = searchParams.get('cuentaDeshabilitada') === '1';
+  const redirectedForVerifiedEmail = searchParams.get('correoVerificado') === '1';
 
   const loadingProps = isResending
     ? ({
@@ -77,6 +83,9 @@ export function LoginPage() {
 
   return (
     <AuthLayout headline={t('ingreso.marca.titular')}>
+      {redirectedForVerifiedEmail ? (
+        <AlertInline variant="success">{t('verificacion.correoVerificado.mensaje')}</AlertInline>
+      ) : null}
       {redirectedForUnverifiedEmail ? (
         <AlertInline variant="warning">{t('verificacion.correoNoVerificado.mensaje')}</AlertInline>
       ) : null}
