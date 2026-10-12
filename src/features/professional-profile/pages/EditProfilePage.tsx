@@ -53,8 +53,18 @@
  * permite a `AppShell`/"Perfiles" dejar de mandar siempre a
  * `/perfiles/nuevo`. Ver TSDoc de cabecera de `NewProfilePage.tsx` para el
  * otro lado de esta conexión.
+ *
+ * **CM-272 (HU-2.3, decisión D-J):** el error del `PATCH` de Información
+ * General ya no se descarta — se lee de `updateGeneralInfo` y se resuelve por
+ * `code` con `getItemErrorMessage` (`ADR-0008`): `PROFILE_NOT_ALLOWED` →
+ * `errors:codigos.NOT_FOUND`, `SUMMARY_NOT_ALLOWED` →
+ * `profile:general.resumen.errorPerfilActivo`, cualquier otro error →
+ * `errors:generico` (o `errors:red` si no es un `ApiError`). «Cambios
+ * guardados.» solo se ve mientras el último guardado fue exitoso y el
+ * formulario no tiene cambios sin guardar (`isGeneralInfoDirty`, que avisa
+ * `GeneralInfoForm`); nunca a la vez que el error.
  */
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
 import { Button } from '@/design-system/atoms/Button';
@@ -117,6 +127,8 @@ export function EditProfilePage() {
   const substituteTargetRole = useSubstituteTargetRole(profileId);
   const removeTargetRole = useRemoveTargetRole(profileId);
   const setLastUsedProfileId = useUiPreferencesStore((state) => state.setLastUsedProfileId);
+  // CM-272 (punto 2): «Cambios guardados.» solo es verdad mientras el formulario no tenga cambios sin guardar.
+  const [isGeneralInfoDirty, setIsGeneralInfoDirty] = useState(false);
 
   // CM-195 (decisión D-I): backfill de `lastUsedProfileId` para perfiles
   // abiertos aquí directamente (por link, o creados antes de esta
@@ -205,6 +217,20 @@ export function EditProfilePage() {
       .map((key) => t(key));
   }
 
+  // CM-272 (punto 1): error del `PATCH` de Información General, por `code`. Sin
+  // `code` conocido cae en el genérico (o en `errors:red` si ni siquiera hubo
+  // respuesta); nunca se muestra `title`/`detail` ni se decide por el estado HTTP.
+  const generalInfoErrorMessage = updateGeneralInfo.isError
+    ? getItemErrorMessage(
+        updateGeneralInfo.error,
+        updateGeneralInfo.error instanceof ApiError ? t('errors:generico') : t('errors:red'),
+        {
+          PROFILE_NOT_ALLOWED: t('errors:codigos.NOT_FOUND'),
+          SUMMARY_NOT_ALLOWED: t('profile:general.resumen.errorPerfilActivo'),
+        },
+      )
+    : undefined;
+
   const formatEducationPeriod = (item: EducationItem) =>
     item.inProgress
       ? t('profile:educacion.periodoEnCurso', {
@@ -241,7 +267,7 @@ export function EditProfilePage() {
           summary={profile.summary}
           sectionTitle={t('profile:general.tituloSeccion')}
           showSectionTitle={isDesktop}
-          isSaving={updateGeneralInfo.isPending}
+          onDirtyChange={setIsGeneralInfoDirty}
           onSubmit={(values) => updateGeneralInfo.mutateAsync(values).then(() => {})}
           nameLabel={t('profile:general.nombre.etiqueta')}
           nameHelperText={t('profile:general.nombre.ayuda')}
@@ -527,7 +553,9 @@ export function EditProfilePage() {
         stepListLabel={t('profile:formulario.indiceSecciones')}
       />
 
-      {updateGeneralInfo.isSuccess ? (
+      {generalInfoErrorMessage ? (
+        <AlertInline variant="error">{generalInfoErrorMessage}</AlertInline>
+      ) : updateGeneralInfo.isSuccess && !isGeneralInfoDirty ? (
         <AlertInline variant="success">{t('profile:general.confirmacionGuardado')}</AlertInline>
       ) : null}
 

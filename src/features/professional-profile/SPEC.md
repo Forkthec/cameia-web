@@ -215,12 +215,12 @@ Fuente: backlog `09102026_01` (v6), hoja HE-02, HU-2.2, CA-2.2.1 a CA-2.2.7.
   `ProfileSectionsLayout` junto a Formación académica y Experiencia Laboral, con la barra de
   acciones compartida debajo (§3). `EditProfilePage.tsx` ya no es el placeholder de `EmptyState` —
   ver §7. Los estados de la tabla de abajo son ahora comportamiento implementado, no previsto.
-- **Autoguardado en `onBlur` (CM-195, decisión D-H, §9).** `GeneralInfoForm` guarda por `PATCH`
-  cuando el foco sale del formulario completo; «Guardar borrador» se conserva como respaldo
-  explícito. El resto de secciones persiste por ítem, sin borrador. **Esto es el comportamiento
-  vigente en `develop`; CM-272 lo cambia a «al salir de cada campo y solo si hay cambios»
-  (decisión D-J, §9) y se describe más abajo en «Alcance de CM-272». Hasta que se implemente, lo
-  que dice este bullet es lo que hace el código.**
+- **Autoguardado en `onBlur` (CM-195, decisión D-H; CM-272, decisión D-J, §9).** `GeneralInfoForm`
+  guarda por `PATCH` cuando el foco sale de **cada campo** y solo si el formulario tiene cambios
+  (`formState.isDirty`); «Guardar borrador» se conserva como respaldo explícito y siempre envía. El
+  resto de secciones persiste por ítem, sin borrador. CM-195 lo había puesto en el `<form>`
+  (disparaba solo al salir del formulario completo, sin mirar si había algo que guardar); CM-272 lo
+  cambió, ver «Alcance de CM-272» más abajo.
 - **Cambios sin guardar (CM-194).** `GeneralInfoForm` sincroniza `formState.isDirty` con
   `stores/unsavedChanges.store.ts` (y lo limpia al desmontarse): es lo que hace que la confirmación
   de cierre de sesión advierta de cambios sin guardar (ver `src/features/auth/SPEC.md` §3).
@@ -234,7 +234,7 @@ Fuente: backlog `09102026_01` (v6), hoja HE-02, HU-2.2, CA-2.2.1 a CA-2.2.7.
 | Carga       | `Spinner` mientras se obtiene el perfil por `id` antes de mostrar el formulario       |
 | Vacío       | No aplica: el perfil siempre existe en este punto (se creó en el método de configuración) |
 | Error       | **Al cargar:** perfil inexistente → `errors:codigos.NOT_FOUND`; cualquier otro `ApiError` → `errors:generico`; fallo de red real (no `ApiError`) → `errors:red`, con botón «Reintentar». **Al guardar (`PATCH`):** hoy el error se descarta sin mostrar nada (ver «Alcance de CM-272», punto 1); CM-272 lo muestra resuelto por `code` |
-| Sin permiso | Ver nota transversal arriba. **Al guardar:** `403 PROFILE_NOT_ALLOWED` → «No encontramos lo que buscabas.» (CA-2.3.11), especificado en CM-272, aún no implementado |
+| Sin permiso | Ver nota transversal arriba. **Al guardar:** `403 PROFILE_NOT_ALLOWED` → «No encontramos lo que buscabas.» (CA-2.3.11), implementado en CM-272 |
 
 **Validaciones del lado del cliente**
 
@@ -245,11 +245,12 @@ Fuente: backlog `09102026_01` (v6), hoja HE-02, HU-2.2, CA-2.2.1 a CA-2.2.7.
   el contador de caracteres restantes (CA-2.3.3, `GLOSSARY.md` §2). El frame de Figma muestra el
   contador en 600, no 2000 — se mantiene 2000 por decisión explícita (bloqueo **C-11**, §8).
 
-**Alcance de CM-272 (HU-2.3, 11-oct-2026) — ESPECIFICADO, AÚN NO IMPLEMENTADO.** Todo lo que sigue
-en esta subsección describe el comportamiento al que llega el código cuando CM-272 se implemente;
-mientras tanto, el código de `develop` (`4b3f915`) hace lo que dicen los apartados anteriores. El
-alcance es exactamente los cuatro puntos de abajo. Evidencia citada como `archivo:línea` sobre
-`develop` en `4b3f915`.
+**Alcance de CM-272 (HU-2.3, 11-oct-2026) — IMPLEMENTADO (12-oct-2026).** Lo que sigue describe el
+comportamiento que el código tiene desde CM-272, con las pruebas de `GeneralInfoForm.test.tsx` y
+`EditProfilePage.test.tsx` en verde (50 de 50). Los apartados «**Hoy**» y las citas
+`archivo:línea` que los acompañan describen el código de `develop` en `4b3f915`, **antes** de
+CM-272: son la historia del defecto, no el estado actual (los números de línea ya se movieron). El
+alcance es exactamente los cuatro puntos de abajo, más una regla que salió de una prueba (punto 3).
 
 1. **Mostrar los errores del `PATCH` de Información General, resueltos por `code`.**
    - **Hoy el error se descarta.** `GeneralInfoForm.tsx:173-181` envuelve `await onSubmit(values)` en
@@ -274,6 +275,13 @@ alcance es exactamente los cuatro puntos de abajo. Evidencia citada como `archiv
      **Sin respaldo por estado HTTP** (`ADR-0008`): un `403` o un `422` sin el `code` esperado
      muestra el genérico, nunca el mensaje específico. Un genérico es honesto; uno específico
      equivocado, no.
+
+     **Excepción: `403 EMAIL_NOT_VERIFIED` del Gateway.** Ya no llega a esta pantalla como
+     genérico en el sentido de «error sin resolver»: `httpClient.ts:107-109` lo intercepta, cierra la
+     sesión y navega a `/ingresar?correoNoVerificado=1` (`handleEmailNotVerified`, `:70-74`, CM-180).
+     El `throw apiError` de `:110` sigue después, así que `updateGeneralInfo.isError` se activa igual
+     y **el mensaje genérico podría verse un instante antes de la navegación**. **NO comprobado en
+     ejecución.** CM-272 no mapea ese `code`: no lo necesita.
    - **Se reutiliza `getItemErrorMessage` (`EditProfilePage.tsx:179-192`) sin modificarla.** Es de
      CM-65 (PR #72), local a `EditProfilePage` (declarada dentro del componente, después de los
      `return` tempranos de `:128-165`), de firma `(error: unknown, fallback: string, byCode:
@@ -323,15 +331,24 @@ alcance es exactamente los cuatro puntos de abajo. Evidencia citada como `archiv
      detiene el envío **antes** de la mutación (`GeneralInfoForm.tsx:192`/`:195`, `handleSubmit`),
      así que `isSuccess` sigue en `true` y la confirmación anterior queda visible junto al mensaje
      de error del campo. Contradice «no debe guardar» de CA-2.3.14.
-   - **Regla:** «Cambios guardados.» se muestra **solo mientras** la última acción de guardado de la
-     sección terminó con éxito y, desde entonces, el formulario no ha vuelto a quedar con cambios
-     (sucio) ni ha sido bloqueado por un valor inválido. Desaparece, por tanto, en cuatro casos:
-     (a) arranca un nuevo guardado; (b) el usuario edita cualquiera de los dos campos; (c) una
-     salida de campo es bloqueada por validación; (d) el guardado falla (entonces se muestra el
-     error del punto 1). Una salida de campo **sin cambios** (punto 4) no es ninguno de los cuatro:
-     no envía nada y la confirmación, que sigue siendo verdadera, se conserva.
-   - El mecanismo concreto (por ejemplo, reiniciar la mutación o llevar una bandera propia en la
-     página) lo decide la implementación; el SPEC fija solo el comportamiento observable.
+   - **Regla (simplificada el 12-oct-2026):** «Cambios guardados.» se muestra solo si el último
+     guardado terminó con éxito **y** el formulario no tiene cambios sin guardar; **se oculta mientras
+     el formulario esté sucio** (`formState.isDirty`). Se oculta, por tanto, al editar cualquiera de
+     los dos campos y al arrancar un nuevo guardado; si el guardado falla se muestra el error del
+     punto 1, nunca las dos cosas a la vez. Una salida de campo **sin cambios** (punto 4) no envía
+     nada y no oculta la confirmación, que sigue siendo verdadera.
+   - **La regla «una salida bloqueada por validación quita la confirmación» era redundante** y se
+     retiró: un valor inválido es siempre un cambio respecto de lo guardado (lo guardado fue válido),
+     así que el formulario ya está sucio y la confirmación ya está oculta. La prueba que la cubre
+     (`EditProfilePage.test.tsx`, «salir de un campo con el nombre vacío…») no aísla esa regla por la
+     misma razón: para llegar a un valor inválido hay que editar, y editar ya oculta la confirmación.
+   - **Mecanismo elegido:** `GeneralInfoForm` recibe el prop opcional `onDirtyChange(isDirty)` y lo
+     llama cada vez que cambia `formState.isDirty`; `EditProfilePage` lo guarda en
+     `isGeneralInfoDirty` (`useState`) y pinta la confirmación con
+     `updateGeneralInfo.isSuccess && !isGeneralInfoDirty`. **No se usó `stores/unsavedChanges.store.ts`**
+     aunque ya refleja `isDirty`: es un único booleano global para el diálogo de cerrar sesión (su TSDoc
+     asume como máximo un formulario sucio montado), y atar la confirmación a él la volvería falsa en
+     cuanto otro formulario esté sucio. El prop es local y exacto.
 
 3. **Autoguardado al salir de cada campo, no del formulario entero (CA-2.3.13).**
    - **Hoy:** el `onBlur` está en el `<form>` (`GeneralInfoForm.tsx:193-197`) y solo dispara si
@@ -343,18 +360,29 @@ alcance es exactamente los cuatro puntos de abajo. Evidencia citada como `archiv
      (`trySave` sigue siendo el único punto de entrada, con la misma validación de zod y el mismo
      candado `isSubmittingRef` contra el doble envío). Si el valor es inválido, se muestra el
      mensaje del campo y no se guarda (CA-2.3.14, CA-2.3.8).
-   - **Esto cambia un test existente, y se dice aquí a propósito:** `GeneralInfoForm.test.tsx:154-164`
-     («tabular entre Nombre y Resumen (dentro del formulario) no guarda») documenta hoy el
-     comportamiento contrario y dejará de ser verdad. Pasa a esperar que ese Tab **sí** dispare el
-     guardado cuando hay cambios. Los otros tres tests de autoguardado (`:134-152`, `:166-186`,
-     `:188-203`) deben seguir pasando en su intención.
-   - **Restricción de implementación, no negociable:** hoy los dos campos reciben
-     `state="disabled"` mientras la mutación está en curso (`GeneralInfoForm.tsx:221`, `:249`) y
-     `Input` traduce ese estado al atributo `disabled` (`Input.tsx:111`, `:125`, `:136`). Con guardado
-     por campo, tabular de Nombre a Resumen dispararía el `PATCH` y deshabilitaría el campo que acaba
-     de recibir el foco: se perdería el foco y lo que el usuario estuviera escribiendo. El campo que
-     tiene el foco **no** puede quedar deshabilitado por un autoguardado. «Guardar borrador» sí puede
-     seguir bloqueando la barra mientras guarda (`isSavingDraft`, `EditProfilePage.tsx:593`).
+   - **Test existente `GeneralInfoForm.test.tsx:154-164`** («tabular entre Nombre y Resumen (dentro del
+     formulario) no guarda»): su cuerpo **sigue siendo cierto** con el comportamiento nuevo, porque ese
+     Tab no cambia nada y la compuerta `isDirty` (punto 4) lo frena; lo que dejó de describir la regla
+     real es su nombre. Se dejó intacto.
+   - **Los campos ya no se deshabilitan mientras se guarda — restricción no negociable cumplida.** Antes
+     recibían `state="disabled"` durante la mutación (`Input` lo traduce al atributo `disabled`,
+     `Input.tsx:111`, `:125`, `:136`); con guardado por campo, tabular de Nombre a Resumen dispara el
+     `PATCH` y habría deshabilitado el campo que acaba de recibir el foco. **Se retira el prop
+     `isSaving` de `GeneralInfoForm`** (cambio de interfaz del organismo): su único uso era ese
+     deshabilitado y `EditProfilePage` dejó de pasarlo. «Guardar borrador» sí sigue bloqueando la
+     barra mientras guarda (`isSavingDraft`, `ProfileActionsBar`).
+   - **Lo escrito mientras el `PATCH` está en vuelo no se pierde (`keepDirtyValues`).** Tras un guardado
+     exitoso, `trySave` llama `reset(values, { keepDirtyValues: true })` en vez de `reset(values)`:
+     lo **enviado** pasa a ser la nueva referencia de «sucio», pero lo que el usuario ya tiene
+     escrito y es distinto de eso se conserva. Sin `keepDirtyValues`, `reset` sobrescribe los campos
+     con lo enviado y borra lo tecleado durante el vuelo (lo demostró la prueba `k2`).
+     - **Efecto colateral, explícito y correcto:** si se escribió algo durante el vuelo, el formulario
+       **sigue sucio** tras el guardado y el siguiente `blur` **reenvía**. Es lo honesto: lo escrito en
+       vuelo aún no está guardado.
+     - **Alternativa descartada:** bloquear los campos durante el vuelo. Se descartó porque **impide
+       escribir** (y, para el campo con foco, le quita el foco), que es justo el daño que se evita.
+     - **Origen de la regla:** salió de la prueba `k2`, no del backlog. Es una consecuencia del
+       autoguardado por campo que el backlog no previó; por eso se escribe aquí y en D-J.
    - «Guardar borrador» se conserva como respaldo explícito y **siempre envía** (no consulta el punto
      4): el criterio de «distinto del guardado» es de la regla de guardado automático, no del botón.
      El `blur` que el clic en el botón provoca y el `submit` siguen protegidos por `isSubmittingRef`:
@@ -386,8 +414,9 @@ alcance es exactamente los cuatro puntos de abajo. Evidencia citada como `archiv
 
 **Criterios de HU-2.3: estado y cierre con CM-272.** Los 12 CA vigentes del Sprint 2 (CA-2.3.2 y
 CA-2.3.6 son «N/A en el MVP» por el propio backlog: dependen de HU-2.8 y HU-2.14, y no se tocan).
-«Estado actual» es lo que dice el código de `develop` (`4b3f915`) **por lectura**; no se ejecutó
-ninguna prueba. **ABIERTO** significa que, al terminar CM-272, el criterio **no** puede darse por
+«Estado actual» es lo que decía el código de `develop` (`4b3f915`) **antes de CM-272**, por
+lectura. «Al terminar CM-272» ya refleja la implementación, con las pruebas del bloque en verde (50 de
+50); no sustituye la prueba de QA. **ABIERTO** significa que, al terminar CM-272, el criterio **no** puede darse por
 cumplido; QA prueba el backlog literal, no este SPEC (lección de DF-004).
 
 | CA | Estado actual (por lectura) | Qué hace CM-272 | Al terminar CM-272 |
@@ -420,7 +449,7 @@ cumplido; QA prueba el backlog literal, no este SPEC (lección de DF-004).
   resumen. Alinearlo puede romper pruebas de HU-2.4, 2.5 y 2.11, que comparten ese mock. CM-272 **no
   modifica lo que el mock ya hace**; tarea propia.
 - **DF-007 (C-21).** «Vaciar el resumen y guardar muestra confirmación, pero al recargar reaparece
-  el resumen anterior» (CP-050/EJ-036 y CP-056/EJ-038, probado el 26-09-2026 contra staging con
+  el resumen anterior» (CP-050/EJ-036 y CP-056/EJ-038 **del libro de pruebas del Sprint 1**, probado el 26-09-2026 contra staging con
   `cameia-web@a3e46cb`). Hallazgos por código: el servidor ya borra `"summary": ""` en Borrador
   desde el commit `66eccda` de `cameia-perfil` (8-oct; antes de él, `new
   ProfessionalSummary(cmd.summary())` rechazaba el blanco), reforzado por `5b79f13` (10-oct); el
@@ -758,9 +787,9 @@ específico).
 | CA-2.2.4 | El mapper convierte `name` y `summary` nulos en `''` |
 | CA-2.2.5, CA-2.2.6 | Sprint 3: no se implementan |
 | CA-2.2.7 | Una sola petición ante dos clics síncronos (`NewProfilePage`, `act` y `fireEvent`, DF-004); la tarjeta queda `disabled` mientras se crea (`ProfileMethodSelector`) y conserva el aspecto de seleccionada (`CardSelectable`, `state="selected"` + `disabled`), con `aria-busy` y `Spinner` |
-| CA-2.3.11 (CM-272, especificado) | El mensaje sale de `errors:codigos.NOT_FOUND` por `code` `PROFILE_NOT_ALLOWED`, vía `getItemErrorMessage`; sin `code` muestra el genérico (`ADR-0008`) |
-| CA-2.3.12 (CM-272, especificado) | El mensaje sale de `profile:general.resumen.errorPerfilActivo` por `errors[].code` `SUMMARY_NOT_ALLOWED` dentro de un `422 VALIDATION_FAILED` |
-| CA-2.3.13, CA-2.3.14 (CM-272, especificado) | Guarda al salir de cada campo solo si `formState.isDirty` (D-J); «Cambios guardados.» desaparece al editar, al fallar y al ser bloqueada una salida de campo; el campo con foco nunca queda deshabilitado por el autoguardado |
+| CA-2.3.11 (CM-272) | El mensaje sale de `errors:codigos.NOT_FOUND` por `code` `PROFILE_NOT_ALLOWED`, vía `getItemErrorMessage`; sin `code` muestra el genérico (`ADR-0008`) |
+| CA-2.3.12 (CM-272) | El mensaje sale de `profile:general.resumen.errorPerfilActivo` por `errors[].code` `SUMMARY_NOT_ALLOWED` dentro de un `422 VALIDATION_FAILED` |
+| CA-2.3.13, CA-2.3.14 (CM-272) | Guarda al salir de cada campo solo si `formState.isDirty` (D-J); «Cambios guardados.» desaparece al editar, al fallar y al ser bloqueada una salida de campo; el campo con foco nunca queda deshabilitado por el autoguardado |
 | CA-2.3.3, CA-2.3.10 | **No se cumplen al escribir:** el `maxLength` impide el carácter 2001 / 256 (C-19, abierto) |
 | CA-2.4.1 (experiencia `CURRENT`/`UNKNOWN_END` sin fecha de fin)   | Oculta y limpia el campo «Fecha de fin» cuando cualquiera de los dos checkboxes está marcado, en vez de solo omitir el envío |
 | J-01 (gestión por ítem, no PATCH de colección)                    | `POST`/`DELETE` inmediato por ítem; sin `useFieldArray` — la lista visible es siempre la caché del servidor (SPEC.md §9, decisión D-A) |
@@ -793,7 +822,7 @@ específico).
 | `src/features/professional-profile/schemas/workExperience.schema.ts`                             | §3.3 (CM-61): validación zod de un ítem de Experiencia Laboral, con `.superRefine` para los checkboxes excluyentes          | `src/features/professional-profile/organisms/WorkExperienceSection/WorkExperienceSection.test.tsx`   |
 | `src/features/professional-profile/schemas/skill.schema.ts`                                     | §3.4 (CM-65): validación zod de un ítem de Habilidad; el duplicado NO se valida aquí (depende de `items`, ajeno al schema) — vive en `SkillsSection` vía `setError` manual | `src/features/professional-profile/organisms/SkillsSection/SkillsSection.test.tsx`                   |
 | `src/design-system/atoms/Select/Select.tsx`                                                     | Átomo nuevo (SPEC.md §9, decisión D-B): `<select>` nativo con la misma API que `Input`, para "Nivel educativo" — primer átomo nuevo del design system desde CM-100 | `src/design-system/atoms/Select/Select.test.tsx`                                                     |
-| `src/features/professional-profile/organisms/GeneralInfoForm/GeneralInfoForm.tsx`                | §3.2 (CM-53): el formulario de Información General; CM-61 agrega showSectionTitle (decisión D-G); CM-194 sincroniza isDirty con unsavedChanges.store; CM-195 agrega el autoguardado en onBlur (decisión D-H) | `src/features/professional-profile/organisms/GeneralInfoForm/GeneralInfoForm.test.tsx`             |
+| `src/features/professional-profile/organisms/GeneralInfoForm/GeneralInfoForm.tsx`                | §3.2 (CM-53): el formulario de Información General; CM-61 agrega showSectionTitle (decisión D-G); CM-194 sincroniza isDirty con unsavedChanges.store; CM-195 agrega el autoguardado en onBlur (decisión D-H); CM-272 lo pasa a cada campo con compuerta isDirty, retira el prop isSaving, agrega onDirtyChange y conserva lo escrito en vuelo con keepDirtyValues (decisión D-J) | `src/features/professional-profile/organisms/GeneralInfoForm/GeneralInfoForm.test.tsx`             |
 | `src/features/professional-profile/organisms/EducationSection/EducationSection.tsx`              | §3.3 (CM-61): lista + alta/baja de Formación académica por ítem                                                             | `src/features/professional-profile/organisms/EducationSection/EducationSection.test.tsx`             |
 | `src/features/professional-profile/organisms/WorkExperienceSection/WorkExperienceSection.tsx`    | §3.3 (CM-61): lista + alta/baja de Experiencia Laboral por ítem; deriva `employmentStatus` en la UI (checkboxes excluyentes) | `src/features/professional-profile/organisms/WorkExperienceSection/WorkExperienceSection.test.tsx`   |
 | `src/features/professional-profile/organisms/SkillsSection/SkillsSection.tsx`                    | §3.4 (CM-65): lista + alta/baja de Habilidades por ítem, mostradas como `Chip`; duplicado bloqueado con `setError` manual   | `src/features/professional-profile/organisms/SkillsSection/SkillsSection.test.tsx`                   |
@@ -816,7 +845,7 @@ específico).
 | `src/features/professional-profile/hooks/useSubstituteTargetRole.ts`                             | §3.5 (CM-69): `useMutation` de sustitución de rol objetivo (`PATCH`, conserva el `id`)                                      | `src/features/professional-profile/hooks/useSubstituteTargetRole.test.tsx`                           |
 | `src/features/professional-profile/hooks/useRemoveTargetRole.ts`                                 | §3.5 (CM-69): `useMutation` de baja de rol objetivo                                                                         | `src/features/professional-profile/hooks/useRemoveTargetRole.test.tsx`                               |
 | `src/features/professional-profile/hooks/useProfessionalRolesQuery.ts`                           | §3.5 (CM-69): `useQuery` del catálogo cerrado de roles TI, llave `['professional-roles']`                                   | `src/features/professional-profile/hooks/useProfessionalRolesQuery.test.tsx`                         |
-| `src/features/professional-profile/pages/EditProfilePage.tsx`                                   | §3, §3.2, §3.3, §3.4, §3.5 (CM-61/CM-65/CM-69): el armazón real de la ruta de edición del perfil — ya no `WizardLayout`/`EmptyState`; CM-65 agrega la cuarta sección y conecta «Finalizar y Continuar» al endpoint real; CM-69 agrega la quinta sección y el estado de carga/error del catálogo | `src/features/professional-profile/pages/EditProfilePage.test.tsx`                                   |
+| `src/features/professional-profile/pages/EditProfilePage.tsx`                                   | §3, §3.2, §3.3, §3.4, §3.5 (CM-61/CM-65/CM-69): el armazón real de la ruta de edición del perfil — ya no `WizardLayout`/`EmptyState`; CM-65 agrega la cuarta sección y conecta «Finalizar y Continuar» al endpoint real; CM-69 agrega la quinta sección y el estado de carga/error del catálogo; CM-272 muestra el error del PATCH de Información General por code con getItemErrorMessage y oculta «Cambios guardados.» mientras el formulario esté sucio (decisión D-J) | `src/features/professional-profile/pages/EditProfilePage.test.tsx`                                   |
 | `src/features/professional-profile/routes.tsx`                                                  | Mapea las 3 rutas de esta feature bajo `professionalProfileShellRoutes`, incluida la de edición del perfil (CM-61 la muda desde `professionalProfileWizardRoutes`, retirada — decisión D-E) | `src/app/router/index.test.tsx` (features no puede importar RequireAuth, ver §9)                    |
 | `src/utils/buttonLoadingProps.ts`                                                                | Infraestructura de apoyo (CM-61): arma el par `{loading, loadingLabel}` que `Button` exige, evitando repetir el condicional en 5 sitios | `src/utils/buttonLoadingProps.test.ts`                                                                |
 | `src/stores/unsavedChanges.store.ts`                                                             | CM-194: bandera de cliente hasUnsavedChanges que GeneralInfoForm mantiene y que la confirmación de cierre de sesión lee (§3.2) | `src/stores/unsavedChanges.store.test.ts`                                                           |
@@ -857,10 +886,10 @@ seguimiento de Frontend a la respuesta del PO del 11-sep).
 | C-15 | El frame usa un componente `select` (nodo `32:150`, confirmado real) para «Nivel educativo» y un ícono `calendar` en los campos de fecha; ninguno de los dos existía en `design-system` antes de CM-61. Se construyó el átomo `Select`; el ícono de calendario no hizo falta (`<input type="date">` nativo ya trae el suyo del navegador) — ¿debería `design-system/icons/registry.tsx` tener un `calendar` propio para otros usos futuros? | Diseño                        | detectado 14-sep-2026, CM-61        |
 | C-16 | ~~El endpoint real de finalización no es `POST /api/v1/profiles/:id/finalize` (como lo simulaba el mock desde CM-61) sino `POST /api/v1/profiles/:id/completion`~~ — **cerrado, 15-sep-2026 (CM-65).** Confirmado por `ProfileController.java#completeProfile` (detectado en la sesión que construyó CM-69, corregido en la que construyó CM-65, dueña de la pantalla de finalizar — §5 ya lo refleja). Existe además `POST /api/v1/profiles/:id/review-requests` (transición a `IN_REVIEW`), que no aplica en Sprint 1 (`GLOSSARY.md` §3) | Frontend                     | resuelto 15-sep-2026, CM-65         |
 | C-17 | ~~**Defecto abierto:** `lastUsedProfileId` no se limpiaba al cerrar sesión, y otra cuenta en el mismo navegador cargaba el perfil de la anterior (`403`)~~ — **cerrado por CM-243 (DF-003, `CA-1.8.3`).** `useLogout` y `AuthProvider` (al reportar Firebase que no hay usuario: logout, `401` o sesión vencida) ponen `lastUsedProfileId` en `null`; ver `features/auth/SPEC.md` §9. Prueba manual en navegador pendiente | Frontend | detectado 6-oct-2026; cerrado 7-oct-2026 |
-| C-18 | Backend debe confirmar que `code`, `requestId` y `errors[].code` ya viajan en las respuestas de error de Perfil en staging (documento del 6-oct, cambio 1: «Perfil desde el 9 oct»; el del 9-oct sobre HU-2.3 a 2.5 dice que parte de ese contrato aún no está en `develop`), y avisar cuando `PROFILE_CREATION_IN_PROGRESS` (en `develop` de `cameia-perfil` desde el commit `147d1e8`, PR #80) llegue a staging. Sin el `code`, la pantalla muestra el mensaje genérico (`ADR-0008`, estricto). **Contradicción por confirmar:** el cambio 10 del documento del 6-oct da el `403 EMAIL_NOT_VERIFIED` del Gateway como hecho «desde el 9 oct», pero en `cameia-gateway` (`develop`, `53fbe30`) es `GW-TBD-17` abierto, y su `docs/estandar-backend.md` dice que `EMAIL_NOT_VERIFIED`, `PLAN_LIMIT` y `LLM_UNAVAILABLE` son códigos reservados que ningún servicio emite todavía. Que el estándar del Gateway dé también `PLAN_LIMIT` como no emitido refuerza que el `403` del cupo (CA-2.2.3) sigue sin desplegarse | Backend (Paula Andrea Muñoz Delgado) | solicitado 9-oct-2026 (CM-270); abierto, CM-298 |
+| C-18 | Backend debe confirmar que `code`, `requestId` y `errors[].code` ya viajan en las respuestas de error de Perfil en staging (documento del 6-oct, cambio 1: «Perfil desde el 9 oct»; el del 9-oct sobre HU-2.3 a 2.5 dice que parte de ese contrato aún no está en `develop`), y avisar cuando `PROFILE_CREATION_IN_PROGRESS` (en `develop` de `cameia-perfil` desde el commit `147d1e8`, PR #80) llegue a staging. Sin el `code`, la pantalla muestra el mensaje genérico (`ADR-0008`, estricto). **Ya no hay contradicción sobre `EMAIL_NOT_VERIFIED`:** `cameia-gateway` (`develop`, `1f7b8ee`, CM-179) sí emite el `403 EMAIL_NOT_VERIFIED` (`FirebaseAuthGlobalFilter.java:105`, `:253-254`, `:266-267`, `:509-513`), salvo en `POST /api/v1/users/me/verification`; el documento de Backend lo da por desplegado y comprobado en staging (eso no se verifica desde git). `cameia-web` lo trata en `httpClient.ts:107-109`. **Sigue sin confirmación escrita** que `code`, `requestId` y `errors[].code` de **Perfil** viajen en staging. `docs/estandar-backend.md` del Gateway aún da `PLAN_LIMIT` como reservado y no emitido: el `403` del cupo (CA-2.2.3) sigue sin desplegarse | Backend (Paula Andrea Muñoz Delgado) | solicitado 9-oct-2026 (CM-270); abierto, CM-298 |
 | C-19 | `maxLength` del nombre (255) y del resumen (2000) impide escribir el carácter 256 / 2001 (`GeneralInfoForm.tsx:220`, `:248`; prueba `GeneralInfoForm.test.tsx:107-111`). CA-2.3.3 y CA-2.3.10 exigen ver «2001 / 2000 caracteres» y los mensajes de longitud bajo el campo sin guardar, y RT-01-CA07 dice «sin cortar lo escrito»; con el `maxLength` esa pantalla nunca se produce al escribir. Decidir si se quita el `maxLength` (y el contador pasa a mostrar el exceso) o si el PO acepta el recorte. Hasta entonces los dos CA quedan **abiertos** | Product Owner | detectado 11-oct-2026, CM-272 |
 | C-20 | El `PATCH` de `profiles.handlers.ts` no coincide con el servidor real: responde `400` sin `code` al validar el nombre (`:235`, `:376`) donde el servidor responde `422 VALIDATION_FAILED`; no tiene rama de perfil `COMPLETED` que vacíe el resumen (`SUMMARY_NOT_ALLOWED`), ni de perfil ajeno (`403 PROFILE_NOT_ALLOWED`), ni valida el largo del resumen. Por eso las pruebas con el mock pueden pasar mientras staging falla. Alinearlo puede romper pruebas de HU-2.4, 2.5 y 2.11. Tarea propia, fuera de CM-272 | Frontend (con revisión de quien lleve HU-2.4, 2.5 y 2.11) | detectado 11-oct-2026, CM-272 |
-| C-21 | DF-007 (CA-2.3.1 y CA-2.3.4) sin causa confirmada: por código el servidor ya borra el resumen vacío en Borrador (`cameia-perfil` commit `66eccda`, 8-oct; prueba `GeneralInfoEndToEndIT.java:94-107`) y el cliente envía `""` y confirma solo tras un 2xx. Falta comprobar contra staging si `9355f1a` está desplegado y qué devuelve el `GET` tras el `PATCH`. No se declara cerrado | QA / Backend (Paula Andrea Muñoz Delgado) | probado 26-sep-2026 (`cameia-web@a3e46cb`); revisado 11-oct-2026, CM-272 |
+| C-21 | DF-007 (CA-2.3.1 y CA-2.3.4) sin causa confirmada: por código el servidor ya borra el resumen vacío en Borrador (`cameia-perfil` commit `66eccda`, 8-oct; prueba `GeneralInfoEndToEndIT.java:94-107`) y el cliente envía `""` y confirma solo tras un 2xx. **Evidencia nueva (12-oct-2026):** `cameia-perfil/specs/CM-54-informacion-general-resumen/spec.md:18` dice que el servidor ya está corregido y deja «la parte de CM-247 de la interfaz» a Frontend (`:224`); el aviso de testing del 11-oct probó staging con `cameia-perfil@9355f1a` y `cameia-web@4b3f915`; **no existe re-prueba de DF-007 posterior al 26-sep** (el aviso no lo menciona). Numeración: `CP-050/EJ-036` y `CP-056/EJ-038` son del **libro del Sprint 1**; el libro del Sprint 2 usa EJ-036 y EJ-038 para DF-003 y DF-005. Falta comprobar contra staging qué devuelve el `GET` tras el `PATCH` con la versión de CM-272. **SIGUE ABIERTO** | QA / Backend (Paula Andrea Muñoz Delgado) | probado 26-sep-2026 (`cameia-web@a3e46cb`); revisado 11-oct-2026, CM-272 |
 
 ## 9. Notas
 
@@ -1007,16 +1036,30 @@ global ya corriendo, es un segundo reset inocuo, no un conflicto.
   cliente (`localStorage`), no infalible — por eso `NewProfilePage.tsx` también distingue el `409`
   de "ya existe" del error genérico (`ApiError.isConflict()`, nuevo), como red de seguridad.
 - **D-J — Autoguardado por campo, solo con cambios, y errores del `PATCH` visibles (CM-272,
-  11-oct-2026; especificado, no implementado). Matiza D-H.** D-H puso el `onBlur` en el `<form>` y
+  11-oct-2026; implementada el 12-oct-2026). Matiza D-H.** D-H puso el `onBlur` en el `<form>` y
   disparaba solo al salir del formulario completo, sin comprobar si había algo que guardar. Las
   Observaciones de HU-2.3 (backlog v6) piden guardar al quitar el foco de **cada** campo, con un
-  valor válido y **distinto del guardado**, y CA-2.3.13/CA-2.3.14 lo exigen. Se decide: (1) el
-  `onBlur` pasa a cada campo y sigue entrando por `trySave`; (2) el guardado automático solo se envía
-  si `formState.isDirty` del **formulario** es `true` — no `dirtyFields` por campo, porque el `PATCH`
-  envía `name` y `summary` juntos y distinguir el campo no cambia lo que viaja; (3) «Guardar borrador»
-  sigue enviando siempre; (4) un campo con foco no puede quedar deshabilitado por el autoguardado;
+  valor válido y **distinto del guardado**, y CA-2.3.13/CA-2.3.14 lo exigen. Se decide:
+  (1) el `onBlur` pasa a cada campo y sigue entrando por `trySave`;
+  (2) el guardado automático solo se envía si `formState.isDirty` del **formulario** es `true` — no
+  `dirtyFields` por campo, porque el `PATCH` envía `name` y `summary` juntos y distinguir el campo no
+  cambia lo que viaja;
+  (3) «Guardar borrador» sigue enviando siempre;
+  (4) un campo con foco no puede quedar deshabilitado por el autoguardado: los campos ya no se
+  deshabilitan al guardar y **se retira el prop `isSaving` de `GeneralInfoForm`** (cambio de interfaz
+  del organismo; su único uso era ese deshabilitado);
   (5) el error del `PATCH` se muestra en `EditProfilePage` resuelto por `code` con
-  `getItemErrorMessage` (sin modificarla) y la confirmación solo vive mientras sea verdadera.
+  `getItemErrorMessage` (sin modificarla), nunca a la vez que la confirmación;
+  (6) «Cambios guardados.» **se oculta mientras el formulario esté sucio**; la regla «una salida
+  bloqueada quita la confirmación» era redundante (un valor inválido ya es un cambio). El mecanismo es
+  el prop `onDirtyChange` de `GeneralInfoForm`, no `unsavedChanges.store`: ese store es un booleano
+  global para el diálogo de cerrar sesión y atar la confirmación a él la volvería falsa con otro
+  formulario sucio;
+  (7) tras un guardado exitoso se usa `reset(values, { keepDirtyValues: true })`: lo escrito mientras el
+  `PATCH` estaba en vuelo **no se pierde**. Efecto colateral correcto: el formulario sigue sucio y el
+  siguiente `blur` reenvía, porque lo escrito en vuelo aún no está guardado. Alternativa descartada:
+  bloquear los campos durante el vuelo, porque impide escribir. **Esta regla salió de la prueba `k2`,
+  no del backlog**: es una consecuencia del autoguardado por campo que el backlog no previó.
   `unsavedChanges.store` no cambia: ya depende de `isDirty` y su único consumidor de producción es
   `AppShell.tsx:149-151`. D-H se conserva como historia; en lo que choquen, manda D-J.
 

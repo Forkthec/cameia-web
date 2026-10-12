@@ -65,27 +65,39 @@
  * `true` quedaría "pegado" si el usuario navega fuera sin guardar y sin que
  * `isDirty` vuelva a `false` por su cuenta.
  *
- * **Autoguardado en `onBlur` (CM-195, decisión D-H):** antes de esta
- * iteración, este formulario solo se enviaba cuando "Guardar borrador"
- * (fuera de este componente) lo disparaba por el atributo HTML `form` —
- * llenar los campos y nunca hacer ese clic perdía el dato en silencio. El
- * `onBlur` del `<form>` (React lo hace burbujear vía `focusout`) dispara un
- * guardado automático, pero solo cuando el foco sale del formulario
- * **completo** (`!event.currentTarget.contains(event.relatedTarget)`) —
- * tabular entre "Nombre" y "Resumen" no dispara nada, solo salir de la
- * sección. `trySave` es el único punto de entrada tanto para ese blur como
- * para el `submit` nativo del botón externo — la validación de zod sigue
- * siendo la única puerta, nunca se guarda un `name` vacío por accidente.
+ * **Autoguardado al salir de CADA campo (CM-195 D-H, matizado por CM-272 D-J):**
+ * cada campo (Nombre, Resumen) dispara el guardado en su propio `onBlur`, así
+ * que tabular entre ellos también guarda — las Observaciones de HU-2.3 y
+ * CA-2.3.13 hablan de quitar el foco de cada campo, no del formulario entero
+ * (antes el `onBlur` vivía en el `<form>` y solo disparaba al salir de todo).
+ * Solo se envía si `formState.isDirty` del FORMULARIO es `true` (no
+ * `dirtyFields` por campo: el `PATCH` lleva nombre y resumen juntos, así que
+ * distinguir el campo no cambia lo que viaja); una salida sin cambios no
+ * manda nada. «Guardar borrador» (fuera de este componente) entra por el
+ * `submit` nativo y SIEMPRE envía: la compuerta `isDirty` es del autoguardado,
+ * no del botón. `trySave` es el único punto de entrada de ambos caminos — la
+ * validación de zod sigue siendo la única puerta, nunca se guarda un `name`
+ * vacío por accidente.
  *
  * `isSubmittingRef` existe por una colisión real: al hacer clic en "Guardar
  * borrador" (vive fuera de este `<form>`), el navegador dispara primero el
  * `blur` del campo enfocado y luego el `submit` del clic — sin el guard,
  * eso son dos `PATCH` seguidos con los mismos valores. Tras un guardado
- * exitoso, `reset(values)` mueve el punto de referencia de "sucio" al valor
- * recién confirmado — si el usuario edita de nuevo, `isDirty` vuelve a
- * `true` y el siguiente blur-fuera-del-formulario guarda otra vez, sin
- * límite. En error, no se llama `reset`: el campo queda "sucio" a propósito,
- * así el próximo blur reintenta solo, sin perder el cambio.
+ * exitoso, `reset(values, { keepDirtyValues: true })` mueve el punto de
+ * referencia de "sucio" al valor recién confirmado y CONSERVA lo que el usuario
+ * escribió mientras el `PATCH` estaba en vuelo (CM-272, D-J): el formulario
+ * queda sucio por ese texto y el siguiente blur lo guarda. Si el usuario edita
+ * de nuevo, `isDirty` vuelve a `true` y el siguiente blur guarda otra vez, sin
+ * límite. En error, no se
+ * llama `reset`: el formulario queda "sucio" a propósito, así el próximo blur
+ * reintenta solo, sin perder el cambio.
+ *
+ * Los campos NO se deshabilitan mientras se guarda (CM-272, `SPEC.md` §3.2
+ * punto 3): con el guardado por campo, tabular de Nombre a Resumen dispara el
+ * `PATCH` y `Input` traduce `state="disabled"` al atributo `disabled`, lo que
+ * le quitaría el foco al campo que acaba de recibirlo. El error de un guardado
+ * fallido NO lo muestra este componente: `trySave` lo descarta a propósito y
+ * la página lo lee de la mutación (`updateGeneralInfo.isError`, CM-272).
  *
  * `onSubmit` cambia de `(values) => void` a `(values) => Promise<void>`
  * porque `trySave` necesita esperarlo antes de decidir si limpia `isDirty`.
@@ -110,8 +122,8 @@ interface GeneralInfoFormProps {
   sectionTitle: string;
   /** `false` en el acordeón `sm`, donde el encabezado del propio disparador ya es el título (CM-61). */
   showSectionTitle?: boolean;
-  /** `true` mientras la mutación de guardado está en curso: deshabilita los campos. */
-  isSaving?: boolean;
+  /** Avisa cada vez que cambia `formState.isDirty`: la página lo usa para que «Cambios guardados.» solo se vea mientras no haya cambios sin guardar (CM-272, punto 2). */
+  onDirtyChange?: (isDirty: boolean) => void;
   onSubmit: (values: GeneralInfoFormValues) => Promise<void>;
   nameLabel: string;
   /** Copia literal del frame: `Por ejemplo: "Analista de datos" o "Producto senior".` */
@@ -138,7 +150,7 @@ export function GeneralInfoForm({
   summary,
   sectionTitle,
   showSectionTitle = true,
-  isSaving = false,
+  onDirtyChange,
   onSubmit,
   nameLabel,
   nameHelperText,
@@ -161,6 +173,10 @@ export function GeneralInfoForm({
   }, [formState.isDirty]);
 
   useEffect(() => {
+    onDirtyChange?.(formState.isDirty);
+  }, [formState.isDirty, onDirtyChange]);
+
+  useEffect(() => {
     return () => useUnsavedChangesStore.getState().setUnsavedChanges(false);
   }, []);
 
@@ -172,13 +188,26 @@ export function GeneralInfoForm({
     isSubmittingRef.current = true;
     try {
       await onSubmit(values);
-      reset(values);
+      // `keepDirtyValues`: lo enviado pasa a ser el nuevo punto de referencia, pero
+      // lo que el usuario ya escribió distinto de eso mientras el `PATCH` estaba en
+      // vuelo se conserva (CM-272, D-J). Sigue sucio, así que el siguiente blur lo
+      // guarda: lo escrito en vuelo aún no está guardado.
+      reset(values, { keepDirtyValues: true });
     } catch {
-      // El error ya lo muestra la página (`updateGeneralInfo.isError`); el
-      // formulario queda "sucio" a propósito — el próximo blur reintenta solo.
+      // Este componente no muestra el error: lo hace la página, leyéndolo de la
+      // mutación (`updateGeneralInfo.isError`, CM-272). Antes de CM-272 este
+      // comentario afirmaba que la página ya lo mostraba y no era cierto, así que
+      // un 403 o un 422 se perdía en silencio. El formulario queda "sucio" a
+      // propósito — el próximo blur reintenta solo.
     } finally {
       isSubmittingRef.current = false;
     }
+  }
+
+  /** Autoguardado al salir de un campo: solo si el formulario tiene cambios (D-J); la validación de zod y el guard de doble envío viven en `trySave`. */
+  function autosaveOnFieldBlur() {
+    if (!formState.isDirty) return;
+    void handleSubmit(trySave)();
   }
 
   return (
@@ -190,11 +219,6 @@ export function GeneralInfoForm({
       // `handleSubmit` devuelve una función async (el resolver de zod lo es);
       // el `onSubmit` nativo espera `void`, de ahí el `void` explícito.
       onSubmit={(event) => void handleSubmit(trySave)(event)}
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) {
-          void handleSubmit(trySave)();
-        }
-      }}
       noValidate
     >
       <Controller
@@ -215,10 +239,13 @@ export function GeneralInfoForm({
             <Input
               value={field.value}
               onChange={field.onChange}
-              onBlur={field.onBlur}
+              onBlur={() => {
+                field.onBlur();
+                autosaveOnFieldBlur();
+              }}
               placeholder={namePlaceholder}
               maxLength={NAME_MAX_LENGTH}
-              state={isSaving ? 'disabled' : fieldState.error ? 'error' : 'default'}
+              state={fieldState.error ? 'error' : 'default'}
             />
           </FormField>
         )}
@@ -243,10 +270,13 @@ export function GeneralInfoForm({
                   type="textarea"
                   value={field.value}
                   onChange={field.onChange}
-                  onBlur={field.onBlur}
+                  onBlur={() => {
+                    field.onBlur();
+                    autosaveOnFieldBlur();
+                  }}
                   placeholder={summaryPlaceholder}
                   maxLength={SUMMARY_MAX_LENGTH}
-                  state={isSaving ? 'disabled' : fieldState.error ? 'error' : 'default'}
+                  state={fieldState.error ? 'error' : 'default'}
                 />
               </FormField>
               <CharacterCounter
