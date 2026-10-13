@@ -43,6 +43,7 @@
       "etiqueta": "Resumen profesional",
       "placeholder": "Escribe aquí. Este campo crece con el contenido.",
       "errorLongitud": "El resumen no puede superar los 2000 caracteres.",
+      "errorPerfilActivo": "No puedes quedarte sin resumen profesional con el perfil activo.",
       "contador": "{{count}} / {{max}} caracteres"
     },
     "guardarBorrador": "Guardar borrador",

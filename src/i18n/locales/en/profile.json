@@ -43,6 +43,7 @@
       "etiqueta": "Professional summary",
       "placeholder": "Type here. This field grows with the content.",
       "errorLongitud": "The summary can't be longer than 2000 characters.",
+      "errorPerfilActivo": "You can't leave the professional summary empty while the profile is active.",
       "contador": "{{count}} / {{max}} characters"
     },
     "guardarBorrador": "Save draft",
