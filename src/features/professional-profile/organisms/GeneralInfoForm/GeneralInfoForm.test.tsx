@@ -342,4 +342,17 @@ describe('GeneralInfoForm · autoguardado por campo y solo con cambios (CM-272)'
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(2));
   });
+
+  it('CM-272 (defecto B): salir de un campo Nombre vacío sin haberlo tocado muestra el mensaje y no guarda', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<GeneralInfoForm {...baseProps} name="" onSubmit={onSubmit} />);
+
+    await user.click(screen.getByLabelText('Nombre del perfil'));
+    await user.tab();
+
+    expect(await screen.findByText(baseProps.nameErrorRequired)).toBeInTheDocument();
+    await settle();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
 });

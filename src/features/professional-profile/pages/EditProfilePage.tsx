@@ -62,7 +62,9 @@
  * `errors:generico` (o `errors:red` si no es un `ApiError`). «Cambios
  * guardados.» solo se ve mientras el último guardado fue exitoso y el
  * formulario no tiene cambios sin guardar (`isGeneralInfoDirty`, que avisa
- * `GeneralInfoForm`); nunca a la vez que el error.
+ * `GeneralInfoForm`); nunca a la vez que el error. La carga también se
+ * resuelve por `code`: un `403 PROFILE_NOT_ALLOWED` (perfil ajeno) muestra
+ * `errors:codigos.NOT_FOUND`, igual que el `404` (RT-03, CA-2.3.11).
  */
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -154,7 +156,7 @@ export function EditProfilePage() {
     const error = profileQuery.error ?? professionalRolesQuery.error;
     const message =
       error instanceof ApiError
-        ? error.httpStatus === 404
+        ? error.httpStatus === 404 || error.hasCode('PROFILE_NOT_ALLOWED')
           ? t('errors:codigos.NOT_FOUND')
           : t('errors:generico')
         : t('errors:red');

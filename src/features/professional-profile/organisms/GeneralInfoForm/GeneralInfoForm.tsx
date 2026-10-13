@@ -73,7 +73,11 @@
  * Solo se envía si `formState.isDirty` del FORMULARIO es `true` (no
  * `dirtyFields` por campo: el `PATCH` lleva nombre y resumen juntos, así que
  * distinguir el campo no cambia lo que viaja); una salida sin cambios no
- * manda nada. «Guardar borrador» (fuera de este componente) entra por el
+ * manda nada, pero SIEMPRE valida (la compuerta es sobre el envío, no sobre la
+ * validación: un nombre vacío sin tocar también muestra su mensaje, CA-2.3.14).
+ * Un guardado que llega con otro en vuelo lo descarta el candado, pero deja una
+ * marca y se reintenta UNA vez al terminar el primero con éxito si lo escrito
+ * difiere de lo enviado (nunca dos a la vez, nunca bucle). «Guardar borrador» (fuera de este componente) entra por el
  * `submit` nativo y SIEMPRE envía: la compuerta `isDirty` es del autoguardado,
  * no del botón. `trySave` es el único punto de entrada de ambos caminos — la
  * validación de zod sigue siendo la única puerta, nunca se guarda un `name`
@@ -163,10 +167,11 @@ export function GeneralInfoForm({
   summaryCounterLabel,
   className,
 }: GeneralInfoFormProps) {
-  const { control, handleSubmit, formState, reset } = useForm<GeneralInfoFormValues>({
-    resolver: zodResolver(generalInfoSchema),
-    defaultValues: { name, summary },
-  });
+  const { control, handleSubmit, formState, reset, getValues, trigger } =
+    useForm<GeneralInfoFormValues>({
+      resolver: zodResolver(generalInfoSchema),
+      defaultValues: { name, summary },
+    });
 
   useEffect(() => {
     useUnsavedChangesStore.getState().setUnsavedChanges(formState.isDirty);
@@ -181,11 +186,19 @@ export function GeneralInfoForm({
   }, []);
 
   const isSubmittingRef = useRef(false);
+  // Un guardado que llegó mientras otro estaba en vuelo (CM-272, D2): el guard lo
+  // descarta, pero deja esta marca para reintentarlo UNA vez al terminar el primero.
+  const hasDiscardedSaveRef = useRef(false);
 
   /** Único punto de entrada del guardado (blur-fuera-del-formulario y submit nativo) — ver TSDoc de cabecera. */
   async function trySave(values: GeneralInfoFormValues) {
-    if (isSubmittingRef.current) return;
+    if (isSubmittingRef.current) {
+      hasDiscardedSaveRef.current = true;
+      return;
+    }
     isSubmittingRef.current = true;
+    hasDiscardedSaveRef.current = false;
+    let saved = false;
     try {
       await onSubmit(values);
       // `keepDirtyValues`: lo enviado pasa a ser el nuevo punto de referencia, pero
@@ -193,6 +206,7 @@ export function GeneralInfoForm({
       // vuelo se conserva (CM-272, D-J). Sigue sucio, así que el siguiente blur lo
       // guarda: lo escrito en vuelo aún no está guardado.
       reset(values, { keepDirtyValues: true });
+      saved = true;
     } catch {
       // Este componente no muestra el error: lo hace la página, leyéndolo de la
       // mutación (`updateGeneralInfo.isError`, CM-272). Antes de CM-272 este
@@ -202,11 +216,34 @@ export function GeneralInfoForm({
     } finally {
       isSubmittingRef.current = false;
     }
+
+    // Reintento del guardado descartado durante el vuelo. Solo si el que acaba de
+    // terminar tuvo éxito y lo escrito desde entonces difiere de lo enviado: así el
+    // `blur` que acompaña al clic de «Guardar borrador» (mismos valores) no genera
+    // un segundo `PATCH`. Nunca hay dos a la vez (el guard ya está libre) y nunca
+    // hay bucle: la marca la pone un evento del usuario, se consume aquí y, si este
+    // reintento falla, `saved` es `false` y no se vuelve a intentar solo.
+    if (!saved || !hasDiscardedSaveRef.current) return;
+    hasDiscardedSaveRef.current = false;
+    const current = generalInfoSchema.safeParse(getValues());
+    const differs =
+      !current.success ||
+      current.data.name !== values.name ||
+      current.data.summary !== values.summary;
+    if (differs) void handleSubmit(trySave)();
   }
 
-  /** Autoguardado al salir de un campo: solo si el formulario tiene cambios (D-J); la validación de zod y el guard de doble envío viven en `trySave`. */
+  /**
+   * Al salir de un campo SIEMPRE se valida (CA-2.3.14: un nombre vacío sin tocar también
+   * muestra su mensaje); solo se ENVÍA si el formulario tiene cambios (D-J). La compuerta
+   * `isDirty` es sobre el envío, no sobre la validación. El guard de doble envío vive en
+   * `trySave`.
+   */
   function autosaveOnFieldBlur() {
-    if (!formState.isDirty) return;
+    if (!formState.isDirty) {
+      void trigger();
+      return;
+    }
     void handleSubmit(trySave)();
   }
 

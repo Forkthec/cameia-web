@@ -418,13 +418,17 @@ function problem(status: number, extra: Record<string, unknown> = {}) {
 async function spyOnGeneralInfoPatch(profileId: string, holdMs = 0) {
   const current = await httpClient.get<Record<string, unknown>>(`/api/v1/profiles/${profileId}`);
   let calls = 0;
+  let completed = 0;
+  const bodies: Record<string, unknown>[] = [];
   const handler = http.patch('*/api/v1/profiles/:id', async ({ request }) => {
     calls += 1;
     const body = (await request.json()) as Record<string, unknown>;
+    bodies.push(body);
     if (holdMs > 0) await delay(holdMs);
+    completed += 1;
     return HttpResponse.json({ ...current, ...body }, { status: 200 });
   });
-  return { count: () => calls, handler };
+  return { count: () => calls, completed: () => completed, bodies: () => bodies, handler };
 }
 
 async function openEditor(profileId: string) {
@@ -619,7 +623,12 @@ describe('EditProfilePage · Información General: errores y autoguardado (CM-27
       await user.tab();
       await waitFor(() => expect(spy.count()).toBe(1));
       await user.keyboard('texto en vuelo');
-      await screen.findByText(i18n.t(KEYS.saved));
+      // Se espera a que el PATCH termine, pero NO se exige «Cambios guardados.»: tras el
+      // `reset`, react-hook-form emite `isDirty` en `false` y lo corrige en el render
+      // siguiente, así que la confirmación solo parpadea unos milisegundos (SPEC §3.2,
+      // observación de CM-272). Esta prueba protege únicamente que lo escrito no se pierda.
+      await waitFor(() => expect(spy.completed()).toBe(1));
+      await settle();
 
       expect(summary).toHaveValue('texto en vuelo');
     });
@@ -638,6 +647,141 @@ describe('EditProfilePage · Información General: errores y autoguardado (CM-27
 
       await screen.findByText(i18n.t(KEYS.saved));
       expect(spy.count()).toBe(1);
+    });
+  });
+
+  describe('defecto D: nunca se confirma un guardado que no incluye lo último escrito', () => {
+    // Guarda de regresión: esta prueba nació VERDE a propósito. El análisis previo al PR
+    // supuso que `isDirty` quedaba en `false` tras el `reset` y que por eso se confirmaba un
+    // guardado sin lo último escrito; no es así (react-hook-form 7.87.0 lo corrige en el render
+    // siguiente, `dist/index.esm.mjs:3672-3681`). Se conserva para que no vuelva a ocurrir.
+    it('guarda de regresión: con texto escrito en vuelo no se confirma el guardado y el siguiente blur lo envía', async () => {
+      await waitUntilReady();
+      const user = userEvent.setup();
+      const created = await createProfile();
+      const spy = await spyOnGeneralInfoPatch(created.id, 400);
+      useHandlers(spy.handler);
+      await openEditor(created.id);
+
+      await user.type(screen.getByLabelText(i18n.t(KEYS.nameLabel)), ' Jr.');
+      await user.tab();
+      await waitFor(() => expect(spy.count()).toBe(1));
+      await user.keyboard('texto en vuelo');
+      await waitFor(() => expect(spy.completed()).toBe(1));
+      await settle();
+
+      // (a) hay texto sin enviar: no puede verse «Cambios guardados.»
+      expect(screen.queryByText(i18n.t(KEYS.saved))).not.toBeInTheDocument();
+
+      // (b) el siguiente blur sí envía lo escrito durante el vuelo
+      await user.click(screen.getByRole('heading', { name: i18n.t(KEYS.title) }));
+      await waitFor(() => expect(spy.count()).toBe(2));
+      expect(spy.bodies()[1]).toMatchObject({ summary: 'texto en vuelo' });
+    });
+
+    it('un blur durante el vuelo no se pierde: al terminar el PATCH se envía lo último escrito', async () => {
+      await waitUntilReady();
+      const user = userEvent.setup();
+      const created = await createProfile();
+      const spy = await spyOnGeneralInfoPatch(created.id, 400);
+      useHandlers(spy.handler);
+      await openEditor(created.id);
+
+      await user.type(screen.getByLabelText(i18n.t(KEYS.nameLabel)), ' Jr.');
+      await user.tab();
+      await waitFor(() => expect(spy.count()).toBe(1));
+      await user.keyboard('texto en vuelo');
+      // El blur llega mientras el primer PATCH sigue en vuelo: hoy se descarta en silencio.
+      await user.click(screen.getByRole('heading', { name: i18n.t(KEYS.title) }));
+
+      await waitFor(() => expect(spy.count()).toBe(2), { timeout: 2000 });
+      expect(spy.bodies()[1]).toMatchObject({ summary: 'texto en vuelo' });
+      expect(await screen.findByText(i18n.t(KEYS.saved))).toBeInTheDocument();
+    });
+    it('el reintento nunca se solapa con el PATCH en curso y, si falla, no se repite solo', async () => {
+      await waitUntilReady();
+      const user = userEvent.setup();
+      const created = await createProfile();
+      const current = await httpClient.get<Record<string, unknown>>(
+        `/api/v1/profiles/${created.id}`,
+      );
+      let calls = 0;
+      let inflight = 0;
+      let maxInflight = 0;
+      useHandlers(
+        http.patch('*/api/v1/profiles/:id', async ({ request }) => {
+          calls += 1;
+          const attempt = calls;
+          inflight += 1;
+          maxInflight = Math.max(maxInflight, inflight);
+          const body = (await request.json()) as Record<string, unknown>;
+          await delay(400);
+          inflight -= 1;
+          // El primero responde bien; el reintento falla.
+          return attempt === 1
+            ? HttpResponse.json({ ...current, ...body }, { status: 200 })
+            : problem(500);
+        }),
+      );
+      await openEditor(created.id);
+
+      await user.type(screen.getByLabelText(i18n.t(KEYS.nameLabel)), ' Jr.');
+      await user.tab();
+      await waitFor(() => expect(calls).toBe(1));
+      await user.keyboard('texto en vuelo');
+      await user.click(screen.getByRole('heading', { name: i18n.t(KEYS.title) }));
+      await waitFor(() => expect(calls).toBe(2), { timeout: 2000 });
+      expect(await screen.findByText(i18n.t(KEYS.generic))).toBeInTheDocument();
+      await settle();
+      await settle();
+
+      expect(calls).toBe(2);
+      expect(maxInflight).toBe(1);
+    });
+  });
+
+  describe('defecto B: salir de un campo siempre valida; solo el envío exige cambios', () => {
+    it('un perfil recién creado: entrar al nombre vacío y salir sin escribir muestra el mensaje y no envía PATCH', async () => {
+      await waitUntilReady();
+      const user = userEvent.setup();
+      // Sin cuerpo: el perfil nace con el nombre vacío (SPEC §3.1).
+      const created = await httpClient.post<{ id: string }>('/api/v1/profiles');
+      const spy = await spyOnGeneralInfoPatch(created.id);
+      useHandlers(spy.handler);
+      await openEditor(created.id);
+
+      await user.click(screen.getByLabelText(i18n.t(KEYS.nameLabel)));
+      await user.tab();
+
+      expect(await screen.findByText(i18n.t(KEYS.nameRequired))).toBeInTheDocument();
+      await settle();
+      expect(spy.count()).toBe(0);
+    });
+  });
+
+  describe('defecto C: el 403 al CARGAR un perfil ajeno (CA-2.3.11)', () => {
+    it('un GET 403 PROFILE_NOT_ALLOWED muestra «No encontramos lo que buscabas.»', async () => {
+      await waitUntilReady();
+      setViewportMatches(true);
+      useHandlers(
+        http.get('*/api/v1/profiles/:id', () => problem(403, { code: 'PROFILE_NOT_ALLOWED' })),
+      );
+
+      renderPage('ajeno');
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(i18n.t(KEYS.foreignProfile));
+      expect(screen.queryByText(RAW_SERVER_TEXT)).not.toBeInTheDocument();
+    });
+
+    it('un GET 403 sin code muestra el genérico y nunca «No encontramos lo que buscabas.» (ADR-0008)', async () => {
+      await waitUntilReady();
+      setViewportMatches(true);
+      useHandlers(http.get('*/api/v1/profiles/:id', () => problem(403)));
+
+      renderPage('ajeno');
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(i18n.t(KEYS.generic));
+      expect(screen.queryByText(i18n.t(KEYS.foreignProfile))).not.toBeInTheDocument();
     });
   });
 });

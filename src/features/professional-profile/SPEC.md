@@ -233,8 +233,8 @@ Fuente: backlog `09102026_01` (v6), hoja HE-02, HU-2.2, CA-2.2.1 a CA-2.2.7.
 | ----------- | ------------------------------------------------------------------------------------- |
 | Carga       | `Spinner` mientras se obtiene el perfil por `id` antes de mostrar el formulario       |
 | Vacío       | No aplica: el perfil siempre existe en este punto (se creó en el método de configuración) |
-| Error       | **Al cargar:** perfil inexistente → `errors:codigos.NOT_FOUND`; cualquier otro `ApiError` → `errors:generico`; fallo de red real (no `ApiError`) → `errors:red`, con botón «Reintentar». **Al guardar (`PATCH`):** hoy el error se descarta sin mostrar nada (ver «Alcance de CM-272», punto 1); CM-272 lo muestra resuelto por `code` |
-| Sin permiso | Ver nota transversal arriba. **Al guardar:** `403 PROFILE_NOT_ALLOWED` → «No encontramos lo que buscabas.» (CA-2.3.11), implementado en CM-272 |
+| Error       | **Al cargar:** perfil inexistente (`404`) o ajeno (`403 PROFILE_NOT_ALLOWED`, CM-272) → `errors:codigos.NOT_FOUND`; cualquier otro `ApiError` → `errors:generico`; fallo de red real (no `ApiError`) → `errors:red`, con botón «Reintentar». **Al guardar (`PATCH`):** hoy el error se descarta sin mostrar nada (ver «Alcance de CM-272», punto 1); CM-272 lo muestra resuelto por `code` |
+| Sin permiso | Ver nota transversal arriba. **Al cargar y al guardar:** `403 PROFILE_NOT_ALLOWED` → «No encontramos lo que buscabas.» (CA-2.3.11, las dos rutas), implementado en CM-272 |
 
 **Validaciones del lado del cliente**
 
@@ -247,7 +247,7 @@ Fuente: backlog `09102026_01` (v6), hoja HE-02, HU-2.2, CA-2.2.1 a CA-2.2.7.
 
 **Alcance de CM-272 (HU-2.3, 11-oct-2026) — IMPLEMENTADO (12-oct-2026).** Lo que sigue describe el
 comportamiento que el código tiene desde CM-272, con las pruebas de `GeneralInfoForm.test.tsx` y
-`EditProfilePage.test.tsx` en verde (50 de 50). Los apartados «**Hoy**» y las citas
+`EditProfilePage.test.tsx` en verde (57 de 57). Los apartados «**Hoy**» y las citas
 `archivo:línea` que los acompañan describen el código de `develop` en `4b3f915`, **antes** de
 CM-272: son la historia del defecto, no el estado actual (los números de línea ya se movieron). El
 alcance es exactamente los cuatro puntos de abajo, más una regla que salió de una prueba (punto 3).
@@ -268,6 +268,7 @@ alcance es exactamente los cuatro puntos de abajo, más una regla que salió de 
      | Respuesta del servidor (`cameia-perfil` `9355f1a`) | `code` que se lee | Mensaje (es-CO) | Criterio |
      | -------------------------------------------------- | ----------------- | --------------- | -------- |
      | `403` | `PROFILE_NOT_ALLOWED`, de nivel superior (`ErrorCatalog.java:81`) | «No encontramos lo que buscabas.» | CA-2.3.11 |
+     | `403` en el `GET` de **carga** (perfil ajeno; `ProfileAppService.java:304-307`) | `PROFILE_NOT_ALLOWED`, de nivel superior | «No encontramos lo que buscabas.» (`errors:codigos.NOT_FOUND`; defecto C, 12-oct-2026) | CA-2.3.11, RT-03 |
      | `422 VALIDATION_FAILED` | `SUMMARY_NOT_ALLOWED`, en `errors[].code` con `field: summary` (`ProfessionalProfile.java:112-118`; prueba `GeneralInfoEndToEndIT.java:146-160`) | «No puedes quedarte sin resumen profesional con el perfil activo.» | CA-2.3.12 |
      | cualquier otro error con `ApiError` (otro `code`, sin `code`, `5xx`, `409 PROFILE_UPDATE_IN_PROGRESS`, `422` con otros `errors[].code`…) | — | «Ocurrió un error. Inténtalo de nuevo.» (`errors:generico`) | RT-05 |
      | fallo de red real (no `ApiError`) | — | «No hay conexión. Revisa tu internet e inténtalo de nuevo.» (`errors:red`) | RT-05 |
@@ -275,6 +276,11 @@ alcance es exactamente los cuatro puntos de abajo, más una regla que salió de 
      **Sin respaldo por estado HTTP** (`ADR-0008`): un `403` o un `422` sin el `code` esperado
      muestra el genérico, nunca el mensaje específico. Un genérico es honesto; uno específico
      equivocado, no.
+
+     **La carga también se resuelve por `code` (defecto C).** `EditProfilePage` mostraba `errors:codigos.NOT_FOUND`
+     solo si el `GET` respondía `404`; un perfil ajeno responde `403 PROFILE_NOT_ALLOWED` y caía en el genérico
+     aunque RT-03 y CA-2.3.11 piden «No encontramos lo que buscabas.». Ahora el mensaje sale con `404` **o** con
+     `hasCode('PROFILE_NOT_ALLOWED')`; un `403` sin ese `code` sigue siendo el genérico (sin respaldo por estado).
 
      **Excepción: `403 EMAIL_NOT_VERIFIED` del Gateway.** Ya no llega a esta pantalla como
      genérico en el sentido de «error sin resolver»: `httpClient.ts:107-109` lo intercepta, cierra la
@@ -360,6 +366,22 @@ alcance es exactamente los cuatro puntos de abajo, más una regla que salió de 
      (`trySave` sigue siendo el único punto de entrada, con la misma validación de zod y el mismo
      candado `isSubmittingRef` contra el doble envío). Si el valor es inválido, se muestra el
      mensaje del campo y no se guarda (CA-2.3.14, CA-2.3.8).
+   - **Un guardado descartado durante el vuelo se reintenta una vez (defecto D2, 12-oct-2026).** Si un `blur`
+     llega mientras un `PATCH` sigue en curso, el candado `isSubmittingRef` lo descarta; antes nadie lo
+     reintentaba y lo escrito quedaba sin enviar hasta que el usuario volviera a entrar y salir de un campo
+     (pérdida de datos si cerraba la pestaña). Ahora `trySave` deja una marca (`hasDiscardedSaveRef`) y, cuando
+     el `PATCH` en curso **termina con éxito** y lo escrito desde entonces difiere de lo enviado, vuelve a
+     entrar por `handleSubmit(trySave)`. Dos límites: **nunca dos `PATCH` a la vez** (el reintento corre cuando el
+     candado ya está libre) y **nunca un bucle** (la marca la pone un evento del usuario, se consume en el
+     reintento y, si el reintento falla, no se reintenta solo). Si lo escrito es inválido, el reintento valida
+     y muestra el mensaje, pero no envía. El `blur` que acompaña al clic de «Guardar borrador» (mismos valores)
+     no genera segundo `PATCH`.
+   - **Observación, sin perseguirla en esta tarjeta:** tras el `reset`, `react-hook-form` emite `isDirty` en
+     `false` y lo corrige en el render siguiente (`useForm` recalcula `control._getDirty()` en un efecto;
+     react-hook-form 7.87.0, `dist/index.esm.mjs:3396-3399` y `:3672-3681`). Si se escribió algo en vuelo, el
+     formulario vuelve a quedar sucio y el siguiente `blur` lo envía; pero «Cambios guardados.» **puede
+     parpadear unos milisegundos** entre las dos emisiones. Es inofensivo y es la causa de que la prueba `k2`
+     fuera frágil bajo carga (por eso ahora solo protege que no se pierda lo escrito).
    - **Test existente `GeneralInfoForm.test.tsx:154-164`** («tabular entre Nombre y Resumen (dentro del
      formulario) no guarda»): su cuerpo **sigue siendo cierto** con el comportamiento nuevo, porque ese
      Tab no cambia nada y la compuerta `isDirty` (punto 4) lo frena; lo que dejó de describir la regla
@@ -401,6 +423,13 @@ alcance es exactamente los cuatro puntos de abajo, más una regla que salió de 
      guardado?», porque `reset(values)` tras un éxito (`GeneralInfoForm.tsx:175`) mueve el punto de
      referencia al valor confirmado. En un fallo no hay `reset`: el formulario sigue sucio y la
      siguiente salida de campo reintenta (comportamiento ya vigente y probado, `:188-203`).
+   - **La compuerta `isDirty` es sobre el ENVÍO, no sobre la validación (defecto B, 12-oct-2026).** La primera
+     versión de CM-272 salía de `autosaveOnFieldBlur` si el formulario estaba limpio, antes de validar: en un
+     perfil recién creado (nombre vacío) entrar al campo y salir sin escribir ya no mostraba «Ingresa un nombre
+     para el perfil.», que antes de CM-272 sí aparecía. El backlog pide «distinto del guardado» solo para el
+     guardado automático con valor **válido**; con valor inválido pide solo «mostrar el mensaje del campo y no
+     guardar» (Observaciones de HU-2.3, CA-2.3.14). Ahora salir de un campo **siempre valida**
+     (`trigger()` si el formulario está limpio, `handleSubmit` si está sucio) y solo el `PATCH` exige cambios.
    - **Acoplamiento con el aviso de cambios sin guardar — verificado, no se altera.**
      `stores/unsavedChanges.store.ts` ya depende de `formState.isDirty`
      (`GeneralInfoForm.tsx:160-161`; se limpia al desmontar, `:163-165`) y su **único consumidor de
@@ -415,8 +444,8 @@ alcance es exactamente los cuatro puntos de abajo, más una regla que salió de 
 **Criterios de HU-2.3: estado y cierre con CM-272.** Los 12 CA vigentes del Sprint 2 (CA-2.3.2 y
 CA-2.3.6 son «N/A en el MVP» por el propio backlog: dependen de HU-2.8 y HU-2.14, y no se tocan).
 «Estado actual» es lo que decía el código de `develop` (`4b3f915`) **antes de CM-272**, por
-lectura. «Al terminar CM-272» ya refleja la implementación, con las pruebas del bloque en verde (50 de
-50); no sustituye la prueba de QA. **ABIERTO** significa que, al terminar CM-272, el criterio **no** puede darse por
+lectura. «Al terminar CM-272» ya refleja la implementación, con las pruebas del bloque en verde (57 de
+57); no sustituye la prueba de QA. **ABIERTO** significa que, al terminar CM-272, el criterio **no** puede darse por
 cumplido; QA prueba el backlog literal, no este SPEC (lección de DF-004).
 
 | CA | Estado actual (por lectura) | Qué hace CM-272 | Al terminar CM-272 |
@@ -429,10 +458,10 @@ cumplido; QA prueba el backlog literal, no este SPEC (lección de DF-004).
 | CA-2.3.8 | Cumple por lectura: `trim().min(1)` (`generalInfo.schema.ts:13`) → `nameErrorRequired` (`GeneralInfoForm.tsx:208-209`), literal `profile.json:39`. | Nada. | CERRADO (por lectura). |
 | CA-2.3.9 | Cumple por lectura: `maxLength` 255 (`GeneralInfoForm.tsx:220`). | Nada. | CERRADO (por lectura). |
 | CA-2.3.10 | PARCIAL: `maxLength` impide escribir el carácter 256 (`GeneralInfoForm.tsx:220`); el mensaje de `profile.json:40` solo se alcanza con un cambio programático. | Nada. | **ABIERTO** (C-19). |
-| CA-2.3.11 | NO CUMPLE: el `403` del `PATCH` no produce ningún mensaje (punto 1). | Mensaje por `PROFILE_NOT_ALLOWED` con `errors:codigos.NOT_FOUND`. | CERRADO en código; la verificación real depende de C-18 (que el `code` llegue en staging). |
+| CA-2.3.11 | NO CUMPLE: el `403` del `PATCH` no produce ningún mensaje (punto 1) y el `403` de la **carga** de un perfil ajeno cae en el genérico (`EditProfilePage.tsx:157`). | Mensaje por `PROFILE_NOT_ALLOWED` con `errors:codigos.NOT_FOUND` en **las dos rutas**, guardado y carga. | CERRADO en código; la verificación real depende de C-18 (que el `code` llegue en staging). |
 | CA-2.3.12 | NO CUMPLE: el `422` no produce mensaje y la frase no existe en i18n. | Llave nueva `profile:general.resumen.errorPerfilActivo` y mensaje por `SUMMARY_NOT_ALLOWED`. | CERRADO en código; igual dependencia de C-18. |
 | CA-2.3.13 | PARCIAL: guarda solo al salir del formulario completo (`GeneralInfoForm.tsx:193-197`) y sin mirar `isDirty`. | Puntos 3 y 4. | CERRADO. |
-| CA-2.3.14 | PARCIAL: no hay `PATCH` con nombre vacío, pero la confirmación anterior queda visible (`EditProfilePage.tsx:530`) y solo se valida al salir del formulario completo. | Puntos 2 y 3. | CERRADO. |
+| CA-2.3.14 | PARCIAL: no hay `PATCH` con nombre vacío, pero la confirmación anterior queda visible (`EditProfilePage.tsx:530`) y solo se valida al salir del formulario completo. | Puntos 2 y 3; defecto B: validar siempre al salir del campo (la primera versión no validaba una salida sin cambios). | CERRADO. |
 
 **Fuera de alcance de CM-272 — todos ABIERTOS (nunca «cumple»).**
 
@@ -787,9 +816,9 @@ específico).
 | CA-2.2.4 | El mapper convierte `name` y `summary` nulos en `''` |
 | CA-2.2.5, CA-2.2.6 | Sprint 3: no se implementan |
 | CA-2.2.7 | Una sola petición ante dos clics síncronos (`NewProfilePage`, `act` y `fireEvent`, DF-004); la tarjeta queda `disabled` mientras se crea (`ProfileMethodSelector`) y conserva el aspecto de seleccionada (`CardSelectable`, `state="selected"` + `disabled`), con `aria-busy` y `Spinner` |
-| CA-2.3.11 (CM-272) | El mensaje sale de `errors:codigos.NOT_FOUND` por `code` `PROFILE_NOT_ALLOWED`, vía `getItemErrorMessage`; sin `code` muestra el genérico (`ADR-0008`) |
+| CA-2.3.11 (CM-272) | El mensaje sale de `errors:codigos.NOT_FOUND` por `code` `PROFILE_NOT_ALLOWED`, tanto al guardar (vía `getItemErrorMessage`) como al cargar el perfil; sin `code` muestra el genérico (`ADR-0008`) |
 | CA-2.3.12 (CM-272) | El mensaje sale de `profile:general.resumen.errorPerfilActivo` por `errors[].code` `SUMMARY_NOT_ALLOWED` dentro de un `422 VALIDATION_FAILED` |
-| CA-2.3.13, CA-2.3.14 (CM-272) | Guarda al salir de cada campo solo si `formState.isDirty` (D-J); «Cambios guardados.» desaparece al editar, al fallar y al ser bloqueada una salida de campo; el campo con foco nunca queda deshabilitado por el autoguardado |
+| CA-2.3.13, CA-2.3.14 (CM-272) | Al salir de cada campo siempre valida y solo envía si `formState.isDirty` (D-J); reintenta una vez el guardado descartado durante el vuelo; «Cambios guardados.» desaparece al editar, al fallar y al ser bloqueada una salida de campo; el campo con foco nunca queda deshabilitado por el autoguardado |
 | CA-2.3.3, CA-2.3.10 | **No se cumplen al escribir:** el `maxLength` impide el carácter 2001 / 256 (C-19, abierto) |
 | CA-2.4.1 (experiencia `CURRENT`/`UNKNOWN_END` sin fecha de fin)   | Oculta y limpia el campo «Fecha de fin» cuando cualquiera de los dos checkboxes está marcado, en vez de solo omitir el envío |
 | J-01 (gestión por ítem, no PATCH de colección)                    | `POST`/`DELETE` inmediato por ítem; sin `useFieldArray` — la lista visible es siempre la caché del servidor (SPEC.md §9, decisión D-A) |
@@ -822,7 +851,7 @@ específico).
 | `src/features/professional-profile/schemas/workExperience.schema.ts`                             | §3.3 (CM-61): validación zod de un ítem de Experiencia Laboral, con `.superRefine` para los checkboxes excluyentes          | `src/features/professional-profile/organisms/WorkExperienceSection/WorkExperienceSection.test.tsx`   |
 | `src/features/professional-profile/schemas/skill.schema.ts`                                     | §3.4 (CM-65): validación zod de un ítem de Habilidad; el duplicado NO se valida aquí (depende de `items`, ajeno al schema) — vive en `SkillsSection` vía `setError` manual | `src/features/professional-profile/organisms/SkillsSection/SkillsSection.test.tsx`                   |
 | `src/design-system/atoms/Select/Select.tsx`                                                     | Átomo nuevo (SPEC.md §9, decisión D-B): `<select>` nativo con la misma API que `Input`, para "Nivel educativo" — primer átomo nuevo del design system desde CM-100 | `src/design-system/atoms/Select/Select.test.tsx`                                                     |
-| `src/features/professional-profile/organisms/GeneralInfoForm/GeneralInfoForm.tsx`                | §3.2 (CM-53): el formulario de Información General; CM-61 agrega showSectionTitle (decisión D-G); CM-194 sincroniza isDirty con unsavedChanges.store; CM-195 agrega el autoguardado en onBlur (decisión D-H); CM-272 lo pasa a cada campo con compuerta isDirty, retira el prop isSaving, agrega onDirtyChange y conserva lo escrito en vuelo con keepDirtyValues (decisión D-J) | `src/features/professional-profile/organisms/GeneralInfoForm/GeneralInfoForm.test.tsx`             |
+| `src/features/professional-profile/organisms/GeneralInfoForm/GeneralInfoForm.tsx`                | §3.2 (CM-53): el formulario de Información General; CM-61 agrega showSectionTitle (decisión D-G); CM-194 sincroniza isDirty con unsavedChanges.store; CM-195 agrega el autoguardado en onBlur (decisión D-H); CM-272 lo pasa a cada campo con compuerta isDirty, retira el prop isSaving, agrega onDirtyChange y conserva lo escrito en vuelo con keepDirtyValues, reintenta una vez el guardado descartado en vuelo y valida siempre al salir del campo (decisión D-J) | `src/features/professional-profile/organisms/GeneralInfoForm/GeneralInfoForm.test.tsx`             |
 | `src/features/professional-profile/organisms/EducationSection/EducationSection.tsx`              | §3.3 (CM-61): lista + alta/baja de Formación académica por ítem                                                             | `src/features/professional-profile/organisms/EducationSection/EducationSection.test.tsx`             |
 | `src/features/professional-profile/organisms/WorkExperienceSection/WorkExperienceSection.tsx`    | §3.3 (CM-61): lista + alta/baja de Experiencia Laboral por ítem; deriva `employmentStatus` en la UI (checkboxes excluyentes) | `src/features/professional-profile/organisms/WorkExperienceSection/WorkExperienceSection.test.tsx`   |
 | `src/features/professional-profile/organisms/SkillsSection/SkillsSection.tsx`                    | §3.4 (CM-65): lista + alta/baja de Habilidades por ítem, mostradas como `Chip`; duplicado bloqueado con `setError` manual   | `src/features/professional-profile/organisms/SkillsSection/SkillsSection.test.tsx`                   |
@@ -845,7 +874,7 @@ específico).
 | `src/features/professional-profile/hooks/useSubstituteTargetRole.ts`                             | §3.5 (CM-69): `useMutation` de sustitución de rol objetivo (`PATCH`, conserva el `id`)                                      | `src/features/professional-profile/hooks/useSubstituteTargetRole.test.tsx`                           |
 | `src/features/professional-profile/hooks/useRemoveTargetRole.ts`                                 | §3.5 (CM-69): `useMutation` de baja de rol objetivo                                                                         | `src/features/professional-profile/hooks/useRemoveTargetRole.test.tsx`                               |
 | `src/features/professional-profile/hooks/useProfessionalRolesQuery.ts`                           | §3.5 (CM-69): `useQuery` del catálogo cerrado de roles TI, llave `['professional-roles']`                                   | `src/features/professional-profile/hooks/useProfessionalRolesQuery.test.tsx`                         |
-| `src/features/professional-profile/pages/EditProfilePage.tsx`                                   | §3, §3.2, §3.3, §3.4, §3.5 (CM-61/CM-65/CM-69): el armazón real de la ruta de edición del perfil — ya no `WizardLayout`/`EmptyState`; CM-65 agrega la cuarta sección y conecta «Finalizar y Continuar» al endpoint real; CM-69 agrega la quinta sección y el estado de carga/error del catálogo; CM-272 muestra el error del PATCH de Información General por code con getItemErrorMessage y oculta «Cambios guardados.» mientras el formulario esté sucio (decisión D-J) | `src/features/professional-profile/pages/EditProfilePage.test.tsx`                                   |
+| `src/features/professional-profile/pages/EditProfilePage.tsx`                                   | §3, §3.2, §3.3, §3.4, §3.5 (CM-61/CM-65/CM-69): el armazón real de la ruta de edición del perfil — ya no `WizardLayout`/`EmptyState`; CM-65 agrega la cuarta sección y conecta «Finalizar y Continuar» al endpoint real; CM-69 agrega la quinta sección y el estado de carga/error del catálogo; CM-272 muestra el error del PATCH de Información General por code con getItemErrorMessage y oculta «Cambios guardados.» mientras el formulario esté sucio y resuelve el 403 PROFILE_NOT_ALLOWED de la carga como NOT_FOUND (decisión D-J) | `src/features/professional-profile/pages/EditProfilePage.test.tsx`                                   |
 | `src/features/professional-profile/routes.tsx`                                                  | Mapea las 3 rutas de esta feature bajo `professionalProfileShellRoutes`, incluida la de edición del perfil (CM-61 la muda desde `professionalProfileWizardRoutes`, retirada — decisión D-E) | `src/app/router/index.test.tsx` (features no puede importar RequireAuth, ver §9)                    |
 | `src/utils/buttonLoadingProps.ts`                                                                | Infraestructura de apoyo (CM-61): arma el par `{loading, loadingLabel}` que `Button` exige, evitando repetir el condicional en 5 sitios | `src/utils/buttonLoadingProps.test.ts`                                                                |
 | `src/stores/unsavedChanges.store.ts`                                                             | CM-194: bandera de cliente hasUnsavedChanges que GeneralInfoForm mantiene y que la confirmación de cierre de sesión lee (§3.2) | `src/stores/unsavedChanges.store.test.ts`                                                           |
@@ -1043,7 +1072,8 @@ global ya corriendo, es un segundo reset inocuo, no un conflicto.
   (1) el `onBlur` pasa a cada campo y sigue entrando por `trySave`;
   (2) el guardado automático solo se envía si `formState.isDirty` del **formulario** es `true` — no
   `dirtyFields` por campo, porque el `PATCH` envía `name` y `summary` juntos y distinguir el campo no
-  cambia lo que viaja;
+  cambia lo que viaja. **La compuerta es sobre el envío, no sobre la validación:** salir de un campo
+  siempre valida (corregido el 12-oct-2026, defecto B);
   (3) «Guardar borrador» sigue enviando siempre;
   (4) un campo con foco no puede quedar deshabilitado por el autoguardado: los campos ya no se
   deshabilitan al guardar y **se retira el prop `isSaving` de `GeneralInfoForm`** (cambio de interfaz
@@ -1059,7 +1089,12 @@ global ya corriendo, es un segundo reset inocuo, no un conflicto.
   `PATCH` estaba en vuelo **no se pierde**. Efecto colateral correcto: el formulario sigue sucio y el
   siguiente `blur` reenvía, porque lo escrito en vuelo aún no está guardado. Alternativa descartada:
   bloquear los campos durante el vuelo, porque impide escribir. **Esta regla salió de la prueba `k2`,
-  no del backlog**: es una consecuencia del autoguardado por campo que el backlog no previó.
+  no del backlog**: es una consecuencia del autoguardado por campo que el backlog no previó;
+  (8) un guardado descartado por el candado durante el vuelo se reintenta una vez al terminar el
+  `PATCH` en curso con éxito, si lo escrito difiere de lo enviado (nunca dos `PATCH` a la vez, nunca
+  bucle; defecto D2);
+  (9) la carga de un perfil ajeno (`403 PROFILE_NOT_ALLOWED`) muestra «No encontramos lo que buscabas.»
+  igual que el guardado (defecto C); CA-2.3.11 cubre las dos rutas.
   `unsavedChanges.store` no cambia: ya depende de `isDirty` y su único consumidor de producción es
   `AppShell.tsx:149-151`. D-H se conserva como historia; en lo que choquen, manda D-J.
 
