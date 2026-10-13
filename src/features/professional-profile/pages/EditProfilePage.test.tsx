@@ -431,6 +431,30 @@ async function spyOnGeneralInfoPatch(profileId: string, holdMs = 0) {
   return { count: () => calls, completed: () => completed, bodies: () => bodies, handler };
 }
 
+/**
+ * Simula el rechazo de un perfil Activo (CA-2.3.12): un `PATCH` con `summary` vacío responde
+ * `422 VALIDATION_FAILED` con `errors[].code` `SUMMARY_NOT_ALLOWED`; cualquier otro lo acepta.
+ * Devuelve el handler (lo instala cada prueba con `useHandlers`, ver `spyOnGeneralInfoPatch`).
+ */
+async function rejectEmptySummaryLikeActiveProfile(profileId: string, firstCallFails = false) {
+  const current = await httpClient.get<Record<string, unknown>>(`/api/v1/profiles/${profileId}`);
+  const bodies: Record<string, unknown>[] = [];
+  const handler = http.patch('*/api/v1/profiles/:id', async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    bodies.push(body);
+    // `firstCallFails`: el primer guardado falla (500) para dejar el nombre sin guardar.
+    if (firstCallFails && bodies.length === 1) return problem(500);
+    if (body.summary === '') {
+      return problem(422, {
+        code: 'VALIDATION_FAILED',
+        errors: [{ field: 'summary', code: 'SUMMARY_NOT_ALLOWED', message: RAW_SERVER_TEXT }],
+      });
+    }
+    return HttpResponse.json({ ...current, ...body }, { status: 200 });
+  });
+  return { count: () => bodies.length, bodies: () => bodies, handler };
+}
+
 async function openEditor(profileId: string) {
   setViewportMatches(true);
   renderPage(profileId);
@@ -782,6 +806,116 @@ describe('EditProfilePage · Información General: errores y autoguardado (CM-27
 
       expect(await screen.findByRole('alert')).toHaveTextContent(i18n.t(KEYS.generic));
       expect(screen.queryByText(i18n.t(KEYS.foreignProfile))).not.toBeInTheDocument();
+    });
+  });
+
+  describe('CA-2.3.12: «conservar el resumen» incluye lo que la persona ve', () => {
+    const SAVED_SUMMARY = 'Resumen que sigue guardado';
+
+    async function profileWithSavedSummary() {
+      const created = await createProfile();
+      await httpClient.patch(`/api/v1/profiles/${created.id}`, { summary: SAVED_SUMMARY });
+      return created;
+    }
+
+    it('tras el rechazo del perfil activo se ve el mensaje y el campo vuelve a mostrar el resumen guardado', async () => {
+      await waitUntilReady();
+      const user = userEvent.setup();
+      const created = await profileWithSavedSummary();
+      const server = await rejectEmptySummaryLikeActiveProfile(created.id);
+      useHandlers(server.handler);
+      await openEditor(created.id);
+      const summary = screen.getByLabelText(i18n.t(KEYS.summaryLabel));
+      expect(summary).toHaveValue(SAVED_SUMMARY);
+
+      await user.clear(summary);
+      await user.click(screen.getByRole('heading', { name: i18n.t(KEYS.title) }));
+
+      expect(await screen.findByText(i18n.t(KEYS.activeSummary))).toBeInTheDocument();
+      await waitFor(() => expect(summary).toHaveValue(SAVED_SUMMARY));
+      expect(screen.queryByText(i18n.t(KEYS.saved))).not.toBeInTheDocument();
+    });
+
+    it('tras ese rechazo, salir del campo otra vez no envía otro PATCH (sin bucle)', async () => {
+      await waitUntilReady();
+      const user = userEvent.setup();
+      const created = await profileWithSavedSummary();
+      const server = await rejectEmptySummaryLikeActiveProfile(created.id);
+      useHandlers(server.handler);
+      await openEditor(created.id);
+      const summary = screen.getByLabelText(i18n.t(KEYS.summaryLabel));
+      const outside = screen.getByRole('heading', { name: i18n.t(KEYS.title) });
+      await user.clear(summary);
+      await user.click(outside);
+      await screen.findByText(i18n.t(KEYS.activeSummary));
+      expect(server.count()).toBe(1);
+
+      await user.click(summary);
+      await user.click(outside);
+      await settle();
+
+      expect(server.count()).toBe(1);
+    });
+
+    // Guarda de RT-05 / RT-05-CA01: ante un fallo técnico NO se restaura nada, se conserva lo
+    // escrito. Puede nacer verde (hoy nada se restaura); protege el límite de la restauración.
+    it.each([
+      ['un 500', () => problem(500)],
+      ['un 503', () => problem(503, { code: 'SERVICE_UNAVAILABLE' })],
+      ['una caída de red', () => HttpResponse.error()],
+    ])(
+      '%s al guardar conserva lo que la persona escribió, sin restaurar nada',
+      async (_caso, respond) => {
+        await waitUntilReady();
+        const user = userEvent.setup();
+        const created = await profileWithSavedSummary();
+        useHandlers(http.patch('*/api/v1/profiles/:id', () => respond()));
+        await openEditor(created.id);
+        const summary = screen.getByLabelText(i18n.t(KEYS.summaryLabel));
+
+        await user.clear(summary);
+        await user.type(summary, 'lo nuevo que escribí');
+        await user.click(screen.getByRole('heading', { name: i18n.t(KEYS.title) }));
+
+        expect(await screen.findByRole('alert')).toBeInTheDocument();
+        await settle();
+        expect(summary).toHaveValue('lo nuevo que escribí');
+      },
+    );
+
+    it('con un nombre sin guardar, tras el rechazo el nombre conserva lo escrito y solo vuelve el resumen', async () => {
+      await waitUntilReady();
+      const user = userEvent.setup();
+      const created = await profileWithSavedSummary();
+      // El primer guardado falla: el nombre queda escrito pero sin guardar (con el autoguardado
+      // por campo, un nombre editado se guarda solo al pasar al resumen, salvo que falle).
+      const server = await rejectEmptySummaryLikeActiveProfile(created.id, true);
+      useHandlers(server.handler);
+      await openEditor(created.id);
+      const name = screen.getByLabelText(i18n.t(KEYS.nameLabel));
+      const summary = screen.getByLabelText(i18n.t(KEYS.summaryLabel));
+      const outside = screen.getByRole('heading', { name: i18n.t(KEYS.title) });
+
+      await user.type(name, ' Jr.');
+      await user.click(summary);
+      await waitFor(() => expect(server.count()).toBe(1));
+      await user.clear(summary);
+      await user.click(outside);
+
+      expect(await screen.findByText(i18n.t(KEYS.activeSummary))).toBeInTheDocument();
+      await waitFor(() => expect(summary).toHaveValue(SAVED_SUMMARY));
+      expect(name).toHaveValue('Ana María Pérez Jr.');
+      expect(server.bodies()[1]).toMatchObject({ name: 'Ana María Pérez Jr.', summary: '' });
+
+      // El nombre sigue sin guardar: el formulario está sucio y el siguiente blur lo envía
+      // junto con el resumen restaurado (no con el vacío).
+      await user.click(name);
+      await user.click(outside);
+      await waitFor(() => expect(server.count()).toBe(3));
+      expect(server.bodies()[2]).toMatchObject({
+        name: 'Ana María Pérez Jr.',
+        summary: SAVED_SUMMARY,
+      });
     });
   });
 });

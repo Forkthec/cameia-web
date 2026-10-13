@@ -64,7 +64,10 @@
  * formulario no tiene cambios sin guardar (`isGeneralInfoDirty`, que avisa
  * `GeneralInfoForm`); nunca a la vez que el error. La carga también se
  * resuelve por `code`: un `403 PROFILE_NOT_ALLOWED` (perfil ajeno) muestra
- * `errors:codigos.NOT_FOUND`, igual que el `404` (RT-03, CA-2.3.11).
+ * `errors:codigos.NOT_FOUND`, igual que el `404` (RT-03, CA-2.3.11). Ante
+ * `SUMMARY_NOT_ALLOWED` (CA-2.3.12) devuelve al formulario el resumen guardado
+ * para que el campo lo vuelva a mostrar; solo para ese `code`, nunca ante otros
+ * errores (RT-05).
  */
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -108,6 +111,15 @@ import { ProfileSectionsLayout, type ProfileSection } from '../organisms/Profile
 import { SkillsSection } from '../organisms/SkillsSection';
 import { TargetRolesSection } from '../organisms/TargetRolesSection';
 import { WorkExperienceSection } from '../organisms/WorkExperienceSection';
+
+/** `true` solo si el rechazo es el del resumen de un perfil activo (`code` `SUMMARY_NOT_ALLOWED`, de nivel superior o en `errors[]`). */
+function isSummaryNotAllowed(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    (error.hasCode('SUMMARY_NOT_ALLOWED') ||
+      error.errors.some((fieldError) => fieldError.code === 'SUMMARY_NOT_ALLOWED'))
+  );
+}
 
 export function EditProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -270,7 +282,17 @@ export function EditProfilePage() {
           sectionTitle={t('profile:general.tituloSeccion')}
           showSectionTitle={isDesktop}
           onDirtyChange={setIsGeneralInfoDirty}
-          onSubmit={(values) => updateGeneralInfo.mutateAsync(values).then(() => {})}
+          onSubmit={async (values) => {
+            try {
+              await updateGeneralInfo.mutateAsync(values);
+            } catch (error) {
+              // CA-2.3.12: el servidor rechazó vaciar el resumen de un perfil activo y lo
+              // conserva; la pantalla también (SPEC §3.2). SOLO para ese `code` (ADR-0008):
+              // un 500, un 503 o una caída de red se relanzan y NO restauran nada (RT-05).
+              if (isSummaryNotAllowed(error)) return { restoreSummary: profile.summary };
+              throw error;
+            }
+          }}
           nameLabel={t('profile:general.nombre.etiqueta')}
           nameHelperText={t('profile:general.nombre.ayuda')}
           namePlaceholder={t('profile:general.nombre.placeholder')}

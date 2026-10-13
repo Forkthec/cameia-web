@@ -75,7 +75,10 @@
  * distinguir el campo no cambia lo que viaja); una salida sin cambios no
  * manda nada, pero SIEMPRE valida (la compuerta es sobre el envío, no sobre la
  * validación: un nombre vacío sin tocar también muestra su mensaje, CA-2.3.14).
- * Un guardado que llega con otro en vuelo lo descarta el candado, pero deja una
+ * Si el servidor rechaza vaciar el resumen de un perfil activo (CA-2.3.12), la
+ * página resuelve `onSubmit` con `{ restoreSummary }` y el formulario devuelve al
+ * campo el resumen guardado (`resetField`), sin tocar el nombre; ante cualquier
+ * otro error no se restaura nada (RT-05). Un guardado que llega con otro en vuelo lo descarta el candado, pero deja una
  * marca y se reintenta UNA vez al terminar el primero con éxito si lo escrito
  * difiere de lo enviado (nunca dos a la vez, nunca bucle). «Guardar borrador» (fuera de este componente) entra por el
  * `submit` nativo y SIEMPRE envía: la compuerta `isDirty` es del autoguardado,
@@ -114,7 +117,7 @@ import { cn } from '@/utils/cn';
 import { Input } from '@/design-system/atoms/Input';
 import { CharacterCounter } from '@/design-system/molecules/CharacterCounter';
 import { FormField } from '@/design-system/molecules/FormField';
-import { NAME_MAX_LENGTH, SUMMARY_MAX_LENGTH } from '../../model/profile.constants';
+import { SUMMARY_MAX_LENGTH } from '../../model/profile.constants';
 import { generalInfoSchema, type GeneralInfoFormValues } from '../../schemas/generalInfo.schema';
 
 interface GeneralInfoFormProps {
@@ -128,7 +131,12 @@ interface GeneralInfoFormProps {
   showSectionTitle?: boolean;
   /** Avisa cada vez que cambia `formState.isDirty`: la página lo usa para que «Cambios guardados.» solo se vea mientras no haya cambios sin guardar (CM-272, punto 2). */
   onDirtyChange?: (isDirty: boolean) => void;
-  onSubmit: (values: GeneralInfoFormValues) => Promise<void>;
+  /**
+   * Guarda los valores. Si el servidor RECHAZA el cambio del resumen de un perfil activo (CA-2.3.12), la
+   * página resuelve con `{ restoreSummary }`: el resumen que sigue guardado, que el formulario vuelve a
+   * mostrar. Cualquier otro fallo debe rechazar la promesa (nunca se restaura nada, RT-05).
+   */
+  onSubmit: (values: GeneralInfoFormValues) => Promise<void | { restoreSummary: string }>;
   nameLabel: string;
   /** Copia literal del frame: `Por ejemplo: "Analista de datos" o "Producto senior".` */
   nameHelperText: string;
@@ -136,12 +144,12 @@ interface GeneralInfoFormProps {
   namePlaceholder: string;
   /** CA-2.3.5: `name` vacío. */
   nameErrorRequired: string;
-  /** CA-2.3.5: `name` mayor a 255 caracteres. */
+  /** CA-2.3.10: `name` mayor a 255 caracteres. El campo no corta lo escrito (sin `maxLength`), así que el aviso sí se alcanza al escribir. */
   nameErrorTooLong: string;
   summaryLabel: string;
   /** Copia literal del frame: `Escribe aquí. Este campo crece con el contenido.` */
   summaryPlaceholder: string;
-  /** CA-2.3.3: red de seguridad si `summary` llega a superar 2000 caracteres pese al `maxLength` del campo. */
+  /** CA-2.3.3: mensaje bajo el campo cuando `summary` supera 2000 caracteres. El campo no corta lo escrito (sin `maxLength`, RT-01-CA07). */
   summaryErrorTooLong: string;
   /** Recibe el conteo y el máximo ya interpolados (ver `CharacterCounter`). */
   summaryCounterLabel: (count: number, max: number) => string;
@@ -167,7 +175,7 @@ export function GeneralInfoForm({
   summaryCounterLabel,
   className,
 }: GeneralInfoFormProps) {
-  const { control, handleSubmit, formState, reset, getValues, trigger } =
+  const { control, handleSubmit, formState, reset, resetField, getValues, trigger } =
     useForm<GeneralInfoFormValues>({
       resolver: zodResolver(generalInfoSchema),
       defaultValues: { name, summary },
@@ -200,7 +208,16 @@ export function GeneralInfoForm({
     hasDiscardedSaveRef.current = false;
     let saved = false;
     try {
-      await onSubmit(values);
+      const outcome = await onSubmit(values);
+      if (outcome) {
+        // Rechazo restaurable (CA-2.3.12): el resumen vuelve a su valor guardado y solo ese
+        // campo; el nombre conserva lo escrito. No se llama `reset(values)` (no se movió la
+        // referencia de «sucio» del nombre), así que el formulario queda sucio solo si el
+        // nombre cambió. `saved` sigue en `false`: no hay confirmación ni reintento.
+        resetField('summary', { defaultValue: outcome.restoreSummary });
+        hasDiscardedSaveRef.current = false;
+        return;
+      }
       // `keepDirtyValues`: lo enviado pasa a ser el nuevo punto de referencia, pero
       // lo que el usuario ya escribió distinto de eso mientras el `PATCH` estaba en
       // vuelo se conserva (CM-272, D-J). Sigue sucio, así que el siguiente blur lo
@@ -281,7 +298,6 @@ export function GeneralInfoForm({
                 autosaveOnFieldBlur();
               }}
               placeholder={namePlaceholder}
-              maxLength={NAME_MAX_LENGTH}
               state={fieldState.error ? 'error' : 'default'}
             />
           </FormField>
@@ -312,7 +328,6 @@ export function GeneralInfoForm({
                     autosaveOnFieldBlur();
                   }}
                   placeholder={summaryPlaceholder}
-                  maxLength={SUMMARY_MAX_LENGTH}
                   state={fieldState.error ? 'error' : 'default'}
                 />
               </FormField>
