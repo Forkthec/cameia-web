@@ -30,11 +30,15 @@
  * usuario escribió para que pueda corregir sin retipear todo
  * (`addErrorMessage` se lo indica con un `AlertInline`).
  *
+ * CM-273 (PR 1, SPEC.md §3.3 y D-K, D-M): las dos fechas son `MonthField`
+ * (máscara «mm/aaaa» y panel de mes). El esquema se crea con el mes actual
+ * que calcula la página (`currentMonth`) y entrega «AAAA-MM» a `onAdd`.
+ *
  * Sin `useTranslation` (CLAUDE.md §14.7, mismo patrón que `GeneralInfoForm`
  * y `ProfileMethodSelector`): todo texto visible entra por prop obligatoria.
  */
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useMemo, useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { buttonLoadingProps } from '@/utils/buttonLoadingProps';
 import { cn } from '@/utils/cn';
@@ -46,9 +50,10 @@ import { Select, type SelectOption } from '@/design-system/atoms/Select';
 import { AlertInline } from '@/design-system/molecules/AlertInline';
 import { EmptyState } from '@/design-system/molecules/EmptyState';
 import { FormField } from '@/design-system/molecules/FormField';
+import { MonthField } from '@/design-system/molecules/MonthField';
 import type { EducationItem } from '../../model/profile.types';
 import {
-  educationSchema,
+  createEducationSchema,
   educationSchemaErrorCodes,
   EMPTY_EDUCATION_VALUES,
   type EducationFormValues,
@@ -94,6 +99,22 @@ interface EducationSectionProps {
   formatItemPeriod: (item: EducationItem) => string;
   emptyStateTitle: string;
   emptyStateDescription: string;
+  /** Mes actual en UTC («AAAA-MM»); lo calcula la página (D-M) y alimenta el esquema y los meses apagados del panel. */
+  currentMonth: string;
+  /** Locale de la interfaz, para los nombres de los meses del panel. */
+  locale: string;
+  /** Textos ya traducidos de las dos entradas de fecha. */
+  monthFieldTexts: {
+    placeholder: string;
+    openPanelLabel: string;
+    panelLabel: string;
+    previousYearLabel: string;
+    nextYearLabel: string;
+  };
+  /** Mensaje de una fecha que no es «mm/aaaa» válido (CA-2.4.44 y 60). */
+  dateErrorFormat: string;
+  /** Mensaje de una fecha posterior al mes actual (CA-2.4.34 y 35). */
+  dateErrorFuture: string;
   addErrorMessage?: string;
   removeErrorMessage?: string;
   confirmationMessage?: string;
@@ -131,16 +152,33 @@ export function EducationSection({
   formatItemPeriod,
   emptyStateTitle,
   emptyStateDescription,
+  currentMonth,
+  locale,
+  monthFieldTexts,
+  dateErrorFormat,
+  dateErrorFuture,
   addErrorMessage,
   removeErrorMessage,
   confirmationMessage,
   className,
 }: EducationSectionProps) {
   const headingId = useId();
-  const { control, handleSubmit, watch, setValue, reset } = useForm<EducationFormValues>({
-    resolver: zodResolver(educationSchema),
+  const schema = useMemo(() => createEducationSchema(currentMonth), [currentMonth]);
+  const { control, handleSubmit, watch, setValue, reset } = useForm<
+    EducationFormValues,
+    unknown,
+    EducationFormValues
+  >({
+    resolver: zodResolver(schema),
     defaultValues: EMPTY_EDUCATION_VALUES,
   });
+
+  /** Mensaje de las reglas de fecha comunes a inicio y fin; `undefined` si el código es de otra regla. */
+  function getDateRuleError(code: string | undefined) {
+    if (code === educationSchemaErrorCodes.INVALID_DATE_FORMAT) return dateErrorFormat;
+    if (code === educationSchemaErrorCodes.DATE_IN_FUTURE) return dateErrorFuture;
+    return undefined;
+  }
   // `watch` (no un <Controller> aparte) porque este valor decide si se
   // renderiza OTRO campo (endDate), no solo el suyo propio — no hay forma
   // de "levantar" ese booleano fuera de un render-prop de Controller sin
@@ -273,14 +311,21 @@ export function EducationSection({
           render={({ field, fieldState }) => (
             <FormField
               label={startDateLabel}
-              error={fieldState.error?.type === 'too_small' ? startDateErrorRequired : undefined}
+              error={
+                fieldState.error?.type === 'too_small'
+                  ? startDateErrorRequired
+                  : getDateRuleError(fieldState.error?.message)
+              }
             >
-              <Input
-                type="date"
+              <MonthField
+                ref={field.ref}
                 value={field.value}
                 onChange={field.onChange}
                 onBlur={field.onBlur}
+                currentMonth={currentMonth}
+                locale={locale}
                 state={isAdding ? 'disabled' : fieldState.error ? 'error' : 'default'}
+                {...monthFieldTexts}
               />
             </FormField>
           )}
@@ -296,15 +341,18 @@ export function EducationSection({
                 error={
                   fieldState.error?.message === educationSchemaErrorCodes.END_BEFORE_START
                     ? endDateErrorBeforeStart
-                    : undefined
+                    : getDateRuleError(fieldState.error?.message)
                 }
               >
-                <Input
-                  type="date"
+                <MonthField
+                  ref={field.ref}
                   value={field.value}
                   onChange={field.onChange}
                   onBlur={field.onBlur}
+                  currentMonth={currentMonth}
+                  locale={locale}
                   state={isAdding ? 'disabled' : fieldState.error ? 'error' : 'default'}
+                  {...monthFieldTexts}
                 />
               </FormField>
             )}

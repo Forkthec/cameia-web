@@ -1,24 +1,11 @@
 /**
- * Protege la conversión entre la fecha completa del selector nativo
- * (`<input type="date">`) y el `YearMonth` que exige el backend real de
- * Educación y Experiencia Laboral — bloqueo C-14, `SPEC.md` §8.
+ * Protege `formatYearMonth`, que pinta un `YearMonth` («YYYY-MM») en los periodos de la lista. CM-273
+ * (PR 1, `SPEC.md` §3.3) elimina `toYearMonth` —el formulario ya guarda «AAAA-MM» (D-K) y el control
+ * nativo de fecha, bloqueo C-14, deja de existir—, así que sus pruebas se quitaron; `formatYearMonth` no
+ * cambia hasta el PR 2.
  */
 import { describe, expect, it } from 'vitest';
-import { formatYearMonth, toYearMonth } from './yearMonth';
-
-describe('toYearMonth', () => {
-  it('trunca una fecha completa a año y mes', () => {
-    expect(toYearMonth('2024-03-17')).toBe('2024-03');
-  });
-
-  it('acepta un valor que ya viene en formato YYYY-MM', () => {
-    expect(toYearMonth('2024-03')).toBe('2024-03');
-  });
-
-  it('lanza un error con una fecha sin formato reconocible', () => {
-    expect(() => toYearMonth('no-es-una-fecha')).toThrow();
-  });
-});
+import { formatYearMonth } from './yearMonth';
 
 describe('formatYearMonth', () => {
   it('formatea el mes y año en español de Colombia', () => {

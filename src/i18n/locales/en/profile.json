@@ -50,6 +50,17 @@
     "guardandoBorrador": "Saving…",
     "confirmacionGuardado": "Changes saved."
   },
+  "fechas": {
+    "errorFormato": "Enter a valid date in the mm/yyyy format.",
+    "errorPosteriorMesActual": "The date can't be later than the current month.",
+    "placeholder": "mm/yyyy",
+    "selector": {
+      "abrir": "Open month picker",
+      "titulo": "Choose month and year",
+      "anioAnterior": "Previous year",
+      "anioSiguiente": "Next year"
+    }
+  },
   "educacion": {
     "titulo": "Education",
     "nivel": {
@@ -75,7 +86,7 @@
       "errorRequerido": "Enter the start date."
     },
     "fechaFin": {
-      "etiqueta": "End year",
+      "etiqueta": "End date",
       "errorAnterior": "The end date can't be earlier than the start date."
     },
     "enCurso": "In progress",

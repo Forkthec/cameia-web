@@ -14,12 +14,12 @@
  * punta a punta por primera vez.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter, Route, Routes } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import i18n from '@/i18n';
 import { httpClient } from '@/services/http/httpClient';
 import { setViewportMatches } from '@/test/matchMedia';
@@ -138,9 +138,7 @@ describe('EditProfilePage', () => {
     await user.selectOptions(educationSection.getByLabelText('Nivel educativo'), 'UNDERGRADUATE');
     await user.type(educationSection.getByLabelText('Título obtenido'), 'Ingeniería de Sistemas');
     await user.type(educationSection.getByLabelText('Institución'), 'Universidad del Cauca');
-    fireEvent.change(educationSection.getByLabelText('Fecha de inicio'), {
-      target: { value: '2018-01-01' },
-    });
+    await user.type(educationSection.getByLabelText('Fecha de inicio'), '012018');
     await user.click(educationSection.getByRole('button', { name: 'Agregar formación' }));
 
     expect(await screen.findByText('Ingeniería de Sistemas')).toBeInTheDocument();
@@ -258,9 +256,7 @@ describe('EditProfilePage', () => {
     await user.selectOptions(educationSection.getByLabelText('Nivel educativo'), 'UNDERGRADUATE');
     await user.type(educationSection.getByLabelText('Título obtenido'), 'Ingeniería de Sistemas');
     await user.type(educationSection.getByLabelText('Institución'), 'Universidad del Cauca');
-    fireEvent.change(educationSection.getByLabelText('Fecha de inicio'), {
-      target: { value: '2018-01-01' },
-    });
+    await user.type(educationSection.getByLabelText('Fecha de inicio'), '012018');
     await user.click(educationSection.getByRole('button', { name: 'Agregar formación' }));
     await screen.findByText('Ingeniería de Sistemas');
 
@@ -301,9 +297,7 @@ describe('EditProfilePage', () => {
     await user.selectOptions(educationSection.getByLabelText('Nivel educativo'), 'UNDERGRADUATE');
     await user.type(educationSection.getByLabelText('Título obtenido'), 'Ingeniería de Sistemas');
     await user.type(educationSection.getByLabelText('Institución'), 'Universidad del Cauca');
-    fireEvent.change(educationSection.getByLabelText('Fecha de inicio'), {
-      target: { value: '2018-01-01' },
-    });
+    await user.type(educationSection.getByLabelText('Fecha de inicio'), '012018');
     await user.click(educationSection.getByRole('button', { name: 'Agregar formación' }));
     await screen.findByText('Ingeniería de Sistemas');
 
@@ -353,9 +347,7 @@ describe('EditProfilePage', () => {
     await user.selectOptions(educationSection.getByLabelText('Nivel educativo'), 'UNDERGRADUATE');
     await user.type(educationSection.getByLabelText('Título obtenido'), 'Ingeniería de Sistemas');
     await user.type(educationSection.getByLabelText('Institución'), 'Universidad del Cauca');
-    fireEvent.change(educationSection.getByLabelText('Fecha de inicio'), {
-      target: { value: '2018-01-01' },
-    });
+    await user.type(educationSection.getByLabelText('Fecha de inicio'), '012018');
     await user.click(educationSection.getByRole('button', { name: 'Agregar formación' }));
     await screen.findByText('Ingeniería de Sistemas');
 
@@ -917,5 +909,82 @@ describe('EditProfilePage · Información General: errores y autoguardado (CM-27
         summary: SAVED_SUMMARY,
       });
     });
+  });
+});
+
+/**
+ * CM-273 (PR 1, `SPEC.md` §3.3 y D-M): el mes actual en UTC lo calcula la PÁGINA y lo pasa como propiedad
+ * a las dos secciones (experiencia y formación). Aquí SÍ se fija la fecha, porque la página es la que lee
+ * el reloj: solo se simula `Date` (`toFake: ['Date']`), no los temporizadores, para no frenar a `userEvent`,
+ * TanStack Query ni MSW. El instante elegido es el 1-nov-2026 04:30 UTC, que en Bogotá (UTC-5) todavía es
+ * 31-oct 23:30: el mes UTC es noviembre y el local es octubre, así que «11/2026» solo se acepta si la
+ * página usa UTC (RT-07-CA04) y «12/2026» se rechaza con cualquiera de los dos.
+ */
+describe('EditProfilePage · mes actual en UTC (CM-273, D-M)', () => {
+  const FUTURE = 'La fecha no puede ser posterior al mes actual.';
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+  });
+
+  async function renderWithFixedClock() {
+    await waitUntilReady();
+    setViewportMatches(true);
+    const created = await createProfile();
+    vi.stubEnv('TZ', 'America/Bogota');
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-01T04:30:00Z'));
+
+    renderPage(created.id);
+    await screen.findByRole('heading', { name: 'Editar perfil profesional' });
+
+    return {
+      education: within(screen.getByRole('region', { name: 'Formación académica' })),
+      experience: within(screen.getByRole('region', { name: 'Experiencia Laboral' })),
+    };
+  }
+
+  it('la sección de formación acepta el mes UTC actual (noviembre) y rechaza el siguiente (diciembre)', async () => {
+    const user = userEvent.setup();
+    const { education } = await renderWithFixedClock();
+
+    await user.selectOptions(education.getByLabelText('Nivel educativo'), 'UNDERGRADUATE');
+    await user.type(education.getByLabelText('Título obtenido'), 'Ingeniería de Sistemas');
+    await user.type(education.getByLabelText('Institución'), 'Universidad del Cauca');
+
+    await user.type(education.getByLabelText('Fecha de inicio'), '122026');
+    await user.click(education.getByRole('button', { name: 'Agregar formación' }));
+
+    expect(await education.findByText(FUTURE)).toBeInTheDocument();
+    expect(education.queryByText('Ingeniería de Sistemas')).not.toBeInTheDocument();
+
+    await user.clear(education.getByLabelText('Fecha de inicio'));
+    await user.type(education.getByLabelText('Fecha de inicio'), '112026');
+    await user.click(education.getByRole('button', { name: 'Agregar formación' }));
+
+    expect(await education.findByText('Formación agregada.')).toBeInTheDocument();
+    expect(education.getByText('Ingeniería de Sistemas')).toBeInTheDocument();
+  });
+
+  it('la sección de experiencia recibe el mismo mes: acepta noviembre y rechaza diciembre', async () => {
+    const user = userEvent.setup();
+    const { experience } = await renderWithFixedClock();
+
+    await user.type(experience.getByLabelText('Cargo'), 'Desarrolladora backend');
+    await user.type(experience.getByLabelText('Empresa'), 'CAMEIA');
+    await user.click(experience.getByText('Trabajo aquí actualmente'));
+
+    await user.type(experience.getByLabelText('Fecha de inicio'), '122026');
+    await user.click(experience.getByRole('button', { name: 'Agregar experiencia' }));
+
+    expect(await experience.findByText(FUTURE)).toBeInTheDocument();
+    expect(experience.queryByText('Experiencia agregada.')).not.toBeInTheDocument();
+
+    await user.clear(experience.getByLabelText('Fecha de inicio'));
+    await user.type(experience.getByLabelText('Fecha de inicio'), '112026');
+    await user.click(experience.getByRole('button', { name: 'Agregar experiencia' }));
+
+    expect(await experience.findByText('Experiencia agregada.')).toBeInTheDocument();
   });
 });

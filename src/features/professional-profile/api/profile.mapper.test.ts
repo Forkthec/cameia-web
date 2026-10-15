@@ -1,8 +1,9 @@
 /**
- * Protege las dos derivaciones que CM-61 agrega al mapper: truncado de
- * fecha a `YearMonth` y la traducción de los dos checkboxes de Experiencia
- * Laboral (`isCurrent`/`unknownEnd`) al `employmentStatus` real (SPEC.md
- * §9, decisión D-F). CM-65 (Habilidades) y CM-69 (Roles Objetivo) no
+ * Protege la derivación que CM-61 agrega al mapper: la traducción de los
+ * dos checkboxes de Experiencia Laboral (`isCurrent`/`unknownEnd`) al
+ * `employmentStatus` real (SPEC.md §9, decisión D-F). CM-273 (PR 1) quita
+ * de aquí el truncado de fecha a `YearMonth`: el esquema de Zod ya entrega
+ * «AAAA-MM» (D-K) y el mapper deja de convertir. CM-65 (Habilidades) y CM-69 (Roles Objetivo) no
  * derivan nada real: solo protegen que la procedencia manual se fije
  * siempre (`MANUAL_PROVENANCE`). No repite la cobertura de `toProfile`, ya
  * protegida indirectamente por `useProfileQuery.test.tsx` contra MSW.
@@ -49,14 +50,16 @@ describe('toProfile', () => {
 });
 
 describe('toAddEducationRequest', () => {
-  it('trunca las fechas a YYYY-MM', () => {
+  // CM-273 (PR 1, SPEC.md §3.3 y D-K): el esquema de Zod ya entrega «AAAA-MM»; el mapper deja de convertir
+  // fechas (se quitó la prueba «trunca las fechas a YYYY-MM»).
+  it('manda las fechas tal como las entrega el formulario, en «AAAA-MM»', () => {
     const request = toAddEducationRequest({
       ...EMPTY_EDUCATION_VALUES,
       level: 'UNDERGRADUATE',
       degree: 'Ingeniería de Sistemas',
       institution: 'Universidad del Cauca',
-      startDate: '2018-01-15',
-      endDate: '2023-12-01',
+      startDate: '2018-01',
+      endDate: '2023-12',
     });
 
     expect(request.startDate).toBe('2018-01');
@@ -69,9 +72,22 @@ describe('toAddEducationRequest', () => {
       level: 'UNDERGRADUATE',
       degree: 'Ingeniería de Sistemas',
       institution: 'Universidad del Cauca',
-      startDate: '2018-01-15',
-      endDate: '2023-12-01',
+      startDate: '2018-01',
+      endDate: '2023-12',
       inProgress: true,
+    });
+
+    expect(request.endDate).toBeNull();
+  });
+
+  it('una fecha de fin vacía se manda como null', () => {
+    const request = toAddEducationRequest({
+      ...EMPTY_EDUCATION_VALUES,
+      level: 'UNDERGRADUATE',
+      degree: 'Ingeniería de Sistemas',
+      institution: 'Universidad del Cauca',
+      startDate: '2018-01',
+      endDate: '',
     });
 
     expect(request.endDate).toBeNull();
@@ -79,16 +95,19 @@ describe('toAddEducationRequest', () => {
 });
 
 describe('toAddWorkExperienceRequest', () => {
-  it('ningún checkbox marcado deriva ENDED con la fecha de fin truncada', () => {
+  // CM-273 (PR 1, SPEC.md §3.3 y D-K): se quitó la parte de recorte de la prueba «ningún checkbox marcado
+  // deriva ENDED con la fecha de fin truncada»; la derivación de `employmentStatus` (D-F) no cambia.
+  it('ningún checkbox marcado deriva ENDED y manda las fechas tal como las entrega el formulario, en «AAAA-MM»', () => {
     const request = toAddWorkExperienceRequest({
       ...EMPTY_WORK_EXPERIENCE_VALUES,
       position: 'Desarrolladora backend',
       company: 'CAMEIA',
-      startDate: '2022-01-15',
-      endDate: '2023-06-20',
+      startDate: '2022-01',
+      endDate: '2023-06',
     });
 
     expect(request.employmentStatus).toBe('ENDED');
+    expect(request.startDate).toBe('2022-01');
     expect(request.endDate).toBe('2023-06');
   });
 
@@ -97,7 +116,7 @@ describe('toAddWorkExperienceRequest', () => {
       ...EMPTY_WORK_EXPERIENCE_VALUES,
       position: 'Desarrolladora backend',
       company: 'CAMEIA',
-      startDate: '2022-01-15',
+      startDate: '2022-01',
       isCurrent: true,
     });
 
@@ -110,7 +129,7 @@ describe('toAddWorkExperienceRequest', () => {
       ...EMPTY_WORK_EXPERIENCE_VALUES,
       position: 'Desarrolladora backend',
       company: 'CAMEIA',
-      startDate: '2022-01-15',
+      startDate: '2022-01',
       unknownEnd: true,
     });
 
@@ -123,7 +142,7 @@ describe('toAddWorkExperienceRequest', () => {
       ...EMPTY_WORK_EXPERIENCE_VALUES,
       position: 'Desarrolladora backend',
       company: 'CAMEIA',
-      startDate: '2022-01-15',
+      startDate: '2022-01',
       isCurrent: true,
       description: '   ',
     });

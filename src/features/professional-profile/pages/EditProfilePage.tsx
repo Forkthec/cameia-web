@@ -78,6 +78,7 @@ import { AlertInline } from '@/design-system/molecules/AlertInline';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { ApiError } from '@/services/http/ApiError';
 import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
+import { getCurrentUtcYearMonth } from '@/utils/monthMask';
 import { useAddEducation } from '../hooks/useAddEducation';
 import { useAddSkill } from '../hooks/useAddSkill';
 import { useAddTargetRole } from '../hooks/useAddTargetRole';
@@ -126,6 +127,15 @@ export function EditProfilePage() {
   const profileId = id as string;
   const { t, i18n } = useTranslation(['profile', 'common', 'errors']);
   const isDesktop = useMediaQuery(DESKTOP_MEDIA_QUERY);
+  // El mes actual lo decide la página y se lo pasa a las dos secciones (D-M), para que compartan el valor.
+  const currentMonth = getCurrentUtcYearMonth();
+  const monthFieldTexts = {
+    placeholder: t('profile:fechas.placeholder'),
+    openPanelLabel: t('profile:fechas.selector.abrir'),
+    panelLabel: t('profile:fechas.selector.titulo'),
+    previousYearLabel: t('profile:fechas.selector.anioAnterior'),
+    nextYearLabel: t('profile:fechas.selector.anioSiguiente'),
+  };
 
   const profileQuery = useProfileQuery(profileId);
   const professionalRolesQuery = useProfessionalRolesQuery();
@@ -347,6 +357,11 @@ export function EditProfilePage() {
           formatItemPeriod={formatEducationPeriod}
           emptyStateTitle={t('profile:educacion.vacio.titulo')}
           emptyStateDescription={t('profile:educacion.vacio.descripcion')}
+          currentMonth={currentMonth}
+          locale={i18n.language}
+          monthFieldTexts={monthFieldTexts}
+          dateErrorFormat={t('profile:fechas.errorFormato')}
+          dateErrorFuture={t('profile:fechas.errorPosteriorMesActual')}
           addErrorMessage={
             addEducation.isError
               ? getItemErrorMessage(addEducation.error, t('profile:educacion.errorAgregar'), {
@@ -408,6 +423,11 @@ export function EditProfilePage() {
           formatItemPeriod={formatWorkExperiencePeriod}
           emptyStateTitle={t('profile:experiencia.vacio.titulo')}
           emptyStateDescription={t('profile:experiencia.vacio.descripcion')}
+          currentMonth={currentMonth}
+          locale={i18n.language}
+          monthFieldTexts={monthFieldTexts}
+          dateErrorFormat={t('profile:fechas.errorFormato')}
+          dateErrorFuture={t('profile:fechas.errorPosteriorMesActual')}
           addErrorMessage={
             addWorkExperience.isError
               ? getItemErrorMessage(

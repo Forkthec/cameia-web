@@ -33,7 +33,7 @@ describe('useAddWorkExperience', () => {
       ...EMPTY_WORK_EXPERIENCE_VALUES,
       position: 'Desarrolladora backend',
       company: 'CAMEIA',
-      startDate: '2022-01-15',
+      startDate: '2022-01',
       isCurrent: true,
     });
 
@@ -60,8 +60,8 @@ describe('useAddWorkExperience', () => {
       ...EMPTY_WORK_EXPERIENCE_VALUES,
       position: 'Desarrolladora backend',
       company: 'CAMEIA',
-      startDate: '2022-01-15',
-      endDate: '2020-01-01',
+      startDate: '2022-01',
+      endDate: '2020-01',
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
