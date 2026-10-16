@@ -274,14 +274,17 @@ export function WorkExperienceSection({
               key={item.id}
               className="gap-space-3 border-border-subtle p-space-4 flex items-start justify-between rounded-md border"
             >
-              <div className="gap-space-1 flex flex-col">
-                <p className="text-body text-text-primary font-semibold">{item.position}</p>
-                <p className="text-small text-text-muted">{item.company}</p>
-                <p className="text-small text-text-muted">{formatItemPeriod(item)}</p>
+              <div className="gap-space-1 flex min-w-0 flex-col">
+                <p className="text-body text-text-primary font-semibold wrap-anywhere">
+                  {item.position}
+                </p>
+                <p className="text-small text-text-muted wrap-anywhere">{item.company}</p>
+                <p className="text-small text-text-muted wrap-anywhere">{formatItemPeriod(item)}</p>
               </div>
               <Button
                 variant="icon"
                 size="sm"
+                className="shrink-0"
                 icon={<Icon name="trash" />}
                 onClick={() => void removeItem(item.id)}
                 disabled={removingId === item.id}
