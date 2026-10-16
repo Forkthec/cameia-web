@@ -34,7 +34,7 @@ describe('useAddEducation', () => {
       level: 'UNDERGRADUATE',
       degree: 'Ingeniería de Sistemas',
       institution: 'Universidad del Cauca',
-      startDate: '2018-01-15',
+      startDate: '2018-01',
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -64,7 +64,7 @@ describe('useAddEducation', () => {
       level: 'DOCTORADO',
       degree: 'Ingeniería de Sistemas',
       institution: 'Universidad del Cauca',
-      startDate: '2018-01-15',
+      startDate: '2018-01',
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));

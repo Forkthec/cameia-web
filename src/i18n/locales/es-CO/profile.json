@@ -50,6 +50,17 @@
     "guardandoBorrador": "Guardando…",
     "confirmacionGuardado": "Cambios guardados."
   },
+  "fechas": {
+    "errorFormato": "Ingresa una fecha válida con el formato mm/aaaa.",
+    "errorPosteriorMesActual": "La fecha no puede ser posterior al mes actual.",
+    "placeholder": "mm/aaaa",
+    "selector": {
+      "abrir": "Abrir selector de mes",
+      "titulo": "Elegir mes y año",
+      "anioAnterior": "Año anterior",
+      "anioSiguiente": "Año siguiente"
+    }
+  },
   "educacion": {
     "titulo": "Formación académica",
     "nivel": {
@@ -75,8 +86,8 @@
       "errorRequerido": "Ingresa la fecha de inicio."
     },
     "fechaFin": {
-      "etiqueta": "Año de finalización",
-      "errorAnterior": "La fecha de finalización no puede ser anterior a la de inicio."
+      "etiqueta": "Fecha de fin",
+      "errorAnterior": "La fecha de fin no puede ser anterior a la de inicio."
     },
     "enCurso": "En curso",
     "agregar": "Agregar formación",

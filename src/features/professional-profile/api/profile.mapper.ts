@@ -7,9 +7,9 @@
  * y `toAddWorkExperienceRequest` traducen los valores del formulario al
  * body real que exige el backend — es aquí, y no en los organismos, donde
  * vive la derivación de `employmentStatus` a partir de los dos checkboxes
- * (`isCurrent`/`unknownEnd`) y el truncado de fecha a `YearMonth`
- * (`model/yearMonth.ts`, bloqueo C-14): los organismos no conocen el
- * contrato, solo edición de UI (SPEC.md §9, decisión D-F).
+ * (`isCurrent`/`unknownEnd`): los organismos no conocen el contrato, solo
+ * edición de UI (SPEC.md §9, decisión D-F). Desde CM-273 (PR 1, D-K) el
+ * mapper ya no convierte fechas: el esquema de Zod entrega «AAAA-MM».
  *
  * CM-65 agrega Habilidades: `toAddSkillRequest` solo recorta y fija la
  * procedencia, sin derivar nada — no hay catálogo que traducir. CM-69
@@ -30,7 +30,6 @@ import type {
   TargetRoleItem,
   WorkExperienceItem,
 } from '../model/profile.types';
-import { toYearMonth } from '../model/yearMonth';
 import type { EducationFormValues } from '../schemas/education.schema';
 import type { SkillFormValues } from '../schemas/skill.schema';
 import type { WorkExperienceFormValues } from '../schemas/workExperience.schema';
@@ -127,8 +126,8 @@ export function toAddEducationRequest(values: EducationFormValues): AddEducation
     institution: values.institution.trim(),
     degree: values.degree.trim(),
     level: values.level,
-    startDate: toYearMonth(values.startDate),
-    endDate: !values.inProgress && values.endDate.length > 0 ? toYearMonth(values.endDate) : null,
+    startDate: values.startDate,
+    endDate: !values.inProgress && values.endDate.length > 0 ? values.endDate : null,
     inProgress: values.inProgress,
   };
 }
@@ -154,8 +153,8 @@ export function toAddWorkExperienceRequest(
     company: values.company.trim(),
     position: values.position.trim(),
     description: trimmedDescription.length > 0 ? trimmedDescription : null,
-    startDate: toYearMonth(values.startDate),
-    endDate: employmentStatus === 'ENDED' ? toYearMonth(values.endDate) : null,
+    startDate: values.startDate,
+    endDate: employmentStatus === 'ENDED' ? values.endDate : null,
     employmentStatus,
   };
 }
