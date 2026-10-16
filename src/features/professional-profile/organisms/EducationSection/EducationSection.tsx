@@ -34,6 +34,12 @@
  * (máscara «mm/aaaa» y panel de mes). El esquema se crea con el mes actual
  * que calcula la página (`currentMonth`) y entrega «AAAA-MM» a `onAdd`.
  *
+ * CM-273 (PR 2, SPEC.md §3.3 y D-V, D-AB, D-AC, D-AG): institución y título muestran su mensaje de longitud
+ * bajo el campo; con `maxItems` alcanzado el formulario sigue visible pero «Agregar» queda deshabilitado y el
+ * envío no sale. `onAdd` y `onRemove` devuelven la promesa de la mutación: la sección activa una guarda
+ * síncrona (`useRef`) al empezar, la suelta en `finally` y atrapa el rechazo sin propagarlo, porque el mensaje
+ * de error lo decide la página.
+ *
  * Sin `useTranslation` (CLAUDE.md §14.7, mismo patrón que `GeneralInfoForm`
  * y `ProfileMethodSelector`): todo texto visible entra por prop obligatoria.
  */
@@ -59,13 +65,17 @@ import {
   type EducationFormValues,
 } from '../../schemas/education.schema';
 
+/** `type` con el que `setError` marca un error que viene del servidor: su `message` ya es el texto final. */
+const SERVER_ERROR_TYPE = 'server';
+
 interface EducationSectionProps {
   /** Id del `<form>` de alta de un ítem nuevo. */
   formId: string;
   /** Formaciones ya persistidas, desde la caché de `useProfileQuery` — nunca estado de formulario. */
   items: EducationItem[];
-  onAdd: (values: EducationFormValues) => void;
-  onRemove: (educationId: string) => void;
+  /** Devuelve la promesa de la mutación; la sección atrapa su rechazo (el mensaje lo decide la página). */
+  onAdd: (values: EducationFormValues) => Promise<unknown>;
+  onRemove: (educationId: string) => Promise<unknown>;
   /** `true` mientras el `POST` de alta está en curso. */
   isAdding?: boolean;
   /** Id del ítem cuyo `DELETE` está en curso: solo ese botón queda deshabilitado y con carga. */
@@ -81,9 +91,13 @@ interface EducationSectionProps {
   degreeLabel: string;
   degreePlaceholder: string;
   degreeErrorRequired: string;
+  /** Mensaje de un título de más de 150 caracteres (CA-2.4.28). */
+  degreeErrorTooLong: string;
   institutionLabel: string;
   institutionPlaceholder: string;
   institutionErrorRequired: string;
+  /** Mensaje de una institución de más de 150 caracteres (CA-2.4.28). */
+  institutionErrorTooLong: string;
   startDateLabel: string;
   startDateErrorRequired: string;
   endDateLabel: string;
@@ -115,6 +129,15 @@ interface EducationSectionProps {
   dateErrorFormat: string;
   /** Mensaje de una fecha posterior al mes actual (CA-2.4.34 y 35). */
   dateErrorFuture: string;
+  /** Tope de formaciones (D-V); sin él la sección no limita el alta. */
+  maxItems?: number;
+  /** Mensaje que se muestra al alcanzar `maxItems` (CA-2.4.10). */
+  maxItemsMessage?: string;
+  /**
+   * Errores del servidor por campo (D-T), ya traducidos por la página: la sección solo los aplica con `setError`
+   * y no decide textos. Cada rechazo llega como un objeto nuevo, así que dos rechazos iguales se vuelven a pintar.
+   */
+  serverFieldErrors?: { startDate?: string; endDate?: string };
   addErrorMessage?: string;
   removeErrorMessage?: string;
   confirmationMessage?: string;
@@ -137,9 +160,11 @@ export function EducationSection({
   degreeLabel,
   degreePlaceholder,
   degreeErrorRequired,
+  degreeErrorTooLong,
   institutionLabel,
   institutionPlaceholder,
   institutionErrorRequired,
+  institutionErrorTooLong,
   startDateLabel,
   startDateErrorRequired,
   endDateLabel,
@@ -157,6 +182,9 @@ export function EducationSection({
   monthFieldTexts,
   dateErrorFormat,
   dateErrorFuture,
+  maxItems,
+  maxItemsMessage,
+  serverFieldErrors,
   addErrorMessage,
   removeErrorMessage,
   confirmationMessage,
@@ -164,7 +192,7 @@ export function EducationSection({
 }: EducationSectionProps) {
   const headingId = useId();
   const schema = useMemo(() => createEducationSchema(currentMonth), [currentMonth]);
-  const { control, handleSubmit, watch, setValue, reset } = useForm<
+  const { control, handleSubmit, watch, setValue, reset, setError } = useForm<
     EducationFormValues,
     unknown,
     EducationFormValues
@@ -178,6 +206,10 @@ export function EducationSection({
     if (code === educationSchemaErrorCodes.INVALID_DATE_FORMAT) return dateErrorFormat;
     if (code === educationSchemaErrorCodes.DATE_IN_FUTURE) return dateErrorFuture;
     return undefined;
+  }
+  /** Como `getDateRuleError`, y además devuelve tal cual el texto de un error del servidor (D-T). */
+  function getDateFieldError(error: { type?: string; message?: string } | undefined) {
+    return error?.type === SERVER_ERROR_TYPE ? error.message : getDateRuleError(error?.message);
   }
   // `watch` (no un <Controller> aparte) porque este valor decide si se
   // renderiza OTRO campo (endDate), no solo el suyo propio — no hay forma
@@ -193,6 +225,47 @@ export function EducationSection({
     }
     previousItemCount.current = items.length;
   }, [items.length, reset]);
+
+  useEffect(() => {
+    if (!serverFieldErrors) return;
+    if (serverFieldErrors.startDate) {
+      setError('startDate', { type: SERVER_ERROR_TYPE, message: serverFieldErrors.startDate });
+    }
+    if (serverFieldErrors.endDate) {
+      setError('endDate', { type: SERVER_ERROR_TYPE, message: serverFieldErrors.endDate });
+    }
+  }, [serverFieldErrors, setError]);
+
+  const isAtMax = maxItems !== undefined && items.length >= maxItems;
+
+  // Guardas síncronas (D-AC, D-AG): `disabled` llega con el re-render y dos envíos en el mismo turno lo
+  // atraviesan (DF-004); la `ref` se activa y se suelta con la promesa, no con `isAdding`.
+  const isAddingRef = useRef(false);
+  const removingIdsRef = useRef(new Set<string>());
+
+  async function addItem(values: EducationFormValues) {
+    if (isAddingRef.current) return;
+    isAddingRef.current = true;
+    try {
+      await onAdd(values);
+    } catch {
+      // El mensaje lo decide la página con el estado de la mutación, no con este rechazo (D-AG).
+    } finally {
+      isAddingRef.current = false;
+    }
+  }
+
+  async function removeItem(educationId: string) {
+    if (removingIdsRef.current.has(educationId)) return;
+    removingIdsRef.current.add(educationId);
+    try {
+      await onRemove(educationId);
+    } catch {
+      // Igual que en el alta: el error de la baja lo muestra la página (D-AG).
+    } finally {
+      removingIdsRef.current.delete(educationId);
+    }
+  }
 
   return (
     <section
@@ -215,16 +288,19 @@ export function EducationSection({
               key={item.id}
               className="gap-space-3 border-border-subtle p-space-4 flex items-start justify-between rounded-md border"
             >
-              <div className="gap-space-1 flex flex-col">
-                <p className="text-body text-text-primary font-semibold">{item.degree}</p>
-                <p className="text-small text-text-muted">{item.institution}</p>
-                <p className="text-small text-text-muted">{formatItemPeriod(item)}</p>
+              <div className="gap-space-1 flex min-w-0 flex-col">
+                <p className="text-body text-text-primary font-semibold wrap-anywhere">
+                  {item.degree}
+                </p>
+                <p className="text-small text-text-muted wrap-anywhere">{item.institution}</p>
+                <p className="text-small text-text-muted wrap-anywhere">{formatItemPeriod(item)}</p>
               </div>
               <Button
                 variant="icon"
                 size="sm"
+                className="shrink-0"
                 icon={<Icon name="trash" />}
-                onClick={() => onRemove(item.id)}
+                onClick={() => void removeItem(item.id)}
                 disabled={removingId === item.id}
                 {...buttonLoadingProps(removingId === item.id, removingItemLabel)}
               >
@@ -240,11 +316,21 @@ export function EducationSection({
       ) : null}
       {addErrorMessage ? <AlertInline variant="error">{addErrorMessage}</AlertInline> : null}
       {removeErrorMessage ? <AlertInline variant="error">{removeErrorMessage}</AlertInline> : null}
+      {isAtMax && maxItemsMessage ? (
+        <AlertInline variant="info">{maxItemsMessage}</AlertInline>
+      ) : null}
 
       <form
         id={formId}
         className="gap-space-4 flex flex-col"
-        onSubmit={(event) => void handleSubmit(onAdd)(event)}
+        onSubmit={(event) => {
+          // Enter dentro de un campo envía el formulario aunque el botón esté deshabilitado.
+          if (isAtMax) {
+            event.preventDefault();
+            return;
+          }
+          void handleSubmit(addItem)(event);
+        }}
         noValidate
       >
         <Controller
@@ -273,7 +359,13 @@ export function EducationSection({
           render={({ field, fieldState }) => (
             <FormField
               label={degreeLabel}
-              error={fieldState.error?.type === 'too_small' ? degreeErrorRequired : undefined}
+              error={
+                fieldState.error?.type === 'too_small'
+                  ? degreeErrorRequired
+                  : fieldState.error?.type === 'too_big'
+                    ? degreeErrorTooLong
+                    : undefined
+              }
             >
               <Input
                 value={field.value}
@@ -292,7 +384,13 @@ export function EducationSection({
           render={({ field, fieldState }) => (
             <FormField
               label={institutionLabel}
-              error={fieldState.error?.type === 'too_small' ? institutionErrorRequired : undefined}
+              error={
+                fieldState.error?.type === 'too_small'
+                  ? institutionErrorRequired
+                  : fieldState.error?.type === 'too_big'
+                    ? institutionErrorTooLong
+                    : undefined
+              }
             >
               <Input
                 value={field.value}
@@ -314,7 +412,7 @@ export function EducationSection({
               error={
                 fieldState.error?.type === 'too_small'
                   ? startDateErrorRequired
-                  : getDateRuleError(fieldState.error?.message)
+                  : getDateFieldError(fieldState.error)
               }
             >
               <MonthField
@@ -341,7 +439,7 @@ export function EducationSection({
                 error={
                   fieldState.error?.message === educationSchemaErrorCodes.END_BEFORE_START
                     ? endDateErrorBeforeStart
-                    : getDateRuleError(fieldState.error?.message)
+                    : getDateFieldError(fieldState.error)
                 }
               >
                 <MonthField
@@ -381,6 +479,7 @@ export function EducationSection({
           variant="tertiary"
           icon={<Icon name="plus" />}
           className="self-start"
+          disabled={isAtMax}
           {...buttonLoadingProps(isAdding, addingButtonLabel)}
         >
           {addButtonLabel}

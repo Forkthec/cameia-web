@@ -68,6 +68,10 @@ export const SKILL_NAME_MAX_LENGTH = 60;
 
 export const SKILLS_MAX_COUNT = 20;
 
+/** Topes de HU-2.4 (CA-2.4.10 y 47). El backend no los publica (`ProfessionalProfile.java:42,44`); el 409 sigue siendo la verdad final (D-V). */
+export const WORK_EXPERIENCE_MAX_COUNT = 4;
+export const EDUCATION_MAX_COUNT = 5;
+
 export const EDUCATION_LEVELS: readonly EducationLevel[] = [
   'TECHNICAL',
   'UNDERGRADUATE',

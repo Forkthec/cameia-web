@@ -58,8 +58,8 @@ export interface WorkExperienceDto {
   company: string;
   position: string;
   description: string | null;
-  /** `"YYYY-MM"` (backend real: `java.time.YearMonth`, sin día). */
-  startDate: string;
+  /** `"YYYY-MM"` (backend real: `java.time.YearMonth`, sin día); `null` si no se registró (CM-273, PR 2). */
+  startDate: string | null;
   endDate: string | null;
   employmentStatus: string;
   provenance: string;
@@ -138,7 +138,7 @@ export interface AddWorkExperienceRequestDto {
   company: string;
   position: string;
   description: string | null;
-  startDate: string;
+  startDate: string | null;
   endDate: string | null;
   employmentStatus: string;
 }

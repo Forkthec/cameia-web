@@ -728,3 +728,246 @@ describe('profilesHandlers', () => {
     expect(updated.targetRoles).toHaveLength(0);
   });
 });
+
+/*
+ * CM-273 (PR 2, `SPEC.md` §3.3, «Mock»): SOLO adiciones al mock. Estas pruebas protegen lo que el mock agrega
+ * (inicio opcional de la experiencia, topes de 4 y 5 con 409 y su `code`, última formación de un perfil
+ * `COMPLETED` con 409 `EDUCATION_NOT_ALLOWED`, `code` en los 404 de bajas) y que lo que ya hacía sigue igual.
+ * Los dos casos con 400 (`:276-292` y `:433-452` de este archivo, bloqueo C-20) no se tocan.
+ */
+describe('profilesHandlers · HU-2.4 (CM-273, PR 2)', () => {
+  beforeEach(() => {
+    resetProfiles();
+  });
+
+  const education = (degree: string) => ({
+    institution: 'Universidad del Cauca',
+    degree,
+    level: 'UNDERGRADUATE',
+    startDate: '2018-01',
+    endDate: '2023-12',
+    inProgress: false,
+  });
+
+  const experience = (position: string) => ({
+    company: 'CAMEIA',
+    position,
+    description: null,
+    startDate: '2024-01',
+    endDate: null,
+    employmentStatus: 'CURRENT',
+  });
+
+  async function newProfile() {
+    return httpClient.post<ProfileResponse>('/api/v1/profiles', { name: 'Perfil de prueba' });
+  }
+
+  async function failureOf(request: Promise<unknown>): Promise<ApiError> {
+    const error = await request.catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ApiError);
+    return error as ApiError;
+  }
+
+  describe('inicio opcional de la experiencia (CA-2.4.15, 22, 23, 53)', () => {
+    it('una experiencia sin ninguna fecha ni descripción se guarda con startDate null (CA-2.4.15 y CA-2.4.53)', async () => {
+      const created = await newProfile();
+
+      const updated = await httpClient.post<
+        ProfileResponse & { workExperiences: { startDate: string | null }[] }
+      >(`/api/v1/profiles/${created.id}/work-experiences`, {
+        company: 'CAMEIA',
+        position: 'Desarrolladora backend',
+        description: null,
+        startDate: null,
+        endDate: null,
+        employmentStatus: 'UNKNOWN_END',
+      });
+
+      expect(updated.workExperiences).toHaveLength(1);
+      expect(updated.workExperiences[0]?.startDate).toBeNull();
+    });
+
+    it('una experiencia terminada con solo la fecha de fin se guarda con startDate null (CA-2.4.22)', async () => {
+      const created = await newProfile();
+
+      const updated = await httpClient.post<
+        ProfileResponse & {
+          workExperiences: { startDate: string | null; endDate: string | null }[];
+        }
+      >(`/api/v1/profiles/${created.id}/work-experiences`, {
+        company: 'CAMEIA',
+        position: 'Desarrolladora backend',
+        description: null,
+        endDate: '2023-03',
+        employmentStatus: 'ENDED',
+      });
+
+      expect(updated.workExperiences[0]?.startDate).toBeNull();
+      expect(updated.workExperiences[0]?.endDate).toBe('2023-03');
+    });
+
+    it('una experiencia terminada sin fecha de fin sigue fallando con 422 (la regla de `WorkExperience.java` no cambia)', async () => {
+      const created = await newProfile();
+
+      const error = await failureOf(
+        httpClient.post(`/api/v1/profiles/${created.id}/work-experiences`, {
+          company: 'CAMEIA',
+          position: 'Desarrolladora backend',
+          startDate: '2024-01',
+          employmentStatus: 'ENDED',
+        }),
+      );
+
+      expect(error.httpStatus).toBe(422);
+    });
+  });
+
+  describe('topes de 4 experiencias y 5 formaciones (CA-2.4.47 a CA-2.4.49)', () => {
+    it('la cuarta experiencia se guarda y la quinta responde 409 WORK_EXPERIENCE_LIMIT_REACHED', async () => {
+      const created = await newProfile();
+      for (const position of ['Uno', 'Dos', 'Tres', 'Cuatro']) {
+        await httpClient.post(
+          `/api/v1/profiles/${created.id}/work-experiences`,
+          experience(position),
+        );
+      }
+
+      const error = await failureOf(
+        httpClient.post(`/api/v1/profiles/${created.id}/work-experiences`, experience('Cinco')),
+      );
+
+      expect(error.httpStatus).toBe(409);
+      expect(error.hasCode('WORK_EXPERIENCE_LIMIT_REACHED')).toBe(true);
+      const profile = await httpClient.get<ProfileResponse & { workExperiences: unknown[] }>(
+        `/api/v1/profiles/${created.id}`,
+      );
+      expect(profile.workExperiences).toHaveLength(4);
+    });
+
+    it('la quinta formación se guarda y la sexta responde 409 EDUCATION_LIMIT_REACHED', async () => {
+      const created = await newProfile();
+      for (const degree of ['Uno', 'Dos', 'Tres', 'Cuatro', 'Cinco']) {
+        await httpClient.post(`/api/v1/profiles/${created.id}/educations`, education(degree));
+      }
+
+      const error = await failureOf(
+        httpClient.post(`/api/v1/profiles/${created.id}/educations`, education('Seis')),
+      );
+
+      expect(error.httpStatus).toBe(409);
+      expect(error.hasCode('EDUCATION_LIMIT_REACHED')).toBe(true);
+      const profile = await httpClient.get<ProfileResponse & { educations: unknown[] }>(
+        `/api/v1/profiles/${created.id}`,
+      );
+      expect(profile.educations).toHaveLength(5);
+    });
+  });
+
+  describe('bajas: última formación de un perfil activo y registros que no existen (CA-2.4.11, 37, 38, 46, 51, 58 y 59)', () => {
+    const seedEducation = (id: string, degree: string) => ({
+      id,
+      institution: 'Universidad del Cauca',
+      degree,
+      level: 'UNDERGRADUATE' as const,
+      startDate: '2018-01',
+      endDate: '2023-12',
+      inProgress: false,
+      provenance: 'MANUAL' as const,
+    });
+
+    it('eliminar la única formación de un perfil COMPLETED responde 409 EDUCATION_NOT_ALLOWED y no elimina nada (CA-2.4.37)', async () => {
+      const seeded = seedProfileForTests({
+        status: 'COMPLETED',
+        educations: [seedEducation('education-seed-1', 'Ingeniería de Sistemas')],
+      });
+
+      const error = await failureOf(
+        httpClient.del(`/api/v1/profiles/${seeded.id}/educations/education-seed-1`),
+      );
+
+      expect(error.httpStatus).toBe(409);
+      expect(error.hasCode('EDUCATION_NOT_ALLOWED')).toBe(true);
+      const profile = await httpClient.get<ProfileResponse & { educations: unknown[] }>(
+        `/api/v1/profiles/${seeded.id}`,
+      );
+      expect(profile.educations).toHaveLength(1);
+    });
+
+    it('eliminar una de dos formaciones de un perfil COMPLETED responde 204 (CA-2.4.46)', async () => {
+      const seeded = seedProfileForTests({
+        status: 'COMPLETED',
+        educations: [
+          seedEducation('education-seed-1', 'Uno'),
+          seedEducation('education-seed-2', 'Dos'),
+        ],
+      });
+
+      await httpClient.del(`/api/v1/profiles/${seeded.id}/educations/education-seed-1`);
+
+      const profile = await httpClient.get<ProfileResponse & { educations: unknown[] }>(
+        `/api/v1/profiles/${seeded.id}`,
+      );
+      expect(profile.educations).toHaveLength(1);
+    });
+
+    it('eliminar la única formación de un perfil en Borrador responde 204, sin protección de mínimos (CA-2.4.11)', async () => {
+      const seeded = seedProfileForTests({
+        educations: [seedEducation('education-seed-1', 'Ingeniería de Sistemas')],
+      });
+
+      await httpClient.del(`/api/v1/profiles/${seeded.id}/educations/education-seed-1`);
+
+      const profile = await httpClient.get<ProfileResponse & { educations: unknown[] }>(
+        `/api/v1/profiles/${seeded.id}`,
+      );
+      expect(profile.educations).toHaveLength(0);
+    });
+
+    it('eliminar la única experiencia de un perfil COMPLETED responde 204 (CA-2.4.38)', async () => {
+      const seeded = seedProfileForTests({
+        status: 'COMPLETED',
+        workExperiences: [
+          {
+            id: 'work-experience-seed-1',
+            company: 'CAMEIA',
+            position: 'Desarrolladora backend',
+            description: null,
+            startDate: '2024-01',
+            endDate: null,
+            employmentStatus: 'CURRENT',
+            provenance: 'MANUAL',
+          },
+        ],
+      });
+
+      await httpClient.del(`/api/v1/profiles/${seeded.id}/work-experiences/work-experience-seed-1`);
+
+      const profile = await httpClient.get<ProfileResponse & { workExperiences: unknown[] }>(
+        `/api/v1/profiles/${seeded.id}`,
+      );
+      expect(profile.workExperiences).toHaveLength(0);
+    });
+
+    it('eliminar una formación que no existe responde 404 EDUCATION_NOT_FOUND (CA-2.4.58)', async () => {
+      const created = await newProfile();
+
+      const error = await failureOf(
+        httpClient.del(`/api/v1/profiles/${created.id}/educations/no-existe`),
+      );
+
+      expect(error.httpStatus).toBe(404);
+      expect(error.hasCode('EDUCATION_NOT_FOUND')).toBe(true);
+    });
+
+    it('eliminar una experiencia que no existe responde 404 WORK_EXPERIENCE_NOT_FOUND (CA-2.4.59)', async () => {
+      const created = await newProfile();
+
+      const error = await failureOf(
+        httpClient.del(`/api/v1/profiles/${created.id}/work-experiences/no-existe`),
+      );
+
+      expect(error.httpStatus).toBe(404);
+      expect(error.hasCode('WORK_EXPERIENCE_NOT_FOUND')).toBe(true);
+    });
+  });
+});

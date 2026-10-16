@@ -9,7 +9,7 @@ documentacion: tsdoc-es
 backlog: 09102026_01
 decisiones: [10092026_v1, 11092026_v2, 11092026_v1, 13092026_v1]
 figma: Cameia · Mockups MVP
-revisado: 2026-10-14
+revisado: 2026-10-16
 ---
 
 # Feature · Perfil Profesional
@@ -526,6 +526,10 @@ cumplido; QA prueba el backlog literal, no este SPEC (lección de DF-004).
   (`EditProfilePage.tsx:211`, `:214`) sobre un objeto literal, así que un `code` llamado
   `constructor` o `toString` devolvería una propiedad del prototipo. Hoy no ocurre (los códigos
   reales son `UPPER_SNAKE_CASE`). No es de esta tarjeta; solo se anota.
+- **Actualización (16-oct-2026, CM-273 PR 2).** La viñeta «Campos de HU-2.4 y del registro: siguen con el tope» de esta lista
+  deja de ser cierta con el PR 2 de CM-273: la descripción de `WorkExperienceSection` pierde su `maxLength` y cargo, empresa,
+  institución y título obtenido ganan su mensaje de longitud (CA-2.4.12, 18 y 28). Ver §3.3 («Alcance de CM-273 · PR 2») y
+  D-X en §9. El texto de arriba se conserva como historia.
 
 ### 3.3 · `/perfiles/:id/editar` — Formación académica y Experiencia Laboral · `PRT-02.03` · CM-61
 
@@ -733,6 +737,317 @@ prueba el servidor real: ningún criterio está verificado contra el servidor.
 - **Aplazados al Sprint 4 (2):** CA-2.4.45 y CA-2.4.50 (`Idempotency-Key`). La guarda de doble envío
   (RT-06-CA01) entra en el PR 2, no en este.
 - **Desalineación del mock `profiles.handlers.ts` (C-20):** se mantiene fuera de CM-273; el PR 1 no toca el mock.
+
+**Alcance de CM-273 · PR 2 (HU-2.4, 16-oct-2026) — IMPLEMENTADO (16-oct-2026), pendiente de la prueba manual y de QA.**
+Este bloque se escribió **antes** que las pruebas y el código (SDD, paso 3) y se actualizó al cerrar la
+implementación (paso 5) con el análisis final (Fase 8 de `analisis/13102026_01_CM-273_analisis_lectura.md`,
+fuera del repositorio). Las citas `archivo:línea` de los apartados «**Hoy**» describen `develop` en `4579675`
+(PR 1 ya mergeado), **antes** de este PR: son la historia del defecto, no el estado actual. CUMPLIDO significa
+**en el cliente y contra el mock**, con prueba en verde y literal exacto del backlog en es-CO (y la llave en
+`en`); ningún criterio está verificado contra el servidor real. Las decisiones del 16-oct-2026 son D-T a D-AH
+de §9 (D-AH, texto largo sin espacios en la tarjeta, salió de la prueba manual); aquí se citan por esa letra.
+
+**Contraste con el backlog (nota fijada el 16-oct-2026).** HU-2.4 contrastada con la v7 y comprobada por el
+autor contra la v8.1: los 59 criterios no cambian en Dado, Cuando, Entonces, tipo ni prototipo; la v8.2 solo
+cambia «deshabilitar» por «ocultar» en Fecha de fin. La columna O41 trae además literales de caracteres de
+control, fuera de CM-273. El campo `backlog` del encabezado no cambia (D-Z).
+
+Alcance del PR 2: **CA-2.4.1, 7, 8, 10, 11, 12, 13, 15, 17, 18, 19, 21, 22, 23, 27, 28, 29, 32, 36, 37, 38,
+39, 42, 46, 47, 48, 49, 51, 52, 53, 56, 58 y 59** (33 de los 51 criterios con trabajo de front) **más la guarda
+de doble envío** (RT-06-CA01, lección de DF-004; no es un criterio numerado). Estado al abrir el PR: 0
+CUMPLIDO, 12 PARCIAL (CA-2.4.1, 7, 8, 13, 17, 19, 21, 27, 29, 32, 48, 49) y 21 NO CUMPLIDO. **Estado al cerrar la
+implementación (16-oct-2026): 33 CUMPLIDO, 0 PARCIAL, 0 NO CUMPLIDO**, con 820 pruebas en verde (120 archivos),
+`typecheck`, `lint` y `format:check` limpios, `build` correcto y cobertura global de 92,34 % de líneas (91,96 % de
+sentencias). La prueba manual contra el backend real (guía `pruebas-manuales/16102026_01_CM-273_PR2_guia.md`,
+fuera del repositorio) y QA siguen **PENDIENTES**.
+
+**Qué hace el PR 2, por tema (los criterios van en las tablas de abajo).**
+
+1. **Periodos (CA-2.4.1, 7, 8, 13, 15, 29, 42, 56).**
+   - **Hoy:** `PAGE:258-266` y `:268-280` pintan «junio de 2024 - actual» (`formatYearMonth`, `yearMonth.ts:16-27`,
+     `Intl` con mes largo; plantillas `profile.json:97-98` y `:145-147`, con guion corto «-»); un fin nulo de
+     formación se pinta «—» (`PAGE:265`); con `startDate` nulo `formatYearMonth` lanza en `yearMonth.ts:17`
+     (hipótesis leída, no reproducida).
+   - **Implementado:** los periodos usan «mm/aaaa» y el separador «–». Formas exigidas por el backlog:
+     «06/2024 – actual», «02/2025 – en curso», «02/2025 – Sin fecha de fin», «Sin fechas», «Sin fecha de
+     inicio – actual», «06/2024 – Fin no registrado», «05/2024 – 05/2024» y «02/2025 – 02/2025».
+     Según el estado y la presencia de fechas:
+     - experiencia `CURRENT`: `periodoActual` con el inicio; sin inicio, con la pieza «Sin fecha de inicio»;
+     - experiencia `UNKNOWN_END`: con inicio, `periodoFinDesconocido` («{{inicio}} – Fin no registrado»); sin
+       inicio, «Sin fechas» (llave `experiencia.periodoSinFechas`);
+     - experiencia `ENDED`: `periodo` («{{inicio}} – {{fin}}»); sin inicio, con la pieza «Sin fecha de inicio»
+       en lugar del inicio, es decir «Sin fecha de inicio – 06/2024» (D-U);
+     - formación: `periodoEnCurso`, `periodo` y, con fin nulo, `educacion.periodoSinFin`
+       («{{inicio}} – Sin fecha de fin»).
+   - **La pieza «Sin fecha de inicio»** es una llave nueva (`experiencia.sinFechaInicio`) que CA-2.4.42 ya obliga
+     a crear; el periodo «Sin fecha de inicio – actual» sale de `periodoActual` con la pieza como `inicio`. Con
+     ella, el periodo de una experiencia terminada sin inicio no necesita ningún literal que el backlog no
+     tenga (D-U).
+   - **Punto de implementación resuelto (no era decisión del PO):** el texto «mm/aaaa» de cada mes sale de
+     `formatMonthValue` (`src/utils/monthMask.ts:53`, ya probado, igual en los dos idiomas) y no de `Intl`
+     (`CLAUDE.md` §7 pide `Intl` para fechas; el PR 1 ya usa funciones manuales en `monthMask.ts`, D-L). Los dos
+     formateadores son `formatWorkExperiencePeriod` y `formatEducationPeriod` en `model/yearMonth.ts`, con la
+     firma `(item, t)`. `formatYearMonth` quedó sin consumidores y se borró con su prueba.
+   - Los textos en inglés son traducción de trabajo (`CLAUDE.md` §7).
+2. **Inicio opcional de experiencia (CA-2.4.15, 22, 23, 53).**
+   - **Hoy:** `WorkExperience` exige el inicio en tres sitios: `workExperience.schema.ts:45` (`z.string().min(1)`),
+     `profile.mapper.ts:156` (`startDate: values.startDate`) y los tipos (`profile.types.ts:75`,
+     `profile.dto.ts:62` y `:141`, `string`); el mock lo exige en `profiles.handlers.ts:427`. El servidor ya lo
+     acepta (`WorkExperience.java:138-140`) y, sin ninguna fecha, no lee la réplica (`ProfileAppService.java:159-161`).
+   - **Implementado:** el esquema deja de exigirlo (el resto ya servía: `workExperience.schema.ts:52-53` no valida un
+     inicio vacío y `:80` solo compara si hay inicio); el mapper envía `null` si está vacío; `WorkExperienceDto.startDate`,
+     `AddWorkExperienceRequestDto.startDate` y `WorkExperienceItem.startDate` admiten `null` (solo ensanchan).
+     El mock acepta `startDate` ausente o nulo. «Fecha de inicio» deja de ser obligatoria en la experiencia y
+     sigue obligatoria en la formación.
+3. **Longitudes y contador (CA-2.4.12, 17, 18, 19, 27, 28).**
+   - **Hoy:** los campos solo pintan texto con el error `too_small` (`WES:240`, `:259`; `EDS:256`, `:276`, `:295`),
+     así que un exceso deja el campo en rojo sin texto; los cuatro mensajes de «no puede superar» no existen
+     en es-CO ni en en; la descripción lleva `maxLength` (`WES:383`) y el contador usa `field.value.length`
+     (`WES:388`).
+   - **Implementado:** llaves nuevas `experiencia.empresa.errorLongitud`, `experiencia.cargo.errorLongitud`,
+     `experiencia.descripcion.errorLongitud`, `educacion.institucion.errorLongitud` y
+     `educacion.tituloObtenido.errorLongitud` (literales del backlog); las secciones reciben el texto por
+     propiedad (`positionErrorTooLong`, `companyErrorTooLong`, `descriptionErrorTooLong`, `degreeErrorTooLong` e
+     `institutionErrorTooLong`) y lo pintan cuando el error es de largo (`too_big` en empresa, cargo, institución y
+     título; el código interno nuevo `DESCRIPTION_TOO_LONG` en la descripción). **Descripción (D-X):** se quita el `maxLength` de `WES:383`; la
+     validación (`workExperience.schema.ts:47`, línea propia de CM-61) y el contador usan `unicodeLength`
+     (`src/utils/unicodeLength.ts`, de Sofía: solo se importa; el `import` va como línea nueva, sin editar
+     el bloque `:23-27`). Con 501 caracteres se ve «501 / 500 caracteres», el mensaje bajo el campo y no se guarda.
+   - **No se tocan** `workExperience.schema.ts:43-44` ni `education.schema.ts:44-45` (los `.max` de Sofía, que
+     cuentan UTF-16: más estrictos que el servidor, nunca más laxos). Dentro del mismo formulario quedan
+     entonces dos medidas; se anota aquí y queda como diferencia conocida.
+   - **La prueba de `WorkExperienceSection.test.tsx:159-163`, que exigía `maxlength="500"`, contradecía el
+     backlog y se reescribió** (hoy es la de `WE:173`: el campo no impone `maxlength`).
+4. **Topes de 4 experiencias y 5 formaciones (CA-2.4.10, 47, 48, 49).**
+   - **Implementado (D-V, D-AB):** dos constantes nuevas en `profile.constants.ts`, como adición pura **fuera de las
+     líneas `:62-63` y `:65-69` de Sofía** (después de `SKILLS_MAX_COUNT`, `:69`; el SPEC previo las situaba «junto
+     a `:64`», que cae dentro del rango de Sofía): `WORK_EXPERIENCE_MAX_COUNT` = 4 y `EDUCATION_MAX_COUNT` = 5. Cada
+     sección recibe `maxItems` y `maxItemsMessage` **opcionales** (sin ellos no hay tope; la página **tiene** que
+     pasarlos y lo vigilan pruebas de página: quitar `maxItems` de una sección hace fallar dos pruebas de `PG`). El
+     texto es el existente `errorLimite` (`profile.json`, de Sofía, solo se lee) en un `AlertInline variant="info"`.
+     Con `items.length >= maxItems` el formulario sigue visible, **«Agregar…» queda deshabilitado** y el mensaje se
+     ve; `onSubmit` además no envía (Enter dentro de un campo envía el formulario aunque el botón esté
+     deshabilitado; precedente `SkillsSection.tsx:142`), y lo comprueba antes de validar, así que no muestra errores.
+   - **El 409 se sigue manejando** (segunda pestaña, CA-2.4.48 y 49): `WORK_EXPERIENCE_LIMIT_REACHED`
+     y `EDUCATION_LIMIT_REACHED`, tablas de Sofía que no se editaron, ahora con prueba (`PG:1563`, `PG:1580`).
+     Tras ese 409 **no se refresca el perfil** (decisión por defecto, sin objeción; ningún criterio lo pide).
+   - **Tensión anotada con `CLAUDE.md` §3.7** («ninguna constante de negocio se hardcodea»): hay dos
+     precedentes en el mismo archivo (`SKILLS_MAX_COUNT` `:69`, `MAX_TARGET_ROLES` `:84`) y el backend no
+     publica los máximos en ninguna respuesta (los fija `ProfessionalProfile.java:42,44`), así que «que lleguen
+     del backend» no es posible sin cambiar el contrato. Las constantes pueden desfasarse del servidor; por eso
+     el 409 sigue siendo la verdad final.
+5. **Bajas (CA-2.4.11, 37, 38, 39, 46, 51, 58, 59).**
+   - **Hoy:** las bajas muestran siempre el texto fijo `errorEliminar` (`PAGE:375-377`, `:449-451`);
+     `confirmacionEliminada` (`profile.json:104`, `:153`) no tiene consumidor; el literal de CA-2.4.37 y 51 no
+     existe; `PROFILE_NOT_ALLOWED` no se mapea en ninguna de las cuatro rutas.
+   - **Implementado:** la página resuelve el mensaje de cada baja por `code` con una **tabla propia**
+     (`findMessageByCode`, fuera del componente; no se editaron las tablas ni `getItemErrorMessage`, de Sofía): `EDUCATION_NOT_ALLOWED` (409) → llave nueva
+     `educacion.errorUltimaFormacion` («No puedes quedarte sin formación académica con el perfil activo. Agrega
+     otra antes de eliminar esta.»); `EDUCATION_NOT_FOUND`, `WORK_EXPERIENCE_NOT_FOUND` (404) y
+     `PROFILE_NOT_ALLOWED` (403) → `errors:codigos.NOT_FOUND` («No encontramos lo que buscabas.»). El 403 de
+     las altas (CA-2.4.39) se resuelve igual, con la tabla propia consultada **antes** de la de Sofía.
+   - **Reserva (D-W):** sin `code` conocido, las bajas muestran `errors:generico`, y `errors:red` si el error no
+     es un `ApiError`, el mismo ternario de las altas e Información General.
+   - **Confirmación y errores (D-AA, D-AD):** cada sección muestra **un solo mensaje, el de su última acción**
+     (alta o baja, éxito o error): «Formación eliminada.» / «Experiencia eliminada.» tras una baja correcta,
+     «…agregada.» tras un alta correcta, y el error de la última acción si falló. Mientras la última acción está
+     en curso no se muestra ninguno. Se conserva en la página como estado «última acción» por sección
+     (`lastEducationAction` y `lastWorkExperienceAction`: `'add' | 'remove' | null`).
+6. **Errores del servidor bajo el campo (CA-2.4.21, 23, 32).**
+   - **Hoy:** salen en el `AlertInline` de la sección (`WES:225`, `EDS:241`); `errors[].field` no se usa
+     (`ApiError.ts` ya lo expone).
+   - **Implementado (D-T):** la **página** traduce `errors[]` a un mapa campo → texto (`findFieldErrors`), con una
+     tabla propia código→campo (`START_DATE_BEFORE_MINIMUM_AGE` → inicio, `END_DATE_BEFORE_MINIMUM_AGE` → fin,
+     `START_DATE_BEFORE_BIRTH` → inicio) y las llaves ya existentes (`errorFechaEdadMinima`, `errorFechaFinEdadMinima`,
+     `errorFechaAnteriorNacimiento`), y lo pasa a la sección en la propiedad nueva `serverFieldErrors`, que se
+     memoriza en la página por la identidad del error de la mutación; la sección lo aplica con `setError`
+     (`type: 'server'`) de react-hook-form y
+     **no decide textos**. Si el error produjo mensajes de campo, no se muestra además el mensaje de sección.
+     Lo que no es de campo (409 de topes, 503, reserva) sigue en el `AlertInline`. Un `422` cuyo `field` no se
+     reconoce cae, por defecto y salvo objeción, en `errors:generico` en el `AlertInline`.
+   - **Riesgos que las pruebas cubren:** (a) el efecto que aplica `setError` depende del error de la mutación (su
+     identidad) y no del texto: un segundo rechazo con el mismo texto se vuelve a pintar (`PG:1234`); (b) el error
+     de campo desaparece cuando la persona edita y revalida (`PG:1209`; la hipótesis de que `react-hook-form` lo
+     reemplaza al revalidar quedó comprobada en jsdom); (c) el error de campo solo sigue a una alta (D-AD;
+     `PG:1653` a `PG:1708`). Los textos de las tres pruebas de campo (`PG:1132`, `PG:1157`, `PG:1184`) comprueban
+     que hay **un solo** `alert` en la sección: el `<p role="alert">` del propio campo (`FormField` → `ErrorText`);
+     si el texto saliera también en el `AlertInline` habría dos.
+   - Fuera de este PR: los códigos `START_DATE_IN_THE_FUTURE` y `END_DATE_IN_THE_FUTURE` (el cliente ya bloquea
+     el mes futuro; solo difieren en las últimas 5 horas del mes UTC−5) y los cinco `*_INVALID_CHARACTERS`
+     (celda O41, D-Y) siguen sin mapa por campo; caen en lo que ya hacen hoy.
+7. **Texto de reserva y red de las altas (CA-2.4.36, 52).**
+   - **Hoy:** el 503 `BIRTH_DATE_UNAVAILABLE` cae en `errorAgregar` (`PAGE:367`, `:435`), no en `errors:generico`,
+     y una caída de red tampoco distingue `errors:red` (`getItemErrorMessage` devuelve el `fallback` si no es
+     `ApiError`, `PAGE:220`).
+   - **Implementado (Decisión B de la Fase 5, D-W):** reserva `errors:generico` y `errors:red` en las altas y en
+     las bajas, con un ayudante local en la página (`getFallbackMessage`) para no repetir el ternario cuatro veces.
+     Se **borraron** las cuatro llaves `educacion.errorAgregar`, `educacion.errorEliminar`, `experiencia.errorAgregar` y
+     `experiencia.errorEliminar` en es-CO y en (D-AF), tras comprobar que solo las usaba `EditProfilePage.tsx`.
+     Las del mismo nombre de `habilidades` y `rolesObjetivo` no se tocaron. La conservación de lo escrito (el
+     formulario solo se reinicia cuando crece la lista) se prueba (`PG:1423`, `PG:1445`, `PG:1467`, `PG:1480`).
+8. **Guarda de doble envío (RT-06-CA01; D-AC y D-AG), en altas y bajas.**
+   - **Hoy:** solo el `disabled` del botón (`Button.tsx:103`) alimentado por `isAdding` (`WES:401`, `EDS:384`);
+     los formularios llaman `handleSubmit(onAdd)` directo (`WES:231`, `EDS:247`); la baja solo deshabilita el
+     botón del elemento (`WES:212`, `EDS:228`).
+   - **Implementado:** `onAdd` y `onRemove` pasan a **devolver la promesa de `mutateAsync`**, como
+     `GeneralInfoForm`; la sección pone un `useRef` síncrono al empezar y lo suelta en `finally`, además del
+     `disabled`. Las altas activan la guarda **solo después de validar**; las bajas llevan una guarda **por
+     elemento** (ids en vuelo). La sección atrapa el rechazo de la promesa para soltar la guarda y no lo
+     propaga (no queda ninguna promesa sin manejar); el mensaje de error lo sigue decidiendo la página, que
+     alimenta el mapa de errores por campo y la «última acción» con el estado de la mutación. Cambian
+     las props de `WorkExperienceSection` y `EducationSection`, `EditProfilePage.tsx` y las pruebas de
+     sección, cuyos `vi.fn()` ahora devuelven una promesa.
+   - **Por qué con promesa y no con `isAdding`:** soltarla cuando `isAdding` pasa a falso depende del re-render,
+     que es lo que falló en DF-004 (2,9 ms entre clics, `NewProfilePage.tsx:76` y su prueba `:123`).
+   - **Riesgo que cubre la baja:** sin guarda, dos clics seguidos pueden mandar dos `DELETE`; el segundo da 404
+     y, con CA-2.4.58 y 59 mapeados, se vería «No encontramos lo que buscabas.» tras una baja correcta (hipótesis).
+   - CA-2.4.45 y CA-2.4.50 (`Idempotency-Key`) siguen aplazados al Sprint 4: esta guarda **no** los cubre.
+
+**Criterios del PR 2.** «Al abrir el PR» es el estado de la Fase 7 sobre `develop` `4579675` (lectura más las
+pruebas de la feature en verde): es historia. «Estado final» es el de la Fase 8 (16-oct-2026): CUMPLIDO exige
+prueba en verde **y** literal exacto del backlog en es-CO (y la llave en `en` con texto propio). Las pruebas
+contra el mock no prueban el servidor real: lo que dependa de staging o del backend real queda PENDIENTE.
+Abreviaturas de las pruebas (todas bajo `src/features/professional-profile/`, salvo `HD`): `PG` =
+`pages/EditProfilePage.test.tsx`, `WE` = `organisms/WorkExperienceSection/WorkExperienceSection.test.tsx`, `ED` =
+`organisms/EducationSection/EducationSection.test.tsx`, `YM` = `model/yearMonth.test.ts`, `WS` =
+`schemas/workExperience.schema.test.ts`, `MP` = `api/profile.mapper.test.ts`, `HD` =
+`src/mocks/handlers/profiles.handlers.test.ts`. Las pruebas de sección reciben los textos por propiedades; las de
+`PG` y `YM` usan el `profile.json` real.
+
+*Periodos*
+
+| CA | Al abrir el PR (`4579675`) | Qué hizo el PR 2 | Estado final (16-oct-2026) y prueba |
+| -- | -------------------------- | ----------------- | ----------------------------------- |
+| CA-2.4.1 | PARCIAL: fin oculto (`WES:299`); «Experiencia agregada.» (`profile.json:152`, prueba `EditProfilePage.test.tsx:988`); periodo «junio de 2024 - actual» (`PAGE:268-272`, `profile.json:146`). | `periodoActual` en «mm/aaaa» con «–». | **CUMPLIDO.** `WE:132` (fin oculto), `YM:60` y `PG:1730` («06/2024 – actual»), `PG:989` («Experiencia agregada.»), `MP:114`. Sin una prueba que recorra todo el flujo. |
+| CA-2.4.7 | PARCIAL: fin oculto (`EDS:334`); «Formación agregada.» (prueba `EditProfilePage.test.tsx:145`); periodo «febrero de 2025 - en curso» (`profile.json:98`). | `periodoEnCurso` en «mm/aaaa» con «–». | **CUMPLIDO.** `ED:153`, `YM:155` y `PG:1764` («02/2025 – en curso»), `PG:146`. |
+| CA-2.4.8 | PARCIAL: `endDate` opcional (`education.schema.ts:47`, `profile.mapper.ts:130`); fin nulo se pinta «—» (`PAGE:265`). | Llave nueva `educacion.periodoSinFin`. | **CUMPLIDO.** `YM:161` y `PG:1764` («02/2025 – Sin fecha de fin»), `MP:83`. |
+| CA-2.4.13 | PARCIAL: la regla ya compara por mes y año (`workExperience.schema.ts:80`; prueba «mismo mes» en `WorkExperienceSection.test.tsx`); periodo «mayo de 2024 - mayo de 2024». | `periodo` en «mm/aaaa» con «–». | **CUMPLIDO.** `YM:66` («05/2024 – 05/2024», `profile.json` real), `WE:386`. La prueba de página usa formación, no experiencia. |
+| CA-2.4.29 | PARCIAL: igual (`education.schema.ts:67`; prueba en `EducationSection.test.tsx`). | Ídem. | **CUMPLIDO.** `YM:167` y `PG:1764` («02/2025 – 02/2025»). |
+| CA-2.4.42 | NO CUMPLIDO: la pieza y el periodo no existen; inicio nulo revienta `formatYearMonth` (`yearMonth.ts:17`, hipótesis). | Pieza `experiencia.sinFechaInicio`; el formateador admite inicio nulo. | **CUMPLIDO.** `YM:94` y `PG:1730` («Sin fecha de inicio – actual», sin error). |
+| CA-2.4.56 | NO CUMPLIDO: «junio de 2024 - fin desconocido» (`profile.json:147`). | `periodoFinDesconocido` = «{{inicio}} – Fin no registrado». | **CUMPLIDO.** `YM:78` y `PG:1730` («06/2024 – Fin no registrado»). |
+
+*Inicio opcional de experiencia*
+
+| CA | Al abrir el PR (`4579675`) | Qué hizo el PR 2 | Estado final (16-oct-2026) y prueba |
+| -- | -------------------------- | ----------------- | ----------------------------------- |
+| CA-2.4.15 | NO CUMPLIDO: inicio exigido (`workExperience.schema.ts:45`, `profile.mapper.ts:156`, `profile.types.ts:75`, `profile.dto.ts:62`, `profiles.handlers.ts:427`); «Sin fechas» no existe. | Inicio opcional en esquema, mapper, tipos y mock; llave `experiencia.periodoSinFechas`. | **CUMPLIDO.** `WS:20`, `WE:472`, `MP:155`, `HD:772`, `YM:88` y `PG:1730` («Sin fechas»). El «Sin fechas» no se vio tras un alta real en la página. |
+| CA-2.4.22 | NO CUMPLIDO: mismo bloqueo. | Ídem. | **CUMPLIDO** en el cliente: `WS:36`, `WE:488`, `MP:169`, `HD:790`. Verificación contra el backend real: PENDIENTE. |
+| CA-2.4.23 | NO CUMPLIDO: mismo bloqueo, y el error `END_DATE_BEFORE_MINIMUM_AGE` (`PAGE:441`) sale en el `AlertInline`. | Ídem, más el error bajo «Fecha de fin» (D-T). | **CUMPLIDO** en el cliente: `PG:1184` (422 montado con `useHandlers`), `WE:503`. Backend real: PENDIENTE. |
+| CA-2.4.53 | NO CUMPLIDO: mismo bloqueo. | Ídem. | **CUMPLIDO** en el cliente: `WS:20`, `WE:472`, `MP:155`, `HD:772`. El mock no modela la réplica: «sin fecha de nacimiento» solo es el caso sin fechas. Backend real: PENDIENTE. |
+
+*Longitudes y contador*
+
+| CA | Al abrir el PR (`4579675`) | Qué hizo el PR 2 | Estado final (16-oct-2026) y prueba |
+| -- | -------------------------- | ----------------- | ----------------------------------- |
+| CA-2.4.12 | NO CUMPLIDO: `maxLength` (`WES:383`), contador por `.length` (`WES:388`), sin mensaje; la prueba `WorkExperienceSection.test.tsx:159-163` exige `maxlength="500"`. | Sin `maxLength`; `unicodeLength` en contador y esquema (D-X); mensaje nuevo. | **CUMPLIDO.** `WE:575` («501 / 500 caracteres», sin `maxlength`), `WE:585` (mensaje bajo el campo, no guarda), `WE:616` (emojis). Ninguna prueba de página pasa la llave por `profile.json`. |
+| CA-2.4.17 | PARCIAL: `.max(100)` (`workExperience.schema.ts:43-44`, de Sofía); sin prueba. | Solo prueba. | **CUMPLIDO.** `WE:555`. |
+| CA-2.4.18 | NO CUMPLIDO: error `too_big` sin texto (`WES:240`, `:259`); literales inexistentes. | Dos llaves nuevas y su cableado. | **CUMPLIDO.** `WE:524` (cargo), `WE:540` (empresa). Igual hueco de cableado que CA-2.4.12; cuenta UTF-16 (líneas de Sofía). |
+| CA-2.4.19 | PARCIAL: `workExperience.schema.ts:47` y `WES:383`; sin prueba. | Con `unicodeLength` (D-X). | **CUMPLIDO.** `WE:599`. |
+| CA-2.4.27 | PARCIAL: `.max(150)` (`education.schema.ts:44-45`, de Sofía); sin prueba. | Solo prueba. | **CUMPLIDO.** `ED:502`. |
+| CA-2.4.28 | NO CUMPLIDO: `too_big` sin texto (`EDS:276`, `:295`); literales inexistentes. | Dos llaves nuevas y su cableado. | **CUMPLIDO.** `ED:467` (título), `ED:485` (institución). Igual hueco de cableado que CA-2.4.12. |
+
+*Topes*
+
+| CA | Al abrir el PR (`4579675`) | Qué hizo el PR 2 | Estado final (16-oct-2026) y prueba |
+| -- | -------------------------- | ----------------- | ----------------------------------- |
+| CA-2.4.10 | NO CUMPLIDO: sin tope en `EDS` (props `:62-122`); sin constante. | `EDUCATION_MAX_COUNT` = 5, `maxItems`, botón deshabilitado y `errorLimite` visible (D-V, D-AB). | **CUMPLIDO.** `PG:1610` (con 5), `PG:1637` (tras guardar la quinta), `ED:526`, `ED:547`. La constante es del front. |
+| CA-2.4.47 | NO CUMPLIDO: ídem en `WES`. | `WORK_EXPERIENCE_MAX_COUNT` = 4, ídem. | **CUMPLIDO.** `PG:1597`, `PG:1623`, `WE:638`, `WE:659`. |
+| CA-2.4.48 | PARCIAL: `WORK_EXPERIENCE_LIMIT_REACHED` mapeado (`PAGE:437`, literal exacto); sin prueba. | Solo prueba. | **CUMPLIDO** en el cliente: `PG:1563`, `HD:826`. La segunda pestaña real: PENDIENTE (prueba manual). |
+| CA-2.4.49 | PARCIAL: `EDUCATION_LIMIT_REACHED` (`PAGE:368`); sin prueba. | Solo prueba. | **CUMPLIDO** en el cliente: `PG:1580`, `HD:847`. |
+
+*Bajas*
+
+| CA | Al abrir el PR (`4579675`) | Qué hizo el PR 2 | Estado final (16-oct-2026) y prueba |
+| -- | -------------------------- | ----------------- | ----------------------------------- |
+| CA-2.4.11 | NO CUMPLIDO: `confirmacionEliminada` sin consumidor (`profile.json:104`). | Confirmación de la última acción (D-AA). | **CUMPLIDO.** `PG:1266` («Formación eliminada.», no «agregada»), `HD:913`. |
+| CA-2.4.38 | NO CUMPLIDO: ídem (`profile.json:153`). | Ídem. | **CUMPLIDO.** `PG:1293`, `HD:926`. |
+| CA-2.4.46 | NO CUMPLIDO: ídem. | Ídem. | **CUMPLIDO.** `PG:1280`, `HD:896`. El cliente no distingue el estado del perfil. |
+| CA-2.4.37 | NO CUMPLIDO: texto fijo `errorEliminar` (`PAGE:375-377`); literal inexistente. | Llave `educacion.errorUltimaFormacion`; tabla propia por `code` (D-T). | **CUMPLIDO** en el cliente: `PG:1305` (409 `EDUCATION_NOT_ALLOWED`: literal y la formación sigue), `HD:878`. El 409 real depende de un perfil `COMPLETED`: PENDIENTE. |
+| CA-2.4.51 | NO CUMPLIDO: ídem. | Ídem (lo que se comprueba en el cliente es el mensaje del 409 perdedor; la transacción es del servidor). | **CUMPLIDO** en el cliente: `PG:1323` (una pestaña con un 409 montado). Las dos pestañas reales: PENDIENTE. |
+| CA-2.4.39 | NO CUMPLIDO: `PROFILE_NOT_ALLOWED` sin mapear en las cuatro rutas. | Tabla propia: `errors:codigos.NOT_FOUND`. | **CUMPLIDO** en el cliente: `PG:1341` (alta y baja de ambas secciones). Con un perfil propio y un 403 montado; el perfil ajeno real: PENDIENTE. |
+| CA-2.4.58 | NO CUMPLIDO: `EDUCATION_NOT_FOUND` sin mapear. | Tabla propia. | **CUMPLIDO** en el cliente: `PG:1389`, `HD:951`. Sin `code`, caería en el genérico (ADR-0008). |
+| CA-2.4.59 | NO CUMPLIDO: `WORK_EXPERIENCE_NOT_FOUND` sin mapear. | Tabla propia. | **CUMPLIDO** en el cliente: `PG:1405`, `HD:962`. |
+
+*Errores del servidor bajo el campo*
+
+| CA | Al abrir el PR (`4579675`) | Qué hizo el PR 2 | Estado final (16-oct-2026) y prueba |
+| -- | -------------------------- | ----------------- | ----------------------------------- |
+| CA-2.4.21 | PARCIAL: `START_DATE_BEFORE_MINIMUM_AGE` (`PAGE:439`, `profile.json:158`) en el `AlertInline`; sin prueba. | Mapa campo → texto en la página; `setError` en la sección (D-T). | **CUMPLIDO** en el cliente: `PG:1157` (422 con `errors[]`: literal bajo «Fecha de inicio», un solo `alert`). Verificación contra el backend real: PENDIENTE. |
+| CA-2.4.32 | PARCIAL: `START_DATE_BEFORE_BIRTH` (`PAGE:369`, `profile.json:109`) en el `AlertInline`; sin prueba. | Ídem. | **CUMPLIDO** en el cliente: `PG:1132`. Backend real: PENDIENTE. |
+
+(CA-2.4.23 está en la tabla de inicio opcional.)
+
+*Texto de reserva y red*
+
+| CA | Al abrir el PR (`4579675`) | Qué hizo el PR 2 | Estado final (16-oct-2026) y prueba |
+| -- | -------------------------- | ----------------- | ----------------------------------- |
+| CA-2.4.36 | NO CUMPLIDO: el 503 `BIRTH_DATE_UNAVAILABLE` cae en `errorAgregar` (`PAGE:435`). | Reserva `errors:generico`, `errors:red` si no es `ApiError` (D-W). | **CUMPLIDO** en el cliente: `PG:1445` (503 montado con `useHandlers`: genérico, conserva lo escrito) y `PG:1480` (red). No afirma que la lista siga vacía. La réplica sin fila: PENDIENTE (prueba manual). |
+| CA-2.4.52 | NO CUMPLIDO: ídem (`PAGE:367`). | Ídem. | **CUMPLIDO** en el cliente: `PG:1423` y `PG:1467` (red). Ídem. |
+
+**Pruebas que este SPEC exigió (se escribieron en rojo antes del código; todas existen y están en verde, salvo la última).**
+
+- **Página** (`EditProfilePage.test.tsx`, solo casos nuevos, con `profile.json` real y respuestas montadas con
+  `useHandlers`, como CM-272; los casos de CM-272 y de finalización no se tocan): cada `code` de altas y
+  bajas (403, 404 ×2, 409 ×2 de topes y de última formación, 503 ×2, 422 por campo ×3), red, «última acción»
+  (alta, baja, error y confirmación), periodos en pantalla, topes con botón deshabilitado, dos rechazos
+  idénticos seguidos del 422 por campo.
+- **Guarda** (secciones y página): dos clics síncronos en un mismo turno, con `act` y `fireEvent` (patrón de
+  `NewProfilePage.test.tsx:123` y `:145`), en alta y en baja; la guarda se suelta en `finally` también cuando
+  la promesa rechaza.
+- **Secciones:** longitud (101/151 y descripción de 501 con contador), topes, error de campo aplicado con
+  `setError`, y reescritura de `WorkExperienceSection.test.tsx:159-163`; los `vi.fn()` de `onAdd` y `onRemove`
+  devuelven una promesa.
+- **Esquemas, mapper y formateador:** inicio opcional, `null` en el mapper, los ocho formatos de periodo y la
+  composición con la pieza «Sin fecha de inicio».
+- **Mock** (`profiles.handlers.test.ts`, solo adiciones): `startDate` opcional, topes 4 y 5 con 409 y `code`,
+  última formación en perfil `COMPLETED`, `code` en los 404 de bajas. Los dos casos con 400
+  (`profiles.handlers.test.ts:276-292`, `:433-452`) **no se tocan**.
+- **Literales** (`src/i18n/profileDateMessages.test.ts` o un archivo hermano): los literales nuevos del backlog
+  en `profile.json` (es-CO exacto; en con texto propio). **No se escribió.** Los literales se compararon con el
+  `.md` de criterios con un script de un solo uso (Fase 8: 26 literales, todos exactos) y los de periodos y los de
+  códigos de la página los ejerce `PG`/`YM` con el `profile.json` real; los cinco de longitud **no** tienen ninguna
+  prueba del repositorio que los compare. Queda como deuda.
+
+**Llaves de i18n (es-CO y en), con su posición.** Las llaves de Sofía son `educacion` `:107-110` y
+`experiencia` `:156-160`; `:110` y `:160` **no llevan coma final**, así que **ninguna llave nueva va después
+de ellas**: las nuevas van entre `errorEliminar` (que se borra) y `errorLimite`.
+
+- **Nuevas:** `educacion.errorUltimaFormacion`, `educacion.periodoSinFin`, `educacion.institucion.errorLongitud`,
+  `educacion.tituloObtenido.errorLongitud`, `experiencia.sinFechaInicio`, `experiencia.periodoSinFechas`,
+  `experiencia.empresa.errorLongitud`, `experiencia.cargo.errorLongitud`, `experiencia.descripcion.errorLongitud`.
+- **Cambian de texto (líneas propias):** `educacion.periodo`, `educacion.periodoEnCurso`, `experiencia.periodo`,
+  `experiencia.periodoActual` y `experiencia.periodoFinDesconocido` (separador «–» y los literales del backlog).
+- **Se borran:** `educacion.errorAgregar`, `educacion.errorEliminar`, `experiencia.errorAgregar` y
+  `experiencia.errorEliminar` (D-AF), más `experiencia.fechaInicio.errorRequerido` (de CM-61), que quedó sin
+  consumidor al hacerse opcional el inicio de la experiencia; `educacion.fechaInicio.errorRequerido` se conserva
+  (el inicio de la formación sigue siendo obligatorio).
+- **Sin consumidor, no se tocan (líneas de Sofía):** `educacion.errorFechaInvalida` y `experiencia.errorFechaInvalida`
+  (es-CO y en), detectadas al revisar las llaves huérfanas (Fase 8).
+- Se reutilizan tal cual: `errorLimite`, `errorFechaAnteriorNacimiento`, `errorFechaEdadMinima`,
+  `errorFechaFinEdadMinima`, `confirmacionEliminada` y, de `errors.json`, `generico`, `red` y `codigos.NOT_FOUND`.
+
+**Mock (`profiles.handlers.ts`) — solo cambios aditivos** (`errorBody` ya acepta `code`, `:215-223`, de Sofía, se
+reutiliza sin tocar; las líneas sueltas de Sofía `:422`, `:472`, `:493`, `:498-499`, `:507`, `:514`, `:545` y
+`:563` tampoco). Lo que el mock no puede modelar (403, 503, 422 por campo, fecha de nacimiento) se prueba con
+`useHandlers` por prueba.
+
+**Líneas de Sofía que este PR no edita** (comprobadas con `git blame` el 16-oct-2026): `EditProfilePage.tsx`
+`:209-213`, `:218`, `:220-227` (`getItemErrorMessage`), `:368-371` y `:436-445` (tablas de códigos);
+`profile.json` `:107-110` y `:156-160`; `profile.constants.ts` `:62-63` y `:65-69`; `workExperience.schema.ts`
+`:23-27` y `:43-44`; `education.schema.ts` `:13-14`, `:29` y `:44-45`; `profile.mapper.ts` `:170`;
+`unicodeLength.ts` (solo se importa). La línea `workExperience.schema.ts:47` (descripción) es de CM-61 y sí
+se edita.
+
+**Fuera de este PR — todos ABIERTOS (nunca «cumple»).**
+
+- **Aplazados al Sprint 4 (2):** CA-2.4.45 y CA-2.4.50 (`Idempotency-Key`); la guarda de este PR no los cubre.
+- **Solo backend (6):** CA-2.4.5, 9, 16, 40, 41 y 57.
+- **Desalineación del mock (C-20):** alinear el 400 a 422 sigue fuera de CM-273.
+- **Celda O41 de la v8 (caracteres de control):** el backend ya envía los textos por campo
+  (`WorkExperience.java:33`, `:36`, `:39`; `Education.java:29`, `:32`) y el front los muestra con un solo texto
+  genérico (`profile.json:110` y `:160`, de Sofía). Fuera de CM-273 (D-Y); **aviso pendiente a Ana Sofía**, ver C-22 en §8.
+- **Verificación en staging y en un navegador real:** lo que dependa del servidor o del navegador queda
+  PENDIENTE hasta que se pruebe; ninguna prueba automática lo reemplaza.
 
 ### 3.4 · `/perfiles/:id/editar` — Habilidades y finalizar · `PRT-02.03` · CM-65
 
@@ -1013,13 +1328,13 @@ específico).
 | CA-2.3.12 (CM-272) | El mensaje sale de `profile:general.resumen.errorPerfilActivo` por `errors[].code` `SUMMARY_NOT_ALLOWED` dentro de un `422 VALIDATION_FAILED`, y el campo vuelve a mostrar el resumen guardado (solo para ese `code`; ante cualquier otro fallo se conserva lo escrito, RT-05) |
 | CA-2.3.13, CA-2.3.14 (CM-272) | Al salir de cada campo siempre valida y solo envía si `formState.isDirty` (D-J); reintenta una vez el guardado descartado durante el vuelo; «Cambios guardados.» desaparece al editar, al fallar y al ser bloqueada una salida de campo; el campo con foco nunca queda deshabilitado por el autoguardado |
 | CA-2.3.3, CA-2.3.10 (CM-272) | Los campos no llevan `maxLength` y no cortan lo escrito: «2001 / 2000 caracteres» y los mensajes de longitud salen bajo el campo y no se guarda (C-19 resuelto) |
-| CA-2.4.1 (experiencia `CURRENT`/`UNKNOWN_END` sin fecha de fin)   | Oculta y limpia el campo «Fecha de fin» cuando cualquiera de los dos checkboxes está marcado, en vez de solo omitir el envío. Desde el 14-oct-2026 el backlog dice «ocultar» (antes «deshabilitar»); el criterio se cierra en el PR 2 con el periodo «06/2024 – actual» |
+| CA-2.4.1 (experiencia `CURRENT`/`UNKNOWN_END` sin fecha de fin)   | Oculta y limpia el campo «Fecha de fin» cuando cualquiera de los dos checkboxes está marcado, en vez de solo omitir el envío. Desde el 14-oct-2026 el backlog dice «ocultar» (antes «deshabilitar»); el criterio se cerró en el PR 2 con el periodo «06/2024 – actual» (CUMPLIDO en el cliente; ver §3.3) |
 | CA-2.4.43, CA-2.4.44, CA-2.4.60 (CM-273, PR 1) | `MonthField` deja teclear el texto; si no es «mm/aaaa» válido, el esquema muestra «Ingresa una fecha válida con el formato mm/aaaa.» bajo el campo en el que se escribió (inicio o fin) y no se guarda. Sin respaldo por estado HTTP: el servidor no se consulta |
 | CA-2.4.25, CA-2.4.26, CA-2.4.34, CA-2.4.35 (CM-273, PR 1) | El esquema recibe el mes actual en UTC (D-M) y rechaza una fecha posterior con «La fecha no puede ser posterior al mes actual.» bajo el campo; la máscara sí deja teclear un mes futuro y el panel lo muestra apagado (D-N) |
 | CA-2.4.14, CA-2.4.30 (CM-273, PR 1) | La comparación «fin anterior al inicio» es por mes y año sobre «AAAA-MM» (RT-07-CA02); experiencia y formación usan el mismo texto del backlog |
 | CA-2.4.20, CA-2.4.24, CA-2.4.31, CA-2.4.33, CA-2.4.54, CA-2.4.55 (CM-273, PR 1) | El cliente acepta y envía la fecha como «AAAA-MM»; no valida edad ni nacimiento (la regla es del servidor, `DateBounds.java:32` y `:42`) y no consulta la fecha de nacimiento (D-N) |
 | CA-2.4.2, CA-2.4.3, CA-2.4.6 (CM-273, PR 1) | Sin cambio de comportamiento: solo reciben pruebas con los textos reales de es-CO |
-| 33 criterios de HU-2.4 (CM-273, PR 2) | Fuera del PR 1: CA-2.4.1, 7, 8, 10, 11, 12, 13, 15, 17, 18, 19, 21, 22, 23, 27, 28, 29, 32, 36, 37, 38, 39, 42, 46, 47, 48, 49, 51, 52, 53, 56, 58 y 59 (ver §3.3) |
+| 33 criterios de HU-2.4 (CM-273, PR 2) | Fuera del PR 1, cerrados en el PR 2 (CUMPLIDOS en el cliente, contra el mock; backend real y QA pendientes): CA-2.4.1, 7, 8, 10, 11, 12, 13, 15, 17, 18, 19, 21, 22, 23, 27, 28, 29, 32, 36, 37, 38, 39, 42, 46, 47, 48, 49, 51, 52, 53, 56, 58 y 59 (ver §3.3) |
 | J-01 (gestión por ítem, no PATCH de colección)                    | `POST`/`DELETE` inmediato por ítem; sin `useFieldArray` — la lista visible es siempre la caché del servidor (SPEC.md §9, decisión D-A) |
 | HU-2.4 (educación obligatoria)                                     | El botón «Finalizar» ya valida los 5 requisitos server-side (`POST .../completion`, CM-65) |
 | HU-2.5 (habilidades: texto libre + nivel)                          | `SkillsSection` gestiona por ítem, sin catálogo; duplicado (texto normalizado) bloqueado en cliente; el servidor lo hará cuando Backend lo active (C-06) |
@@ -1034,34 +1349,34 @@ específico).
 
 | Archivo                                                                                        | Qué implementa                                                                                                              | Prueba                                                                                              |
 | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `src/mocks/handlers/profiles.handlers.ts`                                                       | Infraestructura de apoyo: ciclo completo de mocks del perfil; deriva `summaryProvenance`/`summaryProvenanceOrigin` en el `PATCH` (CA-2.3.1/2/4; solo mock, el backend real no los tiene); CM-61 agrega 4 handlers por ítem (POST/DELETE de experiencia y educación) con las reglas reales de `WorkExperience.java`/`Education.java`; CM-65 agrega 2 handlers por ítem de habilidades y reemplaza el endpoint de finalización por el real (ver §5); CM-69 agrega 3 handlers por ítem de Roles Objetivo (POST/PATCH/DELETE) con las reglas reales de `ProfileController.java`, reemplazando el `PATCH` masivo de `targetRoleIds` que solo existía por no conocer el contrato | `src/mocks/handlers/profiles.handlers.test.ts`                                                     |
+| `src/mocks/handlers/profiles.handlers.ts`                                                       | Infraestructura de apoyo: ciclo completo de mocks del perfil; deriva `summaryProvenance`/`summaryProvenanceOrigin` en el `PATCH` (CA-2.3.1/2/4; solo mock, el backend real no los tiene); CM-61 agrega 4 handlers por ítem (POST/DELETE de experiencia y educación) con las reglas reales de `WorkExperience.java`/`Education.java`; CM-65 agrega 2 handlers por ítem de habilidades y reemplaza el endpoint de finalización por el real (ver §5); CM-69 agrega 3 handlers por ítem de Roles Objetivo (POST/PATCH/DELETE) con las reglas reales de `ProfileController.java`, reemplazando el `PATCH` masivo de `targetRoleIds` que solo existía por no conocer el contrato; CM-273 PR 2 (solo aditivo): `startDate` opcional en experiencia, topes 4 y 5 con 409 y `code`, última formación de un perfil `COMPLETED` con 409 `EDUCATION_NOT_ALLOWED`, `code` en los 404 de bajas | `src/mocks/handlers/profiles.handlers.test.ts`                                                     |
 | `src/mocks/handlers/professionalRoles.handlers.ts`                                              | CM-69: simula el catálogo real de roles TI vía GET (ver §5), a partir de `src/mocks/data/catalogs.ts` | `src/mocks/handlers/professionalRoles.handlers.test.ts`                                             |
 | `src/features/professional-profile/organisms/ProfileMethodSelector/ProfileMethodSelector.tsx`  | §3.1 (CM-46): las dos tarjetas excluyentes; DF-004: la tarjeta manual queda `disabled` (`disabled={loading}`) mientras se crea, y la guarda contra la doble creación pasa a `NewProfilePage` (CA-2.2.7); CM-270: sin cambios, el mensaje de cupo entra por `errorMessage` y no se añaden props; la prueba suma la afirmación de «Próximamente» (CA-2.2.2) | `src/features/professional-profile/organisms/ProfileMethodSelector/ProfileMethodSelector.test.tsx` |
 | `src/design-system/molecules/CardSelectable/CardSelectable.tsx`                                 | Design system (DF-004): prop `disabled`, independiente de `state` — pone el atributo nativo sin cambiar la apariencia; `state="disabled"` la implica. Único consumidor: `ProfileMethodSelector` | `src/design-system/molecules/CardSelectable/CardSelectable.test.tsx`                                |
 | `src/features/professional-profile/pages/NewProfilePage.tsx`                                    | §3.1: la ruta «/perfiles/nuevo» — crea el perfil sin cuerpo al elegir «Llenado Manual» y navega al formulario con el id devuelto; CM-195: redirige si hay lastUsedProfileId; CM-270: sustituye el 409 «ya existe» por el reconocimiento del cupo agotado con `profile:metodo.errorCupoPlan`, el texto provisional de CA-2.2.3 (CM-298: por `code`, y suma `profile:metodo.errorCreacionEnCurso` para `PROFILE_CREATION_IN_PROGRESS`); DF-004: guarda síncrona `isCreatingRef` contra la doble creación (CA-2.2.7); la creación sigue en la página (deuda, nota técnica 4) | `src/features/professional-profile/pages/NewProfilePage.test.tsx`                            |
 | `src/features/professional-profile/model/profileLimit.ts`                                       | §3.1 (CM-270): `isProfileLimitReached` — reconoce el cupo agotado de la creación de perfil por `code` (`PROFILE_LIMIT_REACHED` o `PLAN_LIMIT`), sin respaldo por estado (CA-2.2.3, CM-298, `ADR-0008`); acotada a esa llamada; CM-298 suma `isProfileCreationInProgress` para `PROFILE_CREATION_IN_PROGRESS` | `src/features/professional-profile/model/profileLimit.test.ts`                                      |
-| `src/features/professional-profile/model/profile.constants.ts`                                  | §3.2/§3.3/§3.4/§3.5: límites y constantes de negocio; CM-61 agrega `DESCRIPTION_MAX_LENGTH`, `EDUCATION_LEVELS`, `MANUAL_PROVENANCE`, `PROFILE_COMPLETENESS_MAX`, ids de formulario, `DESKTOP_MEDIA_QUERY`; CM-65 agrega `SKILL_LEVELS`, `SKILL_NAME_MAX_LENGTH`, `SKILLS_FORM_ID`; CM-69 agrega `MAX_TARGET_ROLES` | cubierto por las pruebas de los organismos y `EditProfilePage`                                    |
-| `src/features/professional-profile/model/profile.types.ts`                                      | §3.2/§3.3/§3.4/§3.5: tipos de dominio; CM-61 agrega `EducationItem`, `WorkExperienceItem`, `EducationLevel`, `EmploymentStatus`, `DataProvenance`, `YearMonth` (valores confirmados contra el backend real); CM-65 agrega `SkillItem`, `SkillLevel`; CM-69 agrega `ProfessionalRole`, `TargetRoleItem` (mismo nivel de confianza) | cubierto por las pruebas de los organismos y `EditProfilePage`                                    |
-| `src/features/professional-profile/model/yearMonth.ts`                                          | §3.3 (CM-61): `toYearMonth`/`formatYearMonth` — trunca la fecha del selector nativo a `YearMonth` (bloqueo C-14); CM-273 PR 1: se eliminó `toYearMonth` (el formulario ya guarda «AAAA-MM», D-K) y `formatYearMonth` no cambia hasta el PR 2; C-14 cerrado            | `src/features/professional-profile/model/yearMonth.test.ts`                                          |
+| `src/features/professional-profile/model/profile.constants.ts`                                  | §3.2/§3.3/§3.4/§3.5: límites y constantes de negocio; CM-61 agrega `DESCRIPTION_MAX_LENGTH`, `EDUCATION_LEVELS`, `MANUAL_PROVENANCE`, `PROFILE_COMPLETENESS_MAX`, ids de formulario, `DESKTOP_MEDIA_QUERY`; CM-65 agrega `SKILL_LEVELS`, `SKILL_NAME_MAX_LENGTH`, `SKILLS_FORM_ID`; CM-69 agrega `MAX_TARGET_ROLES`; CM-273 PR 2: `WORK_EXPERIENCE_MAX_COUNT` = 4 y `EDUCATION_MAX_COUNT` = 5, adición pura después de `SKILLS_MAX_COUNT`, fuera de `:62-63` y `:65-69` (D-V) | cubierto por las pruebas de los organismos y `EditProfilePage`                                    |
+| `src/features/professional-profile/model/profile.types.ts`                                      | §3.2/§3.3/§3.4/§3.5: tipos de dominio; CM-61 agrega `EducationItem`, `WorkExperienceItem`, `EducationLevel`, `EmploymentStatus`, `DataProvenance`, `YearMonth` (valores confirmados contra el backend real); CM-65 agrega `SkillItem`, `SkillLevel`; CM-69 agrega `ProfessionalRole`, `TargetRoleItem` (mismo nivel de confianza); CM-273 PR 2: `WorkExperienceItem.startDate` admite `null` (CA-2.4.15, 22, 23, 42, 53) | cubierto por las pruebas de los organismos y `EditProfilePage`                                    |
+| `src/features/professional-profile/model/yearMonth.ts`                                          | §3.3 (CM-61): `toYearMonth`/`formatYearMonth` — trunca la fecha del selector nativo a `YearMonth` (bloqueo C-14); CM-273 PR 1: se eliminó `toYearMonth` (el formulario ya guarda «AAAA-MM», D-K); C-14 cerrado; CM-273 PR 2: se borró `formatYearMonth` con su prueba y el archivo expone `formatWorkExperiencePeriod` y `formatEducationPeriod` `(item, t)`, que pintan «mm/aaaa» con `formatMonthValue`, el separador «–» y la pieza «Sin fecha de inicio» para un inicio nulo (§3.3, punto 1, D-U) | `src/features/professional-profile/model/yearMonth.test.ts`                                          |
 | `src/features/professional-profile/model/profileCompleteness.ts`                                | §3 (CM-61): `getSectionStatuses`/`getCompletenessValue` para el índice de secciones y la barra de completitud (decisión D-D); CM-65 suma el cuarto requisito (≥1 habilidad) y la sección `skills`; CM-69 suma el quinto (≥1 rol objetivo) y la sección `target-roles` al índice | `src/features/professional-profile/model/profileCompleteness.test.ts`                                |
 | `src/features/professional-profile/model/missingRequirements.ts`                                | §3.4 (CM-65): `getMissingRequirementFields` — lee `error.errors` de un `422` con `errors[]` no vacío, función pura separada de `EditProfilePage.tsx` para poder probarla sin renderizar | `src/features/professional-profile/model/missingRequirements.test.ts`                                |
 | `src/features/professional-profile/schemas/generalInfo.schema.ts`                                | §3.2 (CM-53): validación zod de `name`/`summary`, sin mensajes de texto (CLAUDE.md §3.2)                                   | `src/features/professional-profile/organisms/GeneralInfoForm/GeneralInfoForm.test.tsx`             |
-| `src/features/professional-profile/schemas/education.schema.ts`                                 | §3.3 (CM-61): validación zod de un ítem de Formación académica, con `.superRefine` para "en curso" y fecha de fin; CM-273 PR 1: es `createEducationSchema(currentMonth)`, una función que recibe el mes actual en UTC, valida «mm/aaaa» (con `monthDate.ts`), rechaza el mes futuro, compara fin e inicio por mes y año y transforma a «AAAA-MM» (D-K, D-M); no toca el `.max` de Ana Sofía           | `src/features/professional-profile/organisms/EducationSection/EducationSection.test.tsx`             |
-| `src/features/professional-profile/schemas/workExperience.schema.ts`                             | §3.3 (CM-61): validación zod de un ítem de Experiencia Laboral, con `.superRefine` para los checkboxes excluyentes; CM-273 PR 1: es `createWorkExperienceSchema(currentMonth)`, una función que recibe el mes actual en UTC, valida «mm/aaaa» (con `monthDate.ts`), rechaza el mes futuro, compara fin e inicio por mes y año y transforma a «AAAA-MM» (D-K, D-M); el inicio sigue obligatorio hasta el PR 2; no toca el `.max` de Ana Sofía          | `src/features/professional-profile/organisms/WorkExperienceSection/WorkExperienceSection.test.tsx`   |
+| `src/features/professional-profile/schemas/education.schema.ts`                                 | §3.3 (CM-61): validación zod de un ítem de Formación académica, con `.superRefine` para "en curso" y fecha de fin; CM-273 PR 1: es `createEducationSchema(currentMonth)`, una función que recibe el mes actual en UTC, valida «mm/aaaa» (con `monthDate.ts`), rechaza el mes futuro, compara fin e inicio por mes y año y transforma a «AAAA-MM» (D-K, D-M); no toca el `.max` de Ana Sofía; CM-273 PR 2 (previsto): sin cambio de reglas; el exceso de largo (`too_big`, de Sofía) pasa a tener texto en la sección (CA-2.4.28) | `src/features/professional-profile/organisms/EducationSection/EducationSection.test.tsx`             |
+| `src/features/professional-profile/schemas/workExperience.schema.ts`                             | §3.3 (CM-61): validación zod de un ítem de Experiencia Laboral, con `.superRefine` para los checkboxes excluyentes; CM-273 PR 1: es `createWorkExperienceSchema(currentMonth)`, una función que recibe el mes actual en UTC, valida «mm/aaaa» (con `monthDate.ts`), rechaza el mes futuro, compara fin e inicio por mes y año y transforma a «AAAA-MM» (D-K, D-M); el inicio sigue obligatorio hasta el PR 2; no toca el `.max` de Ana Sofía; CM-273 PR 2: inicio opcional; la descripción se valida con `unicodeLength` mediante un `.refine` (D-X) con el código interno nuevo `DESCRIPTION_TOO_LONG` (CA-2.4.12, 15, 22, 53) | `src/features/professional-profile/schemas/workExperience.schema.test.ts` y `src/features/professional-profile/organisms/WorkExperienceSection/WorkExperienceSection.test.tsx`   |
 | `src/features/professional-profile/schemas/monthDate.ts` | §3.3 (CM-273, PR 1, archivo nuevo que el SPEC no había previsto): reglas de una fecha «mm/aaaa» compartidas por los dos esquemas (formato y mes futuro, en ese orden; devuelve «AAAA-MM» o un código interno); evita duplicarlas en `education.schema.ts` y `workExperience.schema.ts` | Sin prueba propia: lo cubren indirectamente `src/features/professional-profile/organisms/WorkExperienceSection/WorkExperienceSection.test.tsx` y `src/features/professional-profile/organisms/EducationSection/EducationSection.test.tsx` |
 | `src/features/professional-profile/schemas/skill.schema.ts`                                     | §3.4 (CM-65): validación zod de un ítem de Habilidad; el duplicado NO se valida aquí (depende de `items`, ajeno al schema) — vive en `SkillsSection` vía `setError` manual | `src/features/professional-profile/organisms/SkillsSection/SkillsSection.test.tsx`                   |
 | `src/design-system/atoms/Select/Select.tsx`                                                     | Átomo nuevo (SPEC.md §9, decisión D-B): `<select>` nativo con la misma API que `Input`, para "Nivel educativo" — primer átomo nuevo del design system desde CM-100 | `src/design-system/atoms/Select/Select.test.tsx`                                                     |
 | `src/design-system/molecules/MonthField/MonthField.tsx`                                          | §3.3 (CM-273, PR 1 — archivo nuevo): molécula del design system para las fechas de mes y año; entrada de texto con máscara «mm/aaaa» más panel flotante de 12 meses y flechas de año, sin días; envuelve `Input` sin modificarlo; entrega al formulario el texto crudo (D-K); solo maneja eventos, foco y accesibilidad (D-L); el panel abre en el año del valor si es válido y está en rango, y si no en el año actual; va del año actual hacia atrás 110 años con los meses futuros deshabilitados (D-N); los meses y las flechas cancelan el `mousedown` para que el blur no cierre el panel (patrón de `Combobox`); no existe en Figma (D-O). Lleva su propio barril de exportación, como el resto de componentes del design system | `src/design-system/molecules/MonthField/MonthField.test.tsx`                                         |
 | `src/design-system/molecules/MonthField/index.ts` | §3.3 (CM-273, PR 1, archivo nuevo que el SPEC no había previsto): barril de `MonthField` (CLAUDE.md §14.6); expone solo `MonthField` | Sin prueba propia: solo reexporta; lo ejercitan al importar el componente las pruebas de `WorkExperienceSection.test.tsx` y `EducationSection.test.tsx` (`MonthField.test.tsx` importa el archivo directo, no el barril) |
 | `src/features/professional-profile/organisms/GeneralInfoForm/GeneralInfoForm.tsx`                | §3.2 (CM-53): el formulario de Información General; CM-61 agrega showSectionTitle (decisión D-G); CM-194 sincroniza isDirty con unsavedChanges.store; CM-195 agrega el autoguardado en onBlur (decisión D-H); CM-272 lo pasa a cada campo con compuerta isDirty, retira el prop isSaving, agrega onDirtyChange y conserva lo escrito en vuelo con keepDirtyValues, reintenta una vez el guardado descartado en vuelo, valida siempre al salir del campo, restaura el resumen guardado tras el rechazo del perfil activo y ya no lleva `maxLength` en nombre ni resumen (decisión D-J, C-19) | `src/features/professional-profile/organisms/GeneralInfoForm/GeneralInfoForm.test.tsx`             |
-| `src/features/professional-profile/organisms/EducationSection/EducationSection.tsx`              | §3.3 (CM-61): lista + alta/baja de Formación académica por ítem; CM-273 PR 1: inicio y fin son `MonthField`, con los mensajes de formato, mes futuro y fin anterior al inicio bajo el campo; el fin sigue oculto con «En curso»; la etiqueta del fin es «Fecha de fin» (D-S)                                                             | `src/features/professional-profile/organisms/EducationSection/EducationSection.test.tsx`             |
-| `src/features/professional-profile/organisms/WorkExperienceSection/WorkExperienceSection.tsx`    | §3.3 (CM-61): lista + alta/baja de Experiencia Laboral por ítem; deriva `employmentStatus` en la UI (checkboxes excluyentes); CM-273 PR 1: inicio y fin son `MonthField`, con los mensajes de formato, mes futuro y fin anterior al inicio bajo el campo; el fin sigue oculto con cualquiera de las dos casillas marcadas | `src/features/professional-profile/organisms/WorkExperienceSection/WorkExperienceSection.test.tsx`   |
+| `src/features/professional-profile/organisms/EducationSection/EducationSection.tsx`              | §3.3 (CM-61): lista + alta/baja de Formación académica por ítem; CM-273 PR 1: inicio y fin son `MonthField`, con los mensajes de formato, mes futuro y fin anterior al inicio bajo el campo; el fin sigue oculto con «En curso»; la etiqueta del fin es «Fecha de fin» (D-S); CM-273 PR 2: `maxItems`/`maxItemsMessage` opcionales con botón deshabilitado, mensajes de longitud, `serverFieldErrors` aplicado con `setError`, guarda `useRef` soltada con promesa; `onAdd` y `onRemove` devuelven promesa (D-T, D-V, D-AB, D-AC, D-AG); la tarjeta del ítem parte los textos largos sin espacios (`wrap-anywhere`, `min-w-0`, botón `shrink-0`, D-AH) | `src/features/professional-profile/organisms/EducationSection/EducationSection.test.tsx`             |
+| `src/features/professional-profile/organisms/WorkExperienceSection/WorkExperienceSection.tsx`    | §3.3 (CM-61): lista + alta/baja de Experiencia Laboral por ítem; deriva `employmentStatus` en la UI (checkboxes excluyentes); CM-273 PR 1: inicio y fin son `MonthField`, con los mensajes de formato, mes futuro y fin anterior al inicio bajo el campo; el fin sigue oculto con cualquiera de las dos casillas marcadas; CM-273 PR 2: ídem, más inicio opcional (sin `startDateErrorRequired`), descripción sin `maxLength` y contador y validación con `unicodeLength` (D-X); la tarjeta del ítem parte los textos largos sin espacios (D-AH) | `src/features/professional-profile/organisms/WorkExperienceSection/WorkExperienceSection.test.tsx`   |
 | `src/features/professional-profile/organisms/SkillsSection/SkillsSection.tsx`                    | §3.4 (CM-65): lista + alta/baja de Habilidades por ítem, mostradas como `Chip`; duplicado bloqueado con `setError` manual   | `src/features/professional-profile/organisms/SkillsSection/SkillsSection.test.tsx`                   |
 | `src/features/professional-profile/organisms/ProfileSectionsLayout/ProfileSectionsLayout.tsx`    | §3 (CM-61): índice de secciones — `StepList` en desktop, acordeón (`useDisclosure` por ítem) en móvil                       | `src/features/professional-profile/organisms/ProfileSectionsLayout/ProfileSectionsLayout.test.tsx`   |
 | `src/features/professional-profile/organisms/ProfileActionsBar/ProfileActionsBar.tsx`            | §3 (CM-61): barra de acciones compartida — completitud, «Guardar borrador», «Finalizar y Continuar»; CM-65 conecta `onFinish`/`isFinalizing` al endpoint real | `src/features/professional-profile/organisms/ProfileActionsBar/ProfileActionsBar.test.tsx`           |
 | `src/features/professional-profile/organisms/TargetRolesSection/TargetRolesSection.tsx`          | §3.5 (CM-69): lista + alta/sustitución/baja de Roles Objetivo por ítem; reutiliza `Combobox` (alta) y `Select` (sustitución), sin átomo nuevo | `src/features/professional-profile/organisms/TargetRolesSection/TargetRolesSection.test.tsx`         |
-| `src/features/professional-profile/api/profile.dto.ts`                                          | §3.2/§3.3/§3.4/§3.5: forma cruda del ProfileRecord; CM-61 agrega EducationDto, WorkExperienceDto y los dos Add*RequestDto (campos reales del backend); CM-65 agrega SkillDto, AddSkillRequestDto (campos reales); CM-69 agrega TargetRoleDto, AddTargetRoleRequestDto, UpdateTargetRoleRequestDto (campos reales) y ProfessionalRoleDto ({id, nombre, categoria}, confirmada contra ProfessionalRoleController.java en CM-195) | cubierto por los hooks de datos (integración vía MSW)                                                |
-| `src/features/professional-profile/api/profile.mapper.ts`                                       | §3.2/§3.3/§3.4/§3.5: `ProfileDto → Profile`; CM-61 agrega `toAddEducationRequest`/`toAddWorkExperienceRequest` (deriva `employmentStatus`, trunca fecha — decisión D-F; CM-273 PR 1: dejó de truncar porque el esquema ya entrega «AAAA-MM»; la derivación de `employmentStatus` no cambia); CM-65 agrega `toAddSkillRequest` (sin derivación, solo fija `MANUAL_PROVENANCE`); CM-69 agrega `toProfessionalRole`, `toAddTargetRoleRequest`, `toUpdateTargetRoleRequest` (sin derivación real, solo fijan `MANUAL_PROVENANCE`) | `src/features/professional-profile/api/profile.mapper.test.ts`                                       |
+| `src/features/professional-profile/api/profile.dto.ts`                                          | §3.2/§3.3/§3.4/§3.5: forma cruda del ProfileRecord; CM-61 agrega EducationDto, WorkExperienceDto y los dos Add*RequestDto (campos reales del backend); CM-65 agrega SkillDto, AddSkillRequestDto (campos reales); CM-69 agrega TargetRoleDto, AddTargetRoleRequestDto, UpdateTargetRoleRequestDto (campos reales) y ProfessionalRoleDto ({id, nombre, categoria}, confirmada contra ProfessionalRoleController.java en CM-195); CM-273 PR 2: `WorkExperienceDto.startDate` y `AddWorkExperienceRequestDto.startDate` admiten `null` (solo ensanchan) | cubierto por los hooks de datos (integración vía MSW)                                                |
+| `src/features/professional-profile/api/profile.mapper.ts`                                       | §3.2/§3.3/§3.4/§3.5: `ProfileDto → Profile`; CM-61 agrega `toAddEducationRequest`/`toAddWorkExperienceRequest` (deriva `employmentStatus`, trunca fecha — decisión D-F; CM-273 PR 1: dejó de truncar porque el esquema ya entrega «AAAA-MM»; la derivación de `employmentStatus` no cambia); CM-65 agrega `toAddSkillRequest` (sin derivación, solo fija `MANUAL_PROVENANCE`); CM-69 agrega `toProfessionalRole`, `toAddTargetRoleRequest`, `toUpdateTargetRoleRequest` (sin derivación real, solo fijan `MANUAL_PROVENANCE`); CM-273 PR 2: `toAddWorkExperienceRequest` envía `startDate: null` si está vacío | `src/features/professional-profile/api/profile.mapper.test.ts`                                       |
 | `src/features/professional-profile/api/profile.api.ts`                                          | §3.2/§3.3/§3.4/§3.5: `fetchProfile`/`updateGeneralInfo`; CM-61 agrega `addEducation`/`removeEducation`/`addWorkExperience`/`removeWorkExperience`; CM-65 agrega `addSkill`/`removeSkill`/`finalizeProfile` (endpoint real de finalización, ver §5); CM-69 agrega `addTargetRole`/`substituteTargetRole`/`removeTargetRole`/`fetchProfessionalRoles` | cubierto por los hooks de datos (integración vía MSW)                                                |
 | `src/features/professional-profile/hooks/useProfileQuery.ts`                                    | §3.2 (CM-53): `useQuery` del perfil por id, consumido por `EditProfilePage` desde CM-61                                    | `src/features/professional-profile/hooks/useProfileQuery.test.tsx`                                   |
 | `src/features/professional-profile/hooks/useUpdateProfileGeneralInfo.ts`                        | §3.2 (CM-53): `useMutation` del guardado, escribe la respuesta directo en la caché de `useProfileQuery`                     | `src/features/professional-profile/hooks/useUpdateProfileGeneralInfo.test.tsx`                       |
@@ -1076,9 +1391,11 @@ específico).
 | `src/features/professional-profile/hooks/useSubstituteTargetRole.ts`                             | §3.5 (CM-69): `useMutation` de sustitución de rol objetivo (`PATCH`, conserva el `id`)                                      | `src/features/professional-profile/hooks/useSubstituteTargetRole.test.tsx`                           |
 | `src/features/professional-profile/hooks/useRemoveTargetRole.ts`                                 | §3.5 (CM-69): `useMutation` de baja de rol objetivo                                                                         | `src/features/professional-profile/hooks/useRemoveTargetRole.test.tsx`                               |
 | `src/features/professional-profile/hooks/useProfessionalRolesQuery.ts`                           | §3.5 (CM-69): `useQuery` del catálogo cerrado de roles TI, llave `['professional-roles']`                                   | `src/features/professional-profile/hooks/useProfessionalRolesQuery.test.tsx`                         |
-| `src/features/professional-profile/pages/EditProfilePage.tsx`                                   | §3, §3.2, §3.3, §3.4, §3.5 (CM-61/CM-65/CM-69): el armazón real de la ruta de edición del perfil — ya no `WizardLayout`/`EmptyState`; CM-65 agrega la cuarta sección y conecta «Finalizar y Continuar» al endpoint real; CM-69 agrega la quinta sección y el estado de carga/error del catálogo; CM-272 muestra el error del PATCH de Información General por code con getItemErrorMessage y oculta «Cambios guardados.» mientras el formulario esté sucio y resuelve el 403 PROFILE_NOT_ALLOWED de la carga como NOT_FOUND y devuelve el resumen guardado al formulario ante SUMMARY_NOT_ALLOWED (decisión D-J); CM-273 PR 1 calcula el mes actual en UTC (D-M) y lo pasa, junto con los textos de fecha, a las secciones de experiencia y formación como propiedad | `src/features/professional-profile/pages/EditProfilePage.test.tsx`                                   |
+| `src/features/professional-profile/pages/EditProfilePage.tsx`                                   | §3, §3.2, §3.3, §3.4, §3.5 (CM-61/CM-65/CM-69): el armazón real de la ruta de edición del perfil — ya no `WizardLayout`/`EmptyState`; CM-65 agrega la cuarta sección y conecta «Finalizar y Continuar» al endpoint real; CM-69 agrega la quinta sección y el estado de carga/error del catálogo; CM-272 muestra el error del PATCH de Información General por code con getItemErrorMessage y oculta «Cambios guardados.» mientras el formulario esté sucio y resuelve el 403 PROFILE_NOT_ALLOWED de la carga como NOT_FOUND y devuelve el resumen guardado al formulario ante SUMMARY_NOT_ALLOWED (decisión D-J); CM-273 PR 1 calcula el mes actual en UTC (D-M) y lo pasa, junto con los textos de fecha, a las secciones de experiencia y formación como propiedad; CM-273 PR 2: usa los formateadores de periodo del modelo, pasa `maxItems`/`maxItemsMessage` y los textos de longitud a las dos secciones, traduce `errors[]` a un mapa campo→texto (`serverFieldErrors`), tabla propia de bajas y de `PROFILE_NOT_ALLOWED` (`findMessageByCode`), reserva `errors:generico`/`errors:red` en altas y bajas, estado de «última acción» por sección, `mutateAsync` (D-T a D-AG; sin editar las líneas de Sofía) | `src/features/professional-profile/pages/EditProfilePage.test.tsx`                                   |
 | `src/features/professional-profile/routes.tsx`                                                  | Mapea las 3 rutas de esta feature bajo `professionalProfileShellRoutes`, incluida la de edición del perfil (CM-61 la muda desde `professionalProfileWizardRoutes`, retirada — decisión D-E) | `src/app/router/index.test.tsx` (features no puede importar RequireAuth, ver §9)                    |
-| `src/utils/monthMask.ts`                                                                         | §3.3 (CM-273, PR 1 — archivo nuevo): funciones puras de la máscara «mm/aaaa», de la conversión «mm/aaaa» ↔ «AAAA-MM» (D-L) y del mes actual en UTC, `getCurrentUtcYearMonth` (D-M); precedente `src/utils/textFilters.ts` | `src/utils/monthMask.test.ts`                                                                         |
+| `src/utils/monthMask.ts`                                                                         | §3.3 (CM-273, PR 1 — archivo nuevo): funciones puras de la máscara «mm/aaaa», de la conversión «mm/aaaa» ↔ «AAAA-MM» (D-L) y del mes actual en UTC, `getCurrentUtcYearMonth` (D-M); precedente `src/utils/textFilters.ts`; CM-273 PR 2 (previsto): `formatMonthValue` pasa a dar el texto «mm/aaaa» de los periodos de la lista | `src/utils/monthMask.test.ts`                                                                         |
+| `src/i18n/locales/es-CO/profile.json` | §3.3 (CM-273 PR 2): llaves nuevas de periodo, longitud y última formación; cinco llaves de periodo cambian de texto; se borran las cuatro `errorAgregar`/`errorEliminar` de formación y experiencia (D-AF) y `experiencia.fechaInicio.errorRequerido`; no se tocan las líneas de Sofía (`errorLimite` a `errorCaracteresInvalidos` de cada bloque) | `src/features/professional-profile/pages/EditProfilePage.test.tsx` y `src/features/professional-profile/model/yearMonth.test.ts` (los literales de longitud no tienen prueba propia: ver §3.3) |
+| `src/i18n/locales/en/profile.json` | §3.3 (CM-273 PR 2): las mismas llaves en inglés (traducción de trabajo, `CLAUDE.md` §7) | `src/features/professional-profile/model/yearMonth.test.ts` |
 | `src/utils/buttonLoadingProps.ts`                                                                | Infraestructura de apoyo (CM-61): arma el par `{loading, loadingLabel}` que `Button` exige, evitando repetir el condicional en 5 sitios | `src/utils/buttonLoadingProps.test.ts`                                                                |
 | `src/stores/unsavedChanges.store.ts`                                                             | CM-194: bandera de cliente hasUnsavedChanges que GeneralInfoForm mantiene y que la confirmación de cierre de sesión lee (§3.2) | `src/stores/unsavedChanges.store.test.ts`                                                           |
 | `src/stores/uiPreferences.store.ts`                                                              | lastUsedProfileId (conveniencia de solo cliente, localStorage; ADR-0004) que NewProfilePage, EditProfilePage y AppShell leen; se borra al perder la sesión (useLogout y AuthProvider, CA-1.8.3, C-17) | —                                                                                                  |
@@ -1122,6 +1439,7 @@ seguimiento de Frontend a la respuesta del PO del 11-sep).
 | C-19 | ~~`maxLength` del nombre (255) y del resumen (2000) impide escribir el carácter 256 / 2001; CA-2.3.3 y CA-2.3.10 exigen ver «2001 / 2000 caracteres» y los mensajes de longitud sin guardar (RT-01-CA03 y RT-01-CA07: «sin cortar lo escrito»)~~ — **RESUELTO, 13-oct-2026.** El Product Owner (Juan David) decidió mantener el backlog con las reglas actuales, así que el código se adapta al criterio: CM-272 quita el `maxLength` de los dos campos de HU-2.3 (`GeneralInfoForm.tsx`). Los mensajes ya existían en es-CO y en; el contador ya pintaba «2001 / 2000» sin cortar. **Pendiente, fuera de esta tarjeta:** los campos de HU-2.4 y del registro siguen con el tope (ver «Fuera de alcance de CM-272») | — | detectado 11-oct-2026; resuelto 13-oct-2026, CM-272 |
 | C-20 | El `PATCH` de `profiles.handlers.ts` no coincide con el servidor real: responde `400` sin `code` al validar el nombre (`:235`, `:376`) donde el servidor responde `422 VALIDATION_FAILED`; no tiene rama de perfil `COMPLETED` que vacíe el resumen (`SUMMARY_NOT_ALLOWED`), ni de perfil ajeno (`403 PROFILE_NOT_ALLOWED`), ni valida el largo del resumen. Por eso las pruebas con el mock pueden pasar mientras staging falla. Alinearlo puede romper pruebas de HU-2.4, 2.5 y 2.11. Tarea propia, fuera de CM-272 | Frontend (con revisión de quien lleve HU-2.4, 2.5 y 2.11) | detectado 11-oct-2026, CM-272 |
 | C-21 | DF-007 (CA-2.3.1 y CA-2.3.4) sin causa confirmada: por código el servidor ya borra el resumen vacío en Borrador (`cameia-perfil` commit `66eccda`, 8-oct; prueba `GeneralInfoEndToEndIT.java:94-107`) y el cliente envía `""` y confirma solo tras un 2xx. **Evidencia nueva (12-oct-2026):** `cameia-perfil/specs/CM-54-informacion-general-resumen/spec.md:18` dice que el servidor ya está corregido y deja «la parte de CM-247 de la interfaz» a Frontend (`:224`); el aviso de testing del 11-oct probó staging con `cameia-perfil@9355f1a` y `cameia-web@4b3f915`; **no existe re-prueba de DF-007 posterior al 26-sep** (el aviso no lo menciona). Numeración: `CP-050/EJ-036` y `CP-056/EJ-038` son del **libro del Sprint 1**; el libro del Sprint 2 usa EJ-036 y EJ-038 para DF-003 y DF-005. Falta comprobar contra staging qué devuelve el `GET` tras el `PATCH` con la versión de CM-272. **SIGUE ABIERTO** | QA / Backend (Paula Andrea Muñoz Delgado) | probado 26-sep-2026 (`cameia-web@a3e46cb`); revisado 11-oct-2026, CM-272 |
+| C-22 | **Observación fuera de CM-273, aviso pendiente a Ana Sofía (celda O41 de la v8, caracteres de control).** La O41 trae literales por campo («La empresa tiene caracteres no permitidos.», etc.); el backend ya los envía (`WorkExperience.java:33`, `:36`, `:39`; `Education.java:29`, `:32`) con los cinco `code` `*_INVALID_CHARACTERS`, y el front los muestra con **un solo** texto genérico, «El campo contiene caracteres no permitidos.» (`profile.json:110` y `:160`; entradas en `EditProfilePage.tsx:370-371` y `:440-444`; todo de Ana Sofía, PR #72). Ningún criterio de HU-2.4 de la v7 lo exige y no se pudo comprobar si la O41 es texto nuevo de la v8 (el libro no está en disco). Hay una pregunta gemela abierta para HU-2.3 (nombre y resumen). CM-273 no lo toca (D-Y). **Avisar a Ana Sofía** de qué texto cambiaría si se decide implementarlo. **ABIERTO** | Ana Sofía / PO | observado 16-oct-2026, CM-273 PR 2 |
 
 ## 9. Notas
 
@@ -1367,6 +1685,78 @@ código).**
   (`profile:experiencia.fechaFin.etiqueta`). Cambia `profile:educacion.fechaFin.etiqueta` en es-CO
   («Fecha de fin») y en («End date»). Diverge del frame de Figma, que dibujaba «Año de finalización»; por
   la regla de `CLAUDE.md` §16 el comportamiento lo fija el backlog.
+
+**Decisiones de diseño, PRT-02.03 (CM-273, PR 2, 16-oct-2026 — todas aprobadas; SPEC escrito antes del
+código).** Las diez primeras son las decisiones del 16-oct (análisis, Fase 7, 7.6); las cuatro últimas, las
+respuestas del mismo día a los puntos que quedaron abiertos (adenda de 7.6). Continúan la numeración tras D-S.
+
+- **D-T — Errores del servidor bajo el campo: la página traduce `errors[]` a un mapa campo → texto, y la
+  sección lo aplica con `setError`.** Motivo: la sección no conoce el contrato (`CLAUDE.md` §8, el mapper y la
+  página son quienes lo conocen) y el texto nunca viene del servidor; así CA-2.4.21, 23 y 32 salen bajo el
+  campo sin tocar las tablas de código de Sofía (tabla propia código→campo).
+- **D-U — Periodo de una experiencia terminada sin inicio: «Sin fecha de inicio – 06/2024».** Motivo: se
+  compone con la pieza «Sin fecha de inicio» que CA-2.4.42 ya obliga a crear, así no hace falta ningún literal
+  que el backlog no tenga y el formateador no se rompe con un inicio nulo.
+- **D-V — Los topes de 4 experiencias y 5 formaciones son constantes del front, y el 409 se sigue manejando.**
+  Motivo: CA-2.4.10 y 47 piden deshabilitar «Agregar» al guardar la última permitida (un 201), lo que solo se
+  sabe contando en el cliente; el 409 sigue siendo la verdad para la segunda pestaña (CA-2.4.48 y 49). Las
+  constantes van fuera de las líneas de Sofía en `profile.constants.ts`. **Tensión con `CLAUDE.md` §3.7**
+  («ninguna constante de negocio se hardcodea»): hay dos precedentes en el mismo archivo (`SKILLS_MAX_COUNT`,
+  `MAX_TARGET_ROLES`) y el backend no publica los máximos; pueden desfasarse del servidor.
+- **D-W — El texto de reserva de las bajas también es `errors:generico`, con el mismo ternario de red.**
+  Motivo: una sola regla para altas, bajas e Información General (`ADR-0008`: un genérico es honesto, uno
+  específico equivocado no); cierra la Decisión B de la Fase 5 también para las bajas.
+- **D-X — El contador y la validación de la descripción usan `unicodeLength`, y se quita el `maxLength`.**
+  Motivo: RT-01-CA07 exige «501 / 500 caracteres» sin cortar lo escrito, y el servidor cuenta puntos de
+  código. `unicodeLength.ts` (de Sofía) solo se importa. Comprobado antes de tocar: la línea del `.max` de la
+  descripción (`workExperience.schema.ts:47`) es de CM-61 (commit `c8cf47e`) y se puede editar; las líneas
+  `:43-44` (empresa y cargo) y los imports `:23-27` son de Sofía y no se editan, así que esos campos siguen
+  contando UTF-16 (más estrictos que el servidor).
+- **D-Y — Los literales de caracteres de control (celda O41 de la v8) quedan fuera de CM-273.** Motivo: ningún
+  criterio de HU-2.4 de la v7 los exige y el front ya muestra un texto genérico de Sofía; resolverlo por campo
+  depende de D-T. **Hay que avisar a Ana Sofía** (ver C-22 en §8).
+- **D-Z — El campo `backlog` del encabezado no cambia; se agrega una nota de contraste en §3.3, con esta
+  redacción final:** «HU-2.4 contrastada con la v7 y comprobada por el autor contra la v8.1: los 59
+  criterios no cambian en Dado, Cuando, Entonces, tipo ni prototipo; la v8.2 solo cambia "deshabilitar" por
+  "ocultar" en Fecha de fin. La columna O41 trae además literales de caracteres de control, fuera de
+  CM-273.» Motivo: el campo cubre toda la feature y solo HU-2.2, 2.3 y 2.4 están contrastadas con las
+  versiones nuevas; la nota de §3.3 dice exactamente qué se contrastó, y la redacción es la del autor porque
+  la propuesta anterior atribuía a la v8.2 un contraste que solo se había hecho contra el `.md` de la v7.
+- **D-AA — Cada sección muestra la confirmación de su última acción (alta o baja).** Motivo: hoy la
+  confirmación depende solo de `addX.isSuccess` y tras eliminar seguiría diciendo «agregada», lo que
+  contradice CA-2.4.11, 38 y 46.
+- **D-AB — Al llegar al tope se deshabilita el botón «Agregar» y se muestra el mensaje existente
+  (`errorLimite`).** Motivo: es la lectura literal de CA-2.4.10 y 47 («deshabilitar "Agregar…" con el
+  mensaje»); el formulario queda visible (a diferencia de `SkillsSection.tsx:189`, que lo reemplaza por un
+  aviso) y `onSubmit` también comprueba el tope.
+- **D-AC — Guarda de doble envío en altas y bajas, con `useRef` más `disabled`.** Motivo: RT-06-CA01 sigue
+  vigente hasta el Sprint 4 y DF-004 (CM-270) demostró que `disabled` solo no basta; en las bajas evita que
+  un segundo `DELETE` dé un 404 que parecería un fallo (hipótesis).
+- **D-AD — Un solo mensaje por sección, el más reciente: el error de una alta fallida también sigue a la
+  «última acción».** Motivo: completa D-AA; así un error viejo de una alta no queda junto a «eliminada» y los
+  errores por campo (D-T) solo siguen a una alta.
+- **D-AE — Fusionada en D-Z.** Se conserva el identificador para no renumerar; la redacción final de la nota de
+  contraste de §3.3 vive ahora en D-Z.
+- **D-AF — Se borran las llaves `educacion.errorAgregar`, `educacion.errorEliminar`, `experiencia.errorAgregar`
+  y `experiencia.errorEliminar`, en es-CO y en.** Motivo: tras D-W y la Decisión B quedan sin consumidor y
+  `CLAUDE.md` §13 prohíbe el código muerto; comprobado que solo las usa `EditProfilePage.tsx` y que las
+  pruebas de sección pasan sus propios textos. Las llaves del mismo nombre de habilidades y roles no se tocan.
+- **D-AG — La guarda se suelta con una promesa: `onAdd` y `onRemove` devuelven la de `mutateAsync`, como
+  `GeneralInfoForm`.** Motivo: soltarla cuando `isAdding` cambia depende del re-render, que es lo que falló en
+  DF-004. Se acepta el cambio de las props de las dos secciones, de `EditProfilePage.tsx` y de sus pruebas.
+  **La sección atrapa el rechazo de la promesa para soltar la guarda (en `finally`) y no lo propaga** (así
+  nunca queda una promesa rechazada sin manejar); **el mensaje de error lo sigue decidiendo la página**, a
+  partir del estado de la mutación y no del rechazo.
+- **D-AH — Un texto largo sin espacios se PARTE en varias líneas en la tarjeta del ítem; no se recorta con «…».
+  El diseño se verifica a mano en móvil, no con prueba automática (16-oct-2026).** Motivo: defecto de la prueba
+  manual de CA-2.4.17 y 27 en ~390 px: un cargo o empresa de 100 caracteres, o una institución o título de 150,
+  sin espacios, salía por el borde derecho de la tarjeta y empujaba fuera el botón «Eliminar». Se decidió partir
+  y no recortar porque los textos con espacios ya se parten, en móvil no hay hover para ver un texto recortado y
+  el backlog pide conservar los 100 y 150 caracteres completos. Se aplicó en `WorkExperienceSection` y
+  `EducationSection` (marcado de CM-61): `wrap-anywhere` (`overflow-wrap: anywhere`, existe en Tailwind 4.3.3) en
+  cargo/título, empresa/institución y periodo; `min-w-0` en el bloque de texto del `flex`; y `shrink-0` en el botón
+  de eliminar. La descripción no se pinta en la tarjeta, así que no aplica. `jsdom` no calcula el diseño: no hay
+  prueba de clases; la comprobación es manual en móvil.
 
 **Decisiones de diseño, PRT-02.03 (CM-65, 15-sep-2026 — Figma desactualizado para esta subtarea,
 guía visual únicamente, ver nota de §3.4).**

@@ -14,6 +14,7 @@
  * punta a punta por primera vez.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { BoundFunctions, queries } from '@testing-library/dom';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
@@ -986,5 +987,796 @@ describe('EditProfilePage · mes actual en UTC (CM-273, D-M)', () => {
     await user.click(experience.getByRole('button', { name: 'Agregar experiencia' }));
 
     expect(await experience.findByText('Experiencia agregada.')).toBeInTheDocument();
+  });
+});
+
+/*
+ * CM-273 (PR 2, `SPEC.md` §3.3 y D-T a D-AG): lo que solo se puede probar con la página montada y el
+ * `profile.json` REAL. Los textos esperados son los literales del documento de criterios de HU-2.4 (v7), escritos
+ * aquí tal cual: si una llave falta, sale la llave en vez del texto y la prueba falla por su razón. Las respuestas
+ * del servidor que el mock no sabe dar (403, 409, 503, 422 por campo, red) se montan con `useHandlers` por
+ * prueba, como CM-272. Los literales de «Sin fecha de inicio», «Sin fechas», etc. de los periodos salen de las
+ * mismas llaves que usa `yearMonth.test.ts`.
+ */
+describe('EditProfilePage · HU-2.4 (CM-273, PR 2)', () => {
+  const NOT_FOUND = 'No encontramos lo que buscabas.';
+  const GENERIC = 'Ocurrió un error. Inténtalo de nuevo.';
+  const NETWORK = 'No hay conexión. Revisa tu internet e inténtalo de nuevo.';
+  const LAST_EDUCATION =
+    'No puedes quedarte sin formación académica con el perfil activo. Agrega otra antes de eliminar esta.';
+  const EDUCATION_LIMIT = 'Ya tienes el máximo de 5 formaciones académicas.';
+  const EXPERIENCE_LIMIT = 'Ya tienes el máximo de 4 experiencias laborales.';
+  const BEFORE_BIRTH = 'La fecha no puede ser anterior a tu fecha de nacimiento.';
+  const BEFORE_MIN_AGE =
+    'La experiencia laboral no puede iniciar antes del mes en que cumpliste 15 años.';
+  const END_BEFORE_MIN_AGE =
+    'La fecha de fin no puede ser anterior al mes en que cumpliste 15 años.';
+
+  type User = ReturnType<typeof userEvent.setup>;
+  type Region = BoundFunctions<typeof queries>;
+
+  async function newProfile() {
+    await waitUntilReady();
+    setViewportMatches(true);
+    return (await createProfile()).id;
+  }
+
+  async function mount(profileId: string) {
+    renderPage(profileId);
+    await screen.findByRole('heading', { name: 'Editar perfil profesional' });
+    return {
+      education: within(screen.getByRole('region', { name: 'Formación académica' })),
+      experience: within(screen.getByRole('region', { name: 'Experiencia Laboral' })),
+    };
+  }
+
+  const educationBody = (degree: string) => ({
+    institution: 'Universidad del Cauca',
+    degree,
+    level: 'UNDERGRADUATE',
+    startDate: '2018-01',
+    endDate: '2023-12',
+    inProgress: false,
+  });
+
+  const experienceBody = (position: string) => ({
+    company: 'CAMEIA',
+    position,
+    description: null,
+    startDate: '2024-01',
+    endDate: null,
+    employmentStatus: 'CURRENT',
+  });
+
+  /** Siembra formaciones a través del mock (estado real: un `DELETE` posterior sí las retira). */
+  async function seedEducations(profileId: string, ...degrees: string[]) {
+    for (const degree of degrees) {
+      await httpClient.post(`/api/v1/profiles/${profileId}/educations`, educationBody(degree));
+    }
+  }
+
+  async function seedExperiences(profileId: string, ...positions: string[]) {
+    for (const position of positions) {
+      await httpClient.post(
+        `/api/v1/profiles/${profileId}/work-experiences`,
+        experienceBody(position),
+      );
+    }
+  }
+
+  /** `GET` con listas fijas, para pintar casos que el mock no puede producir (inicio nulo, 4 o 5 registros). */
+  async function listingHandler(
+    profileId: string,
+    lists: { educations?: unknown[]; workExperiences?: unknown[] },
+  ) {
+    const current = await httpClient.get<Record<string, unknown>>(`/api/v1/profiles/${profileId}`);
+    // El catálogo de roles cuelga de la misma ruta (`/api/v1/profiles/professional-roles`): se devuelve tal cual.
+    const roles = await httpClient.get<Record<string, unknown>[]>(
+      '/api/v1/profiles/professional-roles',
+    );
+    return http.get('*/api/v1/profiles/:id', ({ params }) =>
+      params.id === 'professional-roles'
+        ? HttpResponse.json(roles)
+        : HttpResponse.json({ ...current, ...lists }),
+    );
+  }
+
+  const educationItem = (n: number, overrides: Record<string, unknown> = {}) => ({
+    id: `edu-${n}`,
+    institution: 'Universidad del Cauca',
+    degree: `Título ${n}`,
+    level: 'UNDERGRADUATE',
+    startDate: '2018-01',
+    endDate: '2023-12',
+    inProgress: false,
+    provenance: 'MANUAL',
+    ...overrides,
+  });
+
+  const experienceItem = (n: number, overrides: Record<string, unknown> = {}) => ({
+    id: `exp-${n}`,
+    company: 'CAMEIA',
+    position: `Cargo ${n}`,
+    description: null,
+    startDate: '2024-01',
+    endDate: null,
+    employmentStatus: 'CURRENT',
+    provenance: 'MANUAL',
+    ...overrides,
+  });
+
+  async function fillEducation(user: User, education: Region, startDate = '012018') {
+    await user.selectOptions(education.getByLabelText('Nivel educativo'), 'UNDERGRADUATE');
+    await user.type(education.getByLabelText('Título obtenido'), 'Ingeniería de Sistemas');
+    await user.type(education.getByLabelText('Institución'), 'Universidad del Cauca');
+    await user.type(education.getByLabelText('Fecha de inicio'), startDate);
+  }
+
+  async function fillCurrentExperience(user: User, experience: Region, startDate = '062024') {
+    await user.type(experience.getByLabelText('Cargo'), 'Desarrolladora backend');
+    await user.type(experience.getByLabelText('Empresa'), 'CAMEIA');
+    await user.click(experience.getByText('Trabajo aquí actualmente'));
+    await user.type(experience.getByLabelText('Fecha de inicio'), startDate);
+  }
+
+  const addEducation = (user: User, education: Region) =>
+    user.click(education.getByRole('button', { name: 'Agregar formación' }));
+  const addExperience = (user: User, experience: Region) =>
+    user.click(experience.getByRole('button', { name: 'Agregar experiencia' }));
+
+  async function expectDescription(field: HTMLElement, text: string) {
+    await waitFor(() => expect(field).toHaveAccessibleDescription(text));
+  }
+
+  describe('errores del servidor bajo el campo (D-T; CA-2.4.21, 23 y 32)', () => {
+    it('422 con START_DATE_BEFORE_BIRTH pinta el literal bajo «Fecha de inicio» de la formación, no en la alerta (CA-2.4.32)', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      useHandlers(
+        http.post('*/api/v1/profiles/:id/educations', () =>
+          problem(422, {
+            code: 'VALIDATION_FAILED',
+            errors: [
+              { field: 'startDate', code: 'START_DATE_BEFORE_BIRTH', message: RAW_SERVER_TEXT },
+            ],
+          }),
+        ),
+      );
+      const { education } = await mount(profileId);
+
+      await fillEducation(user, education, '022008');
+      await addEducation(user, education);
+
+      await expectDescription(education.getByLabelText('Fecha de inicio'), BEFORE_BIRTH);
+      // Un solo `alert`: el `<p role="alert">` del propio campo (`ErrorText`); si el texto saliera también en el
+      // `AlertInline` de la sección habría dos.
+      expect(education.getAllByRole('alert')).toHaveLength(1);
+      expect(screen.queryByText(RAW_SERVER_TEXT)).not.toBeInTheDocument();
+    });
+
+    it('422 con START_DATE_BEFORE_MINIMUM_AGE pinta el literal bajo «Fecha de inicio» de la experiencia (CA-2.4.21)', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      useHandlers(
+        http.post('*/api/v1/profiles/:id/work-experiences', () =>
+          problem(422, {
+            code: 'VALIDATION_FAILED',
+            errors: [
+              {
+                field: 'startDate',
+                code: 'START_DATE_BEFORE_MINIMUM_AGE',
+                message: RAW_SERVER_TEXT,
+              },
+            ],
+          }),
+        ),
+      );
+      const { experience } = await mount(profileId);
+
+      await fillCurrentExperience(user, experience, '022023');
+      await addExperience(user, experience);
+
+      await expectDescription(experience.getByLabelText('Fecha de inicio'), BEFORE_MIN_AGE);
+      expect(experience.getAllByRole('alert')).toHaveLength(1);
+      expect(screen.queryByText(RAW_SERVER_TEXT)).not.toBeInTheDocument();
+    });
+
+    it('422 con END_DATE_BEFORE_MINIMUM_AGE pinta el literal bajo «Fecha de fin» de una experiencia sin inicio (CA-2.4.23)', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      useHandlers(
+        http.post('*/api/v1/profiles/:id/work-experiences', () =>
+          problem(422, {
+            code: 'VALIDATION_FAILED',
+            errors: [
+              { field: 'endDate', code: 'END_DATE_BEFORE_MINIMUM_AGE', message: RAW_SERVER_TEXT },
+            ],
+          }),
+        ),
+      );
+      const { experience } = await mount(profileId);
+
+      // Sin «Fecha de inicio»: depende también del inicio opcional (CA-2.4.15, 22, 23 y 53).
+      await user.type(experience.getByLabelText('Cargo'), 'Desarrolladora backend');
+      await user.type(experience.getByLabelText('Empresa'), 'CAMEIA');
+      await user.type(experience.getByLabelText('Fecha de fin'), '022023');
+      await addExperience(user, experience);
+
+      await expectDescription(experience.getByLabelText('Fecha de fin'), END_BEFORE_MIN_AGE);
+      expect(experience.getAllByRole('alert')).toHaveLength(1);
+    });
+
+    it('el error de campo desaparece cuando la persona edita la fecha', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      useHandlers(
+        http.post('*/api/v1/profiles/:id/educations', () =>
+          problem(422, {
+            code: 'VALIDATION_FAILED',
+            errors: [
+              { field: 'startDate', code: 'START_DATE_BEFORE_BIRTH', message: RAW_SERVER_TEXT },
+            ],
+          }),
+        ),
+      );
+      const { education } = await mount(profileId);
+      await fillEducation(user, education, '022008');
+      await addEducation(user, education);
+      const start = education.getByLabelText('Fecha de inicio');
+      await expectDescription(start, BEFORE_BIRTH);
+
+      await user.clear(start);
+      await user.type(start, '032008');
+
+      await waitFor(() => expect(start).not.toHaveAccessibleDescription(BEFORE_BIRTH));
+    });
+
+    it('dos rechazos idénticos seguidos pintan el error las dos veces (el efecto depende del error, no del texto)', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      let requests = 0;
+      useHandlers(
+        http.post('*/api/v1/profiles/:id/educations', () => {
+          requests += 1;
+          return problem(422, {
+            code: 'VALIDATION_FAILED',
+            errors: [
+              { field: 'startDate', code: 'START_DATE_BEFORE_BIRTH', message: RAW_SERVER_TEXT },
+            ],
+          });
+        }),
+      );
+      const { education } = await mount(profileId);
+      await fillEducation(user, education, '022008');
+      await addEducation(user, education);
+      const start = education.getByLabelText('Fecha de inicio');
+      await expectDescription(start, BEFORE_BIRTH);
+
+      await user.clear(start);
+      await user.type(start, '012008');
+      await waitFor(() => expect(start).not.toHaveAccessibleDescription(BEFORE_BIRTH));
+      await addEducation(user, education);
+
+      await waitFor(() => expect(requests).toBe(2));
+      await expectDescription(education.getByLabelText('Fecha de inicio'), BEFORE_BIRTH);
+    });
+  });
+
+  describe('bajas: confirmación y errores por code (CA-2.4.11, 37, 38, 39, 46, 51, 58 y 59)', () => {
+    it('eliminar la única formación de un perfil en Borrador muestra «Formación eliminada.» y no «Formación agregada.» (CA-2.4.11)', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      await seedEducations(profileId, 'Ingeniería de Sistemas');
+      await seedExperiences(profileId, 'Desarrolladora backend');
+      const { education } = await mount(profileId);
+
+      await user.click(education.getByRole('button', { name: /Eliminar Ingeniería de Sistemas/ }));
+
+      expect(await education.findByText('Formación eliminada.')).toBeInTheDocument();
+      expect(education.queryByText('Ingeniería de Sistemas')).not.toBeInTheDocument();
+      expect(education.queryByText('Formación agregada.')).not.toBeInTheDocument();
+    });
+
+    it('eliminar una de dos formaciones muestra «Formación eliminada.» y deja la otra (CA-2.4.46; el cliente no depende del estado del perfil)', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      await seedEducations(profileId, 'Título uno', 'Título dos');
+      const { education } = await mount(profileId);
+
+      await user.click(education.getByRole('button', { name: /Eliminar Título uno/ }));
+
+      expect(await education.findByText('Formación eliminada.')).toBeInTheDocument();
+      expect(education.queryByText('Título uno')).not.toBeInTheDocument();
+      expect(education.getByText('Título dos')).toBeInTheDocument();
+    });
+
+    it('eliminar la única experiencia muestra «Experiencia eliminada.» (CA-2.4.38)', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      await seedExperiences(profileId, 'Desarrolladora backend');
+      const { experience } = await mount(profileId);
+
+      await user.click(experience.getByRole('button', { name: /Eliminar Desarrolladora backend/ }));
+
+      expect(await experience.findByText('Experiencia eliminada.')).toBeInTheDocument();
+      expect(experience.queryByText('Desarrolladora backend')).not.toBeInTheDocument();
+    });
+
+    it('409 EDUCATION_NOT_ALLOWED muestra el literal de la última formación y la deja en la lista (CA-2.4.37)', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      useHandlers(
+        await listingHandler(profileId, { educations: [educationItem(1)] }),
+        http.delete('*/api/v1/profiles/:id/educations/:educationId', () =>
+          problem(409, { code: 'EDUCATION_NOT_ALLOWED' }),
+        ),
+      );
+      const { education } = await mount(profileId);
+
+      await user.click(education.getByRole('button', { name: 'Eliminar Título 1' }));
+
+      expect(await education.findByText(LAST_EDUCATION)).toBeInTheDocument();
+      expect(education.getByText('Título 1')).toBeInTheDocument();
+      expect(screen.queryByText(RAW_SERVER_TEXT)).not.toBeInTheDocument();
+    });
+
+    it('en dos pestañas, el 409 de la que pierde muestra el mismo literal y la lista no cambia (CA-2.4.51)', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      useHandlers(
+        await listingHandler(profileId, { educations: [educationItem(1), educationItem(2)] }),
+        http.delete('*/api/v1/profiles/:id/educations/:educationId', () =>
+          problem(409, { code: 'EDUCATION_NOT_ALLOWED' }),
+        ),
+      );
+      const { education } = await mount(profileId);
+
+      await user.click(education.getByRole('button', { name: 'Eliminar Título 2' }));
+
+      expect(await education.findByText(LAST_EDUCATION)).toBeInTheDocument();
+      expect(education.getByText('Título 1')).toBeInTheDocument();
+      expect(education.getByText('Título 2')).toBeInTheDocument();
+    });
+
+    describe.each([
+      ['alta de formación', 'education', 'POST'],
+      ['baja de formación', 'education', 'DELETE'],
+      ['alta de experiencia', 'experience', 'POST'],
+      ['baja de experiencia', 'experience', 'DELETE'],
+    ] as const)('403 PROFILE_NOT_ALLOWED en la %s (CA-2.4.39)', (_name, section, verb) => {
+      it('muestra «No encontramos lo que buscabas.» y no el texto del servidor', async () => {
+        const profileId = await newProfile();
+        const user = userEvent.setup();
+        const forbidden = () => problem(403, { code: 'PROFILE_NOT_ALLOWED' });
+        const lists =
+          section === 'education'
+            ? { educations: [educationItem(1)] }
+            : { workExperiences: [experienceItem(1)] };
+        const route =
+          section === 'education'
+            ? '*/api/v1/profiles/:id/educations'
+            : '*/api/v1/profiles/:id/work-experiences';
+        useHandlers(
+          await listingHandler(profileId, lists),
+          verb === 'POST'
+            ? http.post(route, forbidden)
+            : http.delete(`${route}/:itemId`, forbidden),
+        );
+        const { education, experience } = await mount(profileId);
+        const region = section === 'education' ? education : experience;
+
+        if (verb === 'POST') {
+          if (section === 'education') {
+            await fillEducation(user, education);
+            await addEducation(user, education);
+          } else {
+            await fillCurrentExperience(user, experience);
+            await addExperience(user, experience);
+          }
+        } else {
+          await user.click(
+            region.getByRole('button', {
+              name: section === 'education' ? 'Eliminar Título 1' : 'Eliminar Cargo 1',
+            }),
+          );
+        }
+
+        expect(await region.findByText(NOT_FOUND)).toBeInTheDocument();
+        expect(screen.queryByText(RAW_SERVER_TEXT)).not.toBeInTheDocument();
+      });
+    });
+
+    it('404 EDUCATION_NOT_FOUND al eliminar muestra «No encontramos lo que buscabas.» (CA-2.4.58)', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      useHandlers(
+        await listingHandler(profileId, { educations: [educationItem(1)] }),
+        http.delete('*/api/v1/profiles/:id/educations/:educationId', () =>
+          problem(404, { code: 'EDUCATION_NOT_FOUND' }),
+        ),
+      );
+      const { education } = await mount(profileId);
+
+      await user.click(education.getByRole('button', { name: 'Eliminar Título 1' }));
+
+      expect(await education.findByText(NOT_FOUND)).toBeInTheDocument();
+    });
+
+    it('404 WORK_EXPERIENCE_NOT_FOUND al eliminar muestra «No encontramos lo que buscabas.» (CA-2.4.59)', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      useHandlers(
+        await listingHandler(profileId, { workExperiences: [experienceItem(1)] }),
+        http.delete('*/api/v1/profiles/:id/work-experiences/:workExperienceId', () =>
+          problem(404, { code: 'WORK_EXPERIENCE_NOT_FOUND' }),
+        ),
+      );
+      const { experience } = await mount(profileId);
+
+      await user.click(experience.getByRole('button', { name: 'Eliminar Cargo 1' }));
+
+      expect(await experience.findByText(NOT_FOUND)).toBeInTheDocument();
+    });
+  });
+
+  describe('reserva y red en altas y bajas (D-W; CA-2.4.36 y CA-2.4.52)', () => {
+    it('503 BIRTH_DATE_UNAVAILABLE al agregar una formación muestra el genérico y conserva lo diligenciado (CA-2.4.52)', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      useHandlers(
+        http.post('*/api/v1/profiles/:id/educations', () =>
+          problem(503, { code: 'BIRTH_DATE_UNAVAILABLE' }),
+        ),
+      );
+      const { education } = await mount(profileId);
+
+      await fillEducation(user, education);
+      await addEducation(user, education);
+
+      expect(await education.findByText(GENERIC)).toBeInTheDocument();
+      expect(education.getByLabelText('Título obtenido')).toHaveValue('Ingeniería de Sistemas');
+      expect(education.getByLabelText('Institución')).toHaveValue('Universidad del Cauca');
+      expect(screen.queryByText(RAW_SERVER_TEXT)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('No se pudo agregar la formación académica.'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('503 BIRTH_DATE_UNAVAILABLE al agregar una experiencia muestra el genérico y conserva lo diligenciado (CA-2.4.36)', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      useHandlers(
+        http.post('*/api/v1/profiles/:id/work-experiences', () =>
+          problem(503, { code: 'BIRTH_DATE_UNAVAILABLE' }),
+        ),
+      );
+      const { experience } = await mount(profileId);
+
+      await fillCurrentExperience(user, experience);
+      await addExperience(user, experience);
+
+      expect(await experience.findByText(GENERIC)).toBeInTheDocument();
+      expect(experience.getByLabelText('Cargo')).toHaveValue('Desarrolladora backend');
+      expect(experience.getByLabelText('Fecha de inicio')).toHaveValue('06/2024');
+      expect(screen.queryByText(RAW_SERVER_TEXT)).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('No se pudo agregar la experiencia laboral.'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('un fallo de red al agregar una formación muestra «No hay conexión…» y conserva lo diligenciado', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      useHandlers(http.post('*/api/v1/profiles/:id/educations', () => HttpResponse.error()));
+      const { education } = await mount(profileId);
+
+      await fillEducation(user, education);
+      await addEducation(user, education);
+
+      expect(await education.findByText(NETWORK)).toBeInTheDocument();
+      expect(education.getByLabelText('Título obtenido')).toHaveValue('Ingeniería de Sistemas');
+    });
+
+    it('un fallo de red al agregar una experiencia muestra «No hay conexión…» y conserva lo diligenciado', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      useHandlers(http.post('*/api/v1/profiles/:id/work-experiences', () => HttpResponse.error()));
+      const { experience } = await mount(profileId);
+
+      await fillCurrentExperience(user, experience);
+      await addExperience(user, experience);
+
+      expect(await experience.findByText(NETWORK)).toBeInTheDocument();
+      expect(experience.getByLabelText('Cargo')).toHaveValue('Desarrolladora backend');
+    });
+
+    it('una baja de formación sin code conocido muestra el genérico, no «No se pudo eliminar…»', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      useHandlers(
+        await listingHandler(profileId, { educations: [educationItem(1)] }),
+        http.delete('*/api/v1/profiles/:id/educations/:educationId', () =>
+          problem(500, { code: 'INTERNAL_ERROR' }),
+        ),
+      );
+      const { education } = await mount(profileId);
+
+      await user.click(education.getByRole('button', { name: 'Eliminar Título 1' }));
+
+      expect(await education.findByText(GENERIC)).toBeInTheDocument();
+      expect(
+        screen.queryByText('No se pudo eliminar la formación académica.'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('una baja de experiencia sin code conocido muestra el genérico, no «No se pudo eliminar…»', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      useHandlers(
+        await listingHandler(profileId, { workExperiences: [experienceItem(1)] }),
+        http.delete('*/api/v1/profiles/:id/work-experiences/:workExperienceId', () =>
+          problem(500, { code: 'INTERNAL_ERROR' }),
+        ),
+      );
+      const { experience } = await mount(profileId);
+
+      await user.click(experience.getByRole('button', { name: 'Eliminar Cargo 1' }));
+
+      expect(await experience.findByText(GENERIC)).toBeInTheDocument();
+      expect(
+        screen.queryByText('No se pudo eliminar la experiencia laboral.'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('un fallo de red al eliminar una formación muestra «No hay conexión…»', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      useHandlers(
+        await listingHandler(profileId, { educations: [educationItem(1)] }),
+        http.delete('*/api/v1/profiles/:id/educations/:educationId', () => HttpResponse.error()),
+      );
+      const { education } = await mount(profileId);
+
+      await user.click(education.getByRole('button', { name: 'Eliminar Título 1' }));
+
+      expect(await education.findByText(NETWORK)).toBeInTheDocument();
+    });
+
+    it('un fallo de red al eliminar una experiencia muestra «No hay conexión…»', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      useHandlers(
+        await listingHandler(profileId, { workExperiences: [experienceItem(1)] }),
+        http.delete('*/api/v1/profiles/:id/work-experiences/:workExperienceId', () =>
+          HttpResponse.error(),
+        ),
+      );
+      const { experience } = await mount(profileId);
+
+      await user.click(experience.getByRole('button', { name: 'Eliminar Cargo 1' }));
+
+      expect(await experience.findByText(NETWORK)).toBeInTheDocument();
+    });
+  });
+
+  describe('topes de 4 y 5, y el 409 desde otra pestaña (D-V; CA-2.4.10, 47, 48 y 49)', () => {
+    it('409 WORK_EXPERIENCE_LIMIT_REACHED muestra «Ya tienes el máximo de 4 experiencias laborales.» (CA-2.4.48)', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      useHandlers(
+        http.post('*/api/v1/profiles/:id/work-experiences', () =>
+          problem(409, { code: 'WORK_EXPERIENCE_LIMIT_REACHED' }),
+        ),
+      );
+      const { experience } = await mount(profileId);
+
+      await fillCurrentExperience(user, experience);
+      await addExperience(user, experience);
+
+      expect(await experience.findByText(EXPERIENCE_LIMIT)).toBeInTheDocument();
+      expect(screen.queryByText(RAW_SERVER_TEXT)).not.toBeInTheDocument();
+    });
+
+    it('409 EDUCATION_LIMIT_REACHED muestra «Ya tienes el máximo de 5 formaciones académicas.» (CA-2.4.49)', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      useHandlers(
+        http.post('*/api/v1/profiles/:id/educations', () =>
+          problem(409, { code: 'EDUCATION_LIMIT_REACHED' }),
+        ),
+      );
+      const { education } = await mount(profileId);
+
+      await fillEducation(user, education);
+      await addEducation(user, education);
+
+      expect(await education.findByText(EDUCATION_LIMIT)).toBeInTheDocument();
+      expect(screen.queryByText(RAW_SERVER_TEXT)).not.toBeInTheDocument();
+    });
+
+    it('con 4 experiencias «Agregar experiencia» está deshabilitado y se lee el mensaje del tope (CA-2.4.47)', async () => {
+      const profileId = await newProfile();
+      useHandlers(
+        await listingHandler(profileId, {
+          workExperiences: [1, 2, 3, 4].map((n) => experienceItem(n)),
+        }),
+      );
+      const { experience } = await mount(profileId);
+
+      expect(experience.getByRole('button', { name: 'Agregar experiencia' })).toBeDisabled();
+      expect(experience.getByText(EXPERIENCE_LIMIT)).toBeInTheDocument();
+    });
+
+    it('con 5 formaciones «Agregar formación» está deshabilitado y se lee el mensaje del tope (CA-2.4.10)', async () => {
+      const profileId = await newProfile();
+      useHandlers(
+        await listingHandler(profileId, {
+          educations: [1, 2, 3, 4, 5].map((n) => educationItem(n)),
+        }),
+      );
+      const { education } = await mount(profileId);
+
+      expect(education.getByRole('button', { name: 'Agregar formación' })).toBeDisabled();
+      expect(education.getByText(EDUCATION_LIMIT)).toBeInTheDocument();
+    });
+
+    it('al guardar la cuarta experiencia el botón se deshabilita con el mensaje del tope (CA-2.4.47)', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      await seedExperiences(profileId, 'Cargo uno', 'Cargo dos', 'Cargo tres');
+      const { experience } = await mount(profileId);
+
+      await fillCurrentExperience(user, experience);
+      await addExperience(user, experience);
+
+      expect(await experience.findByText('Experiencia agregada.')).toBeInTheDocument();
+      expect(experience.getByRole('button', { name: 'Agregar experiencia' })).toBeDisabled();
+      expect(experience.getByText(EXPERIENCE_LIMIT)).toBeInTheDocument();
+    });
+
+    it('al guardar la quinta formación el botón se deshabilita con el mensaje del tope (CA-2.4.10)', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      await seedEducations(profileId, 'Título uno', 'Título dos', 'Título tres', 'Título cuatro');
+      const { education } = await mount(profileId);
+
+      await fillEducation(user, education);
+      await addEducation(user, education);
+
+      expect(await education.findByText('Formación agregada.')).toBeInTheDocument();
+      expect(education.getByRole('button', { name: 'Agregar formación' })).toBeDisabled();
+      expect(education.getByText(EDUCATION_LIMIT)).toBeInTheDocument();
+    });
+  });
+
+  describe('un solo mensaje por sección: el de la última acción (D-AA y D-AD)', () => {
+    it('tras agregar y luego eliminar solo se ve el mensaje de la baja', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      const { education } = await mount(profileId);
+
+      await fillEducation(user, education);
+      await addEducation(user, education);
+      expect(await education.findByText('Formación agregada.')).toBeInTheDocument();
+
+      await user.click(education.getByRole('button', { name: /Eliminar Ingeniería de Sistemas/ }));
+
+      expect(await education.findByText('Formación eliminada.')).toBeInTheDocument();
+      expect(education.queryByText('Formación agregada.')).not.toBeInTheDocument();
+    });
+
+    it('un error viejo de una alta no queda junto a la confirmación de una baja nueva', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      await seedEducations(profileId, 'Título uno');
+      useHandlers(
+        http.post('*/api/v1/profiles/:id/educations', () =>
+          problem(409, { code: 'EDUCATION_LIMIT_REACHED' }),
+        ),
+      );
+      const { education } = await mount(profileId);
+      await fillEducation(user, education);
+      await addEducation(user, education);
+      expect(await education.findByText(EDUCATION_LIMIT)).toBeInTheDocument();
+
+      await user.click(education.getByRole('button', { name: /Eliminar Título uno/ }));
+
+      expect(await education.findByText('Formación eliminada.')).toBeInTheDocument();
+      expect(education.queryByText(EDUCATION_LIMIT)).not.toBeInTheDocument();
+    });
+
+    it('la confirmación de una baja no queda junto al error de una alta nueva', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      await seedEducations(profileId, 'Título uno');
+      useHandlers(
+        http.post('*/api/v1/profiles/:id/educations', () =>
+          problem(409, { code: 'EDUCATION_LIMIT_REACHED' }),
+        ),
+      );
+      const { education } = await mount(profileId);
+      await user.click(education.getByRole('button', { name: /Eliminar Título uno/ }));
+      expect(await education.findByText('Formación eliminada.')).toBeInTheDocument();
+
+      await fillEducation(user, education);
+      await addEducation(user, education);
+
+      expect(await education.findByText(EDUCATION_LIMIT)).toBeInTheDocument();
+      expect(education.queryByText('Formación eliminada.')).not.toBeInTheDocument();
+    });
+
+    it('la confirmación de una alta no queda junto al error de una alta posterior', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      const { education } = await mount(profileId);
+      await fillEducation(user, education);
+      await addEducation(user, education);
+      expect(await education.findByText('Formación agregada.')).toBeInTheDocument();
+      useHandlers(
+        http.post('*/api/v1/profiles/:id/educations', () =>
+          problem(409, { code: 'EDUCATION_LIMIT_REACHED' }),
+        ),
+      );
+
+      await fillEducation(user, education);
+      await addEducation(user, education);
+
+      expect(await education.findByText(EDUCATION_LIMIT)).toBeInTheDocument();
+      expect(education.queryByText('Formación agregada.')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('periodos en la lista (CM-273, PR 2; CA-2.4.1, 7, 8, 15, 42 y 56)', () => {
+    it('experiencias: «06/2024 – actual», «06/2024 – Fin no registrado», «Sin fechas» y «Sin fecha de inicio – actual»', async () => {
+      const profileId = await newProfile();
+      useHandlers(
+        await listingHandler(profileId, {
+          workExperiences: [
+            experienceItem(1, { startDate: '2024-06', employmentStatus: 'CURRENT' }),
+            experienceItem(2, { startDate: '2024-06', employmentStatus: 'UNKNOWN_END' }),
+            experienceItem(3, { startDate: null, employmentStatus: 'UNKNOWN_END' }),
+            experienceItem(4, { startDate: null, employmentStatus: 'CURRENT' }),
+          ],
+        }),
+      );
+      const { experience } = await mount(profileId);
+
+      expect(experience.getByText('06/2024 – actual')).toBeInTheDocument();
+      expect(experience.getByText('06/2024 – Fin no registrado')).toBeInTheDocument();
+      expect(experience.getByText('Sin fechas')).toBeInTheDocument();
+      expect(experience.getByText('Sin fecha de inicio – actual')).toBeInTheDocument();
+    });
+
+    it('experiencia terminada sin inicio: «Sin fecha de inicio – 06/2024» (D-U)', async () => {
+      const profileId = await newProfile();
+      useHandlers(
+        await listingHandler(profileId, {
+          workExperiences: [
+            experienceItem(1, { startDate: null, endDate: '2024-06', employmentStatus: 'ENDED' }),
+          ],
+        }),
+      );
+      const { experience } = await mount(profileId);
+
+      expect(experience.getByText('Sin fecha de inicio – 06/2024')).toBeInTheDocument();
+    });
+
+    it('formaciones: «02/2025 – en curso», «02/2025 – Sin fecha de fin» y «02/2025 – 02/2025»', async () => {
+      const profileId = await newProfile();
+      useHandlers(
+        await listingHandler(profileId, {
+          educations: [
+            educationItem(1, { startDate: '2025-02', endDate: null, inProgress: true }),
+            educationItem(2, { startDate: '2025-02', endDate: null, inProgress: false }),
+            educationItem(3, { startDate: '2025-02', endDate: '2025-02', inProgress: false }),
+          ],
+        }),
+      );
+      const { education } = await mount(profileId);
+
+      expect(education.getByText('02/2025 – en curso')).toBeInTheDocument();
+      expect(education.getByText('02/2025 – Sin fecha de fin')).toBeInTheDocument();
+      expect(education.getByText('02/2025 – 02/2025')).toBeInTheDocument();
+    });
   });
 });

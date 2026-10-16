@@ -149,6 +149,60 @@ describe('toAddWorkExperienceRequest', () => {
 
     expect(request.description).toBeNull();
   });
+
+  // CM-273 (PR 2, `SPEC.md` §3.3 punto 2): el inicio de la experiencia es opcional; vacío viaja como `null`.
+  describe('inicio opcional (CM-273, PR 2)', () => {
+    it('sin ninguna fecha ni descripción manda startDate, endDate y description en null con UNKNOWN_END (CA-2.4.15 y CA-2.4.53)', () => {
+      const request = toAddWorkExperienceRequest({
+        ...EMPTY_WORK_EXPERIENCE_VALUES,
+        position: 'Desarrolladora backend',
+        company: 'CAMEIA',
+        unknownEnd: true,
+      });
+
+      expect(request.employmentStatus).toBe('UNKNOWN_END');
+      expect(request.startDate).toBeNull();
+      expect(request.endDate).toBeNull();
+      expect(request.description).toBeNull();
+    });
+
+    it('terminada con solo la fecha de fin manda startDate null y endDate «2023-03» (CA-2.4.22 y CA-2.4.23)', () => {
+      const request = toAddWorkExperienceRequest({
+        ...EMPTY_WORK_EXPERIENCE_VALUES,
+        position: 'Desarrolladora backend',
+        company: 'CAMEIA',
+        endDate: '2023-03',
+      });
+
+      expect(request.employmentStatus).toBe('ENDED');
+      expect(request.startDate).toBeNull();
+      expect(request.endDate).toBe('2023-03');
+    });
+
+    it('actual sin fecha de inicio manda startDate null (CA-2.4.42)', () => {
+      const request = toAddWorkExperienceRequest({
+        ...EMPTY_WORK_EXPERIENCE_VALUES,
+        position: 'Desarrolladora backend',
+        company: 'CAMEIA',
+        isCurrent: true,
+      });
+
+      expect(request.employmentStatus).toBe('CURRENT');
+      expect(request.startDate).toBeNull();
+    });
+
+    it('con fecha de inicio la manda tal cual (no se pierde al hacerla opcional)', () => {
+      const request = toAddWorkExperienceRequest({
+        ...EMPTY_WORK_EXPERIENCE_VALUES,
+        position: 'Desarrolladora backend',
+        company: 'CAMEIA',
+        startDate: '2024-06',
+        isCurrent: true,
+      });
+
+      expect(request.startDate).toBe('2024-06');
+    });
+  });
 });
 
 describe('toAddSkillRequest', () => {
