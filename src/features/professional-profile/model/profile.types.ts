@@ -72,7 +72,8 @@ export interface WorkExperienceItem {
   company: string;
   position: string;
   description: string | null;
-  startDate: YearMonth;
+  /** `null` cuando la experiencia se guardó sin fecha de inicio (CA-2.4.15 y 22; el servidor ya lo acepta). */
+  startDate: YearMonth | null;
   /** `null` cuando `employmentStatus` es `CURRENT` o `UNKNOWN_END` (regla de dominio: `WorkExperience.java`). */
   endDate: YearMonth | null;
   employmentStatus: EmploymentStatus;

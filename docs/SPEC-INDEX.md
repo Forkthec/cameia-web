@@ -10,6 +10,6 @@
 | `interview-session` | — (sin SPEC.md) | — | — | — | — |
 | `interview-setup` | — (sin SPEC.md) | — | — | — | — |
 | `landing` | EN_CURSO | HU-10.1 | PRT-00.01 | CM-186 | 2026-09-19 |
-| `professional-profile` | EN_CURSO | HU-2.2, HU-2.3, HU-2.4, HU-2.5, HU-2.11 | PRT-02.02, PRT-02.03, PRT-02.07 | CM-46, CM-53, CM-61, CM-65, CM-69, CM-195, CM-243, CM-270, CM-272, CM-273, CM-298 | 2026-10-14 |
+| `professional-profile` | EN_CURSO | HU-2.2, HU-2.3, HU-2.4, HU-2.5, HU-2.11 | PRT-02.02, PRT-02.03, PRT-02.07 | CM-46, CM-53, CM-61, CM-65, CM-69, CM-195, CM-243, CM-270, CM-272, CM-273, CM-298 | 2026-10-16 |
 
-_Generado automáticamente el 2026-10-16T05:46:14.373Z con `pnpm spec:check --write`. No se edita a mano._
+_Generado automáticamente el 2026-10-16T15:20:34.491Z con `pnpm spec:check --write`. No se edita a mano._

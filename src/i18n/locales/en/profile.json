@@ -74,12 +74,14 @@
     "tituloObtenido": {
       "etiqueta": "Degree obtained",
       "placeholder": "Type here",
-      "errorRequerido": "Enter the degree obtained."
+      "errorRequerido": "Enter the degree obtained.",
+      "errorLongitud": "The degree obtained can't be longer than 150 characters."
     },
     "institucion": {
       "etiqueta": "Institution",
       "placeholder": "Type here",
-      "errorRequerido": "Enter the institution."
+      "errorRequerido": "Enter the institution.",
+      "errorLongitud": "The institution can't be longer than 150 characters."
     },
     "fechaInicio": {
       "etiqueta": "Start date",
@@ -94,16 +96,16 @@
     "agregando": "Adding…",
     "eliminar": "Remove {{titulo}}",
     "eliminando": "Removing…",
-    "periodo": "{{inicio}} - {{fin}}",
-    "periodoEnCurso": "{{inicio}} - present",
+    "periodo": "{{inicio}} – {{fin}}",
+    "periodoEnCurso": "{{inicio}} – present",
+    "periodoSinFin": "{{inicio}} – No end date",
     "vacio": {
       "titulo": "You haven't added any education yet",
       "descripcion": "Add at least one to be able to finish your profile."
     },
     "confirmacionAgregada": "Education added.",
     "confirmacionEliminada": "Education removed.",
-    "errorAgregar": "Couldn't add the education entry.",
-    "errorEliminar": "Couldn't remove the education entry.",
+    "errorUltimaFormacion": "You can't be left without education while the profile is active. Add another one before removing this one.",
     "errorLimite": "You've reached the maximum of 5 education entries.",
     "errorFechaInvalida": "Check the education entry's dates.",
     "errorFechaAnteriorNacimiento": "The date can't be earlier than your date of birth.",
@@ -115,16 +117,17 @@
     "cargo": {
       "etiqueta": "Job title",
       "placeholder": "Type here",
-      "errorRequerido": "Enter the job title."
+      "errorRequerido": "Enter the job title.",
+      "errorLongitud": "The job title can't be longer than 100 characters."
     },
     "empresa": {
       "etiqueta": "Company",
       "placeholder": "Type here",
-      "errorRequerido": "Enter the company."
+      "errorRequerido": "Enter the company.",
+      "errorLongitud": "The company can't be longer than 100 characters."
     },
     "fechaInicio": {
-      "etiqueta": "Start date",
-      "errorRequerido": "Enter the start date."
+      "etiqueta": "Start date"
     },
     "fechaFin": {
       "etiqueta": "End date",
@@ -136,23 +139,24 @@
     "descripcion": {
       "etiqueta": "Description of duties",
       "placeholder": "Type here. This field grows with the content.",
-      "contador": "{{count}} / {{max}} characters"
+      "contador": "{{count}} / {{max}} characters",
+      "errorLongitud": "The description can't be longer than 500 characters."
     },
     "agregar": "Add experience",
     "agregando": "Adding…",
     "eliminar": "Remove {{cargo}}",
     "eliminando": "Removing…",
-    "periodo": "{{inicio}} - {{fin}}",
-    "periodoActual": "{{inicio}} - present",
-    "periodoFinDesconocido": "{{inicio}} - end date unknown",
+    "periodo": "{{inicio}} – {{fin}}",
+    "periodoActual": "{{inicio}} – present",
+    "periodoFinDesconocido": "{{inicio}} – End date not recorded",
+    "periodoSinFechas": "No dates",
+    "sinFechaInicio": "No start date",
     "vacio": {
       "titulo": "You haven't added any work experience yet",
       "descripcion": "It's optional; it isn't a requirement to finish your profile."
     },
     "confirmacionAgregada": "Experience added.",
     "confirmacionEliminada": "Experience removed.",
-    "errorAgregar": "Couldn't add the work experience.",
-    "errorEliminar": "Couldn't remove the work experience.",
     "errorLimite": "You've reached the maximum of 4 work experiences.",
     "errorFechaInvalida": "Check the work experience's dates.",
     "errorFechaEdadMinima": "Work experience can't start before the month you turned 15.",

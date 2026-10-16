@@ -5,7 +5,8 @@
  * CM-273 (PR 1, `SPEC.md` §3.3 y D-K, D-M): el esquema es una FUNCIÓN que recibe el mes actual en UTC
  * («AAAA-MM», lo calcula la página). Las fechas llegan como el texto «mm/aaaa» que entrega `MonthField`; el
  * esquema valida el formato y el mes futuro, compara fin e inicio por mes y año, y transforma a «AAAA-MM».
- * El inicio sigue siendo obligatorio (pasa a opcional en el PR 2).
+ * CM-273 (PR 2, `SPEC.md` §3.3 puntos 2 y 3): el inicio es opcional (CA-2.4.15 y 22) y la descripción se mide
+ * con `unicodeLength`, como el servidor, para que el campo no corte lo escrito (D-X).
  *
  * `isCurrent`/`unknownEnd` son los dos checkboxes reales del frame
  * ("Trabajo aquí actualmente" / "No recuerdo la fecha exacta de
@@ -20,6 +21,7 @@
  */
 import { z } from 'zod';
 import { parseMonthText } from '@/utils/monthMask';
+import { unicodeLength } from '@/utils/unicodeLength';
 import {
   COMPANY_MAX_LENGTH,
   DESCRIPTION_MAX_LENGTH,
@@ -31,6 +33,7 @@ const BOTH_STATUS_CHECKBOXES = 'BOTH_STATUS_CHECKBOXES';
 const END_DATE_REQUIRED = 'END_DATE_REQUIRED';
 const END_BEFORE_START = 'END_BEFORE_START';
 const END_DATE_NOT_ALLOWED = 'END_DATE_NOT_ALLOWED';
+const DESCRIPTION_TOO_LONG = 'DESCRIPTION_TOO_LONG';
 
 /**
  * @param currentMonth mes actual en UTC como «AAAA-MM» (D-M).
@@ -42,9 +45,11 @@ export function createWorkExperienceSchema(currentMonth: string) {
       .object({
         position: z.string().trim().min(1).max(POSITION_MAX_LENGTH),
         company: z.string().trim().min(1).max(COMPANY_MAX_LENGTH),
-        startDate: z.string().min(1),
+        startDate: z.string(),
         endDate: z.string(),
-        description: z.string().max(DESCRIPTION_MAX_LENGTH),
+        description: z
+          .string()
+          .refine((text) => unicodeLength(text) <= DESCRIPTION_MAX_LENGTH, DESCRIPTION_TOO_LONG),
         isCurrent: z.boolean(),
         unknownEnd: z.boolean(),
       })
@@ -111,5 +116,6 @@ export const workExperienceSchemaErrorCodes = {
   END_DATE_REQUIRED,
   END_BEFORE_START,
   END_DATE_NOT_ALLOWED,
+  DESCRIPTION_TOO_LONG,
   ...monthDateErrorCodes,
 } as const;

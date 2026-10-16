@@ -153,7 +153,7 @@ export function toAddWorkExperienceRequest(
     company: values.company.trim(),
     position: values.position.trim(),
     description: trimmedDescription.length > 0 ? trimmedDescription : null,
-    startDate: values.startDate,
+    startDate: values.startDate.length > 0 ? values.startDate : null,
     endDate: employmentStatus === 'ENDED' ? values.endDate : null,
     employmentStatus,
   };

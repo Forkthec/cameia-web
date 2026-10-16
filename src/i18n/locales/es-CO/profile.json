@@ -74,12 +74,14 @@
     "tituloObtenido": {
       "etiqueta": "Título obtenido",
       "placeholder": "Escribe aquí",
-      "errorRequerido": "Ingresa el título obtenido."
+      "errorRequerido": "Ingresa el título obtenido.",
+      "errorLongitud": "El título obtenido no puede superar los 150 caracteres."
     },
     "institucion": {
       "etiqueta": "Institución",
       "placeholder": "Escribe aquí",
-      "errorRequerido": "Ingresa la institución."
+      "errorRequerido": "Ingresa la institución.",
+      "errorLongitud": "La institución no puede superar los 150 caracteres."
     },
     "fechaInicio": {
       "etiqueta": "Fecha de inicio",
@@ -94,16 +96,16 @@
     "agregando": "Agregando…",
     "eliminar": "Eliminar {{titulo}}",
     "eliminando": "Eliminando…",
-    "periodo": "{{inicio}} - {{fin}}",
-    "periodoEnCurso": "{{inicio}} - en curso",
+    "periodo": "{{inicio}} – {{fin}}",
+    "periodoEnCurso": "{{inicio}} – en curso",
+    "periodoSinFin": "{{inicio}} – Sin fecha de fin",
     "vacio": {
       "titulo": "Todavía no agregas formación académica",
       "descripcion": "Agrega al menos una para poder finalizar tu perfil."
     },
     "confirmacionAgregada": "Formación agregada.",
     "confirmacionEliminada": "Formación eliminada.",
-    "errorAgregar": "No se pudo agregar la formación académica.",
-    "errorEliminar": "No se pudo eliminar la formación académica.",
+    "errorUltimaFormacion": "No puedes quedarte sin formación académica con el perfil activo. Agrega otra antes de eliminar esta.",
     "errorLimite": "Ya tienes el máximo de 5 formaciones académicas.",
     "errorFechaInvalida": "Revisa las fechas de la formación académica.",
     "errorFechaAnteriorNacimiento": "La fecha no puede ser anterior a tu fecha de nacimiento.",
@@ -115,16 +117,17 @@
     "cargo": {
       "etiqueta": "Cargo",
       "placeholder": "Escribe aquí",
-      "errorRequerido": "Ingresa el cargo."
+      "errorRequerido": "Ingresa el cargo.",
+      "errorLongitud": "El cargo no puede superar los 100 caracteres."
     },
     "empresa": {
       "etiqueta": "Empresa",
       "placeholder": "Escribe aquí",
-      "errorRequerido": "Ingresa la empresa."
+      "errorRequerido": "Ingresa la empresa.",
+      "errorLongitud": "La empresa no puede superar los 100 caracteres."
     },
     "fechaInicio": {
-      "etiqueta": "Fecha de inicio",
-      "errorRequerido": "Ingresa la fecha de inicio."
+      "etiqueta": "Fecha de inicio"
     },
     "fechaFin": {
       "etiqueta": "Fecha de fin",
@@ -136,23 +139,24 @@
     "descripcion": {
       "etiqueta": "Descripción de funciones",
       "placeholder": "Escribe aquí. Este campo crece con el contenido.",
-      "contador": "{{count}} / {{max}} caracteres"
+      "contador": "{{count}} / {{max}} caracteres",
+      "errorLongitud": "La descripción no puede superar los 500 caracteres."
     },
     "agregar": "Agregar experiencia",
     "agregando": "Agregando…",
     "eliminar": "Eliminar {{cargo}}",
     "eliminando": "Eliminando…",
-    "periodo": "{{inicio}} - {{fin}}",
-    "periodoActual": "{{inicio}} - actual",
-    "periodoFinDesconocido": "{{inicio}} - fin desconocido",
+    "periodo": "{{inicio}} – {{fin}}",
+    "periodoActual": "{{inicio}} – actual",
+    "periodoFinDesconocido": "{{inicio}} – Fin no registrado",
+    "periodoSinFechas": "Sin fechas",
+    "sinFechaInicio": "Sin fecha de inicio",
     "vacio": {
       "titulo": "Todavía no agregas experiencia laboral",
       "descripcion": "Es opcional; no es un requisito para finalizar tu perfil."
     },
     "confirmacionAgregada": "Experiencia agregada.",
     "confirmacionEliminada": "Experiencia eliminada.",
-    "errorAgregar": "No se pudo agregar la experiencia laboral.",
-    "errorEliminar": "No se pudo eliminar la experiencia laboral.",
     "errorLimite": "Ya tienes el máximo de 4 experiencias laborales.",
     "errorFechaInvalida": "Revisa las fechas de la experiencia laboral.",
     "errorFechaEdadMinima": "La experiencia laboral no puede iniciar antes del mes en que cumpliste 15 años.",

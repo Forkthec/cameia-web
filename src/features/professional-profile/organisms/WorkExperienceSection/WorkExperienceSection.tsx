@@ -20,6 +20,12 @@
  * (máscara «mm/aaaa» y panel de mes). El esquema se crea con el mes actual
  * que calcula la página (`currentMonth`) y entrega «AAAA-MM» a `onAdd`.
  *
+ * CM-273 (PR 2, SPEC.md §3.3 y D-V, D-X, D-AB, D-AC, D-AG): la fecha de inicio es opcional; los campos no cortan
+ * lo escrito y muestran su mensaje de longitud bajo el campo; la descripción se cuenta con `unicodeLength`; con
+ * `maxItems` alcanzado el formulario sigue visible pero «Agregar» queda deshabilitado y el envío no sale. `onAdd`
+ * y `onRemove` devuelven la promesa de la mutación: la sección activa una guarda síncrona (`useRef`) al empezar,
+ * la suelta en `finally` y atrapa el rechazo sin propagarlo, porque el mensaje de error lo decide la página.
+ *
  * Sin `useTranslation` (CLAUDE.md §14.7): todo texto visible entra por prop
  * obligatoria.
  */
@@ -28,6 +34,7 @@ import { useEffect, useId, useMemo, useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { buttonLoadingProps } from '@/utils/buttonLoadingProps';
 import { cn } from '@/utils/cn';
+import { unicodeLength } from '@/utils/unicodeLength';
 import { Button } from '@/design-system/atoms/Button';
 import { Checkbox } from '@/design-system/atoms/Checkbox';
 import { Icon } from '@/design-system/icons/Icon';
@@ -46,11 +53,15 @@ import {
   type WorkExperienceFormValues,
 } from '../../schemas/workExperience.schema';
 
+/** `type` con el que `setError` marca un error que viene del servidor: su `message` ya es el texto final. */
+const SERVER_ERROR_TYPE = 'server';
+
 interface WorkExperienceSectionProps {
   formId: string;
   items: WorkExperienceItem[];
-  onAdd: (values: WorkExperienceFormValues) => void;
-  onRemove: (workExperienceId: string) => void;
+  /** Devuelve la promesa de la mutación; la sección atrapa su rechazo (el mensaje lo decide la página). */
+  onAdd: (values: WorkExperienceFormValues) => Promise<unknown>;
+  onRemove: (workExperienceId: string) => Promise<unknown>;
   isAdding?: boolean;
   removingId?: string | null;
   showSectionTitle?: boolean;
@@ -59,11 +70,14 @@ interface WorkExperienceSectionProps {
   positionLabel: string;
   positionPlaceholder: string;
   positionErrorRequired: string;
+  /** Mensaje de un cargo de más de 100 caracteres (CA-2.4.18). */
+  positionErrorTooLong: string;
   companyLabel: string;
   companyPlaceholder: string;
   companyErrorRequired: string;
+  /** Mensaje de una empresa de más de 100 caracteres (CA-2.4.18). */
+  companyErrorTooLong: string;
   startDateLabel: string;
-  startDateErrorRequired: string;
   endDateLabel: string;
   endDateErrorRequired: string;
   endDateErrorBeforeStart: string;
@@ -71,6 +85,8 @@ interface WorkExperienceSectionProps {
   unknownEndLabel: string;
   descriptionLabel: string;
   descriptionPlaceholder: string;
+  /** Mensaje de una descripción de más de 500 caracteres (CA-2.4.12). */
+  descriptionErrorTooLong: string;
   /** Recibe el conteo y el máximo ya interpolados (ver `CharacterCounter`). */
   descriptionCounterLabel: (count: number, max: number) => string;
   addButtonLabel: string;
@@ -97,6 +113,15 @@ interface WorkExperienceSectionProps {
   dateErrorFormat: string;
   /** Mensaje de una fecha posterior al mes actual (CA-2.4.25, 26, 34 y 35). */
   dateErrorFuture: string;
+  /** Tope de experiencias (D-V); sin él la sección no limita el alta. */
+  maxItems?: number;
+  /** Mensaje que se muestra al alcanzar `maxItems` (CA-2.4.47). */
+  maxItemsMessage?: string;
+  /**
+   * Errores del servidor por campo (D-T), ya traducidos por la página: la sección solo los aplica con `setError`
+   * y no decide textos. Cada rechazo llega como un objeto nuevo, así que dos rechazos iguales se vuelven a pintar.
+   */
+  serverFieldErrors?: { startDate?: string; endDate?: string };
   addErrorMessage?: string;
   removeErrorMessage?: string;
   confirmationMessage?: string;
@@ -115,11 +140,12 @@ export function WorkExperienceSection({
   positionLabel,
   positionPlaceholder,
   positionErrorRequired,
+  positionErrorTooLong,
   companyLabel,
   companyPlaceholder,
   companyErrorRequired,
+  companyErrorTooLong,
   startDateLabel,
-  startDateErrorRequired,
   endDateLabel,
   endDateErrorRequired,
   endDateErrorBeforeStart,
@@ -127,6 +153,7 @@ export function WorkExperienceSection({
   unknownEndLabel,
   descriptionLabel,
   descriptionPlaceholder,
+  descriptionErrorTooLong,
   descriptionCounterLabel,
   addButtonLabel,
   addingButtonLabel,
@@ -140,6 +167,9 @@ export function WorkExperienceSection({
   monthFieldTexts,
   dateErrorFormat,
   dateErrorFuture,
+  maxItems,
+  maxItemsMessage,
+  serverFieldErrors,
   addErrorMessage,
   removeErrorMessage,
   confirmationMessage,
@@ -147,7 +177,7 @@ export function WorkExperienceSection({
 }: WorkExperienceSectionProps) {
   const headingId = useId();
   const schema = useMemo(() => createWorkExperienceSchema(currentMonth), [currentMonth]);
-  const { control, handleSubmit, watch, setValue, reset } = useForm<
+  const { control, handleSubmit, watch, setValue, reset, setError } = useForm<
     WorkExperienceFormValues,
     unknown,
     WorkExperienceFormValues
@@ -161,6 +191,10 @@ export function WorkExperienceSection({
     if (code === workExperienceSchemaErrorCodes.INVALID_DATE_FORMAT) return dateErrorFormat;
     if (code === workExperienceSchemaErrorCodes.DATE_IN_FUTURE) return dateErrorFuture;
     return undefined;
+  }
+  /** Como `getDateRuleError`, y además devuelve tal cual el texto de un error del servidor (D-T). */
+  function getDateFieldError(error: { type?: string; message?: string } | undefined) {
+    return error?.type === SERVER_ERROR_TYPE ? error.message : getDateRuleError(error?.message);
   }
   // `watch` (mismo motivo que en `EducationSection`): estos dos booleanos
   // deciden si se renderiza OTRO campo (endDate), no solo el suyo propio.
@@ -177,6 +211,47 @@ export function WorkExperienceSection({
     }
     previousItemCount.current = items.length;
   }, [items.length, reset]);
+
+  useEffect(() => {
+    if (!serverFieldErrors) return;
+    if (serverFieldErrors.startDate) {
+      setError('startDate', { type: SERVER_ERROR_TYPE, message: serverFieldErrors.startDate });
+    }
+    if (serverFieldErrors.endDate) {
+      setError('endDate', { type: SERVER_ERROR_TYPE, message: serverFieldErrors.endDate });
+    }
+  }, [serverFieldErrors, setError]);
+
+  const isAtMax = maxItems !== undefined && items.length >= maxItems;
+
+  // Guardas síncronas (D-AC, D-AG): `disabled` llega con el re-render y dos envíos en el mismo turno lo
+  // atraviesan (DF-004); la `ref` se activa y se suelta con la promesa, no con `isAdding`.
+  const isAddingRef = useRef(false);
+  const removingIdsRef = useRef(new Set<string>());
+
+  async function addItem(values: WorkExperienceFormValues) {
+    if (isAddingRef.current) return;
+    isAddingRef.current = true;
+    try {
+      await onAdd(values);
+    } catch {
+      // El mensaje lo decide la página con el estado de la mutación, no con este rechazo (D-AG).
+    } finally {
+      isAddingRef.current = false;
+    }
+  }
+
+  async function removeItem(workExperienceId: string) {
+    if (removingIdsRef.current.has(workExperienceId)) return;
+    removingIdsRef.current.add(workExperienceId);
+    try {
+      await onRemove(workExperienceId);
+    } catch {
+      // Igual que en el alta: el error de la baja lo muestra la página (D-AG).
+    } finally {
+      removingIdsRef.current.delete(workExperienceId);
+    }
+  }
 
   return (
     <section
@@ -208,7 +283,7 @@ export function WorkExperienceSection({
                 variant="icon"
                 size="sm"
                 icon={<Icon name="trash" />}
-                onClick={() => onRemove(item.id)}
+                onClick={() => void removeItem(item.id)}
                 disabled={removingId === item.id}
                 {...buttonLoadingProps(removingId === item.id, removingItemLabel)}
               >
@@ -224,11 +299,21 @@ export function WorkExperienceSection({
       ) : null}
       {addErrorMessage ? <AlertInline variant="error">{addErrorMessage}</AlertInline> : null}
       {removeErrorMessage ? <AlertInline variant="error">{removeErrorMessage}</AlertInline> : null}
+      {isAtMax && maxItemsMessage ? (
+        <AlertInline variant="info">{maxItemsMessage}</AlertInline>
+      ) : null}
 
       <form
         id={formId}
         className="gap-space-4 flex flex-col"
-        onSubmit={(event) => void handleSubmit(onAdd)(event)}
+        onSubmit={(event) => {
+          // Enter dentro de un campo envía el formulario aunque el botón esté deshabilitado.
+          if (isAtMax) {
+            event.preventDefault();
+            return;
+          }
+          void handleSubmit(addItem)(event);
+        }}
         noValidate
       >
         <Controller
@@ -237,7 +322,13 @@ export function WorkExperienceSection({
           render={({ field, fieldState }) => (
             <FormField
               label={positionLabel}
-              error={fieldState.error?.type === 'too_small' ? positionErrorRequired : undefined}
+              error={
+                fieldState.error?.type === 'too_small'
+                  ? positionErrorRequired
+                  : fieldState.error?.type === 'too_big'
+                    ? positionErrorTooLong
+                    : undefined
+              }
             >
               <Input
                 value={field.value}
@@ -256,7 +347,13 @@ export function WorkExperienceSection({
           render={({ field, fieldState }) => (
             <FormField
               label={companyLabel}
-              error={fieldState.error?.type === 'too_small' ? companyErrorRequired : undefined}
+              error={
+                fieldState.error?.type === 'too_small'
+                  ? companyErrorRequired
+                  : fieldState.error?.type === 'too_big'
+                    ? companyErrorTooLong
+                    : undefined
+              }
             >
               <Input
                 value={field.value}
@@ -274,14 +371,7 @@ export function WorkExperienceSection({
             control={control}
             name="startDate"
             render={({ field, fieldState }) => (
-              <FormField
-                label={startDateLabel}
-                error={
-                  fieldState.error?.type === 'too_small'
-                    ? startDateErrorRequired
-                    : getDateRuleError(fieldState.error?.message)
-                }
-              >
+              <FormField label={startDateLabel} error={getDateFieldError(fieldState.error)}>
                 <MonthField
                   ref={field.ref}
                   value={field.value}
@@ -309,7 +399,7 @@ export function WorkExperienceSection({
                       : fieldState.error?.message ===
                           workExperienceSchemaErrorCodes.END_BEFORE_START
                         ? endDateErrorBeforeStart
-                        : getDateRuleError(fieldState.error?.message)
+                        : getDateFieldError(fieldState.error)
                   }
                 >
                   <MonthField
@@ -373,19 +463,25 @@ export function WorkExperienceSection({
           name="description"
           render={({ field, fieldState }) => (
             <div className="gap-space-1 flex flex-col">
-              <FormField label={descriptionLabel}>
+              <FormField
+                label={descriptionLabel}
+                error={
+                  fieldState.error?.message === workExperienceSchemaErrorCodes.DESCRIPTION_TOO_LONG
+                    ? descriptionErrorTooLong
+                    : undefined
+                }
+              >
                 <Input
                   type="textarea"
                   value={field.value}
                   onChange={field.onChange}
                   onBlur={field.onBlur}
                   placeholder={descriptionPlaceholder}
-                  maxLength={DESCRIPTION_MAX_LENGTH}
                   state={isAdding ? 'disabled' : fieldState.error ? 'error' : 'default'}
                 />
               </FormField>
               <CharacterCounter
-                count={field.value.length}
+                count={unicodeLength(field.value)}
                 max={DESCRIPTION_MAX_LENGTH}
                 formatLabel={descriptionCounterLabel}
               />
@@ -398,6 +494,7 @@ export function WorkExperienceSection({
           variant="tertiary"
           icon={<Icon name="plus" />}
           className="self-start"
+          disabled={isAtMax}
           {...buttonLoadingProps(isAdding, addingButtonLabel)}
         >
           {addButtonLabel}

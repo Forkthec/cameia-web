@@ -68,8 +68,16 @@
  * `SUMMARY_NOT_ALLOWED` (CA-2.3.12) devuelve al formulario el resumen guardado
  * para que el campo lo vuelva a mostrar; solo para ese `code`, nunca ante otros
  * errores (RT-05).
+ *
+ * **CM-273 (PR 2, HU-2.4, SPEC.md §3.3 y D-T a D-AG):** los periodos salen de `formatWorkExperiencePeriod` y
+ * `formatEducationPeriod` (el modelo). La página pasa a Formación y Experiencia los topes (`maxItems` y su mensaje),
+ * los textos de longitud y los errores del servidor por campo (`serverFieldErrors`, que la sección aplica con
+ * `setError`). `onAdd` y `onRemove` devuelven la promesa de `mutateAsync` (guarda de doble envío en la sección).
+ * Cada sección muestra solo el mensaje de su última acción, alta o baja; los errores se resuelven por `code` con
+ * tablas propias consultadas antes de las de `getItemErrorMessage`, y sin `code` conocido el texto es
+ * `errors:generico` (o `errors:red` si no es un `ApiError`).
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
 import { Button } from '@/design-system/atoms/Button';
@@ -95,16 +103,17 @@ import { useUpdateProfileGeneralInfo } from '../hooks/useUpdateProfileGeneralInf
 import {
   DESKTOP_MEDIA_QUERY,
   EDUCATION_FORM_ID,
+  EDUCATION_MAX_COUNT,
   GENERAL_INFO_FORM_ID,
   PROFILE_COMPLETENESS_MAX,
   SKILLS_FORM_ID,
   SKILLS_MAX_COUNT,
   WORK_EXPERIENCE_FORM_ID,
+  WORK_EXPERIENCE_MAX_COUNT,
 } from '../model/profile.constants';
 import { getMissingRequirementFields } from '../model/missingRequirements';
 import { getCompletenessValue, getSectionStatuses } from '../model/profileCompleteness';
-import type { EducationItem, WorkExperienceItem } from '../model/profile.types';
-import { formatYearMonth } from '../model/yearMonth';
+import { formatEducationPeriod, formatWorkExperiencePeriod } from '../model/yearMonth';
 import { EducationSection } from '../organisms/EducationSection';
 import { GeneralInfoForm } from '../organisms/GeneralInfoForm';
 import { ProfileActionsBar } from '../organisms/ProfileActionsBar';
@@ -120,6 +129,44 @@ function isSummaryNotAllowed(error: unknown): boolean {
     (error.hasCode('SUMMARY_NOT_ALLOWED') ||
       error.errors.some((fieldError) => fieldError.code === 'SUMMARY_NOT_ALLOWED'))
   );
+}
+
+/** Última acción hecha en Formación o Experiencia: decide cuál de las dos mutaciones se muestra (D-AA, D-AD). */
+type LastAction = 'add' | 'remove' | null;
+
+/** Errores del servidor ya traducidos que la página entrega a una sección para pintarlos bajo el campo (D-T). */
+type FieldErrors = { startDate?: string; endDate?: string };
+
+/**
+ * Mensaje de la primera coincidencia por `code` (de nivel superior y luego en `errors[]`), o `undefined` si no hay.
+ * Es la tabla propia de CM-273 (D-T, D-W): se consulta antes que las tablas de `getItemErrorMessage`.
+ */
+function findMessageByCode(error: unknown, byCode: Record<string, string>): string | undefined {
+  if (!(error instanceof ApiError)) return undefined;
+  const topMatch = error.code ? byCode[error.code] : undefined;
+  if (topMatch) return topMatch;
+  for (const fieldError of error.errors) {
+    const fieldMatch = fieldError.code ? byCode[fieldError.code] : undefined;
+    if (fieldMatch) return fieldMatch;
+  }
+  return undefined;
+}
+
+/**
+ * Traduce los `errors[]` de un rechazo a un mapa campo → texto (D-T). Tabla propia código → campo; un `code` que no
+ * está en ella no produce mensaje de campo.
+ */
+function findFieldErrors(
+  error: unknown,
+  rules: Record<string, { field: keyof FieldErrors; message: string }>,
+): FieldErrors | undefined {
+  if (!(error instanceof ApiError)) return undefined;
+  const result: FieldErrors = {};
+  for (const fieldError of error.errors) {
+    const rule = fieldError.code ? rules[fieldError.code] : undefined;
+    if (rule) result[rule.field] = rule.message;
+  }
+  return Object.keys(result).length > 0 ? result : undefined;
 }
 
 export function EditProfilePage() {
@@ -153,6 +200,40 @@ export function EditProfilePage() {
   const setLastUsedProfileId = useUiPreferencesStore((state) => state.setLastUsedProfileId);
   // CM-272 (punto 2): «Cambios guardados.» solo es verdad mientras el formulario no tenga cambios sin guardar.
   const [isGeneralInfoDirty, setIsGeneralInfoDirty] = useState(false);
+  // CM-273 (D-AA, D-AD): cada sección muestra solo el mensaje de su última acción, alta o baja.
+  const [lastEducationAction, setLastEducationAction] = useState<LastAction>(null);
+  const [lastWorkExperienceAction, setLastWorkExperienceAction] = useState<LastAction>(null);
+
+  // CM-273 (D-T): se memorizan por la identidad del error de la mutación, no por el texto: un segundo rechazo
+  // idéntico es un objeto nuevo y la sección vuelve a pintarlo.
+  const educationFieldErrors = useMemo(
+    () =>
+      lastEducationAction === 'add' && addEducation.isError
+        ? findFieldErrors(addEducation.error, {
+            START_DATE_BEFORE_BIRTH: {
+              field: 'startDate',
+              message: t('profile:educacion.errorFechaAnteriorNacimiento'),
+            },
+          })
+        : undefined,
+    [lastEducationAction, addEducation.isError, addEducation.error, t],
+  );
+  const workExperienceFieldErrors = useMemo(
+    () =>
+      lastWorkExperienceAction === 'add' && addWorkExperience.isError
+        ? findFieldErrors(addWorkExperience.error, {
+            START_DATE_BEFORE_MINIMUM_AGE: {
+              field: 'startDate',
+              message: t('profile:experiencia.errorFechaEdadMinima'),
+            },
+            END_DATE_BEFORE_MINIMUM_AGE: {
+              field: 'endDate',
+              message: t('profile:experiencia.errorFechaFinEdadMinima'),
+            },
+          })
+        : undefined,
+    [lastWorkExperienceAction, addWorkExperience.isError, addWorkExperience.error, t],
+  );
 
   // CM-195 (decisión D-I): backfill de `lastUsedProfileId` para perfiles
   // abiertos aquí directamente (por link, o creados antes de esta
@@ -255,29 +336,25 @@ export function EditProfilePage() {
       )
     : undefined;
 
-  const formatEducationPeriod = (item: EducationItem) =>
-    item.inProgress
-      ? t('profile:educacion.periodoEnCurso', {
-          inicio: formatYearMonth(item.startDate, i18n.language),
-        })
-      : t('profile:educacion.periodo', {
-          inicio: formatYearMonth(item.startDate, i18n.language),
-          fin: item.endDate ? formatYearMonth(item.endDate, i18n.language) : '—',
-        });
-
-  const formatWorkExperiencePeriod = (item: WorkExperienceItem) =>
-    item.employmentStatus === 'CURRENT'
-      ? t('profile:experiencia.periodoActual', {
-          inicio: formatYearMonth(item.startDate, i18n.language),
-        })
-      : item.employmentStatus === 'UNKNOWN_END'
-        ? t('profile:experiencia.periodoFinDesconocido', {
-            inicio: formatYearMonth(item.startDate, i18n.language),
-          })
-        : t('profile:experiencia.periodo', {
-            inicio: formatYearMonth(item.startDate, i18n.language),
-            fin: item.endDate ? formatYearMonth(item.endDate, i18n.language) : '—',
-          });
+  // CM-273 (D-W): texto de reserva de altas y bajas, el mismo reparto que Información General.
+  const getFallbackMessage = (error: unknown) =>
+    error instanceof ApiError ? t('errors:generico') : t('errors:red');
+  // CM-273 (D-T, CA-2.4.39): `PROFILE_NOT_ALLOWED` en cualquiera de las cuatro rutas de alta y baja.
+  const notFoundByCode = {
+    PROFILE_NOT_ALLOWED: t('errors:codigos.NOT_FOUND'),
+  };
+  const educationConfirmation =
+    lastEducationAction === 'add' && addEducation.isSuccess
+      ? t('profile:educacion.confirmacionAgregada')
+      : lastEducationAction === 'remove' && removeEducation.isSuccess
+        ? t('profile:educacion.confirmacionEliminada')
+        : undefined;
+  const workExperienceConfirmation =
+    lastWorkExperienceAction === 'add' && addWorkExperience.isSuccess
+      ? t('profile:experiencia.confirmacionAgregada')
+      : lastWorkExperienceAction === 'remove' && removeWorkExperience.isSuccess
+        ? t('profile:experiencia.confirmacionEliminada')
+        : undefined;
 
   const sections: ProfileSection[] = [
     {
@@ -325,8 +402,14 @@ export function EditProfilePage() {
         <EducationSection
           formId={EDUCATION_FORM_ID}
           items={profile.education}
-          onAdd={(values) => addEducation.mutate(values)}
-          onRemove={(educationId) => removeEducation.mutate(educationId)}
+          onAdd={(values) => {
+            setLastEducationAction('add');
+            return addEducation.mutateAsync(values);
+          }}
+          onRemove={(educationId) => {
+            setLastEducationAction('remove');
+            return removeEducation.mutateAsync(educationId);
+          }}
           isAdding={addEducation.isPending}
           removingId={removeEducation.isPending ? (removeEducation.variables ?? null) : null}
           showSectionTitle={isDesktop}
@@ -342,9 +425,11 @@ export function EditProfilePage() {
           degreeLabel={t('profile:educacion.tituloObtenido.etiqueta')}
           degreePlaceholder={t('profile:educacion.tituloObtenido.placeholder')}
           degreeErrorRequired={t('profile:educacion.tituloObtenido.errorRequerido')}
+          degreeErrorTooLong={t('profile:educacion.tituloObtenido.errorLongitud')}
           institutionLabel={t('profile:educacion.institucion.etiqueta')}
           institutionPlaceholder={t('profile:educacion.institucion.placeholder')}
           institutionErrorRequired={t('profile:educacion.institucion.errorRequerido')}
+          institutionErrorTooLong={t('profile:educacion.institucion.errorLongitud')}
           startDateLabel={t('profile:educacion.fechaInicio.etiqueta')}
           startDateErrorRequired={t('profile:educacion.fechaInicio.errorRequerido')}
           endDateLabel={t('profile:educacion.fechaFin.etiqueta')}
@@ -354,7 +439,7 @@ export function EditProfilePage() {
           addingButtonLabel={t('profile:educacion.agregando')}
           removeItemLabel={(item) => t('profile:educacion.eliminar', { titulo: item.degree })}
           removingItemLabel={t('profile:educacion.eliminando')}
-          formatItemPeriod={formatEducationPeriod}
+          formatItemPeriod={(item) => formatEducationPeriod(item, t)}
           emptyStateTitle={t('profile:educacion.vacio.titulo')}
           emptyStateDescription={t('profile:educacion.vacio.descripcion')}
           currentMonth={currentMonth}
@@ -362,22 +447,30 @@ export function EditProfilePage() {
           monthFieldTexts={monthFieldTexts}
           dateErrorFormat={t('profile:fechas.errorFormato')}
           dateErrorFuture={t('profile:fechas.errorPosteriorMesActual')}
+          maxItems={EDUCATION_MAX_COUNT}
+          maxItemsMessage={t('profile:educacion.errorLimite')}
+          serverFieldErrors={educationFieldErrors}
           addErrorMessage={
-            addEducation.isError
-              ? getItemErrorMessage(addEducation.error, t('profile:educacion.errorAgregar'), {
+            lastEducationAction === 'add' && addEducation.isError && !educationFieldErrors
+              ? (findMessageByCode(addEducation.error, notFoundByCode) ??
+                getItemErrorMessage(addEducation.error, getFallbackMessage(addEducation.error), {
                   EDUCATION_LIMIT_REACHED: t('profile:educacion.errorLimite'),
                   START_DATE_BEFORE_BIRTH: t('profile:educacion.errorFechaAnteriorNacimiento'),
                   INSTITUTION_INVALID_CHARACTERS: t('profile:educacion.errorCaracteresInvalidos'),
                   DEGREE_INVALID_CHARACTERS: t('profile:educacion.errorCaracteresInvalidos'),
-                })
+                }))
               : undefined
           }
           removeErrorMessage={
-            removeEducation.isError ? t('profile:educacion.errorEliminar') : undefined
+            lastEducationAction === 'remove' && removeEducation.isError
+              ? (findMessageByCode(removeEducation.error, {
+                  ...notFoundByCode,
+                  EDUCATION_NOT_ALLOWED: t('profile:educacion.errorUltimaFormacion'),
+                  EDUCATION_NOT_FOUND: t('errors:codigos.NOT_FOUND'),
+                }) ?? getFallbackMessage(removeEducation.error))
+              : undefined
           }
-          confirmationMessage={
-            addEducation.isSuccess ? t('profile:educacion.confirmacionAgregada') : undefined
-          }
+          confirmationMessage={educationConfirmation}
         />
       ),
     },
@@ -390,8 +483,14 @@ export function EditProfilePage() {
         <WorkExperienceSection
           formId={WORK_EXPERIENCE_FORM_ID}
           items={profile.workExperience}
-          onAdd={(values) => addWorkExperience.mutate(values)}
-          onRemove={(workExperienceId) => removeWorkExperience.mutate(workExperienceId)}
+          onAdd={(values) => {
+            setLastWorkExperienceAction('add');
+            return addWorkExperience.mutateAsync(values);
+          }}
+          onRemove={(workExperienceId) => {
+            setLastWorkExperienceAction('remove');
+            return removeWorkExperience.mutateAsync(workExperienceId);
+          }}
           isAdding={addWorkExperience.isPending}
           removingId={
             removeWorkExperience.isPending ? (removeWorkExperience.variables ?? null) : null
@@ -401,11 +500,12 @@ export function EditProfilePage() {
           positionLabel={t('profile:experiencia.cargo.etiqueta')}
           positionPlaceholder={t('profile:experiencia.cargo.placeholder')}
           positionErrorRequired={t('profile:experiencia.cargo.errorRequerido')}
+          positionErrorTooLong={t('profile:experiencia.cargo.errorLongitud')}
           companyLabel={t('profile:experiencia.empresa.etiqueta')}
           companyPlaceholder={t('profile:experiencia.empresa.placeholder')}
           companyErrorRequired={t('profile:experiencia.empresa.errorRequerido')}
+          companyErrorTooLong={t('profile:experiencia.empresa.errorLongitud')}
           startDateLabel={t('profile:experiencia.fechaInicio.etiqueta')}
-          startDateErrorRequired={t('profile:experiencia.fechaInicio.errorRequerido')}
           endDateLabel={t('profile:experiencia.fechaFin.etiqueta')}
           endDateErrorRequired={t('profile:experiencia.fechaFin.errorRequerido')}
           endDateErrorBeforeStart={t('profile:experiencia.fechaFin.errorAnterior')}
@@ -413,6 +513,7 @@ export function EditProfilePage() {
           unknownEndLabel={t('profile:experiencia.finDesconocido')}
           descriptionLabel={t('profile:experiencia.descripcion.etiqueta')}
           descriptionPlaceholder={t('profile:experiencia.descripcion.placeholder')}
+          descriptionErrorTooLong={t('profile:experiencia.descripcion.errorLongitud')}
           descriptionCounterLabel={(count, max) =>
             t('profile:experiencia.descripcion.contador', { count, max })
           }
@@ -420,7 +521,7 @@ export function EditProfilePage() {
           addingButtonLabel={t('profile:experiencia.agregando')}
           removeItemLabel={(item) => t('profile:experiencia.eliminar', { cargo: item.position })}
           removingItemLabel={t('profile:experiencia.eliminando')}
-          formatItemPeriod={formatWorkExperiencePeriod}
+          formatItemPeriod={(item) => formatWorkExperiencePeriod(item, t)}
           emptyStateTitle={t('profile:experiencia.vacio.titulo')}
           emptyStateDescription={t('profile:experiencia.vacio.descripcion')}
           currentMonth={currentMonth}
@@ -428,11 +529,17 @@ export function EditProfilePage() {
           monthFieldTexts={monthFieldTexts}
           dateErrorFormat={t('profile:fechas.errorFormato')}
           dateErrorFuture={t('profile:fechas.errorPosteriorMesActual')}
+          maxItems={WORK_EXPERIENCE_MAX_COUNT}
+          maxItemsMessage={t('profile:experiencia.errorLimite')}
+          serverFieldErrors={workExperienceFieldErrors}
           addErrorMessage={
-            addWorkExperience.isError
-              ? getItemErrorMessage(
+            lastWorkExperienceAction === 'add' &&
+            addWorkExperience.isError &&
+            !workExperienceFieldErrors
+              ? (findMessageByCode(addWorkExperience.error, notFoundByCode) ??
+                getItemErrorMessage(
                   addWorkExperience.error,
-                  t('profile:experiencia.errorAgregar'),
+                  getFallbackMessage(addWorkExperience.error),
                   {
                     WORK_EXPERIENCE_LIMIT_REACHED: t('profile:experiencia.errorLimite'),
                     START_DATE_BEFORE_MINIMUM_AGE: t('profile:experiencia.errorFechaEdadMinima'),
@@ -443,15 +550,18 @@ export function EditProfilePage() {
                       'profile:experiencia.errorCaracteresInvalidos',
                     ),
                   },
-                )
+                ))
               : undefined
           }
           removeErrorMessage={
-            removeWorkExperience.isError ? t('profile:experiencia.errorEliminar') : undefined
+            lastWorkExperienceAction === 'remove' && removeWorkExperience.isError
+              ? (findMessageByCode(removeWorkExperience.error, {
+                  ...notFoundByCode,
+                  WORK_EXPERIENCE_NOT_FOUND: t('errors:codigos.NOT_FOUND'),
+                }) ?? getFallbackMessage(removeWorkExperience.error))
+              : undefined
           }
-          confirmationMessage={
-            addWorkExperience.isSuccess ? t('profile:experiencia.confirmacionAgregada') : undefined
-          }
+          confirmationMessage={workExperienceConfirmation}
         />
       ),
     },

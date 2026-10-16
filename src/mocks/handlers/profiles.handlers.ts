@@ -99,6 +99,9 @@ const SUMMARY_MAX_LENGTH = 2000;
 const DESCRIPTION_MAX_LENGTH = 500;
 const SKILL_NAME_MAX_LENGTH = 255;
 const MAX_TARGET_ROLES = 5;
+/** CM-273 (PR 2): máximos del servidor real (`ProfessionalProfile.java:42,44`): 4 experiencias y 5 formaciones por perfil. */
+const WORK_EXPERIENCES_MAX_COUNT = 4;
+const EDUCATIONS_MAX_COUNT = 5;
 
 const EDUCATION_LEVELS = ['TECHNICAL', 'UNDERGRADUATE', 'POSTGRADUATE'] as const;
 const EMPLOYMENT_STATUSES = ['CURRENT', 'UNKNOWN_END', 'ENDED'] as const;
@@ -144,7 +147,8 @@ interface WorkExperienceItem {
   company: string;
   position: string;
   description: string | null;
-  startDate: string;
+  /** CM-273 (PR 2): el inicio es opcional en el servidor real (`WorkExperience.java:138-140`), igual que `null` en la respuesta. */
+  startDate: string | null;
   endDate: string | null;
   employmentStatus: EmploymentStatus;
   provenance: DataProvenance;
@@ -408,8 +412,9 @@ export const profilesHandlers: HttpHandler[] = [
   ),
 
   // CM-61: alta de experiencia laboral. Reglas de `WorkExperience.java`
-  // (backend real): `startDate` obligatoria; `employmentStatus=ENDED`
-  // exige `endDate` >= `startDate`; cualquier otro estado prohíbe `endDate`.
+  // (backend real): `startDate` opcional (CM-273, PR 2; antes obligatoria); `employmentStatus=ENDED`
+  // exige `endDate` (y que no sea anterior a `startDate` si hay inicio); cualquier otro estado prohíbe
+  // `endDate`. CM-273 (PR 2): máximo 4 por perfil, 409 `WORK_EXPERIENCE_LIMIT_REACHED`.
   http.post<{ id: string }>(
     '*/api/v1/profiles/:id/work-experiences',
     async ({ request, params }) => {
@@ -424,7 +429,7 @@ export const profilesHandlers: HttpHandler[] = [
       if (
         !isNonBlankString(company) ||
         !isNonBlankString(position) ||
-        !isYearMonth(startDate) ||
+        (startDate !== undefined && startDate !== null && !isYearMonth(startDate)) ||
         !EMPLOYMENT_STATUSES.includes(employmentStatus as EmploymentStatus) ||
         (description !== undefined && description !== null && typeof description !== 'string') ||
         (typeof description === 'string' && description.length > DESCRIPTION_MAX_LENGTH)
@@ -432,6 +437,19 @@ export const profilesHandlers: HttpHandler[] = [
         return HttpResponse.json(
           errorBody(400, 'Datos no válidos', 'Revisa los datos de la experiencia laboral.'),
           { status: 400 },
+        );
+      }
+
+      if (profile.workExperiences.length >= WORK_EXPERIENCES_MAX_COUNT) {
+        return HttpResponse.json(
+          errorBody(
+            409,
+            'Máximo de experiencias alcanzado',
+            'Ya tienes el máximo de 4 experiencias laborales.',
+            [],
+            'WORK_EXPERIENCE_LIMIT_REACHED',
+          ),
+          { status: 409 },
         );
       }
 
@@ -446,7 +464,7 @@ export const profilesHandlers: HttpHandler[] = [
             { status: 422 },
           );
         }
-        if (endDate < startDate) {
+        if (isYearMonth(startDate) && endDate < startDate) {
           const detail = 'La fecha de fin no puede ser anterior a la de inicio.';
           return HttpResponse.json(
             errorBody(422, 'Fecha no válida', detail, [{ field: 'endDate', message: detail }]),
@@ -466,7 +484,7 @@ export const profilesHandlers: HttpHandler[] = [
         company,
         position,
         description: typeof description === 'string' ? description : null,
-        startDate,
+        startDate: isYearMonth(startDate) ? startDate : null,
         endDate: status === 'ENDED' ? (endDate as string) : null,
         employmentStatus: status,
         provenance: 'MANUAL',
@@ -487,7 +505,16 @@ export const profilesHandlers: HttpHandler[] = [
         (item) => item.id === params.workExperienceId,
       );
       if (index === -1) {
-        return HttpResponse.json(notFound('Experiencia laboral no encontrada.'), { status: 404 });
+        return HttpResponse.json(
+          errorBody(
+            404,
+            'No encontrado',
+            'Experiencia laboral no encontrada.',
+            [],
+            'WORK_EXPERIENCE_NOT_FOUND',
+          ),
+          { status: 404 },
+        );
       }
       profile.workExperiences.splice(index, 1);
       return new HttpResponse(null, { status: 204 });
@@ -516,6 +543,19 @@ export const profilesHandlers: HttpHandler[] = [
       return HttpResponse.json(
         errorBody(400, 'Datos no válidos', 'Revisa los datos de la formación académica.'),
         { status: 400 },
+      );
+    }
+
+    if (profile.educations.length >= EDUCATIONS_MAX_COUNT) {
+      return HttpResponse.json(
+        errorBody(
+          409,
+          'Máximo de formaciones alcanzado',
+          'Ya tienes el máximo de 5 formaciones académicas.',
+          [],
+          'EDUCATION_LIMIT_REACHED',
+        ),
+        { status: 409 },
       );
     }
 
@@ -557,7 +597,24 @@ export const profilesHandlers: HttpHandler[] = [
       }
       const index = profile.educations.findIndex((item) => item.id === params.educationId);
       if (index === -1) {
-        return HttpResponse.json(notFound('Educación no encontrada.'), { status: 404 });
+        return HttpResponse.json(
+          errorBody(404, 'No encontrado', 'Educación no encontrada.', [], 'EDUCATION_NOT_FOUND'),
+          { status: 404 },
+        );
+      }
+      // CM-273 (PR 2), CA-2.4.37 y CA-2.4.51: un perfil activo no puede quedarse sin formación académica
+      // (`ProfessionalProfile.java:219-220`, `EducationNotAllowedException`).
+      if (profile.status === 'COMPLETED' && profile.educations.length === 1) {
+        return HttpResponse.json(
+          errorBody(
+            409,
+            'No se puede eliminar la última formación',
+            'No puedes quedarte sin formación académica con el perfil activo. Agrega otra antes de eliminar esta.',
+            [],
+            'EDUCATION_NOT_ALLOWED',
+          ),
+          { status: 409 },
+        );
       }
       profile.educations.splice(index, 1);
       return new HttpResponse(null, { status: 204 });
