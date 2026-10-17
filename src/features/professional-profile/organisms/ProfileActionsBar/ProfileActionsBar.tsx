@@ -115,7 +115,7 @@ export function ProfileActionsBar({
           {finishLabel}
         </Button>
         {isFinishDisabled ? (
-          <span id={finishHintId} className="sr-only">
+          <span id={finishHintId} className="text-sm text-amber-600">
             {finishDisabledHint}
           </span>
         ) : null}

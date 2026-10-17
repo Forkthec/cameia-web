@@ -187,7 +187,7 @@ export function TargetRolesSection({
                       {removeItemLabel(name)}
                     </Button>
                     {isLastRoleBlocked ? (
-                      <span id={removeHintId} className="sr-only">
+                      <span id={removeHintId} className="text-sm text-amber-600">
                         {removeLastRoleBlockedHint}
                       </span>
                     ) : null}

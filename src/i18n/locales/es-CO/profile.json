@@ -20,7 +20,7 @@
     "yaActivo": "Este perfil ya está activo.",
     "confirmacionFinalizado": "Tu perfil ya está activo.",
     "errorFinalizarIncompleto": "Todavía no cumples estos requisitos:",
-    "errorFinalizarGenerico": "No se pudo finalizar el perfil. Inténtalo de nuevo.",
+    "errorFinalizarGenerico": "Ocurrió un error. Inténtalo de nuevo.",
     "errorPerfilOcupado": "Estamos procesando tu perfil. Inténtalo de nuevo en unos segundos.",
     "requisitos": {
       "name": "Nombre del perfil",
@@ -189,11 +189,12 @@
       "descripcion": "Agrega al menos una para poder finalizar tu perfil."
     },
     "confirmacionAgregada": "Habilidad agregada.",
+    "confirmacionEliminada": "Habilidad eliminada.",
     "limiteAlcanzado": "Ya tienes el máximo de 20 habilidades.",
     "errorAgregar": "No se pudo agregar la habilidad.",
     "errorYaExiste": "Esa habilidad ya está en tu perfil.",
     "errorEliminar": "No se pudo eliminar la habilidad.",
-    "errorUltimaHabilidad": "No puedes eliminar la última habilidad de un perfil activo. Agrega otra antes de eliminar esta."
+    "errorUltimaHabilidad": "No puedes quedarte sin habilidades con el perfil activo. Agrega otra antes de eliminar esta."
   },
   "rolesObjetivo": {
     "titulo": "Roles objetivo",
