@@ -76,4 +76,21 @@ describe('AuthLayout', () => {
 
     expect(screen.getByText('Entra a la entrevista listo')).toBeInTheDocument();
   });
+
+  it('muestra el lema de marca y el contenido extra del panel (CM-329)', async () => {
+    await waitUntilReady();
+
+    render(
+      <I18nextProvider i18n={i18n}>
+        <MemoryRouter>
+          <AuthLayout highlights={<p>Beneficios</p>}>
+            <p>Formulario</p>
+          </AuthLayout>
+        </MemoryRouter>
+      </I18nextProvider>,
+    );
+
+    expect(screen.getByText('Practica. Mejora. Avanza.')).toBeInTheDocument();
+    expect(screen.getByText('Beneficios')).toBeInTheDocument();
+  });
 });

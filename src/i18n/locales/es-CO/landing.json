@@ -12,8 +12,12 @@
     "esGratis": "Es gratis",
     "tarjeta": {
       "titulo": "Sesión de práctica",
-      "descripcion": "El entrevistador de IA te escucha y responde en tiempo real, por voz o por texto."
-    }
+      "descripcion": "El entrevistador de IA te escucha y responde en tiempo real, por voz o por texto.",
+      "tiempoReal": "Tiempo real",
+      "texto": "Texto",
+      "voz": "Voz"
+    },
+    "detalleRetroalimentacion": "Desglose por pregunta"
   },
   "modulos": {
     "titulo": "Todo lo que necesitas para llegar preparado",
@@ -28,18 +32,30 @@
     "retroalimentacion": {
       "titulo": "Retroalimentación estructurada",
       "descripcion": "Recibe un desglose de tu desempeño por pregunta, con puntaje y sugerencias concretas de mejora."
-    }
+    },
+    "etiqueta": "Módulos"
   },
   "entrenoVsSimulacion": {
     "titulo": "Practica a tu ritmo, o pon a prueba tu desempeño real",
     "entreno": {
       "titulo": "Entreno",
-      "descripcion": "Repregunta cuando lo necesites y recibe retroalimentación después de cada respuesta. Ideal para practicar sin presión."
+      "descripcion": "Repregunta cuando lo necesites y recibe retroalimentación después de cada respuesta. Ideal para practicar sin presión.",
+      "etiqueta": "A tu ritmo",
+      "lineaTiempo": {
+        "inicio": "Respuesta",
+        "fin": "Retroalimentación tras cada una"
+      }
     },
     "simulacion": {
       "titulo": "Simulación",
-      "descripcion": "Un flujo continuo sin pausas, tal como sería una entrevista real. Recibe tu evaluación completa al final."
-    }
+      "descripcion": "Un flujo continuo sin pausas, tal como sería una entrevista real. Recibe tu evaluación completa al final.",
+      "etiqueta": "Como la real",
+      "lineaTiempo": {
+        "inicio": "Sin pausas",
+        "fin": "Evaluación completa al final"
+      }
+    },
+    "etiqueta": "Dos modos"
   },
   "cierre": {
     "titulo": "Tu próxima entrevista empieza aquí"
@@ -52,5 +68,25 @@
   "seo": {
     "titulo": "CAMEIA · Practica entrevistas laborales con IA",
     "descripcion": "Practica con un entrevistador de IA, recibe retroalimentación estructurada y llega a tu próxima entrevista con confianza."
+  },
+  "intro": {
+    "saltar": "Saltar intro"
+  },
+  "pasos": {
+    "etiqueta": "Cómo funciona",
+    "titulo": "Tres pasos hacia tu próxima entrevista",
+    "numero": "Paso {{numero}}",
+    "practica": {
+      "titulo": "Practica",
+      "descripcion": "Elige Entreno o Simulación y conversa con el entrevistador de IA, por voz o por texto."
+    },
+    "mejora": {
+      "titulo": "Mejora",
+      "descripcion": "Recibe un desglose de tu desempeño por pregunta, con puntaje y sugerencias concretas."
+    },
+    "avanza": {
+      "titulo": "Avanza",
+      "descripcion": "Llega a tu próxima entrevista con confianza."
+    }
   }
 }

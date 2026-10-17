@@ -48,7 +48,16 @@
  * llega a existir en el estado del formulario. `correo` no filtra —
  * necesita `.`, `_`, `%`, `+`, `-`, `@` sin restricción — solo valida al
  * enviar (`email.schema.ts`).
+ *
+ * **Presentación «Amanecer» (CM-329, `SPEC.md` §3.8).** Solo cambia el
+ * diseño: los mismos ocho campos, con las mismas validaciones, filtros y
+ * estados, se agrupan en tres bloques numerados («Tus datos», «Contacto»,
+ * «Seguridad») para que el formulario se lea como tres partes cortas.
+ * Pronombres sube al bloque «Tus datos», junto a la fecha de nacimiento; es
+ * el único cambio de orden. El envío pasa a `AuthFormActions` (al fondo de
+ * la pantalla en móvil).
  */
+import type { ReactNode } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { Link } from 'react-router';
@@ -67,17 +76,47 @@ import { Input } from '@/design-system/atoms/Input';
 import { PasswordField } from '@/design-system/molecules/PasswordField';
 import { PasswordStrength } from '@/design-system/molecules/PasswordStrength';
 import { PhoneField } from '../PhoneField';
+import { AuthFormActions } from '../AuthFormActions';
 import {
   registerSchema,
   registerSchemaErrorCodes,
   type RegisterFormValues,
 } from '../../schemas/register.schema';
 
+interface FormSectionProps {
+  /** Posición del bloque (1, 2, 3). Se muestra con dos dígitos. */
+  index: number;
+  /** Nombre visible del bloque. */
+  label: string;
+  children: ReactNode;
+}
+
+/**
+ * Bloque numerado del formulario: un `fieldset` con su `legend`, para que
+ * lectores de pantalla anuncien el grupo al entrar en sus campos.
+ */
+function FormSection({ index, label, children }: FormSectionProps) {
+  return (
+    <fieldset className="gap-space-4 lg:gap-space-3 flex min-w-0 flex-col">
+      <legend className="text-label text-brand-muted mb-space-3 gap-space-2 flex w-full items-center uppercase">
+        <span className="text-brand-accent-strong">{String(index).padStart(2, '0')}</span>
+        {label}
+        <span aria-hidden="true" className="bg-border-subtle ml-space-1 h-px flex-1" />
+      </legend>
+      {children}
+    </fieldset>
+  );
+}
+
 interface RegisterFormProps {
   isSubmitting: boolean;
   onSubmit: (values: RegisterFormValues) => void;
 
   titleText: string;
+  /** Subtítulo bajo el título (`registro.subtitulo`). Opcional. */
+  subtitleText?: string;
+  /** Nombres de los tres bloques del formulario (`registro.secciones.*`). */
+  sectionLabels: { datos: string; contacto: string; seguridad: string };
   googleButtonLabel: string;
   dividerLabel: string;
 
@@ -153,6 +192,8 @@ export function RegisterForm({
   isSubmitting,
   onSubmit,
   titleText,
+  subtitleText,
+  sectionLabels,
   googleButtonLabel,
   dividerLabel,
   nombreLabel,
@@ -237,11 +278,14 @@ export function RegisterForm({
 
   return (
     <form
-      className={cn('gap-space-5 flex flex-col', className)}
+      className={cn('gap-space-5 lg:gap-space-4 flex flex-1 flex-col', className)}
       onSubmit={(event) => void handleSubmit(onSubmit)(event)}
       noValidate
     >
-      <h1 className="text-h1 font-display text-text-primary">{titleText}</h1>
+      <div className="gap-space-1 flex flex-col">
+        <h1 className="text-h1 font-display text-brand-deep">{titleText}</h1>
+        {subtitleText ? <p className="text-body text-text-muted">{subtitleText}</p> : null}
+      </div>
 
       {genericErrorMessage ? (
         <AlertInline variant="error">{genericErrorMessage}</AlertInline>
@@ -263,323 +307,321 @@ export function RegisterForm({
         <Divider className="flex-1" />
       </div>
 
-      <div className="gap-space-4 grid grid-cols-1 lg:grid-cols-2">
-        <Controller
-          control={control}
-          name="nombre"
-          render={({ field, fieldState }) => (
-            <FormField
-              label={nombreLabel}
-              error={
-                fieldState.error?.type === 'too_small'
-                  ? nombreErrorRequired
-                  : fieldState.error?.type === 'invalid_format'
-                    ? nombreErrorFormato
-                    : undefined
-              }
-            >
-              <Input
-                ref={field.ref}
-                value={field.value}
-                onChange={(event) => {
-                  event.target.value = filterToLettersAndSpaces(event.target.value);
-                  field.onChange(event);
-                }}
-                onBlur={field.onBlur}
-                placeholder={nombrePlaceholder}
-                autoComplete="given-name"
-                maxLength={120}
-                state={isSubmitting ? 'disabled' : fieldState.error ? 'error' : 'default'}
-              />
-            </FormField>
-          )}
-        />
-
-        <Controller
-          control={control}
-          name="apellido"
-          render={({ field, fieldState }) => (
-            <FormField
-              label={apellidoLabel}
-              error={
-                fieldState.error?.type === 'too_small'
-                  ? apellidoErrorRequired
-                  : fieldState.error?.type === 'invalid_format'
-                    ? apellidoErrorFormato
-                    : undefined
-              }
-            >
-              <Input
-                ref={field.ref}
-                value={field.value}
-                onChange={(event) => {
-                  event.target.value = filterToLettersAndSpaces(event.target.value);
-                  field.onChange(event);
-                }}
-                onBlur={field.onBlur}
-                placeholder={apellidoPlaceholder}
-                autoComplete="family-name"
-                maxLength={120}
-                state={isSubmitting ? 'disabled' : fieldState.error ? 'error' : 'default'}
-              />
-            </FormField>
-          )}
-        />
-      </div>
-
-      <Controller
-        control={control}
-        name="fechaNacimiento"
-        render={({ field, fieldState }) => {
-          // En cuanto la persona toca el campo tras un rechazo del backend,
-          // el aviso deja de describir el valor que ve en pantalla — se
-          // apaga con `isDirty`, no con un timeout ni un evento aparte.
-          const isServerRejected = birthDateRejectedByServer && !fieldState.isDirty;
-          const errorMessage =
-            fieldState.error?.message === registerSchemaErrorCodes.FECHA_NACIMIENTO_FUTURA
-              ? fechaNacimientoErrorFutura
-              : fieldState.error?.message === registerSchemaErrorCodes.FECHA_NACIMIENTO_IMPLAUSIBLE
-                ? fechaNacimientoErrorImplausible
-                : fieldState.error?.message ===
-                    registerSchemaErrorCodes.FECHA_NACIMIENTO_FORMATO_INVALIDO
-                  ? fechaNacimientoErrorFormatoInvalido
-                  : fieldState.error?.message ===
-                        registerSchemaErrorCodes.FECHA_NACIMIENTO_MENOR_DE_EDAD || isServerRejected
-                    ? fechaNacimientoAyuda
-                    : undefined;
-
-          return (
-            <FormField
-              label={fechaNacimientoLabel}
-              helperText={errorMessage ? undefined : fechaNacimientoAyuda}
-              error={errorMessage}
-            >
-              <Input
-                ref={field.ref}
-                type="date"
-                max={todayLocalIsoDate()}
-                min={oldestPlausibleBirthDateIsoDate()}
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                state={
-                  isSubmitting
-                    ? 'disabled'
-                    : fieldState.error || isServerRejected
-                      ? 'error'
-                      : 'default'
-                }
-              />
-            </FormField>
-          );
-        }}
-      />
-
-      <div className="gap-space-1 flex flex-col">
-        <Controller
-          control={control}
-          name="correo"
-          render={({ field, fieldState }) => (
-            <FormField
-              label={correoLabel}
-              error={
-                hasDuplicateEmailError
-                  ? duplicateEmailErrorMessage
-                  : fieldState.error?.type === 'too_small'
-                    ? correoErrorRequired
-                    : fieldState.error?.type === 'too_big'
-                      ? correoErrorMuyLargo
-                      : fieldState.error?.type === 'invalid_format'
-                        ? correoErrorInvalid
-                        : undefined
-              }
-            >
-              <Input
-                ref={field.ref}
-                type="email"
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                placeholder={correoPlaceholder}
-                autoComplete="email"
-                maxLength={254}
-                state={
-                  isSubmitting
-                    ? 'disabled'
-                    : fieldState.error || hasDuplicateEmailError
-                      ? 'error'
-                      : 'default'
-                }
-              />
-            </FormField>
-          )}
-        />
-        {hasDuplicateEmailError ? (
-          <div className="gap-space-3 flex items-center">
-            <Link
-              to={ROUTES.ingresar}
-              className="text-small text-text-link font-semibold hover:underline"
-            >
-              {duplicateEmailLoginLabel}
-            </Link>
-            <button
-              type="button"
-              disabled
-              className="text-small text-text-disabled cursor-not-allowed"
-            >
-              {duplicateEmailRecoverLabel}
-            </button>
-          </div>
-        ) : null}
-      </div>
-
-      <Controller
-        control={control}
-        name="celular.numeroNacional"
-        render={({ field: numeroField, fieldState }) => (
+      <FormSection index={1} label={sectionLabels.datos}>
+        <div className="gap-space-4 grid grid-cols-1 lg:grid-cols-2">
           <Controller
             control={control}
-            name="celular.paisIso"
-            render={({ field: paisField }) => (
-              <PhoneField
-                paisLabel={celularPaisLabel}
-                paisValue={paisField.value}
-                onPaisChange={paisField.onChange}
-                paisBuscarLabel={celularBuscarPaisLabel}
-                paisSinResultadosLabel={celularSinResultadosLabel}
-                numeroLabel={celularNumeroLabel}
-                numeroValue={numeroField.value}
-                onNumeroChange={(event) => {
-                  event.target.value = filterToDigits(event.target.value);
-                  numeroField.onChange(event);
-                }}
-                onNumeroBlur={numeroField.onBlur}
-                numeroPlaceholder={celularNumeroPlaceholder}
-                helperText={fieldState.error ? undefined : celularAyuda}
-                errorMessage={fieldState.error ? celularErrorInvalido : undefined}
-                state={isSubmitting ? 'disabled' : fieldState.error ? 'error' : 'default'}
-              />
+            name="nombre"
+            render={({ field, fieldState }) => (
+              <FormField
+                label={nombreLabel}
+                error={
+                  fieldState.error?.type === 'too_small'
+                    ? nombreErrorRequired
+                    : fieldState.error?.type === 'invalid_format'
+                      ? nombreErrorFormato
+                      : undefined
+                }
+              >
+                <Input
+                  ref={field.ref}
+                  value={field.value}
+                  onChange={(event) => {
+                    event.target.value = filterToLettersAndSpaces(event.target.value);
+                    field.onChange(event);
+                  }}
+                  onBlur={field.onBlur}
+                  placeholder={nombrePlaceholder}
+                  autoComplete="given-name"
+                  maxLength={120}
+                  state={isSubmitting ? 'disabled' : fieldState.error ? 'error' : 'default'}
+                />
+              </FormField>
             )}
           />
-        )}
-      />
 
-      <Controller
-        control={control}
-        name="contrasena"
-        render={({ field, fieldState }) => {
-          const errorMessage = hasContrasenaServerError
-            ? contrasenaServerErrorMessage
-            : fieldState.error?.message === registerSchemaErrorCodes.CONTRASENA_MUY_CORTA
-              ? contrasenaErrorMuyCorta
-              : fieldState.error?.message === registerSchemaErrorCodes.CONTRASENA_MUY_LARGA
-                ? contrasenaErrorMuyLarga
-                : fieldState.error?.message === registerSchemaErrorCodes.CONTRASENA_COMUN
-                  ? contrasenaErrorComun
-                  : undefined;
-          const strength = calculatePasswordStrength(field.value);
-
-          return (
-            <div className="gap-space-2 flex flex-col">
-              <FormField label={contrasenaLabel} error={errorMessage}>
-                <PasswordField
+          <Controller
+            control={control}
+            name="apellido"
+            render={({ field, fieldState }) => (
+              <FormField
+                label={apellidoLabel}
+                error={
+                  fieldState.error?.type === 'too_small'
+                    ? apellidoErrorRequired
+                    : fieldState.error?.type === 'invalid_format'
+                      ? apellidoErrorFormato
+                      : undefined
+                }
+              >
+                <Input
                   ref={field.ref}
+                  value={field.value}
+                  onChange={(event) => {
+                    event.target.value = filterToLettersAndSpaces(event.target.value);
+                    field.onChange(event);
+                  }}
+                  onBlur={field.onBlur}
+                  placeholder={apellidoPlaceholder}
+                  autoComplete="family-name"
+                  maxLength={120}
+                  state={isSubmitting ? 'disabled' : fieldState.error ? 'error' : 'default'}
+                />
+              </FormField>
+            )}
+          />
+        </div>
+
+        <div className="gap-space-4 grid grid-cols-1 items-start lg:grid-cols-2">
+          <Controller
+            control={control}
+            name="fechaNacimiento"
+            render={({ field, fieldState }) => {
+              // En cuanto la persona toca el campo tras un rechazo del backend,
+              // el aviso deja de describir el valor que ve en pantalla — se
+              // apaga con `isDirty`, no con un timeout ni un evento aparte.
+              const isServerRejected = birthDateRejectedByServer && !fieldState.isDirty;
+              const errorMessage =
+                fieldState.error?.message === registerSchemaErrorCodes.FECHA_NACIMIENTO_FUTURA
+                  ? fechaNacimientoErrorFutura
+                  : fieldState.error?.message ===
+                      registerSchemaErrorCodes.FECHA_NACIMIENTO_IMPLAUSIBLE
+                    ? fechaNacimientoErrorImplausible
+                    : fieldState.error?.message ===
+                        registerSchemaErrorCodes.FECHA_NACIMIENTO_FORMATO_INVALIDO
+                      ? fechaNacimientoErrorFormatoInvalido
+                      : fieldState.error?.message ===
+                            registerSchemaErrorCodes.FECHA_NACIMIENTO_MENOR_DE_EDAD ||
+                          isServerRejected
+                        ? fechaNacimientoAyuda
+                        : undefined;
+
+              return (
+                <FormField
+                  label={fechaNacimientoLabel}
+                  helperText={errorMessage ? undefined : fechaNacimientoAyuda}
+                  error={errorMessage}
+                >
+                  <Input
+                    ref={field.ref}
+                    type="date"
+                    max={todayLocalIsoDate()}
+                    min={oldestPlausibleBirthDateIsoDate()}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    state={
+                      isSubmitting
+                        ? 'disabled'
+                        : fieldState.error || isServerRejected
+                          ? 'error'
+                          : 'default'
+                    }
+                  />
+                </FormField>
+              );
+            }}
+          />
+
+          <Controller
+            control={control}
+            name="pronombres"
+            render={({ field, fieldState }) => (
+              <FormField
+                label={pronombresLabel}
+                error={fieldState.error?.type === 'too_small' ? pronombresErrorRequired : undefined}
+              >
+                <Select
+                  ref={field.ref}
+                  options={pronombresOptions}
                   value={field.value}
                   onChange={field.onChange}
                   onBlur={field.onBlur}
-                  placeholder={contrasenaPlaceholder}
-                  showPasswordLabel={showPasswordLabel}
-                  hidePasswordLabel={hidePasswordLabel}
+                  placeholder={pronombresPlaceholder}
+                  state={isSubmitting ? 'disabled' : fieldState.error ? 'error' : 'default'}
+                />
+              </FormField>
+            )}
+          />
+        </div>
+      </FormSection>
+
+      <FormSection index={2} label={sectionLabels.contacto}>
+        <div className="gap-space-1 flex flex-col">
+          <Controller
+            control={control}
+            name="correo"
+            render={({ field, fieldState }) => (
+              <FormField
+                label={correoLabel}
+                error={
+                  hasDuplicateEmailError
+                    ? duplicateEmailErrorMessage
+                    : fieldState.error?.type === 'too_small'
+                      ? correoErrorRequired
+                      : fieldState.error?.type === 'too_big'
+                        ? correoErrorMuyLargo
+                        : fieldState.error?.type === 'invalid_format'
+                          ? correoErrorInvalid
+                          : undefined
+                }
+              >
+                <Input
+                  ref={field.ref}
+                  type="email"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder={correoPlaceholder}
+                  autoComplete="email"
+                  maxLength={254}
                   state={
                     isSubmitting
                       ? 'disabled'
-                      : errorMessage || fieldState.error
+                      : fieldState.error || hasDuplicateEmailError
                         ? 'error'
                         : 'default'
                   }
                 />
               </FormField>
-              <PasswordStrength
-                level={strength}
-                label={strength === 'empty' ? undefined : strengthLabels[strength]}
-              />
+            )}
+          />
+          {hasDuplicateEmailError ? (
+            <div className="gap-space-3 flex items-center">
+              <Link
+                to={ROUTES.ingresar}
+                className="text-small text-text-link font-semibold hover:underline"
+              >
+                {duplicateEmailLoginLabel}
+              </Link>
+              <button
+                type="button"
+                disabled
+                className="text-small text-text-disabled cursor-not-allowed"
+              >
+                {duplicateEmailRecoverLabel}
+              </button>
             </div>
-          );
-        }}
-      />
+          ) : null}
+        </div>
 
-      <Controller
-        control={control}
-        name="confirmarContrasena"
-        render={({ field, fieldState }) => (
-          <FormField
-            label={confirmarContrasenaLabel}
-            error={
-              fieldState.error?.type === 'too_small'
-                ? confirmarContrasenaErrorRequired
-                : fieldState.error?.message ===
-                    registerSchemaErrorCodes.CONFIRMAR_CONTRASENA_NO_COINCIDE
-                  ? confirmarContrasenaErrorNoCoincide
-                  : undefined
-            }
-          >
-            <PasswordField
-              ref={field.ref}
-              value={field.value}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              placeholder={confirmarContrasenaPlaceholder}
-              showPasswordLabel={showPasswordLabel}
-              hidePasswordLabel={hidePasswordLabel}
-              state={isSubmitting ? 'disabled' : fieldState.error ? 'error' : 'default'}
+        <Controller
+          control={control}
+          name="celular.numeroNacional"
+          render={({ field: numeroField, fieldState }) => (
+            <Controller
+              control={control}
+              name="celular.paisIso"
+              render={({ field: paisField }) => (
+                <PhoneField
+                  paisLabel={celularPaisLabel}
+                  paisValue={paisField.value}
+                  onPaisChange={paisField.onChange}
+                  paisBuscarLabel={celularBuscarPaisLabel}
+                  paisSinResultadosLabel={celularSinResultadosLabel}
+                  numeroLabel={celularNumeroLabel}
+                  numeroValue={numeroField.value}
+                  onNumeroChange={(event) => {
+                    event.target.value = filterToDigits(event.target.value);
+                    numeroField.onChange(event);
+                  }}
+                  onNumeroBlur={numeroField.onBlur}
+                  numeroPlaceholder={celularNumeroPlaceholder}
+                  helperText={fieldState.error ? undefined : celularAyuda}
+                  errorMessage={fieldState.error ? celularErrorInvalido : undefined}
+                  state={isSubmitting ? 'disabled' : fieldState.error ? 'error' : 'default'}
+                />
+              )}
             />
-          </FormField>
-        )}
+          )}
+        />
+      </FormSection>
+
+      <FormSection index={3} label={sectionLabels.seguridad}>
+        <div className="gap-space-4 grid grid-cols-1 items-start lg:grid-cols-2">
+          <Controller
+            control={control}
+            name="contrasena"
+            render={({ field, fieldState }) => {
+              const errorMessage = hasContrasenaServerError
+                ? contrasenaServerErrorMessage
+                : fieldState.error?.message === registerSchemaErrorCodes.CONTRASENA_MUY_CORTA
+                  ? contrasenaErrorMuyCorta
+                  : fieldState.error?.message === registerSchemaErrorCodes.CONTRASENA_MUY_LARGA
+                    ? contrasenaErrorMuyLarga
+                    : fieldState.error?.message === registerSchemaErrorCodes.CONTRASENA_COMUN
+                      ? contrasenaErrorComun
+                      : undefined;
+              const strength = calculatePasswordStrength(field.value);
+
+              return (
+                <div className="gap-space-2 flex flex-col">
+                  <FormField label={contrasenaLabel} error={errorMessage}>
+                    <PasswordField
+                      ref={field.ref}
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      placeholder={contrasenaPlaceholder}
+                      showPasswordLabel={showPasswordLabel}
+                      hidePasswordLabel={hidePasswordLabel}
+                      state={
+                        isSubmitting
+                          ? 'disabled'
+                          : errorMessage || fieldState.error
+                            ? 'error'
+                            : 'default'
+                      }
+                    />
+                  </FormField>
+                  <PasswordStrength
+                    level={strength}
+                    label={strength === 'empty' ? undefined : strengthLabels[strength]}
+                  />
+                </div>
+              );
+            }}
+          />
+
+          <Controller
+            control={control}
+            name="confirmarContrasena"
+            render={({ field, fieldState }) => (
+              <FormField
+                label={confirmarContrasenaLabel}
+                error={
+                  fieldState.error?.type === 'too_small'
+                    ? confirmarContrasenaErrorRequired
+                    : fieldState.error?.message ===
+                        registerSchemaErrorCodes.CONFIRMAR_CONTRASENA_NO_COINCIDE
+                      ? confirmarContrasenaErrorNoCoincide
+                      : undefined
+                }
+              >
+                <PasswordField
+                  ref={field.ref}
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder={confirmarContrasenaPlaceholder}
+                  showPasswordLabel={showPasswordLabel}
+                  hidePasswordLabel={hidePasswordLabel}
+                  state={isSubmitting ? 'disabled' : fieldState.error ? 'error' : 'default'}
+                />
+              </FormField>
+            )}
+          />
+        </div>
+      </FormSection>
+
+      <AuthFormActions
+        isSubmitting={isSubmitting}
+        submitLabel={submitLabel}
+        submitLoadingLabel={submitLoadingLabel}
+        footerQuestion={footerQuestion}
+        footerCta={footerCta}
+        footerTo={ROUTES.ingresar}
       />
-
-      <Controller
-        control={control}
-        name="pronombres"
-        render={({ field, fieldState }) => (
-          <FormField
-            label={pronombresLabel}
-            error={fieldState.error?.type === 'too_small' ? pronombresErrorRequired : undefined}
-          >
-            <Select
-              ref={field.ref}
-              options={pronombresOptions}
-              value={field.value}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              placeholder={pronombresPlaceholder}
-              state={isSubmitting ? 'disabled' : fieldState.error ? 'error' : 'default'}
-            />
-          </FormField>
-        )}
-      />
-
-      {isSubmitting ? (
-        <Button
-          type="submit"
-          size="lg"
-          className="w-full"
-          loading
-          loadingLabel={submitLoadingLabel}
-        >
-          {submitLabel}
-        </Button>
-      ) : (
-        <Button type="submit" size="lg" className="w-full">
-          {submitLabel}
-        </Button>
-      )}
-
-      <div className="gap-space-1 text-body flex justify-center">
-        <span className="text-text-muted">{footerQuestion}</span>
-        <Link to={ROUTES.ingresar} className="text-text-link font-semibold hover:underline">
-          {footerCta}
-        </Link>
-      </div>
     </form>
   );
 }

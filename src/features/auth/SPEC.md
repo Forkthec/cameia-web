@@ -3,7 +3,7 @@ feature: auth
 estado: EN_CURSO
 hu: [HU-1.3, HU-1.1, HU-1.8, HU-1.2]
 prt: [PRT-01.03, PRT-01.01, PRT-01.08]
-jira: [CM-40, CM-34, CM-194, CM-195, CM-243, CM-267, CM-180, CM-15]
+jira: [CM-40, CM-34, CM-194, CM-195, CM-243, CM-267, CM-180, CM-15, CM-329]
 rutas: [/ingresar, /registro, /verificar-correo]
 documentacion: tsdoc-es
 backlog: 16092026_01
@@ -821,6 +821,25 @@ variante `md`. En `lg`, Nombre(s)/Apellido(s) van lado a lado; en `sm` se apilan
 - El resto de reglas de seguridad de la feature (sin cabeceras `X-User-*`, un solo tema) aplica
   igual que en Login/Registro.
 
+### 3.8 Presentación «Amanecer» de Login y Registro (CM-329, 17-oct-2026)
+
+**Solo diseño. Ningún cambio de comportamiento.** Login y Registro siguen siendo **una sola página
+cada uno**, con un solo envío: sin pasos, sin paginación y sin asistente. Se conservan todos los
+campos, validaciones (`login.schema.ts`, `register.schema.ts`), filtros de tecleo, estados, mensajes,
+`onSubmit`, rutas, el botón de Google deshabilitado, «¿Olvidaste tu contraseña? · Próximamente»,
+«Volver a inicio», los avisos (`AlertInline`) y los modales de verificación. Mismo lenguaje visual que
+la landing (`features/landing/SPEC.md` §3.7).
+
+| Pieza | Cambio de presentación |
+| ----- | ---------------------- |
+| `AuthLayout` | Panel de marca con la escena de la landing (índigo profundo, sol, joroba como marca de agua, lema). Es **un solo elemento**: columna izquierda fija en `lg`, banda compacta con borde en curva por debajo de `lg`. Nuevo prop opcional `highlights` (solo `lg`). La columna del formulario ocupa el alto restante, centrada en tablet. |
+| Login | Subtítulo bajo el título (`ingreso.subtitulo`, ya existía). Panel: lema + titular. |
+| Registro | Panel: titular propio (`registro.marca.titular`) y tres beneficios **informativos** (`BrandHighlights`: Practica · Mejora · Avanza). No son pasos: sin números, sin paso actual, sin sincronizarse con nada. Subtítulo `registro.subtitulo`. Los ocho campos se agrupan en tres bloques numerados con `fieldset`/`legend` («Tus datos», «Contacto», «Seguridad»); Pronombres pasa al bloque «Tus datos», junto a la fecha — único cambio de orden. En `lg`, fecha/pronombres y contraseña/confirmación van en dos columnas. |
+| Envío (ambos) | `AuthFormActions`: el botón de envío y el enlace a la otra pantalla. Por debajo de `lg` quedan al fondo de la pantalla (`mt-auto` + `sticky bottom-0`), sin huecos en blanco; en `lg` en el flujo normal. Mismo gesto de CTA que la landing. |
+
+Verificado en navegador a 375, 768 y 1440 px: sin desborde horizontal, los ocho campos de Registro
+presentes. En 1440×900, Login cabe sin scroll; Registro mide ~950 px y hace scroll bajo el panel fijo.
+
 ## 4. Contrato observable
 
 **Campos y reglas**
@@ -955,6 +974,8 @@ Notas:
 | `src/stores/auth.store.ts`, `src/app/providers/AuthProvider.tsx` | `emailVerified` en `AuthUser`; **`unverifiedEmail`/`verificationResent` y version counter en AuthProvider (`CM-180`)**  | `AuthProvider.test.tsx` |
 | `src/features/auth/model/authErrorMessage.ts` | Código de `AuthError` → llave de i18n | `authErrorMessage.test.ts` |
 | `src/features/auth/schemas/login.schema.ts` | Validación zod de `correo`/`contraseña` | — |
+| `src/features/auth/organisms/AuthFormActions/AuthFormActions.tsx` | Botón de envío + enlace a la otra pantalla, al fondo en móvil (§3.8) | `src/features/auth/organisms/AuthFormActions/AuthFormActions.test.tsx` |
+| `src/features/auth/organisms/BrandHighlights/BrandHighlights.tsx` | Beneficios informativos del panel de Registro (§3.8) | cubierto por `src/features/auth/pages/RegisterPage.test.tsx` |
 | `src/features/auth/organisms/LoginForm/LoginForm.tsx` | Formulario de Login | `LoginForm.test.tsx` |
 | `src/app/router/guards/RequireAuth.tsx` | `RequireAuth` y `RedirectIfAuthenticated`; este último redirige a la pantalla de origen (`location.state.from`) si existe y al Tablero si no (`CM-40`) | `src/app/router/guards/RequireAuth.test.tsx`, `src/app/router/loginRedirect.test.tsx` |
 | `src/features/auth/hooks/useLogin.ts` | Orquesta `signIn()`, error, redirección, modal de correo no verificado y reenvío (`CM-180`) | `useLogin.test.tsx` |

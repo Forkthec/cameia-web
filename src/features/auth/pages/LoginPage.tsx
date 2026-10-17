@@ -100,6 +100,7 @@ export function LoginPage() {
         infoMessage={infoMessage}
         onSubmit={(values) => void login(values.correo, values.contrasena)}
         titleText={t('ingreso.titulo')}
+        subtitleText={t('ingreso.subtitulo')}
         googleButtonLabel={t('ingreso.google')}
         dividerLabel={t('ingreso.o')}
         correoLabel={t('ingreso.campos.correo')}
