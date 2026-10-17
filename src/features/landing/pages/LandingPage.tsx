@@ -110,7 +110,7 @@ export function LandingPage() {
                 titleId="landing-modos-titulo"
                 inView={inView}
               />
-              <div className="gap-space-4 lg:gap-space-6 grid lg:grid-cols-2">
+              <div className="gap-space-4 lg:gap-space-6 grid md:grid-cols-2">
                 <ModeCard
                   mode="ENTRENO"
                   title={t('entrenoVsSimulacion.entreno.titulo')}

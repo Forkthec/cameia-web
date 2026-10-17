@@ -58,7 +58,7 @@ export function BrandIntro({ onSkip }: BrandIntroProps) {
         aria-hidden="true"
         className="font-brand text-brand-accent-light animate-fade-in text-small tracking-[0.3em] uppercase [animation-delay:1050ms]"
       >
-        {t('landing:marca.lema')}
+        {t('common:marca.lema')}
       </span>
       <button
         type="button"

@@ -42,7 +42,9 @@ export function FeatureCard({
   return (
     <div
       className={cn(
-        'group/card border-border-subtle bg-bg-surface gap-space-3 p-space-6 relative flex flex-col items-start overflow-hidden rounded-lg border',
+        // En `md` (tablet) la tarjeta va en horizontal: apiladas a todo el
+        // ancho, en vertical dejaban mucho aire vacío a la derecha.
+        'group/card border-border-subtle bg-bg-surface gap-space-3 p-space-6 md:gap-space-5 lg:gap-space-3 relative flex flex-col items-start overflow-hidden rounded-lg border md:flex-row lg:flex-col',
         'transition-[translate,box-shadow,border-color] duration-[var(--duration-deliberate)] ease-[var(--token-ease-expo)]',
         'hover:shadow-elevation-2 hover:border-brand-soft hover:-translate-y-1.5',
         'before:bg-brand-accent before:absolute before:inset-x-0 before:top-0 before:h-[3px] before:origin-left before:scale-x-0 before:transition-[scale] before:duration-[var(--duration-deliberate)] hover:before:scale-x-100',
@@ -61,12 +63,14 @@ export function FeatureCard({
       ) : null}
       <span
         aria-hidden="true"
-        className="bg-brand-tint text-brand-base group-hover/card:bg-brand-accent group-hover/card:text-action-on-primary mb-space-2 grid size-14 place-items-center rounded-md transition-[background-color,color,rotate] duration-[var(--duration-deliberate)] group-hover/card:-rotate-6"
+        className="bg-brand-tint text-brand-base group-hover/card:bg-brand-accent group-hover/card:text-action-on-primary mb-space-2 lg:mb-space-2 grid size-14 shrink-0 place-items-center rounded-md transition-[background-color,color,rotate] duration-[var(--duration-deliberate)] group-hover/card:-rotate-6 md:mb-0"
       >
         {cloneElement(icon, { size: 28 })}
       </span>
-      <span className="text-h3 font-body text-text-primary">{title}</span>
-      <span className="text-body text-text-muted">{description}</span>
+      <span className="gap-space-3 md:pr-space-6 flex flex-col lg:pr-0">
+        <span className="text-h3 font-body text-text-primary">{title}</span>
+        <span className="text-body text-text-muted">{description}</span>
+      </span>
     </div>
   );
 }

@@ -19,6 +19,7 @@ const baseProps = {
   isSubmitting: false,
   onSubmit: () => {},
   titleText: 'Crea tu cuenta',
+  sectionLabels: { datos: 'Tus datos', contacto: 'Contacto', seguridad: 'Seguridad' },
   googleButtonLabel: 'Continuar con Google',
   dividerLabel: 'o',
   nombreLabel: 'Nombre(s)',

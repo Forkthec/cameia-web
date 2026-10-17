@@ -29,7 +29,7 @@ interface HeroSectionProps {
 }
 
 export function HeroSection({ entranceDelayMs, onCreateAccount }: HeroSectionProps) {
-  const { t } = useTranslation('landing');
+  const { t } = useTranslation(['landing', 'common']);
   const words = t('hero.titulo').split(' ');
   const delay = (offsetMs: number) => ({ animationDelay: `${entranceDelayMs + offsetMs}ms` });
 
@@ -57,7 +57,7 @@ export function HeroSection({ entranceDelayMs, onCreateAccount }: HeroSectionPro
               aria-hidden="true"
               className="bg-brand-accent size-[9px] rounded-full shadow-[0_0_0_4px_color-mix(in_srgb,var(--brand-accent)_18%,transparent)]"
             />
-            {t('marca.lema')}
+            {t('common:marca.lema')}
           </p>
 
           {/* `aria-label` con la frase completa: partida en palabras animadas, el

@@ -61,7 +61,7 @@ export function JourneySteps({ index, titleId, inView }: JourneyStepsProps) {
         </div>
       </div>
 
-      <ol className="gap-space-6 grid lg:grid-cols-3">
+      <ol className="gap-space-6 grid md:grid-cols-3">
         {STEPS.map((step, stepIndex) => (
           <li
             key={step}
@@ -74,7 +74,7 @@ export function JourneySteps({ index, titleId, inView }: JourneyStepsProps) {
             <p className="text-small text-brand-muted mb-space-3 font-semibold tracking-[0.14em] uppercase">
               {t('pasos.numero', { numero: stepIndex + 1 })}
             </p>
-            <h3 className="text-display font-display text-brand-deep mb-space-4 gap-space-1 flex items-end">
+            <h3 className="text-h1 lg:text-display font-display text-brand-deep mb-space-4 gap-space-1 flex items-end">
               {t(`pasos.${step}.titulo`)}
               <span
                 aria-hidden="true"

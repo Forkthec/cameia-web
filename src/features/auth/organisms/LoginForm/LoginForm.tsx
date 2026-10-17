@@ -28,10 +28,14 @@
  * backend real (`EmailAddress.java`). El límite vive solo en el esquema: el
  * `<input>` no lleva `maxLength`, porque truncaría el valor y haría inalcanzable
  * el mensaje de `CA-1.3.12`. `correoErrorMuyLargo` cubre el caso `too_big`.
+ *
+ * **Presentación «Amanecer» (CM-329, `SPEC.md` §3.8).** Solo cambia el
+ * diseño: subtítulo opcional bajo el título, y el bloque de envío pasa a
+ * `AuthFormActions` (al fondo de la pantalla en móvil). Mismos campos,
+ * validaciones, estados y `onSubmit`.
  */
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
-import { Link } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
 import { cn } from '@/utils/cn';
 import { Button } from '@/design-system/atoms/Button';
@@ -43,6 +47,7 @@ import { Input } from '@/design-system/atoms/Input';
 import { Pill } from '@/design-system/atoms/Pill';
 import { PasswordField } from '@/design-system/molecules/PasswordField';
 import { loginSchema, type LoginFormValues } from '../../schemas/login.schema';
+import { AuthFormActions } from '../AuthFormActions';
 
 interface LoginFormProps {
   isSubmitting: boolean;
@@ -57,6 +62,8 @@ interface LoginFormProps {
   infoMessage?: string;
   onSubmit: (values: LoginFormValues) => void;
   titleText: string;
+  /** Subtítulo bajo el título (`ingreso.subtitulo`). Opcional. */
+  subtitleText?: string;
   googleButtonLabel: string;
   dividerLabel: string;
   correoLabel: string;
@@ -85,6 +92,7 @@ export function LoginForm({
   infoMessage,
   onSubmit,
   titleText,
+  subtitleText,
   googleButtonLabel,
   dividerLabel,
   correoLabel,
@@ -114,11 +122,14 @@ export function LoginForm({
 
   return (
     <form
-      className={cn('gap-space-5 flex flex-col', className)}
+      className={cn('gap-space-5 flex flex-1 flex-col', className)}
       onSubmit={(event) => void handleSubmit(onSubmit)(event)}
       noValidate
     >
-      <h1 className="text-h1 font-display text-text-primary">{titleText}</h1>
+      <div className="gap-space-1 flex flex-col">
+        <h1 className="text-h1 font-display text-brand-deep">{titleText}</h1>
+        {subtitleText ? <p className="text-body text-text-muted">{subtitleText}</p> : null}
+      </div>
 
       {infoMessage ? <AlertInline variant="info">{infoMessage}</AlertInline> : null}
       {genericErrorMessage ? (
@@ -213,28 +224,14 @@ export function LoginForm({
         </button>
       </div>
 
-      {isSubmitting ? (
-        <Button
-          type="submit"
-          size="lg"
-          className="w-full"
-          loading
-          loadingLabel={submitLoadingLabel}
-        >
-          {submitLabel}
-        </Button>
-      ) : (
-        <Button type="submit" size="lg" className="w-full">
-          {submitLabel}
-        </Button>
-      )}
-
-      <div className="gap-space-1 text-body flex justify-center">
-        <span className="text-text-muted">{footerQuestion}</span>
-        <Link to={ROUTES.registro} className="text-text-link font-semibold hover:underline">
-          {footerCta}
-        </Link>
-      </div>
+      <AuthFormActions
+        isSubmitting={isSubmitting}
+        submitLabel={submitLabel}
+        submitLoadingLabel={submitLoadingLabel}
+        footerQuestion={footerQuestion}
+        footerCta={footerCta}
+        footerTo={ROUTES.registro}
+      />
     </form>
   );
 }

@@ -1,7 +1,8 @@
 /**
- * `/registro` · HU-1.1 / CM-34 / `PRT-01.01`. Compone `AuthLayout` (mismo
- * `headline` que ya usa Login, `ingreso.marca.titular` — SPEC.md §3
- * Registro) + `RegisterForm` + la pantalla de «Verifica tu correo» (CM-180).
+ * `/registro` · HU-1.1 / CM-34 / `PRT-01.01`. Compone `AuthLayout` + `RegisterForm`
+ * + la pantalla de «Verifica tu correo» (CM-180). Desde la presentación
+ * «Amanecer» (CM-329, SPEC.md §3.8) el panel de marca lleva su propio titular
+ * (`registro.marca.titular`) y los beneficios de `BrandHighlights`.
  * Única pieza de la feature que llama `useTranslation`/`useRegister`;
  * `RegisterForm` es puramente presentacional (ver su TSDoc de cabecera).
  *
@@ -23,6 +24,7 @@ import { AuthLayout } from '@/layouts/AuthLayout';
 import { Modal } from '@/design-system/organisms/Modal';
 import { PRONOUNS } from '../model/pronouns';
 import { useRegister } from '../hooks/useRegister';
+import { BrandHighlights } from '../organisms/BrandHighlights';
 import { RegisterForm } from '../organisms/RegisterForm';
 
 export function RegisterPage() {
@@ -52,11 +54,40 @@ export function RegisterPage() {
   }));
 
   return (
-    <AuthLayout headline={t('ingreso.marca.titular')}>
+    <AuthLayout
+      headline={t('registro.marca.titular')}
+      highlights={
+        <BrandHighlights
+          items={[
+            {
+              icon: 'microphone',
+              title: t('registro.marca.beneficios.practica.titulo'),
+              description: t('registro.marca.beneficios.practica.descripcion'),
+            },
+            {
+              icon: 'chart',
+              title: t('registro.marca.beneficios.mejora.titulo'),
+              description: t('registro.marca.beneficios.mejora.descripcion'),
+            },
+            {
+              icon: 'arrow-right',
+              title: t('registro.marca.beneficios.avanza.titulo'),
+              description: t('registro.marca.beneficios.avanza.descripcion'),
+            },
+          ]}
+        />
+      }
+    >
       <RegisterForm
         isSubmitting={isSubmitting}
         onSubmit={(values) => void register(values)}
         titleText={t('registro.titulo')}
+        subtitleText={t('registro.subtitulo')}
+        sectionLabels={{
+          datos: t('registro.secciones.datos'),
+          contacto: t('registro.secciones.contacto'),
+          seguridad: t('registro.secciones.seguridad'),
+        }}
         googleButtonLabel={t('ingreso.google')}
         dividerLabel={t('ingreso.o')}
         nombreLabel={t('registro.campos.nombre')}

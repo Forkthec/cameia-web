@@ -2,24 +2,29 @@
  * Plantilla de las pantallas públicas de autenticación (`PRT-01.*`).
  *
  * Reconstruida para CM-40 contra el diseño real de Figma (`PRT-01.03 · Login`,
- * nodos `94:1124` lg y `97:1272` sm) — la versión anterior era un simple
- * contenedor centrado de una columna que nunca coincidió con el mock. Ver
- * `SPEC.md` §3/§9 de `features/auth` para el detalle de la discrepancia.
+ * nodos `94:1124` lg y `97:1272` sm). Dos columnas de 50% a partir de `lg:`
+ * (1024px): un panel de marca oscuro y la columna del formulario.
  *
- * Dos columnas de 50% a partir de `lg:` (1024px): un panel de marca oscuro
- * (logo + marca de agua + titular) y la columna del formulario. Por debajo de
- * `lg:` el panel de marca no existe — Figma no define un frame `md`
- * intermedio para esta pantalla (decisión de Frontend documentada en
- * `SPEC.md` §3) — y el logo se muestra centrado, en tono oscuro, arriba de
- * `children`.
+ * **Dirección «Amanecer» (CM-329, `features/auth/SPEC.md` §3.8).** Solo
+ * cambia la presentación; la estructura de dos columnas, los enlaces y el
+ * contenido que recibe siguen igual:
+ * - El panel de marca usa la misma escena que la landing: índigo profundo,
+ *   el sol del logo, la joroba como marca de agua y el lema como eyebrow.
+ * - Es **un solo elemento** que cambia de forma por breakpoint: en `lg` es la
+ *   columna izquierda a pantalla completa (fija mientras el formulario hace
+ *   scroll); por debajo de `lg` es una banda compacta arriba del formulario,
+ *   con el borde inferior en curva. Así el logo y el titular existen una sola
+ *   vez en el DOM.
+ * - `highlights` (opcional) se muestra solo en `lg`: contenido extra del
+ *   panel que la página decide (Registro lo usa para sus beneficios).
+ * - La columna del formulario ocupa el alto restante de la pantalla y su
+ *   contenido crece (`flex-1`), para que los formularios puedan llevar su
+ *   bloque de acción al fondo en móvil sin dejar huecos en blanco.
  *
  * **Volver a la landing** (auth, seguimiento): ni `94:1124` ni el frame de
- * Registro dibujan ninguna forma de volver a `/` — verificado en vivo, no es
- * una omisión de implementación. Se agrega por decisión de Frontend
- * (`CLAUDE.md` §16, anotada en `SPEC.md` §9): el logo enlaza a
- * `ROUTES.landing` (mismo carve-out de `boundaries/dependencies` que ya usa
- * `AppShell.tsx` para su wordmark → `ROUTES.inicio`) y se agrega además un
- * enlace de texto explícito, más descubrible que el logo solo.
+ * Registro dibujan ninguna forma de volver a `/`. Se agrega por decisión de
+ * Frontend (`CLAUDE.md` §16, anotada en `SPEC.md` §9): el logo enlaza a
+ * `ROUTES.landing` y se agrega además un enlace de texto explícito.
  */
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -30,62 +35,80 @@ import { Icon } from '@/design-system/icons/Icon';
 
 interface AuthLayoutProps {
   children: ReactNode;
-  /**
-   * Titular del panel de marca (solo visible en `lg:` y superior). Opcional:
-   * `RegisterPage` todavía es un placeholder sin copy propio (CM-34, fuera de
-   * alcance de esta iteración) y sigue envuelto en este mismo layout.
-   */
+  /** Titular del panel de marca. Opcional: sin él, el panel solo muestra el logo y el lema. */
   headline?: string;
+  /** Contenido extra del panel de marca, visible solo en `lg` (p. ej. beneficios en Registro). */
+  highlights?: ReactNode;
 }
 
-export function AuthLayout({ children, headline }: AuthLayoutProps) {
+export function AuthLayout({ children, headline, highlights }: AuthLayoutProps) {
   const { t } = useTranslation('common');
   const wordmarkLabel = t('marca.nombre');
 
   return (
-    <div className="bg-bg-canvas flex min-h-dvh">
-      <div className="bg-brand-base p-space-8 relative hidden w-1/2 flex-col justify-between overflow-hidden lg:flex">
+    <div className="bg-bg-canvas flex min-h-dvh flex-col lg:flex-row">
+      <aside className="text-text-on-inverse px-space-4 pt-space-5 pb-space-8 lg:p-space-8 relative shrink-0 overflow-hidden bg-[radial-gradient(120%_90%_at_85%_0%,var(--brand-raised)_0%,var(--brand-deep)_55%,var(--brand-deepest)_100%)] lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-1/2 lg:flex-col lg:justify-between">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 flex items-center justify-center"
+          className="pointer-events-none absolute -top-[25%] -right-[25%] aspect-square w-[70%] rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--brand-accent)_30%,transparent),transparent_62%)] lg:w-[90%]"
+        />
+        <div
+          aria-hidden="true"
+          className="animate-sun-rise pointer-events-none absolute -top-12 -right-10 aspect-square w-36 rounded-full bg-[radial-gradient(circle_at_40%_40%,var(--brand-accent-light),var(--brand-accent)_60%,var(--brand-accent-strong))] lg:-top-24 lg:-right-24 lg:w-[21rem]"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-[10%] -left-[12%] w-[70%] opacity-[0.07] lg:w-[95%]"
         >
-          <Logo
-            variant="mark-only"
-            tone="inverse"
-            wordmarkLabel={wordmarkLabel}
-            className="w-[55%] opacity-8"
-          />
+          <Logo variant="mark-only" tone="inverse" wordmarkLabel={wordmarkLabel} />
         </div>
+
         <Link
           to={ROUTES.landing}
-          className="focus-visible:shadow-focus-ring relative rounded-sm focus-visible:outline-none"
+          aria-label={wordmarkLabel}
+          className="focus-visible:shadow-focus-ring relative inline-flex w-fit rounded-sm focus-visible:outline-none"
         >
-          <Logo variant="lockup" tone="inverse" wordmarkLabel={wordmarkLabel} />
+          <Logo
+            variant="lockup"
+            tone="inverse"
+            wordmarkLabel={wordmarkLabel}
+            className="[--logo-seam:var(--brand-deep)]"
+          />
         </Link>
-        {headline ? (
-          <p className="text-display font-display text-text-on-inverse relative">{headline}</p>
-        ) : null}
-      </div>
 
-      <div className="px-space-4 py-space-8 flex flex-1 flex-col items-center">
-        <div className="gap-space-5 flex w-full max-w-[27.5rem] flex-col">
+        <div className="mt-space-5 relative lg:mt-0">
+          <p className="font-brand text-text-accent-on-inverse text-label mb-space-3 lg:mb-space-5 gap-space-2 flex items-center tracking-[0.18em] uppercase">
+            <span aria-hidden="true" className="bg-brand-accent size-[7px] rounded-full" />
+            {t('marca.lema')}
+          </p>
+          {headline ? (
+            <p className="text-h1 lg:text-display font-display animate-enter-up max-w-[14em] lg:max-w-[11em]">
+              {headline}
+            </p>
+          ) : null}
+          {highlights ? <div className="mt-space-7 hidden lg:block">{highlights}</div> : null}
+        </div>
+
+        <span aria-hidden="true" className="hidden lg:block" />
+
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 390 30"
+          preserveAspectRatio="none"
+          className="absolute -bottom-px left-0 h-7 w-full lg:hidden"
+        >
+          <path d="M0 30 V16 C 110 0, 260 0, 390 20 V30 Z" className="fill-bg-canvas" />
+        </svg>
+      </aside>
+
+      <div className="px-space-4 pt-space-3 lg:px-space-8 lg:py-space-6 flex flex-1 flex-col lg:items-center lg:justify-center">
+        <div className="gap-space-5 mx-auto flex w-full max-w-[32rem] flex-1 flex-col lg:flex-none">
           <Link
             to={ROUTES.landing}
             className="text-text-muted hover:text-text-primary gap-space-1 text-small focus-visible:shadow-focus-ring inline-flex w-fit items-center self-start rounded-sm focus-visible:outline-none"
           >
             <Icon name="chevron-left" size={16} />
             {t('acciones.volverInicio')}
-          </Link>
-          <Link
-            to={ROUTES.landing}
-            className="focus-visible:shadow-focus-ring rounded-sm focus-visible:outline-none lg:hidden"
-          >
-            <Logo
-              variant="lockup"
-              tone="default"
-              wordmarkLabel={wordmarkLabel}
-              className="justify-center"
-            />
           </Link>
           {children}
         </div>

@@ -23,7 +23,7 @@ interface ClosingBannerProps {
 }
 
 export function ClosingBanner({ onCreateAccount }: ClosingBannerProps) {
-  const { t } = useTranslation('landing');
+  const { t } = useTranslation(['landing', 'common']);
   const { ref, inView } = useInView<HTMLElement>(0.3);
   const enter = (delayMs: number) => ({
     className: inView ? 'animate-enter-up' : 'opacity-0',
@@ -93,7 +93,7 @@ export function ClosingBanner({ onCreateAccount }: ClosingBannerProps) {
           )}
           style={enter(450).style}
         >
-          {t('marca.lema')}
+          {t('common:marca.lema')}
         </p>
       </div>
     </section>
