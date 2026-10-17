@@ -801,9 +801,7 @@ export function EditProfilePage() {
                 ...(profile.education.length === 0
                   ? [t('profile:formulario.requisitos.education')]
                   : []),
-                ...(profile.skills.length === 0
-                  ? [t('profile:formulario.requisitos.skills')]
-                  : []),
+                ...(profile.skills.length === 0 ? [t('profile:formulario.requisitos.skills')] : []),
                 ...(profile.targetRoles.length === 0
                   ? [t('profile:formulario.requisitos.targetRoles')]
                   : []),
