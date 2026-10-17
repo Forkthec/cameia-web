@@ -323,16 +323,29 @@
   }
 }
 
-/* Scroll por secciones de la landing (CM-329). La clase la pone y quita
-   `useDocumentClass` mientras la landing está montada, para no afectar al
-   resto de la app. «mandatory» (pedido de Producto): cada giro de rueda o
-   flecha lleva a la sección siguiente completa, que ocupa exactamente el
-   alto visible bajo el header (`--landing-section-h`). Solo se activa donde
-   cada sección cabe en pantalla —escritorio (`lg`) con al menos 720px de
-   alto—; en móvil o en pantallas bajas las secciones superan el alto visible
-   y forzar el encaje escondería contenido, así que el scroll sigue libre.
-   Tampoco se activa con prefers-reduced-motion (§10). */
-@media (min-width: 1024px) and (min-height: 720px) and (prefers-reduced-motion: no-preference) {
+/* Scroll por secciones de la landing (CM-329, pedido de Producto). La clase
+   la pone y quita `useDocumentClass` mientras la landing está montada, para
+   no afectar al resto de la app.
+
+   - Táctil / móvil (por defecto): «proximity». Cada sección ocupa al menos
+     una pantalla y, si el gesto termina cerca del inicio de una, se asienta
+     ahí. No «mandatory»: en secciones más altas que la pantalla el encaje
+     obligatorio devuelve el deslizamiento y se siente pegajoso al dedo.
+   - Escritorio (`lg` y al menos 720px de alto): «mandatory». Cada giro de
+     rueda o flecha lleva a la sección siguiente completa, que mide
+     exactamente el alto visible bajo el header. En pantallas más bajas las
+     secciones no caben y se cae al comportamiento táctil.
+
+   Se mantiene con prefers-reduced-motion: el encaje no anima nada (la regla
+   global de arriba deja el desplazamiento instantáneo), solo decide dónde
+   termina el scroll que la persona ya hizo. `scroll-padding-top` reserva el
+   header fijo (más alto en móvil). */
+html.scroll-snap-sections {
+  scroll-snap-type: y proximity;
+  scroll-padding-top: 4.75rem;
+}
+
+@media (min-width: 1024px) and (min-height: 720px) {
   html.scroll-snap-sections {
     scroll-snap-type: y mandatory;
     scroll-padding-top: 4.5rem;
