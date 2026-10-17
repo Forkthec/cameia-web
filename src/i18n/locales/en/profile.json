@@ -20,7 +20,7 @@
     "yaActivo": "This profile is already active.",
     "confirmacionFinalizado": "Your profile is now active.",
     "errorFinalizarIncompleto": "You still don't meet these requirements:",
-    "errorFinalizarGenerico": "Couldn't finish the profile. Please try again.",
+    "errorFinalizarGenerico": "An error occurred. Please try again.",
     "errorPerfilOcupado": "We're processing your profile. Try again in a few seconds.",
     "requisitos": {
       "name": "Profile name",
@@ -189,11 +189,12 @@
       "descripcion": "Add at least one to be able to finish your profile."
     },
     "confirmacionAgregada": "Skill added.",
+    "confirmacionEliminada": "Skill removed.",
     "limiteAlcanzado": "You've reached the maximum of 20 skills.",
     "errorAgregar": "Couldn't add the skill.",
     "errorYaExiste": "That skill is already in your profile.",
     "errorEliminar": "Couldn't remove the skill.",
-    "errorUltimaHabilidad": "You can't remove the last skill from an active profile. Add another one before removing this one."
+    "errorUltimaHabilidad": "You can't be left without skills while the profile is active. Add another one before removing this one."
   },
   "rolesObjetivo": {
     "titulo": "Target roles",

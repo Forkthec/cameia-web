@@ -616,12 +616,16 @@ export function EditProfilePage() {
           removeErrorMessage={
             removeSkill.isError
               ? getItemErrorMessage(removeSkill.error, t('profile:habilidades.errorEliminar'), {
-                  LAST_SKILL_NOT_ALLOWED: t('profile:habilidades.errorUltimaHabilidad'),
+                  SKILL_NOT_ALLOWED: t('profile:habilidades.errorUltimaHabilidad'),
                 })
               : undefined
           }
           confirmationMessage={
-            addSkill.isSuccess ? t('profile:habilidades.confirmacionAgregada') : undefined
+            addSkill.isSuccess
+              ? t('profile:habilidades.confirmacionAgregada')
+              : removeSkill.isSuccess
+                ? t('profile:habilidades.confirmacionEliminada')
+                : undefined
           }
         />
       ),
@@ -690,7 +694,13 @@ export function EditProfilePage() {
               : undefined
           }
           confirmationMessage={
-            addTargetRole.isSuccess ? t('profile:rolesObjetivo.confirmacionAgregado') : undefined
+            addTargetRole.isSuccess
+              ? t('profile:rolesObjetivo.confirmacionAgregado')
+              : substituteTargetRole.isSuccess
+                ? t('profile:rolesObjetivo.confirmacionSustituido')
+                : removeTargetRole.isSuccess
+                  ? t('profile:rolesObjetivo.confirmacionEliminado')
+                  : undefined
           }
         />
       ),
@@ -781,7 +791,21 @@ export function EditProfilePage() {
         finishDisabledHint={
           profile.status === 'COMPLETED'
             ? t('profile:formulario.yaActivo')
-            : t('profile:formulario.finalizarBloqueado')
+            : `${t('profile:formulario.errorFinalizarIncompleto')} ${[
+                ...(profile.name.trim().length === 0
+                  ? [t('profile:formulario.requisitos.name')]
+                  : []),
+                ...(profile.summary.trim().length === 0
+                  ? [t('profile:formulario.requisitos.summary')]
+                  : []),
+                ...(profile.education.length === 0
+                  ? [t('profile:formulario.requisitos.education')]
+                  : []),
+                ...(profile.skills.length === 0 ? [t('profile:formulario.requisitos.skills')] : []),
+                ...(profile.targetRoles.length === 0
+                  ? [t('profile:formulario.requisitos.targetRoles')]
+                  : []),
+              ].join(', ')}.`
         }
         isFinalizing={finalizeProfile.isPending}
         finalizingLabel={t('profile:formulario.finalizando')}

@@ -1,13 +1,13 @@
 /**
  * Envoltorio delgado de fetch (CLAUDE.md §8: no usamos axios). Adjunta el ID
- * Token de Firebase cuando hay sesión, corta la petición a los 10 s, y
+ * Token de Firebase cuando hay sesión, corta la petición a los 30 s, y
  * traduce cualquier respuesta no-OK a un ApiError vía errorMap.
  */
 import { env } from '@/config/env';
 import { getIdToken, signOut } from '../firebase/auth.service';
 import { mapErrorResponse } from './errorMap';
 
-const REQUEST_TIMEOUT_MS = 10_000;
+const REQUEST_TIMEOUT_MS = 30_000;
 const LOGIN_PATH = '/ingresar';
 
 const I18NEXT_LANGUAGE_STORAGE_KEY = 'i18nextLng';
