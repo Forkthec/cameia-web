@@ -34,7 +34,7 @@ export function ClosingBanner({ onCreateAccount }: ClosingBannerProps) {
     <section
       ref={ref}
       aria-labelledby="landing-cierre-titulo"
-      className="bg-brand-deep pt-space-9 pb-space-8 lg:pb-space-9 relative flex snap-start flex-col justify-center overflow-hidden lg:min-h-svh"
+      className="bg-brand-deep pt-space-9 pb-space-8 lg:pb-space-9 relative flex snap-start flex-col justify-center overflow-hidden lg:min-h-[calc(100svh-4.5rem)]"
     >
       <svg
         aria-hidden="true"

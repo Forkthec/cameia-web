@@ -35,7 +35,7 @@ export function LandingSection({
       ref={ref}
       aria-labelledby={labelledBy}
       className={cn(
-        'py-space-8 lg:py-space-9 flex snap-start flex-col justify-center lg:min-h-svh',
+        'py-space-8 lg:py-space-7 flex snap-start flex-col justify-center lg:min-h-[calc(100svh-4.5rem)]',
         background === 'surface' && 'bg-bg-surface border-border-subtle border-y',
       )}
     >

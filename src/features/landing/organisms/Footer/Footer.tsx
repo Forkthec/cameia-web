@@ -19,7 +19,7 @@ export function Footer() {
   const wordmarkLabel = t('common:marca.nombre');
 
   return (
-    <footer className="bg-bg-canvas">
+    <footer className="bg-bg-canvas snap-end">
       <div className="gap-space-3 p-space-4 py-space-5 flex flex-col items-center lg:hidden">
         <Logo variant="lockup" tone="default" size="sm" wordmarkLabel={wordmarkLabel} />
         <div className="text-small text-text-muted gap-space-4 flex">

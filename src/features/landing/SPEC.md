@@ -326,7 +326,7 @@ y reemplaza a los SVG exportados del camello geométrico, así que el cambio de 
 | Intro de marca (`BrandIntro`) | Primera visita de la sesión | ~2.1 s, saltable, recordada en `sessionStorage` (`cameia:introMarcaVista`, preferencia de UI — CLAUDE.md §3.9). Nunca con `prefers-reduced-motion`. El hero ya está en el DOM debajo. |
 | Entrada del hero | Montaje (tras la intro si la hay) | Escalonada; `entranceDelayMs` la encadena con la intro y se adelanta si se salta. |
 | Revelado por sección | `IntersectionObserver` (`useInView`), una sola vez | Sin observador o con reduced-motion, visible desde el inicio. |
-| Encaje por secciones | Scroll en `lg` | `scroll-snap-type: y proximity` en `<html>` solo mientras la landing está montada (`useDocumentClass`); en `sm` no hay encaje porque las secciones superan la pantalla. |
+| Scroll por secciones | Rueda, trackpad o flechas en `lg` | `scroll-snap-type: y mandatory` en `<html>` solo mientras la landing está montada (`useDocumentClass`): cada gesto lleva a la sección siguiente completa, y cada sección mide exactamente el alto visible bajo el header. Solo con viewport ≥1024×720 y sin reduced-motion; en móvil y pantallas bajas el scroll queda libre para no esconder contenido. El pie es el último punto de encaje (`snap-end`). |
 | Parallax del sol del hero | Scroll | Mejora progresiva con `animation-timeline: view()`. |
 | Onda de voz, anillo del micrófono, chip flotante | Bucle | Con reduced-motion quedan estáticos. |
 
