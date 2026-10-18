@@ -3,7 +3,7 @@ feature: landing
 estado: EN_CURSO
 hu: [HU-10.1]
 prt: [PRT-00.01]
-jira: [CM-186]
+jira: [CM-186, CM-329]
 rutas: ['/']
 documentacion: tsdoc-es
 backlog: 16092026_01
@@ -291,6 +291,49 @@ el primer caso real que necesita dos tamaños del mismo logo en la misma pantall
 técnica que la justifique — a diferencia de la divergencia sí justificada de `FeatureCard` en §9,
 que responde a un problema real de accesibilidad, no a evitar trabajo.
 
+### 3.7 Dirección visual «Amanecer» y sistema de movimiento (CM-329, 17-oct-2026)
+
+Evolución visual aprobada por Frontend/Diseño sobre la estructura de §3.1 — **no** un rediseño:
+mismo copy, mismas rutas, mismo orden de secciones, mismos tokens de color. La propuesta, la
+comparación contra lo existente y el storyboard de movimiento viven en el canvas de diseño «CAMEIA
+Landing Redesign» (Claude Design, privado).
+
+**Marca.** Se adopta el logo «Amanecer» de la hoja de marca entregada por Diseño: camello abstracto
+de dos trazos con un sol mostaza, wordmark en Montserrat mayúsculas y el lema «Practica. Mejora.
+Avanza.». Montserrat es **solo** tipografía del logo y del lema (`--font-brand`); la interfaz sigue
+en Bricolage Grotesque + Source Sans 3. El glifo vive en `src/design-system/atoms/Logo/BrandMark.tsx`
+y reemplaza a los SVG exportados del camello geométrico, así que el cambio de logo **también se ve en
+`AuthLayout`** (registro e inicio de sesión).
+
+**Qué cambia por sección:**
+
+| Sección | Cambio |
+| ------- | ------ |
+| Header | Fijo (`sticky`) y translúcido con desenfoque; al bajar se asienta con borde y `elevation-1`. En `sm`, al bajar, la fila de botones se pliega (`inert`) para no ocupar un tercio del teléfono; el hero y el cierre conservan «Crear cuenta». |
+| Hero | Lema como eyebrow; título a `text-display-xl` (84px) en `lg`, palabra por palabra desde una máscara; la última palabra en `brand-base` con subrayado mostaza que se dibuja; fondo con la forma de la joroba en `brand-tint`. El `h1` lleva `aria-label` con la frase completa. |
+| Tarjeta «Sesión de práctica» | Fondo índigo profundo (`brand-raised` → `brand-deepest`), onda de voz animada, indicador «Tiempo real», chips Texto/Voz decorativos (Texto resaltado por D-04), marca de agua del glifo, sol detrás con parallax y un chip flotante «Retroalimentación estructurada · Desglose por pregunta». |
+| Módulos | Índice «01 · Módulos», tarjetas numeradas con hover visual (sube, línea mostaza, tile de ícono a mostaza). `FeatureCard` sigue sin `role` ni `onClick`. |
+| Entreno / Simulación | Dejan de usar `FeatureCard`: `ModeCard` con etiqueta corta y una línea de tiempo ilustrativa (rombos tras cada respuesta / barra continua hasta la evaluación). |
+| **Cómo funciona (nueva)** | `JourneySteps`: Practica. → Mejora. → Avanza. con un sol que recorre la curva de la joroba. Textos derivados del copy existente. |
+| Cierre | Fondo `brand-deep` (antes `bg-inverse`), borde superior en curva, resplandor de sol que sube y glifo blanco cuyo sol se eleva al entrar; lema bajo el CTA. |
+| Pie | Logo nuevo, mismo contenido. |
+
+**Movimiento.** Regla única: todo entra de abajo hacia arriba con desaceleración larga
+(`--token-ease-expo`), como un amanecer.
+
+| Animación | Disparador | Notas |
+| --------- | ---------- | ----- |
+| Intro de marca (`BrandIntro`) | Primera visita de la sesión | ~2.1 s, saltable, recordada en `sessionStorage` (`cameia:introMarcaVista`, preferencia de UI — CLAUDE.md §3.9). Nunca con `prefers-reduced-motion`. El hero ya está en el DOM debajo. |
+| Entrada del hero | Montaje (tras la intro si la hay) | Escalonada; `entranceDelayMs` la encadena con la intro y se adelanta si se salta. |
+| Revelado por sección | `IntersectionObserver` (`useInView`), una sola vez | Sin observador o con reduced-motion, visible desde el inicio. |
+| Scroll por secciones | Rueda, flechas o gesto táctil | Clase `scroll-snap-sections` en `<html>` solo mientras la landing está montada (`useDocumentClass`). **Escritorio** (≥1024×720): `mandatory`, una sección por gesto y cada sección mide exactamente el alto visible bajo el header. **Móvil/táctil**: `proximity`, cada sección ocupa al menos una pantalla y el gesto se asienta en el inicio de una sección si termina cerca; dentro de una sección larga el scroll queda libre. Activo también con reduced-motion: no anima nada, solo decide dónde termina el scroll. El pie es el último punto de encaje (`snap-end`). |
+| Parallax del sol del hero | Scroll | Mejora progresiva con `animation-timeline: view()`. |
+| Onda de voz, anillo del micrófono, chip flotante | Bucle | Con reduced-motion quedan estáticos. |
+
+Con `prefers-reduced-motion: reduce`, una regla global de `src/styles/index.css` lleva duraciones
+y retrasos a ~0 y corta los bucles (CLAUDE.md §10). Esta regla aplica a **toda la app**, no solo a
+la landing.
+
 ## 4. Contrato observable
 
 Esta pantalla no consume ningún dato de dominio del backend. Los dos únicos "campos" observables
@@ -332,7 +375,7 @@ a HE-01, no a esta SPEC.
 | ------- | -------------- | ------ |
 | `src/features/landing/pages/LandingPage.tsx` | Composición completa de la pantalla | `src/features/landing/pages/LandingPage.test.tsx` |
 | `src/features/landing/organisms/HeaderPublico/HeaderPublico.tsx` | Header público, reflow `sm`/`lg` de §3.1 | `src/features/landing/organisms/HeaderPublico/HeaderPublico.test.tsx` |
-| `src/features/landing/organisms/FeatureCard/FeatureCard.tsx` | Tarjeta informativa no interactiva, reutilizada 5 veces | `src/features/landing/organisms/FeatureCard/FeatureCard.test.tsx` |
+| `src/features/landing/organisms/FeatureCard/FeatureCard.tsx` | Tarjeta informativa no interactiva de los 3 módulos (Entreno/Simulación pasaron a `ModeCard`, §3.7) | `src/features/landing/organisms/FeatureCard/FeatureCard.test.tsx` |
 | `src/features/landing/organisms/Footer/Footer.tsx` | Pie de página, con la agrupación distinta en `sm` (§3.1) | `src/features/landing/organisms/Footer/Footer.test.tsx` |
 | `src/design-system/organisms/LanguageSwitcher/LanguageSwitcher.tsx` | Selector ES/EN reutilizable | `src/design-system/organisms/LanguageSwitcher/LanguageSwitcher.test.tsx` |
 | `src/i18n/locales/es-CO/landing.json` | Copy de la landing en español | cubierto por `src/features/landing/pages/LandingPage.test.tsx` |
@@ -341,6 +384,21 @@ a HE-01, no a esta SPEC.
 | `src/design-system/atoms/Logo/Logo.tsx` (modificado) | Prop `size` nuevo (`default`/`sm`), ver §3.6 | `src/design-system/atoms/Logo/Logo.test.tsx` (actualizado) |
 | `src/styles/index.css` (modificado) | Tokens nuevos `--text-display-sm`, `--text-h2-sm`, ver §3.6 | validación visual manual contra los nodos 67:2/69:63 (no hay snapshot visual automatizado en el proyecto) |
 | `src/test/setup.ts` (modificado) | Fija el idioma a `es-CO` antes de cada prueba — hallazgo real durante la implementación, ver §9 | cubierto indirectamente: toda la suite pasa con textos en español |
+| `src/features/landing/organisms/HeroSection/HeroSection.tsx` | Hero «Amanecer» (§3.7) | cubierto por `src/features/landing/pages/LandingPage.test.tsx` |
+| `src/features/landing/organisms/PracticeSessionCard/PracticeSessionCard.tsx` | Tarjeta animada del hero (§3.7) | cubierto por `src/features/landing/pages/LandingPage.test.tsx` |
+| `src/features/landing/organisms/LandingSection/LandingSection.tsx` | Contenedor de sección: altura de pantalla en `lg`, encaje y revelado (§3.7) | cubierto por `src/features/landing/pages/LandingPage.test.tsx` |
+| `src/features/landing/organisms/SectionHeader/SectionHeader.tsx` | Índice numerado + título de sección (§3.7) | cubierto por `src/features/landing/pages/LandingPage.test.tsx` |
+| `src/features/landing/organisms/ModeCard/ModeCard.tsx` | Tarjetas Entreno/Simulación con línea de tiempo (§3.7) | `src/features/landing/organisms/ModeCard/ModeCard.test.tsx` |
+| `src/features/landing/organisms/JourneySteps/JourneySteps.tsx` | Sección nueva «Cómo funciona» (§3.7) | cubierto por `src/features/landing/pages/LandingPage.test.tsx` |
+| `src/features/landing/organisms/ClosingBanner/ClosingBanner.tsx` | Banner de cierre «Amanecer» (§3.7) | cubierto por `src/features/landing/pages/LandingPage.test.tsx` |
+| `src/features/landing/organisms/BrandIntro/BrandIntro.tsx` | Intro de marca (§3.7) | `src/features/landing/organisms/BrandIntro/BrandIntro.test.tsx`; reglas de aparición en `src/features/landing/pages/LandingPage.test.tsx` |
+| `src/features/landing/hooks/useInView.ts` | Revelado al entrar en pantalla | `src/features/landing/hooks/useInView.test.ts` |
+| `src/features/landing/hooks/useScrolledPast.ts` | Estado «asentado» del header fijo | `src/features/landing/hooks/useScrolledPast.test.ts` |
+| `src/features/landing/hooks/useBrandIntro.ts` | Reglas de la intro (una vez por sesión, reduced-motion, saltar) | cubierto por `src/features/landing/pages/LandingPage.test.tsx` |
+| `src/features/landing/hooks/useDocumentClass.ts` | Encaje por secciones solo en la landing | cubierto por `src/features/landing/pages/LandingPage.test.tsx` |
+| `src/design-system/atoms/Logo/BrandMark.tsx` | Glifo del logo «Amanecer» con colores por token | `src/design-system/atoms/Logo/Logo.test.tsx` |
+| `src/styles/semantic.css`, `src/styles/index.css` (modificados) | Tokens de marca profunda/acento, `--font-brand`, `--text-display-xl`, animaciones, regla global de reduced-motion, encaje por secciones | revisión visual en navegador (lg 1024 y sm 375), ver §9 |
+| `src/utils/cn.ts` (modificado) | Registra la escala tipográfica en `tailwind-merge` (hallazgo, ver §9) | `src/utils/cn.test.ts` |
 | `docs/bitacora-ia/CM-186.md` | Evidencia de la sesión asistida por IA (formato ya usado en el proyecto) | — |
 | `docs/decisiones/19092026_v1_decisiones-landing-cm-186.md` | Formaliza las seis decisiones FE-01…FE-06 (i18n funcional, interpretación de CA-10.1.3, SEO en alcance, punto de corte `lg`, tokens de texto `sm`, tamaño del logo del pie) | — |
 
@@ -349,7 +407,9 @@ a HE-01, no a esta SPEC.
 | Id | Qué falta | De quién depende | Desde |
 | -- | --------- | ------------------ | ----- |
 | — | Ninguno de backend ni de otra feature: esta feature no depende de ellos. Quedan dos pendientes propios de Frontend (por eso el `estado` sigue en `EN_CURSO`), descritos abajo. | — | — |
-| L-01 | Aprobación editorial humana del inglés de los 6 namespaces (generado por IA; FE-01 la deja «pendiente de Frontend»). Hallazgo ya conocido: `en/landing.json` repite una frase en `modulos.retroalimentacion.descripcion` | Frontend | 19-sep-2026 |
+| L-01 | Aprobación editorial humana del inglés de los 6 namespaces (generado por IA; FE-01 la deja «pendiente de Frontend»). La frase repetida de `en/landing.json` en `modulos.retroalimentacion.descripcion` se corrigió en CM-329 | Frontend | 19-sep-2026 |
+| L-04 | Archivo fuente del logo «Amanecer»: `BrandMark.tsx` usa un calco vectorial de la hoja de marca; al llegar el SVG original se reemplazan sus tres trazados | Diseño | 17-oct-2026 |
+| L-05 | Actualizar Figma (`67:2`/`69:63`) con el logo nuevo, `display-xl`, la sección «Cómo funciona» y los estados de animación/hover — manda esta SPEC mientras tanto (CLAUDE.md §16) | Diseño | 17-oct-2026 |
 | L-02 | Comparar visualmente la pantalla construida contra los nodos `67:2` (lg) y `69:63` (sm) de Figma en un navegador (ver «Validación pendiente» en §9) | Frontend | 19-sep-2026 |
 
 ## 9. Notas
@@ -420,3 +480,21 @@ ningún componente (no es una corrección silenciosa).
 **Validación pendiente de ejecución (no de diseño):** aunque toda la estructura de esta SPEC ya
 está verificada contra Figma real, el propio código construido debe compararse visualmente contra
 los nodos `67:2` (lg) y `69:63` (sm) al terminar — no basta con que compile y pasen las pruebas.
+
+**Dirección «Amanecer» (CM-329) — diferencias conscientes y hallazgos.**
+- *Figma no se abrió en vivo en esta sesión* (CLAUDE.md §13): no había herramienta de Figma
+  disponible. La estructura se tomó de §3.1 (que sí se verificó contra `67:2`/`69:63`) y la
+  dirección visual se aprobó sobre un prototipo navegable. Las diferencias con Figma son
+  deliberadas y están en §3.7; queda L-05 para llevarlas al archivo de diseño.
+- *Sección nueva «Cómo funciona».* Es la única adición de contenido; sus textos se derivan del
+  copy existente y del lema de marca. No promete funcionalidad nueva.
+- *Chips Voz/Texto en la tarjeta del hero.* Son decorativos y «Texto» va resaltado para no
+  contradecir D-04 (voz visible pero deshabilitada en la app). El copy que menciona la voz ya
+  existía antes de esta dirección.
+- *Hallazgo en `cn`.* `tailwind-merge` no conocía la escala tipográfica del proyecto y trataba
+  `text-display`, `text-small`, etc. como colores: `cn('text-small', 'text-brand-base')` descartaba
+  el tamaño en silencio. Se registró la escala en `src/utils/cn.ts`. Efecto colateral **deseado**
+  fuera de la landing: componentes que combinaban tamaño y color con `cn` (p. ej. los botones de
+  `LanguageSwitcher`) recuperan el tamaño que ya declaraban.
+- *Validación visual.* Revisada en navegador a 1024px (lg) y 375px (sm), con y sin reduced-motion,
+  sin desborde horizontal. No reemplaza a L-02 frente al Figma actualizado.

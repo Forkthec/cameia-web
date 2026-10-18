@@ -1,10 +1,18 @@
 /**
- * Landing pública (CM-186, HU-10.1, PRT-00.01). Reemplaza el placeholder
- * anterior (sin HU, `ARCHITECTURE.md` riesgo #1 — ya resuelto para esta
- * pantalla, sigue abierto para el Tablero/PRT-00.02). Compone las seis
- * secciones de Figma (`67:2` lg / `69:63` sm, `SPEC.md` §3.1): header, hero,
- * tres tarjetas de "módulos", dos de "Entreno/Simulación", banner de cierre
- * y pie de página.
+ * Landing pública (CM-186, HU-10.1, PRT-00.01). Compone las secciones de
+ * Figma (`67:2` lg / `69:63` sm, `SPEC.md` §3.1): header, hero, tres
+ * tarjetas de "módulos", dos de "Entreno/Simulación", banner de cierre y pie
+ * de página.
+ *
+ * **Dirección «Amanecer» (CM-329, `SPEC.md` §3.7).** Sobre esa misma
+ * estructura y el mismo copy:
+ * - Una intro de marca opcional (`BrandIntro`, una vez por sesión, saltable)
+ *   que se recoge para descubrir el hero; el hero retrasa su propia entrada
+ *   para encadenarse con ella, y la adelanta si el usuario la salta.
+ * - Cada sección de contenido es una `LandingSection`: ocupa una pantalla en
+ *   `lg` con encaje suave del scroll (`scroll-snap-sections`, solo mientras
+ *   esta página está montada) y revela su contenido al entrar.
+ * - Una sección nueva, «Cómo funciona» (`JourneySteps`), antes del cierre.
  *
  * `<title>`/Open Graph vía `react-helmet-async` (`SPEC.md` §3.5), usando las
  * mismas llaves de `landing.json` que el resto del copy para no duplicarlo.
@@ -13,15 +21,41 @@ import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
-import { Button } from '@/design-system/atoms/Button';
 import { Icon } from '@/design-system/icons/Icon';
+import { useBrandIntro } from '../hooks/useBrandIntro';
+import { useDocumentClass } from '../hooks/useDocumentClass';
+import { BrandIntro } from '../organisms/BrandIntro';
+import { ClosingBanner } from '../organisms/ClosingBanner';
 import { FeatureCard } from '../organisms/FeatureCard';
 import { Footer } from '../organisms/Footer';
 import { HeaderPublico } from '../organisms/HeaderPublico';
+import { HeroSection } from '../organisms/HeroSection';
+import { JourneySteps } from '../organisms/JourneySteps';
+import { LandingSection } from '../organisms/LandingSection';
+import { ModeCard } from '../organisms/ModeCard';
+import { SectionHeader } from '../organisms/SectionHeader';
+
+/** Cuánto espera el hero cuando la intro está en pantalla: justo cuando empieza el telón. */
+const HERO_DELAY_WITH_INTRO_MS = 1450;
+const HERO_DELAY_MS = 100;
+/** Escalonado entre tarjetas hermanas al revelarse. */
+const CARD_STAGGER_MS = 120;
+
+const MODULES = [
+  { key: 'simulacros', icon: 'microphone' },
+  { key: 'perfil', icon: 'document' },
+  { key: 'retroalimentacion', icon: 'chart' },
+] as const;
 
 export function LandingPage() {
   const { t } = useTranslation('landing');
   const navigate = useNavigate();
+  const intro = useBrandIntro();
+  useDocumentClass('scroll-snap-sections');
+
+  const heroDelayMs =
+    intro.startedVisible && !intro.skipped ? HERO_DELAY_WITH_INTRO_MS : HERO_DELAY_MS;
+  const goToRegistration = () => void navigate(ROUTES.registro);
 
   return (
     <div className="bg-bg-canvas flex min-h-dvh flex-col">
@@ -32,88 +66,82 @@ export function LandingPage() {
         <meta property="og:description" content={t('seo.descripcion')} />
       </Helmet>
 
+      {intro.visible ? <BrandIntro onSkip={intro.skip} /> : null}
+
       <HeaderPublico />
 
-      <section className="gap-space-4 p-space-4 py-space-6 lg:gap-space-8 lg:p-space-9 flex flex-col items-center lg:flex-row lg:justify-between">
-        <div className="gap-space-4 lg:gap-space-5 flex flex-col items-start lg:w-140">
-          <h1 className="text-display-sm lg:text-display font-display text-text-primary">
-            {t('hero.titulo')}
-          </h1>
-          <p className="text-body text-text-muted">{t('hero.subtitulo')}</p>
-          <div className="gap-space-2 flex flex-col items-start">
-            <Button variant="primary" size="lg" onClick={() => void navigate(ROUTES.registro)}>
-              {t('cta.crearCuenta')}
-            </Button>
-            <span className="text-small text-text-muted">{t('hero.esGratis')}</span>
-          </div>
-        </div>
+      <main>
+        <HeroSection entranceDelayMs={heroDelayMs} onCreateAccount={goToRegistration} />
 
-        <div className="bg-bg-inverse gap-space-3 lg:gap-space-4 p-space-4 lg:p-space-6 flex w-full flex-col items-start rounded-lg lg:w-120">
-          <Icon name="microphone" size={28} className="text-action-primary lg:size-8" />
-          <span className="text-h3 font-body text-text-on-inverse">{t('hero.tarjeta.titulo')}</span>
-          <p className="text-body text-text-on-inverse">{t('hero.tarjeta.descripcion')}</p>
-        </div>
-      </section>
+        <LandingSection labelledBy="landing-modulos-titulo">
+          {(inView) => (
+            <>
+              <SectionHeader
+                index={1}
+                label={t('modulos.etiqueta')}
+                title={t('modulos.titulo')}
+                titleId="landing-modulos-titulo"
+                inView={inView}
+              />
+              <div className="gap-space-4 lg:gap-space-5 grid lg:grid-cols-3">
+                {MODULES.map((module, index) => (
+                  <FeatureCard
+                    key={module.key}
+                    index={index + 1}
+                    icon={<Icon name={module.icon} />}
+                    title={t(`modulos.${module.key}.titulo`)}
+                    description={t(`modulos.${module.key}.descripcion`)}
+                    inView={inView}
+                    entranceDelayMs={150 + index * CARD_STAGGER_MS}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </LandingSection>
 
-      <section className="gap-space-4 p-space-4 py-space-6 lg:gap-space-6 lg:px-space-9 lg:py-space-8 flex flex-col items-center">
-        <h2 className="text-h2-sm lg:text-h2 font-display text-text-primary">
-          {t('modulos.titulo')}
-        </h2>
-        <div className="gap-space-4 lg:gap-space-5 flex w-full flex-col items-stretch lg:flex-row">
-          <FeatureCard
-            className="lg:w-100"
-            icon={<Icon name="microphone" />}
-            title={t('modulos.simulacros.titulo')}
-            description={t('modulos.simulacros.descripcion')}
-          />
-          <FeatureCard
-            className="lg:w-100"
-            icon={<Icon name="document" />}
-            title={t('modulos.perfil.titulo')}
-            description={t('modulos.perfil.descripcion')}
-          />
-          <FeatureCard
-            className="lg:w-100"
-            icon={<Icon name="chart" />}
-            title={t('modulos.retroalimentacion.titulo')}
-            description={t('modulos.retroalimentacion.descripcion')}
-          />
-        </div>
-      </section>
+        <LandingSection labelledBy="landing-modos-titulo" background="surface">
+          {(inView) => (
+            <>
+              <SectionHeader
+                index={2}
+                label={t('entrenoVsSimulacion.etiqueta')}
+                title={t('entrenoVsSimulacion.titulo')}
+                titleId="landing-modos-titulo"
+                inView={inView}
+              />
+              <div className="gap-space-4 lg:gap-space-6 grid md:grid-cols-2">
+                <ModeCard
+                  mode="ENTRENO"
+                  title={t('entrenoVsSimulacion.entreno.titulo')}
+                  tag={t('entrenoVsSimulacion.entreno.etiqueta')}
+                  description={t('entrenoVsSimulacion.entreno.descripcion')}
+                  timelineStart={t('entrenoVsSimulacion.entreno.lineaTiempo.inicio')}
+                  timelineEnd={t('entrenoVsSimulacion.entreno.lineaTiempo.fin')}
+                  inView={inView}
+                  entranceDelayMs={150}
+                />
+                <ModeCard
+                  mode="SIMULACION"
+                  title={t('entrenoVsSimulacion.simulacion.titulo')}
+                  tag={t('entrenoVsSimulacion.simulacion.etiqueta')}
+                  description={t('entrenoVsSimulacion.simulacion.descripcion')}
+                  timelineStart={t('entrenoVsSimulacion.simulacion.lineaTiempo.inicio')}
+                  timelineEnd={t('entrenoVsSimulacion.simulacion.lineaTiempo.fin')}
+                  inView={inView}
+                  entranceDelayMs={150 + CARD_STAGGER_MS}
+                />
+              </div>
+            </>
+          )}
+        </LandingSection>
 
-      <section className="bg-bg-surface gap-space-4 p-space-4 py-space-6 lg:gap-space-6 lg:px-space-9 lg:py-space-8 flex flex-col items-center">
-        <h2 className="text-h2-sm lg:text-h2 font-display text-text-primary">
-          {t('entrenoVsSimulacion.titulo')}
-        </h2>
-        <div className="gap-space-4 lg:gap-space-6 flex w-full flex-col items-stretch lg:flex-row lg:justify-center">
-          <FeatureCard
-            className="p-space-4 lg:p-space-5 lg:w-110"
-            icon={<Icon name="check-circle" className="lg:size-8" />}
-            title={t('entrenoVsSimulacion.entreno.titulo')}
-            description={t('entrenoVsSimulacion.entreno.descripcion')}
-          />
-          <FeatureCard
-            className="p-space-4 lg:p-space-5 lg:w-110"
-            icon={<Icon name="check-circle" className="lg:size-8" />}
-            title={t('entrenoVsSimulacion.simulacion.titulo')}
-            description={t('entrenoVsSimulacion.simulacion.descripcion')}
-          />
-        </div>
-      </section>
+        <LandingSection labelledBy="landing-pasos-titulo">
+          {(inView) => <JourneySteps index={3} titleId="landing-pasos-titulo" inView={inView} />}
+        </LandingSection>
 
-      <section className="bg-bg-inverse gap-space-4 p-space-4 py-space-7 lg:gap-space-5 lg:py-space-9 flex flex-col items-center">
-        <h2 className="text-display-sm font-display text-text-on-inverse text-center">
-          {t('cierre.titulo')}
-        </h2>
-        <Button
-          variant="primary"
-          size="lg"
-          className="w-full lg:w-auto"
-          onClick={() => void navigate(ROUTES.registro)}
-        >
-          {t('cta.crearCuenta')}
-        </Button>
-      </section>
+        <ClosingBanner onCreateAccount={goToRegistration} />
+      </main>
 
       <Footer />
     </div>

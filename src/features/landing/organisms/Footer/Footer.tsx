@@ -7,6 +7,9 @@
  * ambas agrupaciones y se alternan con `lg:hidden`/`hidden lg:flex`, mismo
  * patrón que `HeaderPublico` y que ya usa `AppShell` para
  * `NavHeader`/`TabBar`.
+ *
+ * Con la marca «Amanecer» (CM-329, §3.7) el pie usa el logo nuevo y su
+ * contenido se alinea al mismo ancho máximo que las secciones.
  */
 import { useTranslation } from 'react-i18next';
 import { Logo } from '@/design-system/atoms/Logo';
@@ -16,7 +19,7 @@ export function Footer() {
   const wordmarkLabel = t('common:marca.nombre');
 
   return (
-    <footer className="bg-bg-canvas">
+    <footer className="bg-bg-canvas snap-end">
       <div className="gap-space-3 p-space-4 py-space-5 flex flex-col items-center lg:hidden">
         <Logo variant="lockup" tone="default" size="sm" wordmarkLabel={wordmarkLabel} />
         <div className="text-small text-text-muted gap-space-4 flex">
@@ -26,7 +29,7 @@ export function Footer() {
         <span className="text-small text-text-muted">{t('landing:pie.copyright')}</span>
       </div>
 
-      <div className="px-space-9 py-space-6 hidden items-center justify-between lg:flex">
+      <div className="px-space-8 py-space-6 mx-auto hidden max-w-[80rem] items-center justify-between lg:flex">
         <Logo variant="lockup" tone="default" size="sm" wordmarkLabel={wordmarkLabel} />
         <div className="text-small text-text-muted gap-space-5 flex">
           <span>{t('landing:pie.terminos')}</span>

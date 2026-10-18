@@ -30,6 +30,21 @@
   --brand-base: var(--indigo-500);
   --brand-tint: var(--indigo-50);
 
+  /* Profundidad y acento de marca (landing «Amanecer», CM-329 pendiente de
+     ticket). El índigo profundo da fondo a superficies oscuras de marca (cierre,
+     tarjeta de sesión, intro); el acento es el «sol» del logo. No se usa como
+     color de acción: para eso sigue action-primary, aunque hoy apunten al mismo
+     primitivo — son roles distintos y podrían separarse sin tocar componentes. */
+  --brand-raised: var(--indigo-600);
+  --brand-deep: var(--indigo-800);
+  --brand-deepest: var(--indigo-900);
+  --brand-soft: var(--indigo-100);
+  --brand-muted: var(--indigo-400);
+  --brand-accent: var(--mustard-400);
+  --brand-accent-light: var(--mustard-300);
+  --brand-accent-strong: var(--mustard-500);
+  --text-accent-on-inverse: var(--mustard-200);
+
   /* === Acción === */
   --action-primary: var(--mustard-400);
   --action-primary-hover: var(--mustard-500);
@@ -99,12 +114,19 @@
   --duration-quick: 180ms;
   --duration-smooth: 260ms;
   --duration-deliberate: 400ms;
+  /* Entradas de marca (hero, intro): más largas que una transición de UI
+     porque acompañan una lectura, no una respuesta a un clic. */
+  --duration-cinematic: 900ms;
 
   /* Prefijo "token-" por la misma razón que los radios: "--ease-*" es el
      nombre reservado del tema de Tailwind (genera las utilidades ease-*). */
   --token-ease-out: cubic-bezier(0.2, 0, 0, 1);
   --token-ease-in: cubic-bezier(0.4, 0, 1, 1);
   --token-ease-inout: cubic-bezier(0.4, 0, 0.2, 1);
+  /* Desaceleración larga para entradas: llega rápido y se asienta despacio. */
+  --token-ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Telón de la intro: arranca y termina suave, cruza rápido por el medio. */
+  --token-ease-curtain: cubic-bezier(0.7, 0, 0.2, 1);
 }
 
 /*
