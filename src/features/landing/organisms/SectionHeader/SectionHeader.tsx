@@ -5,6 +5,7 @@
  * bloques sueltos. El título usa `h2-sm`/`h2` como en Figma, un escalón más
  * grande en `lg` para que cada sección tenga protagonismo propio.
  */
+import { Eyebrow } from '@/design-system/atoms/Eyebrow';
 import { cn } from '@/utils/cn';
 
 interface SectionHeaderProps {
@@ -23,10 +24,9 @@ interface SectionHeaderProps {
 export function SectionHeader({ index, label, title, titleId, inView }: SectionHeaderProps) {
   return (
     <div className={cn('mb-space-6 lg:mb-space-8', inView ? 'animate-enter-up' : 'opacity-0')}>
-      <p className="text-small text-brand-muted mb-space-4 gap-space-3 flex items-center font-bold tracking-[0.16em] uppercase">
-        <span className="text-brand-accent-strong">{String(index).padStart(2, '0')}</span>
+      <Eyebrow variant="section" index={index} className="mb-space-4">
         {label}
-      </p>
+      </Eyebrow>
       <h2 id={titleId} className="text-h2-sm lg:text-h1 font-display text-brand-deep max-w-[18em]">
         {title}
       </h2>

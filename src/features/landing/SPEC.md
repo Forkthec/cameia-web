@@ -506,3 +506,12 @@ scroll a 0, el header se desplegaba… en bucle: todo lo de arriba (incluida la 
 hero) saltaba sin parar. Se corrige en dos frentes: el hero solo es punto de encaje en `lg`
 (`lg:snap-start`), y `useScrolledPast` usa histéresis (se activa a 80px y se desactiva bajo 4px),
 mayor que el salto que produce el propio plegado.
+
+**Refactor a Atomic Design (CM-329, 18-oct-2026).** Revisión del equipo: estilos de la dirección
+«Amanecer» estaban copiados en varios organismos en lugar de vivir en el design system (ADR-0001).
+Se corrige sin cambiar el aspecto: el gesto de la acción primaria (elevación, presión, flecha que
+avanza) pasa al átomo `Button` (`variant="primary"` + nuevo `iconPosition="end"`) y aplica a todos
+los botones primarios de la app; el rótulo en mayúsculas pasa al átomo nuevo `Eyebrow`
+(`tagline`/`section`); los degradados de marca pasan a utilidades del tema (`bg-brand-surface`,
+`bg-brand-sun`, `bg-brand-glow` en `src/styles/index.css`); y el tamaño arbitrario de `BrandIntro`
+pasa a la escala tipográfica.

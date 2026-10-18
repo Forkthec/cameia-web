@@ -73,4 +73,15 @@ describe('Button', () => {
     // El ícono se fuerza a 20px sin importar lo que reciba el prop `icon`.
     expect(button.querySelector('svg')).toHaveAttribute('width', '20');
   });
+
+  it('con iconPosition="end", el ícono va después de la etiqueta (CM-329)', () => {
+    render(
+      <Button icon={<Icon name="arrow-right" />} iconPosition="end">
+        Crear cuenta
+      </Button>,
+    );
+
+    const button = screen.getByRole('button', { name: 'Crear cuenta' });
+    expect(button.lastElementChild?.tagName.toLowerCase()).toBe('svg');
+  });
 });

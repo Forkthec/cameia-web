@@ -41,7 +41,7 @@ export function BrandIntro({ onSkip }: BrandIntroProps) {
       />
       <span
         aria-hidden="true"
-        className="font-brand text-text-on-inverse flex text-[clamp(1.75rem,4vw,2.5rem)] font-bold tracking-[0.06em] uppercase"
+        className="font-brand text-text-on-inverse text-display-sm lg:text-h1 flex font-bold tracking-[0.06em] uppercase"
       >
         {letters.map((letter, index) => (
           <span

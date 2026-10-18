@@ -102,11 +102,7 @@ export function HeaderPublico() {
           >
             {t('landing:cta.iniciarSesion')}
           </Button>
-          <Button
-            variant="primary"
-            className="hover:shadow-elevation-2 transition-[background-color,translate,scale,box-shadow] hover:-translate-y-px active:translate-y-0 active:scale-[0.98]"
-            onClick={() => void navigate(ROUTES.registro)}
-          >
+          <Button variant="primary" onClick={() => void navigate(ROUTES.registro)}>
             {t('landing:cta.crearCuenta')}
           </Button>
         </div>

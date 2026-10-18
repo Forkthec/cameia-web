@@ -40,17 +40,17 @@ export function PracticeSessionCard({ entranceDelayMs }: PracticeSessionCardProp
     <div className="relative">
       <div aria-hidden="true" className="scroll-parallax pointer-events-none absolute inset-0">
         <div
-          className="animate-sun-rise absolute -top-[30%] -right-[20%] aspect-square w-[80%] rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--brand-accent)_28%,transparent),transparent_65%)]"
+          className="animate-sun-rise bg-brand-glow absolute -top-[30%] -right-[20%] aspect-square w-[80%] rounded-full"
           style={delay(450)}
         />
         <div
-          className="animate-sun-rise absolute -top-[14%] -right-[6%] aspect-square w-[38%] rounded-full bg-[radial-gradient(circle_at_40%_40%,var(--brand-accent-light),var(--brand-accent)_60%,var(--brand-accent-strong))] lg:w-[46%]"
+          className="animate-sun-rise bg-brand-sun absolute -top-[14%] -right-[6%] aspect-square w-[38%] rounded-full lg:w-[46%]"
           style={delay(450)}
         />
       </div>
 
       <article
-        className="animate-card-in p-space-5 pb-space-8 lg:p-space-6 lg:pb-space-8 shadow-elevation-3 relative overflow-hidden rounded-xl bg-[radial-gradient(120%_90%_at_85%_0%,var(--brand-raised)_0%,var(--brand-deep)_55%,var(--brand-deepest)_100%)] transition-[translate,rotate] duration-[var(--duration-deliberate)] ease-[var(--token-ease-expo)] hover:-translate-y-1 hover:-rotate-[0.4deg]"
+        className="animate-card-in p-space-5 pb-space-8 lg:p-space-6 lg:pb-space-8 shadow-elevation-3 bg-brand-surface relative overflow-hidden rounded-xl transition-[translate,rotate] duration-[var(--duration-deliberate)] ease-[var(--token-ease-expo)] hover:-translate-y-1 hover:-rotate-[0.4deg]"
         style={delay(200)}
       >
         <div className="gap-space-3 flex items-center justify-between">

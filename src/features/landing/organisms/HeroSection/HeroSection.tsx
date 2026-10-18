@@ -18,6 +18,7 @@
  */
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/design-system/atoms/Button';
+import { Eyebrow } from '@/design-system/atoms/Eyebrow';
 import { Icon } from '@/design-system/icons/Icon';
 import { PracticeSessionCard } from '../PracticeSessionCard';
 
@@ -49,16 +50,9 @@ export function HeroSection({ entranceDelayMs, onCreateAccount }: HeroSectionPro
 
       <div className="gap-space-8 px-space-4 md:px-space-6 lg:px-space-8 relative mx-auto grid w-full max-w-[80rem] items-center lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
         <div className="flex flex-col items-start">
-          <p
-            className="animate-enter-up font-brand text-small text-brand-base mb-space-5 gap-space-3 inline-flex items-center font-semibold tracking-[0.18em] uppercase"
-            style={delay(0)}
-          >
-            <span
-              aria-hidden="true"
-              className="bg-brand-accent size-[9px] rounded-full shadow-[0_0_0_4px_color-mix(in_srgb,var(--brand-accent)_18%,transparent)]"
-            />
+          <Eyebrow className="animate-enter-up mb-space-5" style={delay(0)}>
             {t('common:marca.lema')}
-          </p>
+          </Eyebrow>
 
           {/* `aria-label` con la frase completa: partida en palabras animadas, el
               cálculo del nombre accesible pierde los espacios entre ellas
@@ -120,7 +114,7 @@ export function HeroSection({ entranceDelayMs, onCreateAccount }: HeroSectionPro
               variant="primary"
               size="lg"
               icon={<Icon name="arrow-right" />}
-              className="hover:shadow-elevation-2 flex-row-reverse transition-[background-color,translate,scale,box-shadow] hover:-translate-y-px active:translate-y-0 active:scale-[0.98] [&>svg]:transition-[translate] [&>svg]:duration-[var(--duration-smooth)] hover:[&>svg]:translate-x-1"
+              iconPosition="end"
               onClick={onCreateAccount}
             >
               {t('cta.crearCuenta')}

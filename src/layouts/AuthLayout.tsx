@@ -30,6 +30,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
+import { Eyebrow } from '@/design-system/atoms/Eyebrow';
 import { Logo } from '@/design-system/atoms/Logo';
 import { Icon } from '@/design-system/icons/Icon';
 
@@ -47,14 +48,14 @@ export function AuthLayout({ children, headline, highlights }: AuthLayoutProps) 
 
   return (
     <div className="bg-bg-canvas flex min-h-dvh flex-col lg:flex-row">
-      <aside className="text-text-on-inverse px-space-4 pt-space-5 pb-space-8 lg:p-space-8 relative shrink-0 overflow-hidden bg-[radial-gradient(120%_90%_at_85%_0%,var(--brand-raised)_0%,var(--brand-deep)_55%,var(--brand-deepest)_100%)] lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-1/2 lg:flex-col lg:justify-between">
+      <aside className="text-text-on-inverse px-space-4 pt-space-5 pb-space-8 lg:p-space-8 bg-brand-surface relative shrink-0 overflow-hidden lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-1/2 lg:flex-col lg:justify-between">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -top-[25%] -right-[25%] aspect-square w-[70%] rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--brand-accent)_30%,transparent),transparent_62%)] lg:w-[90%]"
+          className="bg-brand-glow pointer-events-none absolute -top-[25%] -right-[25%] aspect-square w-[70%] rounded-full lg:w-[90%]"
         />
         <div
           aria-hidden="true"
-          className="animate-sun-rise pointer-events-none absolute -top-12 -right-10 aspect-square w-36 rounded-full bg-[radial-gradient(circle_at_40%_40%,var(--brand-accent-light),var(--brand-accent)_60%,var(--brand-accent-strong))] lg:-top-24 lg:-right-24 lg:w-[21rem]"
+          className="animate-sun-rise bg-brand-sun pointer-events-none absolute -top-12 -right-10 aspect-square w-36 rounded-full lg:-top-24 lg:-right-24 lg:w-[21rem]"
         />
         <div
           aria-hidden="true"
@@ -77,10 +78,9 @@ export function AuthLayout({ children, headline, highlights }: AuthLayoutProps) 
         </Link>
 
         <div className="mt-space-5 relative lg:mt-0">
-          <p className="font-brand text-text-accent-on-inverse text-label mb-space-3 lg:mb-space-5 gap-space-2 flex items-center tracking-[0.18em] uppercase">
-            <span aria-hidden="true" className="bg-brand-accent size-[7px] rounded-full" />
+          <Eyebrow tone="inverse" className="mb-space-3 lg:mb-space-5">
             {t('marca.lema')}
-          </p>
+          </Eyebrow>
           {headline ? (
             <p className="text-h1 lg:text-display font-display animate-enter-up max-w-[14em] lg:max-w-[11em]">
               {headline}
