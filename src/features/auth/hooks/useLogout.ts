@@ -1,18 +1,17 @@
 /**
- * Orquesta el cierre de sesión (`CM-194`, `CA-1.8.1`), simétrico a
- * `useLogin.ts`: llama a `signOut()`, limpia `useAuthStore` y borra
- * `lastUsedProfileId` (`CA-1.8.3`, CM-243) de forma explícita —sin esperar al listener asíncrono de `AuthProvider`, mismo
+ * Orquesta el cierre de sesión (`CM-194`, `CA-1.8.1`, `CA-1.8.2`), simétrico
+ * a `useLogin.ts`: llama a `POST /api/v1/auth/logout-all` para revocar las
+ * sesiones en todos los dispositivos (CM-331), luego `signOut()`, limpia
+ * `useAuthStore` y borra `lastUsedProfileId` (`CA-1.8.3`, CM-243) de forma
+ * explícita —sin esperar al listener asíncrono de `AuthProvider`, mismo
  * criterio de determinismo que ya usa `useLogin` en sentido inverso— y
  * navega a `/ingresar`.
  *
- * Si `signOut()` falla (raro: problema interno del SDK), el cierre local
- * ocurre igual — por alcance, `CA-1.8.1` es local a este dispositivo (ver
- * `SPEC.md` §3 "Seguridad"); no tiene sentido dejar a alguien atrapado en
- * una pantalla autenticada porque falló la llamada remota. Se navega con
- * `location.state.logoutError` para que `LoginPage` muestre el aviso
- * (`AlertInline variant="error"`, el mismo mecanismo que ya usa esa página
- * para `registerInfo` — `Toast` no tiene infraestructura en la app,
- * decisión explícita del usuario en vez de construirla en esta iteración).
+ * Si `logoutAll()` falla (red, 5xx), el cierre local ocurre igual: no tiene
+ * sentido dejar a alguien atrapado en una pantalla autenticada porque falló
+ * la revocación remota. Si `signOut()` falla (raro: problema interno del
+ * SDK), el cierre local ocurre igual. Se navega con
+ * `location.state.logoutError` para que `LoginPage` muestre el aviso.
  *
  * No decide el copy de la confirmación previa ni lee
  * `stores/unsavedChanges.store.ts`: eso lo resuelve `AppShell`, que es quien
@@ -24,6 +23,7 @@ import { ROUTES } from '@/app/router/routes';
 import { signOut } from '@/services/firebase/auth.service';
 import { useAuthStore } from '@/stores/auth.store';
 import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
+import { logoutAll } from '../api/session.api';
 
 interface LogoutLocationState {
   logoutError: true;
@@ -44,6 +44,7 @@ export function useLogout(): UseLogoutResult {
 
     let failed = false;
     try {
+      await logoutAll().catch(() => {});
       await signOut();
     } catch {
       failed = true;

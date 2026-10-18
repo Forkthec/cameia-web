@@ -132,7 +132,7 @@ function isSummaryNotAllowed(error: unknown): boolean {
 }
 
 /** Última acción hecha en Formación o Experiencia: decide cuál de las dos mutaciones se muestra (D-AA, D-AD). */
-type LastAction = 'add' | 'remove' | null;
+type LastAction = 'add' | 'remove' | 'substitute' | null;
 
 /** Errores del servidor ya traducidos que la página entrega a una sección para pintarlos bajo el campo (D-T). */
 type FieldErrors = { startDate?: string; endDate?: string };
@@ -203,6 +203,8 @@ export function EditProfilePage() {
   // CM-273 (D-AA, D-AD): cada sección muestra solo el mensaje de su última acción, alta o baja.
   const [lastEducationAction, setLastEducationAction] = useState<LastAction>(null);
   const [lastWorkExperienceAction, setLastWorkExperienceAction] = useState<LastAction>(null);
+  const [lastSkillAction, setLastSkillAction] = useState<LastAction>(null);
+  const [lastTargetRoleAction, setLastTargetRoleAction] = useState<LastAction>(null);
 
   // CM-273 (D-T): se memorizan por la identidad del error de la mutación, no por el texto: un segundo rechazo
   // idéntico es un objeto nuevo y la sección vuelve a pintarlo.
@@ -235,12 +237,12 @@ export function EditProfilePage() {
     [lastWorkExperienceAction, addWorkExperience.isError, addWorkExperience.error, t],
   );
 
-  // CM-195 (decisión D-I): backfill de `lastUsedProfileId` para perfiles
-  // abiertos aquí directamente (por link, o creados antes de esta
-  // conexión) — no solo los recién creados en `NewProfilePage.tsx`.
+  // CM-195 (decisión D-I), CM-334: solo guarda `lastUsedProfileId` cuando el
+  // perfil cargó con éxito — un 403 PROFILE_NOT_ALLOWED no debe preseleccionar
+  // un perfil ajeno.
   useEffect(() => {
-    setLastUsedProfileId(profileId);
-  }, [profileId, setLastUsedProfileId]);
+    if (profileQuery.isSuccess) setLastUsedProfileId(profileId);
+  }, [profileId, profileQuery.isSuccess, setLastUsedProfileId]);
 
   if (profileQuery.isPending || professionalRolesQuery.isPending) {
     return (
@@ -573,8 +575,14 @@ export function EditProfilePage() {
         <SkillsSection
           formId={SKILLS_FORM_ID}
           items={profile.skills}
-          onAdd={(values) => addSkill.mutate(values)}
-          onRemove={(skillId) => removeSkill.mutate(skillId)}
+          onAdd={(values) => {
+            setLastSkillAction('add');
+            addSkill.mutate(values);
+          }}
+          onRemove={(skillId) => {
+            setLastSkillAction('remove');
+            removeSkill.mutate(skillId);
+          }}
           isAdding={addSkill.isPending}
           maxItems={SKILLS_MAX_COUNT}
           showSectionTitle={isDesktop}
@@ -621,9 +629,9 @@ export function EditProfilePage() {
               : undefined
           }
           confirmationMessage={
-            addSkill.isSuccess
+            lastSkillAction === 'add' && addSkill.isSuccess
               ? t('profile:habilidades.confirmacionAgregada')
-              : removeSkill.isSuccess
+              : lastSkillAction === 'remove' && removeSkill.isSuccess
                 ? t('profile:habilidades.confirmacionEliminada')
                 : undefined
           }
@@ -638,11 +646,18 @@ export function EditProfilePage() {
         <TargetRolesSection
           items={profile.targetRoles}
           catalog={professionalRoles}
-          onAdd={(professionalRoleId) => addTargetRole.mutate(professionalRoleId)}
-          onSubstitute={(roleId, professionalRoleId) =>
-            substituteTargetRole.mutate({ roleId, professionalRoleId })
-          }
-          onRemove={(roleId) => removeTargetRole.mutate(roleId)}
+          onAdd={(professionalRoleId) => {
+            setLastTargetRoleAction('add');
+            addTargetRole.mutate(professionalRoleId);
+          }}
+          onSubstitute={(roleId, professionalRoleId) => {
+            setLastTargetRoleAction('substitute');
+            substituteTargetRole.mutate({ roleId, professionalRoleId });
+          }}
+          onRemove={(roleId) => {
+            setLastTargetRoleAction('remove');
+            removeTargetRole.mutate(roleId);
+          }}
           isAdding={addTargetRole.isPending}
           substitutingId={
             substituteTargetRole.isPending ? (substituteTargetRole.variables?.roleId ?? null) : null
@@ -694,11 +709,11 @@ export function EditProfilePage() {
               : undefined
           }
           confirmationMessage={
-            addTargetRole.isSuccess
+            lastTargetRoleAction === 'add' && addTargetRole.isSuccess
               ? t('profile:rolesObjetivo.confirmacionAgregado')
-              : substituteTargetRole.isSuccess
+              : lastTargetRoleAction === 'substitute' && substituteTargetRole.isSuccess
                 ? t('profile:rolesObjetivo.confirmacionSustituido')
-                : removeTargetRole.isSuccess
+                : lastTargetRoleAction === 'remove' && removeTargetRole.isSuccess
                   ? t('profile:rolesObjetivo.confirmacionEliminado')
                   : undefined
           }

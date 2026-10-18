@@ -1,11 +1,10 @@
 /**
- * Carrera entre `useLogin` y `RedirectIfAuthenticated` (CA-1.3.1, CA-1.3.10;
- * `features/auth/SPEC.md`, «Decisiones de CM-40», punto 1; patrón del defecto
- * B-22). `useLogin` escribe la sesión en el store y navega a `from` en el mismo
- * tick, mientras que `RedirectIfAuthenticated` (que envuelve `/ingresar`)
- * redirige a `/inicio` en cuanto ve `isAuthenticated`. Aquí se monta el
- * `routeConfig` real, con sus guards y sin mockear `useNavigate`, para
- * comprobar a dónde llega de verdad quien inicia sesión.
+ * Carrera entre `useLogin` y `RedirectIfAuthenticated` (CA-1.3.1, CA-1.3.10).
+ * Aquí se monta el `routeConfig` real, con sus guards y sin mockear
+ * `useNavigate`, para comprobar a dónde llega de verdad quien inicia sesión.
+ *
+ * CM-334: `location.state.from` ya no se usa — otra cuenta heredaba la
+ * pantalla anterior por el historial del navegador. Siempre se va a `/inicio`.
  *
  * Solo se mockea el SDK de Firebase (`@/services/firebase/auth.service`).
  * `AuthProvider` no se monta: la sesión la escribe únicamente `useLogin`, así
@@ -104,7 +103,7 @@ describe('login con los guards reales', () => {
     expect(router.state.location.pathname).toBe('/inicio');
   });
 
-  it('desde una pantalla privada sin sesión, vuelve a ella tras iniciar sesión y no al Tablero (from)', async () => {
+  it('CM-334: desde una pantalla privada sin sesión, va a /inicio (no a la pantalla anterior)', async () => {
     await waitUntilReady();
     useAuthStore.setState({ isLoading: false, isAuthenticated: false });
     const router = renderAt('/perfiles/nuevo');
@@ -116,9 +115,6 @@ describe('login con los guards reales', () => {
     await waitFor(() => {
       expect(router.state.location.pathname).not.toBe('/ingresar');
     });
-    expect(
-      await screen.findByRole('heading', { name: '¿Cómo quieres completarlo?' }),
-    ).toBeInTheDocument();
-    expect(router.state.location.pathname).toBe('/perfiles/nuevo');
+    expect(router.state.location.pathname).toBe('/inicio');
   });
 });

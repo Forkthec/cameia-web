@@ -61,10 +61,10 @@ function buildUrl(path: string, params?: QueryParams): string {
   return url.toString();
 }
 
-/** Limpia la sesión y manda a /ingresar: un 401 del backend significa token inválido o expirado. */
+/** Limpia la sesión y manda a /ingresar: un 401 del backend significa token inválido o expirado (CM-331). */
 async function handleUnauthorized(): Promise<void> {
   await signOut();
-  window.location.href = LOGIN_PATH;
+  window.location.href = `${LOGIN_PATH}?sesionExpirada=1`;
 }
 
 /** RT-02-CA06 (CM-180): el Gateway rechazó la petición porque el correo no está verificado. */

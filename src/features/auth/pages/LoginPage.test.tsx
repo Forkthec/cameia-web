@@ -58,10 +58,13 @@ async function waitUntilReady() {
   });
 }
 
-function renderLoginPage(state?: unknown) {
+function renderLoginPage(state?: unknown, search?: string) {
+  const entry = search
+    ? { pathname: '/ingresar', search, state }
+    : { pathname: '/ingresar', state };
   return render(
     <I18nextProvider i18n={i18n}>
-      <MemoryRouter initialEntries={[{ pathname: '/ingresar', state }]}>
+      <MemoryRouter initialEntries={[entry]}>
         <Routes>
           <Route path="/ingresar" element={<LoginPage />} />
           <Route path="/inicio" element={<p>Tablero</p>} />
@@ -164,6 +167,15 @@ describe('LoginPage', () => {
     renderLoginPage({ logoutError: true });
 
     expect(await screen.findByText('Ocurrió un error. Inténtalo de nuevo.')).toBeInTheDocument();
+  });
+
+  it('con ?sesionExpirada=1, muestra el aviso de sesión expirada (CM-331)', async () => {
+    await waitUntilReady();
+    renderLoginPage(undefined, '?sesionExpirada=1');
+
+    expect(
+      await screen.findByText('Tu sesión expiró. Inicia sesión de nuevo.'),
+    ).toBeInTheDocument();
   });
 });
 

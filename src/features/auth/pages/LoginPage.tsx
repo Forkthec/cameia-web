@@ -30,6 +30,10 @@
  * propia página y redirige al `continueUrl` sin `oobCode`. El `continueUrl`
  * apunta a `/ingresar?correoVerificado=1` y esta página muestra un aviso de
  * éxito: «Tu correo fue verificado. Ya puedes iniciar sesión.»
+ *
+ * **CM-331 (CA-1.8.2):** cuando `httpClient` recibe un 401 (token revocado
+ * tras `logout-all` de otro dispositivo), cierra sesión y redirige aquí con
+ * `?sesionExpirada=1`. Se muestra un aviso warning.
  */
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -66,6 +70,7 @@ export function LoginPage() {
   const redirectedForUnverifiedEmail = searchParams.get('correoNoVerificado') === '1';
   const redirectedForDisabledAccount = searchParams.get('cuentaDeshabilitada') === '1';
   const redirectedForVerifiedEmail = searchParams.get('correoVerificado') === '1';
+  const redirectedForExpiredSession = searchParams.get('sesionExpirada') === '1';
 
   const loadingProps = isResending
     ? ({
@@ -91,6 +96,9 @@ export function LoginPage() {
       ) : null}
       {redirectedForDisabledAccount ? (
         <AlertInline variant="error">{t('verificacion.cuentaDeshabilitada.mensaje')}</AlertInline>
+      ) : null}
+      {redirectedForExpiredSession ? (
+        <AlertInline variant="warning">{t('verificacion.sesionExpirada.mensaje')}</AlertInline>
       ) : null}
       {logoutErrorMessage ? <AlertInline variant="error">{logoutErrorMessage}</AlertInline> : null}
       <LoginForm
