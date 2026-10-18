@@ -2,10 +2,40 @@
   "asistente": {
     "progreso": "Progreso del asistente",
     "pasos": {
+      "perfilProfesional": "Perfil profesional",
       "ofertaYRol": "Oferta y rol",
       "modoYTono": "Modo y tono",
       "idiomaYFormato": "Idioma y forma de respuesta"
     }
+  },
+  "perfil": {
+    "grupo": "Perfiles profesionales disponibles",
+    "sinPerfiles": {
+      "titulo": "Sin perfiles profesionales",
+      "descripcion": "Necesitas un Perfil Profesional activo para iniciar una entrevista.",
+      "accion": "Crear mi Perfil Profesional"
+    },
+    "soloBorradores": {
+      "titulo": "Sin perfiles activos",
+      "descripcion": "Finaliza un Perfil Profesional para iniciar una entrevista.",
+      "accion": "Terminar mi perfil"
+    }
+  },
+  "oferta": {
+    "etiqueta": "Oferta laboral",
+    "placeholder": "Pega aquí la oferta laboral (opcional)",
+    "contador": "{{actual}} / {{max}} caracteres"
+  },
+  "rol": {
+    "etiqueta": "Rol objetivo",
+    "placeholder": "Busca un rol objetivo",
+    "sinResultados": "No se encontraron roles",
+    "deTuPerfil": "De tu perfil",
+    "otrosRoles": "Otros roles"
+  },
+  "validacion": {
+    "ofertaMaxCaracteres": "La oferta laboral no puede superar los 3000 caracteres.",
+    "rolObligatorio": "Elige un rol objetivo de la lista."
   },
   "modo": {
     "ENTRENO": "Entreno",
