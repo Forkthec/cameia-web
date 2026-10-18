@@ -498,3 +498,11 @@ los nodos `67:2` (lg) y `69:63` (sm) al terminar — no basta con que compile y 
   `LanguageSwitcher`) recuperan el tamaño que ya declaraban.
 - *Validación visual.* Revisada en navegador a 1024px (lg) y 375px (sm), con y sin reduced-motion,
   sin desborde horizontal. No reemplaza a L-02 frente al Figma actualizado.
+
+**Bug corregido: parpadeo del header en móvil (CM-329, 18-oct-2026).** En móvil el hero empieza
+debajo del header expandido, así que su `snap-start` creaba un punto de encaje en `scrollY ≈ 47`.
+Al asentarse ahí, el header se plegaba (~56px menos), ese punto desaparecía, el encaje devolvía el
+scroll a 0, el header se desplegaba… en bucle: todo lo de arriba (incluida la tarjeta oscura del
+hero) saltaba sin parar. Se corrige en dos frentes: el hero solo es punto de encaje en `lg`
+(`lg:snap-start`), y `useScrolledPast` usa histéresis (se activa a 80px y se desactiva bajo 4px),
+mayor que el salto que produce el propio plegado.

@@ -34,7 +34,7 @@ export function HeroSection({ entranceDelayMs, onCreateAccount }: HeroSectionPro
   const delay = (offsetMs: number) => ({ animationDelay: `${entranceDelayMs + offsetMs}ms` });
 
   return (
-    <section className="py-space-8 lg:py-space-9 relative flex snap-start items-center overflow-x-clip lg:min-h-[calc(100svh-4.5rem)]">
+    <section className="py-space-8 lg:py-space-9 relative flex items-center overflow-x-clip lg:min-h-[calc(100svh-4.5rem)] lg:snap-start">
       <svg
         aria-hidden="true"
         viewBox="0 0 800 520"
