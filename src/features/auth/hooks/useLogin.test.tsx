@@ -68,7 +68,7 @@ describe('useLogin', () => {
     });
   });
 
-  it('con un origen protegido previo, redirige ahí en vez de a /inicio', async () => {
+  it('CM-334: con un origin protegido previo en location.state, ignora el from y va a /inicio', async () => {
     signInMock.mockResolvedValue({
       uid: 'u1',
       email: 'ada@cameia.com',
@@ -85,7 +85,7 @@ describe('useLogin', () => {
     await result.current.login('ada@cameia.com', 'secreta123');
 
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith('/perfiles/nuevo', { replace: true });
+      expect(navigateMock).toHaveBeenCalledWith('/inicio', { replace: true });
     });
   });
 

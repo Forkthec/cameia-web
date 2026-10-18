@@ -30,7 +30,7 @@
  * `emailVerified=false`, dando acceso al área privada.
  */
 import { useState } from 'react';
-import { useLocation, useNavigate, type Location } from 'react-router';
+import { useNavigate } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
 import { ApiError } from '@/services/http/ApiError';
 import {
@@ -43,10 +43,6 @@ import { useAuthStore } from '@/stores/auth.store';
 import { activateAccount } from '../api/verification.api';
 import { getAuthErrorMessageKey } from '../model/authErrorMessage';
 
-interface LoginLocationState {
-  from?: Location;
-}
-
 interface UseLoginResult {
   isSubmitting: boolean;
   errorMessageKey: string | null;
@@ -57,11 +53,6 @@ interface UseLoginResult {
   resendVerification: () => Promise<void>;
   dismissUnverified: () => void;
   login: (correo: string, contrasena: string) => Promise<void>;
-}
-
-function resolveRedirectTarget(from: Location | undefined): string {
-  if (!from) return ROUTES.inicio;
-  return `${from.pathname}${from.search}${from.hash}`;
 }
 
 // Credenciales del último intento con correo no verificado. Vive a nivel de
@@ -76,7 +67,6 @@ export function useLogin(): UseLoginResult {
   const [isResending, setIsResending] = useState(false);
   const [resendErrorKey, setResendErrorKey] = useState<string | null>(null);
   const navigate = useNavigate();
-  const location = useLocation();
 
   const unverifiedEmail = useAuthStore((s) => s.unverifiedEmail);
   const resendSuccess = useAuthStore((s) => s.verificationResent);
@@ -117,8 +107,7 @@ export function useLogin(): UseLoginResult {
         }
       });
 
-      const state = location.state as LoginLocationState | null;
-      void navigate(resolveRedirectTarget(state?.from), { replace: true });
+      void navigate(ROUTES.inicio, { replace: true });
     } catch (error) {
       const code = error instanceof AuthError ? error.code : 'AUTH_UNKNOWN_ERROR';
       setErrorMessageKey(getAuthErrorMessageKey(code));

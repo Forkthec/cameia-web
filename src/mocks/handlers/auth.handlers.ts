@@ -145,6 +145,10 @@ export function resetRegisteredUsers(): void {
 }
 
 export const authHandlers: HttpHandler[] = [
+  http.post('*/api/v1/auth/logout-all', () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   http.post('*/api/v1/users', async ({ request }) => {
     const body = (await request.json()) as RegisterRequestBody;
 
