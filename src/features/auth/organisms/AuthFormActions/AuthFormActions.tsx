@@ -12,8 +12,8 @@
  *   y una sombra hacia arriba para separarse del contenido que pasa debajo.
  * - **En `lg`** vuelve a ser parte del flujo normal, sin fondo ni sombra.
  *
- * El botón usa el mismo gesto que los CTA de la landing (flecha que avanza,
- * leve elevación al pasar el cursor).
+ * El gesto del botón (leve elevación, flecha que avanza) es el de `Button`
+ * `primary` con `iconPosition="end"`: vive en el átomo, no aquí (ADR-0001).
  */
 import { Link } from 'react-router';
 import { Button } from '@/design-system/atoms/Button';
@@ -31,9 +31,6 @@ interface AuthFormActionsProps {
   /** Ruta del enlace (`ROUTES.registro` o `ROUTES.ingresar`). */
   footerTo: string;
 }
-
-const SUBMIT_CLASSES =
-  'hover:shadow-elevation-2 w-full flex-row-reverse transition-[background-color,translate,scale,box-shadow] hover:-translate-y-px active:translate-y-0 active:scale-[0.98] [&>svg]:transition-[translate] [&>svg]:duration-[var(--duration-smooth)] hover:[&>svg]:translate-x-1';
 
 export function AuthFormActions({
   isSubmitting,
@@ -60,7 +57,8 @@ export function AuthFormActions({
           type="submit"
           size="lg"
           icon={<Icon name="arrow-right" />}
-          className={SUBMIT_CLASSES}
+          iconPosition="end"
+          className="w-full"
         >
           {submitLabel}
         </Button>

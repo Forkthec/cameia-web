@@ -80,7 +80,8 @@ export function ClosingBanner({ onCreateAccount }: ClosingBannerProps) {
             variant="primary"
             size="lg"
             icon={<Icon name="arrow-right" />}
-            className="hover:shadow-elevation-3 w-full flex-row-reverse transition-[background-color,translate,scale,box-shadow] hover:-translate-y-px active:translate-y-0 active:scale-[0.98] lg:w-auto [&>svg]:transition-[translate] [&>svg]:duration-[var(--duration-smooth)] hover:[&>svg]:translate-x-1"
+            iconPosition="end"
+            className="w-full lg:w-auto"
             onClick={onCreateAccount}
           >
             {t('cta.crearCuenta')}
