@@ -32,6 +32,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useId, useMemo, useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { useUnsavedChangesStore } from '@/stores/unsavedChanges.store';
 import { buttonLoadingProps } from '@/utils/buttonLoadingProps';
 import { cn } from '@/utils/cn';
 import { unicodeLength } from '@/utils/unicodeLength';
@@ -177,7 +178,7 @@ export function WorkExperienceSection({
 }: WorkExperienceSectionProps) {
   const headingId = useId();
   const schema = useMemo(() => createWorkExperienceSchema(currentMonth), [currentMonth]);
-  const { control, handleSubmit, watch, setValue, reset, setError } = useForm<
+  const { control, handleSubmit, watch, setValue, reset, setError, formState } = useForm<
     WorkExperienceFormValues,
     unknown,
     WorkExperienceFormValues
@@ -221,6 +222,14 @@ export function WorkExperienceSection({
       setError('endDate', { type: SERVER_ERROR_TYPE, message: serverFieldErrors.endDate });
     }
   }, [serverFieldErrors, setError]);
+
+  useEffect(() => {
+    if (formState.isDirty) useUnsavedChangesStore.getState().setUnsavedChanges(true);
+  }, [formState.isDirty]);
+
+  useEffect(() => {
+    return () => useUnsavedChangesStore.getState().setUnsavedChanges(false);
+  }, []);
 
   const isAtMax = maxItems !== undefined && items.length >= maxItems;
 
