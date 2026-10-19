@@ -69,6 +69,10 @@ import {
 /** `type` con el que `setError` marca un error que viene del servidor: su `message` ya es el texto final. */
 const SERVER_ERROR_TYPE = 'server';
 
+/** Campos del formulario a los que la página puede entregar un error del servidor ya traducido (D-T, CM-336). */
+const SERVER_ERROR_FIELDS = ['startDate', 'endDate', 'institution', 'degree'] as const;
+type ServerErrorField = (typeof SERVER_ERROR_FIELDS)[number];
+
 interface EducationSectionProps {
   /** Id del `<form>` de alta de un ítem nuevo. */
   formId: string;
@@ -138,7 +142,7 @@ interface EducationSectionProps {
    * Errores del servidor por campo (D-T), ya traducidos por la página: la sección solo los aplica con `setError`
    * y no decide textos. Cada rechazo llega como un objeto nuevo, así que dos rechazos iguales se vuelven a pintar.
    */
-  serverFieldErrors?: { startDate?: string; endDate?: string };
+  serverFieldErrors?: Partial<Record<ServerErrorField, string>>;
   addErrorMessage?: string;
   removeErrorMessage?: string;
   confirmationMessage?: string;
@@ -229,11 +233,9 @@ export function EducationSection({
 
   useEffect(() => {
     if (!serverFieldErrors) return;
-    if (serverFieldErrors.startDate) {
-      setError('startDate', { type: SERVER_ERROR_TYPE, message: serverFieldErrors.startDate });
-    }
-    if (serverFieldErrors.endDate) {
-      setError('endDate', { type: SERVER_ERROR_TYPE, message: serverFieldErrors.endDate });
+    for (const field of SERVER_ERROR_FIELDS) {
+      const message = serverFieldErrors[field];
+      if (message) setError(field, { type: SERVER_ERROR_TYPE, message });
     }
   }, [serverFieldErrors, setError]);
 
@@ -369,11 +371,13 @@ export function EducationSection({
             <FormField
               label={degreeLabel}
               error={
-                fieldState.error?.type === 'too_small'
-                  ? degreeErrorRequired
-                  : fieldState.error?.type === 'too_big'
-                    ? degreeErrorTooLong
-                    : undefined
+                fieldState.error?.type === SERVER_ERROR_TYPE
+                  ? fieldState.error.message
+                  : fieldState.error?.type === 'too_small'
+                    ? degreeErrorRequired
+                    : fieldState.error?.type === 'too_big'
+                      ? degreeErrorTooLong
+                      : undefined
               }
             >
               <Input
@@ -394,11 +398,13 @@ export function EducationSection({
             <FormField
               label={institutionLabel}
               error={
-                fieldState.error?.type === 'too_small'
-                  ? institutionErrorRequired
-                  : fieldState.error?.type === 'too_big'
-                    ? institutionErrorTooLong
-                    : undefined
+                fieldState.error?.type === SERVER_ERROR_TYPE
+                  ? fieldState.error.message
+                  : fieldState.error?.type === 'too_small'
+                    ? institutionErrorRequired
+                    : fieldState.error?.type === 'too_big'
+                      ? institutionErrorTooLong
+                      : undefined
               }
             >
               <Input

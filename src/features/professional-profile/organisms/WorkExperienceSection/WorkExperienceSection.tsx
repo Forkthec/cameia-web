@@ -57,6 +57,10 @@ import {
 /** `type` con el que `setError` marca un error que viene del servidor: su `message` ya es el texto final. */
 const SERVER_ERROR_TYPE = 'server';
 
+/** Campos del formulario a los que la página puede entregar un error del servidor ya traducido (D-T, CM-336). */
+const SERVER_ERROR_FIELDS = ['startDate', 'endDate', 'company', 'position', 'description'] as const;
+type ServerErrorField = (typeof SERVER_ERROR_FIELDS)[number];
+
 interface WorkExperienceSectionProps {
   formId: string;
   items: WorkExperienceItem[];
@@ -122,7 +126,7 @@ interface WorkExperienceSectionProps {
    * Errores del servidor por campo (D-T), ya traducidos por la página: la sección solo los aplica con `setError`
    * y no decide textos. Cada rechazo llega como un objeto nuevo, así que dos rechazos iguales se vuelven a pintar.
    */
-  serverFieldErrors?: { startDate?: string; endDate?: string };
+  serverFieldErrors?: Partial<Record<ServerErrorField, string>>;
   addErrorMessage?: string;
   removeErrorMessage?: string;
   confirmationMessage?: string;
@@ -215,11 +219,9 @@ export function WorkExperienceSection({
 
   useEffect(() => {
     if (!serverFieldErrors) return;
-    if (serverFieldErrors.startDate) {
-      setError('startDate', { type: SERVER_ERROR_TYPE, message: serverFieldErrors.startDate });
-    }
-    if (serverFieldErrors.endDate) {
-      setError('endDate', { type: SERVER_ERROR_TYPE, message: serverFieldErrors.endDate });
+    for (const field of SERVER_ERROR_FIELDS) {
+      const message = serverFieldErrors[field];
+      if (message) setError(field, { type: SERVER_ERROR_TYPE, message });
     }
   }, [serverFieldErrors, setError]);
 
@@ -335,11 +337,13 @@ export function WorkExperienceSection({
             <FormField
               label={positionLabel}
               error={
-                fieldState.error?.type === 'too_small'
-                  ? positionErrorRequired
-                  : fieldState.error?.type === 'too_big'
-                    ? positionErrorTooLong
-                    : undefined
+                fieldState.error?.type === SERVER_ERROR_TYPE
+                  ? fieldState.error.message
+                  : fieldState.error?.type === 'too_small'
+                    ? positionErrorRequired
+                    : fieldState.error?.type === 'too_big'
+                      ? positionErrorTooLong
+                      : undefined
               }
             >
               <Input
@@ -360,11 +364,13 @@ export function WorkExperienceSection({
             <FormField
               label={companyLabel}
               error={
-                fieldState.error?.type === 'too_small'
-                  ? companyErrorRequired
-                  : fieldState.error?.type === 'too_big'
-                    ? companyErrorTooLong
-                    : undefined
+                fieldState.error?.type === SERVER_ERROR_TYPE
+                  ? fieldState.error.message
+                  : fieldState.error?.type === 'too_small'
+                    ? companyErrorRequired
+                    : fieldState.error?.type === 'too_big'
+                      ? companyErrorTooLong
+                      : undefined
               }
             >
               <Input
@@ -478,9 +484,12 @@ export function WorkExperienceSection({
               <FormField
                 label={descriptionLabel}
                 error={
-                  fieldState.error?.message === workExperienceSchemaErrorCodes.DESCRIPTION_TOO_LONG
-                    ? descriptionErrorTooLong
-                    : undefined
+                  fieldState.error?.type === SERVER_ERROR_TYPE
+                    ? fieldState.error.message
+                    : fieldState.error?.message ===
+                        workExperienceSchemaErrorCodes.DESCRIPTION_TOO_LONG
+                      ? descriptionErrorTooLong
+                      : undefined
                 }
               >
                 <Input
