@@ -26,6 +26,8 @@ interface WizardLayoutProps {
   primaryActionLoading?: boolean;
   primaryActionLoadingLabel?: string;
   primaryActionDisabled?: boolean;
+  /** Oculta el footer completo (boton primario y "Atrás"); util cuando el paso tiene su propia accion (p. ej. "Iniciar entrevista"). */
+  hidePrimaryAction?: boolean;
   children: ReactNode;
 }
 
@@ -39,6 +41,7 @@ export function WizardLayout({
   primaryActionLoading = false,
   primaryActionLoadingLabel,
   primaryActionDisabled = false,
+  hidePrimaryAction = false,
   children,
 }: WizardLayoutProps) {
   return (
@@ -49,34 +52,41 @@ export function WizardLayout({
 
       <main className="p-space-5 pb-space-9 md:pb-space-5 mx-auto max-w-2xl">{children}</main>
 
-      <footer className="border-border-subtle bg-bg-surface p-space-4 gap-space-3 fixed inset-x-0 bottom-0 flex items-center justify-end border-t md:static md:mx-auto md:max-w-2xl md:border-t-0 md:px-0">
-        {onBack ? (
-          <Button variant="secondary" size="md" onClick={onBack} className="hidden md:inline-flex">
-            {backLabel}
-          </Button>
-        ) : null}
-        {primaryActionLoading ? (
-          <Button
-            variant="primary"
-            size="lg"
-            loading
-            loadingLabel={primaryActionLoadingLabel ?? primaryActionLabel}
-            className="w-full md:w-auto"
-          >
-            {primaryActionLabel}
-          </Button>
-        ) : (
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={onPrimaryAction}
-            disabled={primaryActionDisabled}
-            className="w-full md:w-auto"
-          >
-            {primaryActionLabel}
-          </Button>
-        )}
-      </footer>
+      {hidePrimaryAction ? null : (
+        <footer className="border-border-subtle bg-bg-surface p-space-4 gap-space-3 fixed inset-x-0 bottom-0 flex items-center justify-end border-t md:static md:mx-auto md:max-w-2xl md:border-t-0 md:px-0">
+          {onBack ? (
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={onBack}
+              className="hidden md:inline-flex"
+            >
+              {backLabel}
+            </Button>
+          ) : null}
+          {primaryActionLoading ? (
+            <Button
+              variant="primary"
+              size="lg"
+              loading
+              loadingLabel={primaryActionLoadingLabel ?? primaryActionLabel}
+              className="w-full md:w-auto"
+            >
+              {primaryActionLabel}
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={onPrimaryAction}
+              disabled={primaryActionDisabled}
+              className="w-full md:w-auto"
+            >
+              {primaryActionLabel}
+            </Button>
+          )}
+        </footer>
+      )}
     </div>
   );
 }

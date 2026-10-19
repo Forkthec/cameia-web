@@ -5,7 +5,8 @@
       "perfilProfesional": "Perfil profesional",
       "ofertaYRol": "Oferta y rol",
       "modoYTono": "Modo y tono",
-      "idiomaYFormato": "Idioma y forma de respuesta"
+      "idiomaYFormato": "Idioma y forma de respuesta",
+      "confirmar": "Confirmar"
     }
   },
   "perfil": {
@@ -67,6 +68,29 @@
     "etiqueta": "Idioma de la entrevista",
     "es-CO": "Español (Colombia)",
     "en": "Inglés"
+  },
+  "confirmar": {
+    "titulo": "Confirmar e iniciar",
+    "resumen": "Revisa tu configuración antes de iniciar la entrevista.",
+    "perfil": "Perfil profesional",
+    "ofertaLaboral": "Oferta laboral",
+    "sinOferta": "Sin oferta laboral",
+    "rolObjetivo": "Rol objetivo",
+    "modalidad": "Modalidad",
+    "tono": "Tono del entrevistador",
+    "formaRespuesta": "Forma de respuesta",
+    "idiomaEntrevista": "Idioma de la entrevista",
+    "iniciarEntrevista": "Iniciar entrevista",
+    "datosIncompletos": "Elige un Perfil Profesional y un rol objetivo para iniciar la entrevista.",
+    "errorGenerico": "Ocurrió un error. Inténtalo de nuevo.",
+    "perfilSincronizando": "Tu perfil se está actualizando. Inténtalo en unos segundos.",
+    "avisoEnCurso": {
+      "titulo": "Entrevista en curso",
+      "mensaje": "Tienes una entrevista en curso. Si inicias la nueva, la anterior se cerrará sin evaluación.",
+      "iniciarNueva": "Iniciar la nueva",
+      "volverEntrevista": "Volver a mi entrevista",
+      "cancelar": "Cancelar"
+    }
   },
   "modo": {
     "ENTRENO": "Entreno",

@@ -1,25 +1,31 @@
 /**
  * Pagina del asistente de configuracion de entrevista (HU-4.2, HU-4.3, HU-4.4).
- * Orquesta los 4 pasos del wizard usando WizardLayout y el store de Zustand.
- * Paso 0: seleccion de perfil (HU-4.2). Paso 1: oferta y rol (HU-4.2).
- * Paso 2: modo y tono (HU-4.3). Paso 3: idioma y forma de respuesta (HU-4.3).
- * El paso de confirmacion (HU-4.4, CM-208) queda como placeholder.
+ * Orquesta los 5 pasos del wizard usando WizardLayout y el store de Zustand.
+ * Paso 0: seleccion de perfil. Paso 1: oferta y rol. Paso 2: modo y tono.
+ * Paso 3: idioma y forma de respuesta. Paso 4: confirmar e iniciar.
  *
  * Protege la regla CA-4.2: los datos no se persisten aqui, viajan al crear
- * la sesion en HU-4.4.
+ * la sesion en HU-4.4. El boton "Iniciar entrevista" vive en el paso 4
+ * (CA-4.4.1), con proteccion de doble clic (CA-4.4.17), manejo de error
+ * (CA-4.4.5), perfil sincronizando (CA-4.4.19) y aviso de entrevista en
+ * curso (CA-4.4.7).
  */
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { EmptyState } from '@/design-system/molecules/EmptyState';
+import { useNavigate } from 'react-router';
+import { ApiError } from '@/services/http/ApiError';
 import { WizardLayout } from '@/layouts/WizardLayout';
 import { useInterviewSetupStore } from '../store/interviewSetup.store';
 import { useProfileList } from '../hooks/useProfileList';
 import { useRoleCatalog } from '../hooks/useRoleCatalog';
 import { useCanRecordAudio } from '../hooks/useCanRecordAudio';
+import { useCreateSession } from '../hooks/useCreateSession';
 import { ProfileSelector } from '../organisms/ProfileSelector';
 import { OfferAndRoleForm } from '../organisms/OfferAndRoleForm';
 import { ModeAndToneForm } from '../organisms/ModeAndToneForm';
 import { LanguageAndFormatForm } from '../organisms/LanguageAndFormatForm';
+import { ConfirmAndStartForm } from '../organisms/ConfirmAndStartForm';
+import { InProgressWarningDialog } from '../organisms/InProgressWarningDialog';
 import { JOB_OFFER_MAX_LENGTH } from '../model/interviewSetup.constants';
 import type {
   InterviewTone,
@@ -27,6 +33,7 @@ import type {
   AnswerFormat,
   SessionLanguage,
 } from '../model/interviewSetup.types';
+import type { CreateSessionResponseDto } from '../api/interviewSession.dto';
 import type { StepStatus } from '@/design-system/molecules/Stepper';
 
 function stepStatus(index: number, current: number): StepStatus {
@@ -38,6 +45,10 @@ function stepStatus(index: number, current: number): StepStatus {
 export function NewInterviewWizardPage() {
   const { t } = useTranslation(['interview', 'common']);
   const store = useInterviewSetupStore();
+  const navigate = useNavigate();
+  const createSession = useCreateSession();
+
+  const [warningData, setWarningData] = useState<CreateSessionResponseDto | null>(null);
 
   const profileQuery = useProfileList();
   const roleQuery = useRoleCatalog();
@@ -59,6 +70,11 @@ export function NewInterviewWizardPage() {
     [profiles, store.profileId],
   );
 
+  const selectedRole = useMemo(
+    () => (roleQuery.data ?? []).find((r) => r.id === store.targetRoleId) ?? null,
+    [roleQuery.data, store.targetRoleId],
+  );
+
   const hasEmptyState =
     !profileQuery.isLoading &&
     !profileQuery.isError &&
@@ -77,31 +93,72 @@ export function NewInterviewWizardPage() {
 
   const canAdvanceStep0 = !!store.profileId;
   const canAdvanceStep1 = !jobOfferError && !!store.targetRoleId;
-  const canAdvanceStep2 = true;
-  const canAdvanceStep3 = true;
+  const isConfigComplete = canAdvanceStep0 && canAdvanceStep1;
 
   const handleNext = useCallback(() => {
-    if (store.currentStep === 0 && canAdvanceStep0) {
-      store.nextStep();
-    } else if (store.currentStep === 1 && canAdvanceStep1) {
-      store.nextStep();
-    } else if (store.currentStep === 2 && canAdvanceStep2) {
-      store.nextStep();
-    } else if (store.currentStep === 3 && canAdvanceStep3) {
-      store.nextStep();
-    }
-  }, [store, canAdvanceStep0, canAdvanceStep1, canAdvanceStep2, canAdvanceStep3]);
+    if (store.currentStep === 0 && canAdvanceStep0) store.nextStep();
+    else if (store.currentStep === 1 && canAdvanceStep1) store.nextStep();
+    else if (store.currentStep === 2) store.nextStep();
+    else if (store.currentStep === 3) store.nextStep();
+  }, [store, canAdvanceStep0, canAdvanceStep1]);
 
   const handleBack = useCallback(() => {
     store.prevStep();
   }, [store]);
 
   const handleNextWithValidation = useCallback(() => {
-    if (store.currentStep === 1 && !store.targetRoleId) {
-      return;
-    }
+    if (store.currentStep === 1 && !store.targetRoleId) return;
     handleNext();
   }, [store.currentStep, store.targetRoleId, handleNext]);
+
+  const handleCreateSession = useCallback(() => {
+    if (!store.profileId || !store.targetRoleId) return;
+    createSession.mutate(
+      {
+        profile_id: store.profileId,
+        target_role_id: store.targetRoleId,
+        job_offer: store.jobOffer || null,
+        mode: store.mode,
+        tone: store.tone,
+        answer_format: store.answerFormat,
+        session_language: store.sessionLanguage,
+      },
+      {
+        onSuccess: (data) => {
+          if (data.ongoing_session && data.ongoing_session.answers_count < 5) {
+            setWarningData(data);
+          } else {
+            void navigate(`/entrevistas/${data.session_id}/preparando`);
+          }
+        },
+      },
+    );
+  }, [store, createSession, navigate]);
+
+  const handleStartNewFromWarning = useCallback(() => {
+    if (!warningData) return;
+    void navigate(`/entrevistas/${warningData.session_id}/preparando`);
+    setWarningData(null);
+  }, [warningData, navigate]);
+
+  const handleBackToInterview = useCallback(() => {
+    if (!warningData?.ongoing_session) return;
+    void navigate(`/entrevistas/${warningData.ongoing_session.session_id}`);
+    setWarningData(null);
+  }, [warningData, navigate]);
+
+  const handleCancelWarning = useCallback(() => {
+    setWarningData(null);
+  }, []);
+
+  const errorMessage = useMemo(() => {
+    if (!createSession.isError) return null;
+    const err: unknown = createSession.error;
+    if (err instanceof ApiError && err.code === 'PROFILE_SYNC_PENDING') {
+      return t('interview:confirmar.perfilSincronizando');
+    }
+    return t('interview:confirmar.errorGenerico');
+  }, [createSession.isError, createSession.error, t]);
 
   const isPrimaryDisabled =
     (store.currentStep === 0 && (!canAdvanceStep0 || hasEmptyState)) ||
@@ -118,6 +175,10 @@ export function NewInterviewWizardPage() {
     {
       label: t('interview:asistente.pasos.idiomaYFormato'),
       status: stepStatus(3, store.currentStep),
+    },
+    {
+      label: t('interview:asistente.pasos.confirmar'),
+      status: stepStatus(4, store.currentStep),
     },
   ];
 
@@ -173,72 +234,121 @@ export function NewInterviewWizardPage() {
     [t],
   ) as Record<AnswerFormat, string>;
 
+  const summaryRows = useMemo(
+    () => [
+      { label: t('interview:confirmar.perfil'), value: selectedProfile?.name ?? '—' },
+      {
+        label: t('interview:confirmar.ofertaLaboral'),
+        value: store.jobOffer
+          ? store.jobOffer.length > 60
+            ? `${store.jobOffer.slice(0, 60)}…`
+            : store.jobOffer
+          : t('interview:confirmar.sinOferta'),
+      },
+      { label: t('interview:confirmar.rolObjetivo'), value: selectedRole?.name ?? '—' },
+      { label: t('interview:confirmar.modalidad'), value: modeLabels[store.mode] },
+      { label: t('interview:confirmar.tono'), value: toneLabels[store.tone] },
+      { label: t('interview:confirmar.formaRespuesta'), value: formatLabels[store.answerFormat] },
+      {
+        label: t('interview:confirmar.idiomaEntrevista'),
+        value: languageLabels[store.sessionLanguage],
+      },
+    ],
+    [selectedProfile, store, selectedRole, modeLabels, toneLabels, formatLabels, languageLabels, t],
+  );
+
   return (
-    <WizardLayout
-      steps={steps}
-      stepsLabel={t('interview:asistente.progreso')}
-      primaryActionLabel={t('common:acciones.continuar')}
-      onPrimaryAction={handleNextWithValidation}
-      primaryActionDisabled={isPrimaryDisabled}
-      backLabel={t('common:acciones.atras')}
-      onBack={store.currentStep > 0 ? handleBack : undefined}
-    >
-      {store.currentStep === 0 ? (
-        <ProfileSelector
-          profiles={profiles}
-          selectedProfileId={store.profileId}
-          onSelectProfile={store.setProfile}
-          isLoading={profileQuery.isLoading}
-          isError={profileQuery.isError}
-          onRetry={() => void profileQuery.refetch()}
+    <>
+      <WizardLayout
+        steps={steps}
+        stepsLabel={t('interview:asistente.progreso')}
+        primaryActionLabel={t('common:acciones.continuar')}
+        onPrimaryAction={handleNextWithValidation}
+        primaryActionDisabled={isPrimaryDisabled}
+        backLabel={t('common:acciones.atras')}
+        onBack={store.currentStep > 0 ? handleBack : undefined}
+        hidePrimaryAction={store.currentStep === 4}
+      >
+        {store.currentStep === 0 ? (
+          <ProfileSelector
+            profiles={profiles}
+            selectedProfileId={store.profileId}
+            onSelectProfile={store.setProfile}
+            isLoading={profileQuery.isLoading}
+            isError={profileQuery.isError}
+            onRetry={() => void profileQuery.refetch()}
+          />
+        ) : store.currentStep === 1 ? (
+          <OfferAndRoleForm
+            selectedProfile={selectedProfile}
+            roles={roleQuery.data ?? []}
+            isLoadingRoles={roleQuery.isLoading}
+            isErrorRoles={roleQuery.isError}
+            onRetryRoles={() => void roleQuery.refetch()}
+            jobOffer={store.jobOffer ?? ''}
+            onJobOfferChange={store.setJobOffer}
+            selectedRoleId={store.targetRoleId}
+            onRoleSelect={store.setTargetRole}
+            jobOfferError={jobOfferError}
+            roleError={roleError}
+          />
+        ) : store.currentStep === 2 ? (
+          <ModeAndToneForm
+            selectedMode={store.mode}
+            selectedTone={store.tone}
+            onModeChange={store.setMode}
+            onToneChange={store.setTone}
+            modeLabel={t('interview:modalidad.etiqueta')}
+            toneLabel={t('interview:tono.etiqueta')}
+            modeLabels={modeLabels}
+            toneLabels={toneLabels}
+            toneDescriptions={toneDescriptions}
+            comingSoonLabel={t('interview:modalidad.proximamente')}
+          />
+        ) : store.currentStep === 3 ? (
+          <LanguageAndFormatForm
+            selectedLanguage={store.sessionLanguage}
+            selectedFormat={store.answerFormat}
+            onLanguageChange={store.setSessionLanguage}
+            onFormatChange={store.setAnswerFormat}
+            canRecordAudio={canRecordAudio}
+            languageLabel={t('interview:idiomaEntrevista.etiqueta')}
+            formatLabel={t('interview:formaRespuesta.etiqueta')}
+            languageLabels={languageLabels}
+            formatLabels={formatLabels}
+            formatDescriptions={formatDescriptions}
+            browserCannotRecordMessage={t('interview:formaRespuesta.navegadorNoGraba')}
+          />
+        ) : (
+          <ConfirmAndStartForm
+            title={t('interview:confirmar.titulo')}
+            subtitle={t('interview:confirmar.resumen')}
+            rows={summaryRows}
+            startLabel={t('interview:confirmar.iniciarEntrevista')}
+            onStart={handleCreateSession}
+            isLoading={createSession.isPending}
+            loadingLabel={t('common:acciones.cargando')}
+            isDisabled={!isConfigComplete}
+            disabledMessage={!isConfigComplete ? t('interview:confirmar.datosIncompletos') : null}
+            errorMessage={errorMessage}
+            backLabel={t('common:acciones.atras')}
+            onBack={handleBack}
+          />
+        )}
+      </WizardLayout>
+
+      {warningData ? (
+        <InProgressWarningDialog
+          title={t('interview:confirmar.avisoEnCurso.titulo')}
+          message={t('interview:confirmar.avisoEnCurso.mensaje')}
+          startNewLabel={t('interview:confirmar.avisoEnCurso.iniciarNueva')}
+          backToInterviewLabel={t('interview:confirmar.avisoEnCurso.volverEntrevista')}
+          cancelLabel={t('interview:confirmar.avisoEnCurso.cancelar')}
+          onStartNew={handleStartNewFromWarning}
+          onBackToInterview={handleBackToInterview}
+          onCancel={handleCancelWarning}
         />
-      ) : store.currentStep === 1 ? (
-        <OfferAndRoleForm
-          selectedProfile={selectedProfile}
-          roles={roleQuery.data ?? []}
-          isLoadingRoles={roleQuery.isLoading}
-          isErrorRoles={roleQuery.isError}
-          onRetryRoles={() => void roleQuery.refetch()}
-          jobOffer={store.jobOffer ?? ''}
-          onJobOfferChange={store.setJobOffer}
-          selectedRoleId={store.targetRoleId}
-          onRoleSelect={store.setTargetRole}
-          jobOfferError={jobOfferError}
-          roleError={roleError}
-        />
-      ) : store.currentStep === 2 ? (
-        <ModeAndToneForm
-          selectedMode={store.mode}
-          selectedTone={store.tone}
-          onModeChange={store.setMode}
-          onToneChange={store.setTone}
-          modeLabel={t('interview:modalidad.etiqueta')}
-          toneLabel={t('interview:tono.etiqueta')}
-          modeLabels={modeLabels}
-          toneLabels={toneLabels}
-          toneDescriptions={toneDescriptions}
-          comingSoonLabel={t('interview:modalidad.proximamente')}
-        />
-      ) : store.currentStep === 3 ? (
-        <LanguageAndFormatForm
-          selectedLanguage={store.sessionLanguage}
-          selectedFormat={store.answerFormat}
-          onLanguageChange={store.setSessionLanguage}
-          onFormatChange={store.setAnswerFormat}
-          canRecordAudio={canRecordAudio}
-          languageLabel={t('interview:idiomaEntrevista.etiqueta')}
-          formatLabel={t('interview:formaRespuesta.etiqueta')}
-          languageLabels={languageLabels}
-          formatLabels={formatLabels}
-          formatDescriptions={formatDescriptions}
-          browserCannotRecordMessage={t('interview:formaRespuesta.navegadorNoGraba')}
-        />
-      ) : (
-        <EmptyState
-          title={t('common:pendiente.titulo', { ticket: 'CM-208' })}
-          description={t('common:pendiente.descripcion', { prt: 'PRT-04.11' })}
-        />
-      )}
-    </WizardLayout>
+      ) : null}
+    </>
   );
 }
