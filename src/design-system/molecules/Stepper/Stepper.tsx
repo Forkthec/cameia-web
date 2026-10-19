@@ -19,17 +19,23 @@ interface StepperProps {
 export function Stepper({ steps, label, className }: StepperProps) {
   return (
     <div className={className}>
-      <ol aria-label={label} className="flex items-start">
+      <ol aria-label={label} className="flex items-center justify-between">
         {steps.map((step, index) => (
-          <li
-            key={step.label}
-            className={cn('flex flex-col items-center', index < steps.length - 1 ? 'flex-1' : '')}
-          >
-            <div className="flex w-full items-center">
+          <li key={step.label} className="relative flex flex-1 items-center justify-center">
+            {index > 0 ? (
+              <div
+                aria-hidden="true"
+                className={cn(
+                  'absolute top-4 right-1/2 -z-10 h-px w-full',
+                  steps[index - 1].status === 'complete' ? 'bg-brand-accent' : 'bg-border-subtle',
+                )}
+              />
+            ) : null}
+            <div className="flex flex-col items-center">
               <span
                 aria-current={step.status === 'current' ? 'step' : undefined}
                 className={cn(
-                  'text-small flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-semibold',
+                  'bg-bg-canvas text-small relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-semibold',
                   step.status === 'complete'
                     ? 'bg-brand-accent text-brand-deepest'
                     : step.status === 'current'
@@ -39,24 +45,15 @@ export function Stepper({ steps, label, className }: StepperProps) {
               >
                 {step.status === 'complete' ? <Icon name="check-circle" size={16} /> : index + 1}
               </span>
-              {index < steps.length - 1 ? (
-                <div
-                  aria-hidden="true"
-                  className={cn(
-                    'mx-space-2 h-px flex-1',
-                    step.status === 'complete' ? 'bg-brand-accent' : 'bg-border-subtle',
-                  )}
-                />
-              ) : null}
+              <span
+                className={cn(
+                  'mt-space-1 max-w-20 text-center text-xs leading-tight',
+                  step.status === 'upcoming' ? 'text-text-muted' : 'text-text-primary font-medium',
+                )}
+              >
+                {step.label}
+              </span>
             </div>
-            <span
-              className={cn(
-                'mt-space-1 w-full text-center text-xs',
-                step.status === 'upcoming' ? 'text-text-muted' : 'text-text-primary font-medium',
-              )}
-            >
-              {step.label}
-            </span>
           </li>
         ))}
       </ol>
