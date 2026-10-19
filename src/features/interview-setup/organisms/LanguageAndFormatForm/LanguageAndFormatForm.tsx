@@ -5,6 +5,7 @@
  * si el navegador no permite grabar, Audio queda deshabilitado (CA-4.3.7).
  */
 import { CardSelectable } from '@/design-system/molecules/CardSelectable';
+import { Icon, type IconName } from '@/design-system/icons/Icon';
 import { cn } from '@/utils/cn';
 import {
   ANSWER_FORMATS,
@@ -12,6 +13,16 @@ import {
   type AnswerFormat,
   type SessionLanguage,
 } from '../../model/interviewSetup.types';
+
+const LANGUAGE_ICONS: Record<SessionLanguage, IconName> = {
+  'es-CO': 'globe',
+  en: 'globe',
+};
+
+const FORMAT_ICONS: Record<AnswerFormat, IconName> = {
+  AUDIO: 'microphone',
+  TEXTO: 'keyboard',
+};
 
 interface LanguageAndFormatFormProps {
   selectedLanguage: SessionLanguage;
@@ -52,6 +63,7 @@ export function LanguageAndFormatForm({
               key={lang}
               state={selectedLanguage === lang ? 'selected' : 'default'}
               onClick={() => onLanguageChange(lang)}
+              icon={<Icon name={LANGUAGE_ICONS[lang]} />}
               title={languageLabels[lang]}
             />
           ))}
@@ -81,6 +93,7 @@ export function LanguageAndFormatForm({
                   isAudioDisabled ? 'disabled' : selectedFormat === format ? 'selected' : 'default'
                 }
                 onClick={() => !isAudioDisabled && onFormatChange(format)}
+                icon={<Icon name={FORMAT_ICONS[format]} />}
                 title={formatLabels[format]}
                 description={formatDescriptions[format]}
               />

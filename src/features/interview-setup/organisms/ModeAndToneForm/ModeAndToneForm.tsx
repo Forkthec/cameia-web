@@ -4,6 +4,7 @@
  * Tono: 4 opciones con descripcion corta, Profesional y neutro preseleccionado (CA-4.3.2).
  */
 import { CardSelectable } from '@/design-system/molecules/CardSelectable';
+import { Icon, type IconName } from '@/design-system/icons/Icon';
 import { cn } from '@/utils/cn';
 import {
   INTERVIEW_MODES,
@@ -11,6 +12,18 @@ import {
   type InterviewMode,
   type InterviewTone,
 } from '../../model/interviewSetup.types';
+
+const MODE_ICONS: Record<InterviewMode, IconName> = {
+  SIMULACION: 'target',
+  ENTRENO: 'dumbbell',
+};
+
+const TONE_ICONS: Record<InterviewTone, IconName> = {
+  PROFESIONAL_NEUTRO: 'briefcase',
+  CALIDO: 'heart',
+  ESTRICTO: 'shield',
+  MOTIVADOR: 'trophy',
+};
 
 interface ModeAndToneFormProps {
   selectedMode: InterviewMode;
@@ -53,6 +66,7 @@ export function ModeAndToneForm({
                 key={mode}
                 state={isDisabled ? 'disabled' : selectedMode === mode ? 'selected' : 'default'}
                 onClick={() => !isDisabled && onModeChange(mode)}
+                icon={<Icon name={MODE_ICONS[mode]} />}
                 title={modeLabels[mode]}
                 description={isDisabled ? comingSoonLabel : undefined}
               />
@@ -75,6 +89,7 @@ export function ModeAndToneForm({
               key={tone}
               state={selectedTone === tone ? 'selected' : 'default'}
               onClick={() => onToneChange(tone)}
+              icon={<Icon name={TONE_ICONS[tone]} />}
               title={toneLabels[tone]}
               description={toneDescriptions[tone]}
             />
