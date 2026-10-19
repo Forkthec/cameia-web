@@ -37,20 +37,40 @@
     "ofertaMaxCaracteres": "The job posting cannot exceed 3000 characters.",
     "rolObligatorio": "Choose a target role from the list."
   },
+  "modalidad": {
+    "etiqueta": "Mode",
+    "SIMULACION": "Simulation",
+    "ENTRENO": "Practice",
+    "proximamente": "Coming soon"
+  },
+  "tono": {
+    "etiqueta": "Interviewer tone",
+    "PROFESIONAL_NEUTRO": "Professional and neutral",
+    "PROFESIONAL_NEUTRO_descripcion": "Formal and direct, like a standard corporate interview.",
+    "CALIDO": "Warm",
+    "CALIDO_descripcion": "Friendly and approachable, ideal for reducing anxiety.",
+    "ESTRICTO": "Strict",
+    "ESTRICTO_descripcion": "Demanding and thorough, simulates high-pressure interviews.",
+    "MOTIVADOR": "Motivating",
+    "MOTIVADOR_descripcion": "Positive and encouraging, highlights your strengths."
+  },
+  "formaRespuesta": {
+    "etiqueta": "Answer format",
+    "AUDIO": "Audio",
+    "AUDIO_descripcion": "Answer with your voice, like a real interview.",
+    "TEXTO": "Text",
+    "TEXTO_descripcion": "Type your answers in the chat.",
+    "VIDEO": "Video",
+    "navegadorNoGraba": "Your browser does not support recording. You will answer by text."
+  },
+  "idiomaEntrevista": {
+    "etiqueta": "Interview language",
+    "es-CO": "Spanish (Colombia)",
+    "en": "English"
+  },
   "modo": {
     "ENTRENO": "Practice",
     "SIMULACION": "Simulation"
-  },
-  "tono": {
-    "PROFESIONAL_NEUTRO": "Professional and neutral",
-    "CALIDO": "Warm",
-    "ESTRICTO": "Strict",
-    "MOTIVADOR": "Motivating"
-  },
-  "formaRespuesta": {
-    "TEXTO": "Text",
-    "AUDIO": "Audio",
-    "VIDEO": "Video"
   },
   "idioma": {
     "es-CO": "Spanish (Colombia)",
