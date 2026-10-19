@@ -19,9 +19,9 @@ export async function fetchProfileList(): Promise<ProfileSummaryItem[]> {
   return dto.profiles.map(toProfileSummary);
 }
 
-export async function fetchRoleCatalog(): Promise<ProfessionalRoleMapped[]> {
+export async function fetchRoleCatalog(lang: string): Promise<ProfessionalRoleMapped[]> {
   const dtos = await httpClient.get<ProfessionalRoleCatalogDto[]>(
-    '/api/v1/profiles/professional-roles?lang=es',
+    `/api/v1/profiles/professional-roles?lang=${lang}`,
   );
   return dtos.map(toProfessionalRoleCatalog);
 }
