@@ -1262,6 +1262,127 @@ describe('EditProfilePage · HU-2.4 (CM-273, PR 2)', () => {
     });
   });
 
+  describe('caracteres de control bajo su campo (CM-336, D-T ampliado; celda O41 y RT-01)', () => {
+    const SECTION_GENERIC = 'El campo contiene caracteres no permitidos.';
+
+    const experienceCases = [
+      {
+        code: 'COMPANY_INVALID_CHARACTERS',
+        field: 'company',
+        label: 'Empresa',
+        text: 'La empresa tiene caracteres no permitidos.',
+      },
+      {
+        code: 'POSITION_INVALID_CHARACTERS',
+        field: 'position',
+        label: 'Cargo',
+        text: 'El cargo tiene caracteres no permitidos.',
+      },
+      {
+        code: 'DESCRIPTION_INVALID_CHARACTERS',
+        field: 'description',
+        label: 'Descripción de funciones',
+        text: 'La descripción tiene caracteres no permitidos.',
+      },
+    ];
+
+    const educationCases = [
+      {
+        code: 'INSTITUTION_INVALID_CHARACTERS',
+        field: 'institution',
+        label: 'Institución',
+        text: 'La institución tiene caracteres no permitidos.',
+      },
+      {
+        code: 'DEGREE_INVALID_CHARACTERS',
+        field: 'degree',
+        label: 'Título obtenido',
+        text: 'El título obtenido tiene caracteres no permitidos.',
+      },
+    ];
+
+    it.each(experienceCases)(
+      '422 con $code pinta el literal bajo «$label» de la experiencia y no el aviso genérico',
+      async ({ code, field, label, text }) => {
+        const profileId = await newProfile();
+        const user = userEvent.setup();
+        useHandlers(
+          http.post('*/api/v1/profiles/:id/work-experiences', () =>
+            problem(422, {
+              code: 'VALIDATION_FAILED',
+              errors: [{ field, code, message: RAW_SERVER_TEXT }],
+            }),
+          ),
+        );
+        const { experience } = await mount(profileId);
+
+        await fillCurrentExperience(user, experience);
+        await addExperience(user, experience);
+
+        await expectDescription(experience.getByLabelText(label), text);
+        // Un solo `alert`: el del propio campo; si saliera también en el `AlertInline` de la sección habría dos.
+        expect(experience.getAllByRole('alert')).toHaveLength(1);
+        expect(screen.queryByText(SECTION_GENERIC)).not.toBeInTheDocument();
+        expect(screen.queryByText(GENERIC)).not.toBeInTheDocument();
+        expect(screen.queryByText(RAW_SERVER_TEXT)).not.toBeInTheDocument();
+      },
+    );
+
+    it.each(educationCases)(
+      '422 con $code pinta el literal bajo «$label» de la formación y no el aviso genérico',
+      async ({ code, field, label, text }) => {
+        const profileId = await newProfile();
+        const user = userEvent.setup();
+        useHandlers(
+          http.post('*/api/v1/profiles/:id/educations', () =>
+            problem(422, {
+              code: 'VALIDATION_FAILED',
+              errors: [{ field, code, message: RAW_SERVER_TEXT }],
+            }),
+          ),
+        );
+        const { education } = await mount(profileId);
+
+        await fillEducation(user, education);
+        await addEducation(user, education);
+
+        await expectDescription(education.getByLabelText(label), text);
+        expect(education.getAllByRole('alert')).toHaveLength(1);
+        expect(screen.queryByText(SECTION_GENERIC)).not.toBeInTheDocument();
+        expect(screen.queryByText(GENERIC)).not.toBeInTheDocument();
+        expect(screen.queryByText(RAW_SERVER_TEXT)).not.toBeInTheDocument();
+      },
+    );
+
+    it('el error bajo «Empresa» desaparece cuando la persona escribe en el campo', async () => {
+      const profileId = await newProfile();
+      const user = userEvent.setup();
+      useHandlers(
+        http.post('*/api/v1/profiles/:id/work-experiences', () =>
+          problem(422, {
+            code: 'VALIDATION_FAILED',
+            errors: [
+              { field: 'company', code: 'COMPANY_INVALID_CHARACTERS', message: RAW_SERVER_TEXT },
+            ],
+          }),
+        ),
+      );
+      const { experience } = await mount(profileId);
+      await fillCurrentExperience(user, experience);
+      await addExperience(user, experience);
+      const company = experience.getByLabelText('Empresa');
+      await expectDescription(company, 'La empresa tiene caracteres no permitidos.');
+
+      await user.type(company, 'X');
+
+      await waitFor(() =>
+        expect(company).not.toHaveAccessibleDescription(
+          'La empresa tiene caracteres no permitidos.',
+        ),
+      );
+    });
+  });
+
   describe('bajas: confirmación y errores por code (CA-2.4.11, 37, 38, 39, 46, 51, 58 y 59)', () => {
     it('eliminar la única formación de un perfil en Borrador muestra «Formación eliminada.» y no «Formación agregada.» (CA-2.4.11)', async () => {
       const profileId = await newProfile();
