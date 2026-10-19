@@ -1,0 +1,13 @@
+{
+  "titulo": "Home",
+  "saludo": "Ready to practice?",
+  "descripcion": "Prepare for your next job interview with AI.",
+  "nuevaEntrevista": {
+    "titulo": "New interview",
+    "descripcion": "Set up and start a practice session."
+  },
+  "miPerfil": {
+    "titulo": "My professional profile",
+    "descripcion": "Review and update your professional information."
+  }
+}

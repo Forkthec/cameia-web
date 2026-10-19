@@ -1,0 +1,13 @@
+{
+  "titulo": "Inicio",
+  "saludo": "¿Listo para practicar?",
+  "descripcion": "Prepárate para tu próxima entrevista laboral con IA.",
+  "nuevaEntrevista": {
+    "titulo": "Nueva entrevista",
+    "descripcion": "Configura y comienza una sesión de práctica."
+  },
+  "miPerfil": {
+    "titulo": "Mi perfil profesional",
+    "descripcion": "Revisa y actualiza tu información profesional."
+  }
+}
