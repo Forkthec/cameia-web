@@ -1,6 +1,5 @@
-/** Indicador horizontal para el asistente de 3 pasos (interview-setup). */
+/** Indicador horizontal para el asistente por pasos (interview-setup). */
 import { cn } from '@/utils/cn';
-import { Divider } from '../../atoms/Divider';
 import { Icon } from '../../icons/Icon';
 
 export type StepStatus = 'complete' | 'current' | 'upcoming';
@@ -19,35 +18,48 @@ interface StepperProps {
 
 export function Stepper({ steps, label, className }: StepperProps) {
   return (
-    <ol aria-label={label} className={cn('flex items-center', className)}>
-      {steps.map((step, index) => (
-        <li key={step.label} className="flex flex-1 items-center last:flex-none">
-          <div className="gap-space-1 flex flex-col items-center">
+    <div className={className}>
+      <ol aria-label={label} className="flex items-start">
+        {steps.map((step, index) => (
+          <li
+            key={step.label}
+            className={cn('flex flex-col items-center', index < steps.length - 1 ? 'flex-1' : '')}
+          >
+            <div className="flex w-full items-center">
+              <span
+                aria-current={step.status === 'current' ? 'step' : undefined}
+                className={cn(
+                  'text-small flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-semibold',
+                  step.status === 'complete'
+                    ? 'bg-brand-accent text-brand-deepest'
+                    : step.status === 'current'
+                      ? 'border-brand-accent text-brand-accent border-2'
+                      : 'border-border-strong text-text-muted border',
+                )}
+              >
+                {step.status === 'complete' ? <Icon name="check-circle" size={16} /> : index + 1}
+              </span>
+              {index < steps.length - 1 ? (
+                <div
+                  aria-hidden="true"
+                  className={cn(
+                    'mx-space-2 h-px flex-1',
+                    step.status === 'complete' ? 'bg-brand-accent' : 'bg-border-subtle',
+                  )}
+                />
+              ) : null}
+            </div>
             <span
-              aria-current={step.status === 'current' ? 'step' : undefined}
               className={cn(
-                'text-small flex h-8 w-8 items-center justify-center rounded-full font-semibold',
-                step.status === 'complete'
-                  ? 'bg-brand-accent text-brand-deepest'
-                  : step.status === 'current'
-                    ? 'border-brand-accent text-brand-accent border-2'
-                    : 'border-border-strong text-text-muted border',
-              )}
-            >
-              {step.status === 'complete' ? <Icon name="check-circle" size={16} /> : index + 1}
-            </span>
-            <span
-              className={cn(
-                'text-small',
-                step.status === 'upcoming' ? 'text-text-muted' : 'text-text-primary',
+                'mt-space-1 w-full text-center text-xs',
+                step.status === 'upcoming' ? 'text-text-muted' : 'text-text-primary font-medium',
               )}
             >
               {step.label}
             </span>
-          </div>
-          {index < steps.length - 1 ? <Divider className="mx-space-2 flex-1" /> : null}
-        </li>
-      ))}
-    </ol>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
