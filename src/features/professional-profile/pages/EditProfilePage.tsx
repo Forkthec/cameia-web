@@ -135,7 +135,15 @@ function isSummaryNotAllowed(error: unknown): boolean {
 type LastAction = 'add' | 'remove' | 'substitute' | null;
 
 /** Errores del servidor ya traducidos que la página entrega a una sección para pintarlos bajo el campo (D-T). */
-type FieldErrors = { startDate?: string; endDate?: string };
+type FieldErrors = {
+  startDate?: string;
+  endDate?: string;
+  company?: string;
+  position?: string;
+  description?: string;
+  institution?: string;
+  degree?: string;
+};
 
 /**
  * Mensaje de la primera coincidencia por `code` (de nivel superior y luego en `errors[]`), o `undefined` si no hay.
@@ -216,6 +224,14 @@ export function EditProfilePage() {
               field: 'startDate',
               message: t('profile:educacion.errorFechaAnteriorNacimiento'),
             },
+            INSTITUTION_INVALID_CHARACTERS: {
+              field: 'institution',
+              message: t('profile:educacion.institucion.errorCaracteresInvalidos'),
+            },
+            DEGREE_INVALID_CHARACTERS: {
+              field: 'degree',
+              message: t('profile:educacion.tituloObtenido.errorCaracteresInvalidos'),
+            },
           })
         : undefined,
     [lastEducationAction, addEducation.isError, addEducation.error, t],
@@ -231,6 +247,18 @@ export function EditProfilePage() {
             END_DATE_BEFORE_MINIMUM_AGE: {
               field: 'endDate',
               message: t('profile:experiencia.errorFechaFinEdadMinima'),
+            },
+            COMPANY_INVALID_CHARACTERS: {
+              field: 'company',
+              message: t('profile:experiencia.empresa.errorCaracteresInvalidos'),
+            },
+            POSITION_INVALID_CHARACTERS: {
+              field: 'position',
+              message: t('profile:experiencia.cargo.errorCaracteresInvalidos'),
+            },
+            DESCRIPTION_INVALID_CHARACTERS: {
+              field: 'description',
+              message: t('profile:experiencia.descripcion.errorCaracteresInvalidos'),
             },
           })
         : undefined,
@@ -458,8 +486,6 @@ export function EditProfilePage() {
                 getItemErrorMessage(addEducation.error, getFallbackMessage(addEducation.error), {
                   EDUCATION_LIMIT_REACHED: t('profile:educacion.errorLimite'),
                   START_DATE_BEFORE_BIRTH: t('profile:educacion.errorFechaAnteriorNacimiento'),
-                  INSTITUTION_INVALID_CHARACTERS: t('profile:educacion.errorCaracteresInvalidos'),
-                  DEGREE_INVALID_CHARACTERS: t('profile:educacion.errorCaracteresInvalidos'),
                 }))
               : undefined
           }
@@ -546,11 +572,6 @@ export function EditProfilePage() {
                     WORK_EXPERIENCE_LIMIT_REACHED: t('profile:experiencia.errorLimite'),
                     START_DATE_BEFORE_MINIMUM_AGE: t('profile:experiencia.errorFechaEdadMinima'),
                     END_DATE_BEFORE_MINIMUM_AGE: t('profile:experiencia.errorFechaFinEdadMinima'),
-                    COMPANY_INVALID_CHARACTERS: t('profile:experiencia.errorCaracteresInvalidos'),
-                    POSITION_INVALID_CHARACTERS: t('profile:experiencia.errorCaracteresInvalidos'),
-                    DESCRIPTION_INVALID_CHARACTERS: t(
-                      'profile:experiencia.errorCaracteresInvalidos',
-                    ),
                   },
                 ))
               : undefined
