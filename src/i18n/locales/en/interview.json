@@ -59,7 +59,8 @@
   },
   "validacion": {
     "ofertaMaxCaracteres": "The job posting cannot exceed 3000 characters.",
-    "rolObligatorio": "Choose a target role from the list."
+    "rolObligatorio": "Choose a target role from the list.",
+    "rolDeLaLista": "Choose a target role from the list."
   },
   "modalidad": {
     "etiqueta": "Mode",
@@ -113,8 +114,7 @@
       "iniciarNueva": "Start the new one",
       "volverEntrevista": "Back to my interview",
       "cancelar": "Cancel"
-    },
-    "cambiar": "Change"
+    }
   },
   "modo": {
     "ENTRENO": "Practice",

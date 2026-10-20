@@ -102,9 +102,11 @@ export function NewInterviewWizardPage() {
     return null;
   }, [store.jobOffer, t]);
 
-  const roleError = useMemo(() => {
-    return null;
-  }, []);
+  // CA-4.2.15/16: el mensaje aparece al intentar «Siguiente» sin un rol
+  // elegido de la lista (vacío o texto libre) y se va al elegir uno.
+  const [roleAttempted, setRoleAttempted] = useState(false);
+  const roleError =
+    roleAttempted && !store.targetRoleId ? t('interview:validacion.rolDeLaLista') : null;
 
   const canAdvanceStep0 = !!store.profileId;
   const canAdvanceStep1 = !jobOfferError && !!store.targetRoleId;
@@ -122,7 +124,10 @@ export function NewInterviewWizardPage() {
   }, [store]);
 
   const handleNextWithValidation = useCallback(() => {
-    if (store.currentStep === 1 && !store.targetRoleId) return;
+    if (store.currentStep === 1 && !store.targetRoleId) {
+      setRoleAttempted(true);
+      return;
+    }
     handleNext();
   }, [store.currentStep, store.targetRoleId, handleNext]);
 
@@ -132,7 +137,7 @@ export function NewInterviewWizardPage() {
       {
         profile_id: store.profileId,
         target_role_id: store.targetRoleId,
-        job_offer: store.jobOffer || null,
+        job_offer: store.jobOffer?.trim() || null,
         mode: store.mode,
         tone: store.tone,
         answer_format: store.answerFormat,
@@ -143,7 +148,7 @@ export function NewInterviewWizardPage() {
           if (data.ongoing_session && data.ongoing_session.answers_count < 5) {
             setWarningData(data);
           } else {
-            void navigate(`/entrevistas/${data.session_id}/preparando`);
+            void navigate(ROUTES.entrenarIniciando, { state: { sessionId: data.session_id } });
           }
         },
       },
@@ -152,13 +157,13 @@ export function NewInterviewWizardPage() {
 
   const handleStartNewFromWarning = useCallback(() => {
     if (!warningData) return;
-    void navigate(`/entrevistas/${warningData.session_id}/preparando`);
+    void navigate(ROUTES.entrenarIniciando, { state: { sessionId: warningData.session_id } });
     setWarningData(null);
   }, [warningData, navigate]);
 
   const handleBackToInterview = useCallback(() => {
     if (!warningData?.ongoing_session) return;
-    void navigate(`/entrevistas/${warningData.ongoing_session.session_id}`);
+    void navigate(ROUTES.entrenarSesion(warningData.ongoing_session.session_id));
     setWarningData(null);
   }, [warningData, navigate]);
 
@@ -177,7 +182,7 @@ export function NewInterviewWizardPage() {
 
   const isPrimaryDisabled =
     (store.currentStep === 0 && (!canAdvanceStep0 || hasEmptyState)) ||
-    (store.currentStep === 1 && !canAdvanceStep1) ||
+    (store.currentStep === 1 && !!jobOfferError) ||
     store.currentStep >= 4;
 
   const steps = [
@@ -255,12 +260,10 @@ export function NewInterviewWizardPage() {
         label: t('interview:confirmar.perfil'),
         value: selectedProfile?.name ?? '—',
         icon: 'document' as const,
-        onEdit: () => store.goToStep(0),
       },
       {
         label: t('interview:confirmar.ofertaLaboral'),
         icon: 'briefcase' as const,
-        onEdit: () => store.goToStep(1),
         value: store.jobOffer
           ? store.jobOffer.length > 60
             ? `${store.jobOffer.slice(0, 60)}…`
@@ -271,31 +274,26 @@ export function NewInterviewWizardPage() {
         label: t('interview:confirmar.rolObjetivo'),
         value: selectedRole?.name ?? '—',
         icon: 'target' as const,
-        onEdit: () => store.goToStep(1),
       },
       {
         label: t('interview:confirmar.modalidad'),
         value: modeLabels[store.mode],
         icon: 'dumbbell' as const,
-        onEdit: () => store.goToStep(2),
       },
       {
         label: t('interview:confirmar.tono'),
         value: toneLabels[store.tone],
         icon: 'message' as const,
-        onEdit: () => store.goToStep(2),
       },
       {
         label: t('interview:confirmar.formaRespuesta'),
         value: formatLabels[store.answerFormat],
         icon: 'keyboard' as const,
-        onEdit: () => store.goToStep(3),
       },
       {
         label: t('interview:confirmar.idiomaEntrevista'),
         value: languageLabels[store.sessionLanguage],
         icon: 'globe' as const,
-        onEdit: () => store.goToStep(3),
       },
     ],
     [selectedProfile, store, selectedRole, modeLabels, toneLabels, formatLabels, languageLabels, t],
@@ -306,7 +304,7 @@ export function NewInterviewWizardPage() {
       <WizardLayout
         steps={steps}
         stepsLabel={t('interview:asistente.progreso')}
-        primaryActionLabel={t('common:acciones.continuar')}
+        primaryActionLabel={t('common:acciones.siguiente')}
         onPrimaryAction={handleNextWithValidation}
         primaryActionDisabled={isPrimaryDisabled}
         progressText={t('interview:asistente.pasoDeTotal', {
@@ -384,7 +382,6 @@ export function NewInterviewWizardPage() {
         ) : (
           <ConfirmAndStartForm
             rows={summaryRows}
-            editLabel={t('interview:confirmar.cambiar')}
             startLabel={t('interview:confirmar.iniciarEntrevista')}
             onStart={handleCreateSession}
             isLoading={createSession.isPending}

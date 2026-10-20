@@ -11,8 +11,7 @@
  *   átomo; «Atrás» `secondary`.
  * - Los avisos usan la molécula `AlertInline` (antes cajas a mano con clases
  *   que no existían en el tema, `bg-status-*`/`rounded-radius-*`).
- * - Cada fila del resumen lleva su ícono y, si se pasa `onEdit`, un botón
- *   «Cambiar» (`Button` `tertiary`) que vuelve al paso de ese dato.
+ * - Cada fila del resumen lleva su ícono (decorativo).
  * - `title`/`subtitle` son opcionales: el asistente ya muestra el
  *   encabezado del paso con `WizardStepHeader`.
  */
@@ -25,8 +24,6 @@ interface SummaryRow {
   value: string;
   /** Ícono del dato (decorativo). */
   icon?: IconName;
-  /** Vuelve al paso donde se elige este dato. */
-  onEdit?: () => void;
 }
 
 interface ConfirmAndStartFormProps {
@@ -35,8 +32,6 @@ interface ConfirmAndStartFormProps {
   /** Bajada propia del bloque. Opcional, igual que `title`. */
   subtitle?: string;
   rows: SummaryRow[];
-  /** Texto del botón «Cambiar» de cada fila con `onEdit`. */
-  editLabel?: string;
   startLabel: string;
   onStart: () => void;
   isLoading: boolean;
@@ -52,7 +47,6 @@ export function ConfirmAndStartForm({
   title,
   subtitle,
   rows,
-  editLabel,
   startLabel,
   onStart,
   isLoading,
@@ -92,16 +86,6 @@ export function ConfirmAndStartForm({
                 {row.value}
               </span>
             </span>
-            {row.onEdit && editLabel ? (
-              <Button
-                variant="tertiary"
-                size="md"
-                onClick={row.onEdit}
-                aria-label={`${editLabel}: ${row.label}`}
-              >
-                {editLabel}
-              </Button>
-            ) : null}
           </li>
         ))}
       </ul>

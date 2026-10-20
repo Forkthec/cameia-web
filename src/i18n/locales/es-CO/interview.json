@@ -59,7 +59,8 @@
   },
   "validacion": {
     "ofertaMaxCaracteres": "La oferta laboral no puede superar los 3000 caracteres.",
-    "rolObligatorio": "Elige un rol objetivo de la lista."
+    "rolObligatorio": "Elige un rol objetivo de la lista.",
+    "rolDeLaLista": "Elige un rol objetivo de la lista."
   },
   "modalidad": {
     "etiqueta": "Modalidad",
@@ -113,8 +114,7 @@
       "iniciarNueva": "Iniciar la nueva",
       "volverEntrevista": "Volver a mi entrevista",
       "cancelar": "Cancelar"
-    },
-    "cambiar": "Cambiar"
+    }
   },
   "modo": {
     "ENTRENO": "Entreno",

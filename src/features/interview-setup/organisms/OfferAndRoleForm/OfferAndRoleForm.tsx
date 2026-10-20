@@ -7,13 +7,14 @@
  *
  * **Presentación «Amanecer» y Atomic Design (CM-208).** Solo diseño: el
  * contador es la molécula `CharacterCounter`, las etiquetas son el átomo
- * `Label`, los esqueletos de carga el átomo `Skeleton`, y los roles del
- * perfil se ofrecen además como atajos (`Chip`) que eligen el mismo rol que
- * el autocomplete — no es un campo nuevo, es otra forma de llenar el mismo.
+ * `Label` y los esqueletos de carga el átomo `Skeleton`.
+ *
+ * CA-4.2.13: soltar un archivo sobre la oferta no lo adjunta ni lo abre el
+ * navegador (se cancela el `drop` de archivos); el texto se conserva y la
+ * pantalla no ofrece ningún control de carga. Arrastrar texto sigue igual.
  */
-import { useMemo } from 'react';
+import { useMemo, type DragEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Chip } from '@/design-system/atoms/Chip';
 import { Input } from '@/design-system/atoms/Input';
 import { Label } from '@/design-system/atoms/Label';
 import { Skeleton } from '@/design-system/atoms/Skeleton';
@@ -40,6 +41,14 @@ interface OfferAndRoleFormProps {
   onRoleSelect: (roleId: string | null) => void;
   jobOfferError: string | null;
   roleError: string | null;
+}
+
+/** Cancela el arrastre de archivos (no de texto) sobre la oferta (CA-4.2.13). */
+function rejectFileDrop(event: DragEvent<HTMLDivElement>) {
+  if (event.dataTransfer.types.includes('Files')) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'none';
+  }
 }
 
 export function OfferAndRoleForm({
@@ -119,7 +128,11 @@ export function OfferAndRoleForm({
 
   return (
     <div className="gap-space-6 flex flex-col">
-      <div className="gap-space-2 flex flex-col">
+      <div
+        className="gap-space-2 flex flex-col"
+        onDragOverCapture={rejectFileDrop}
+        onDropCapture={rejectFileDrop}
+      >
         <Label htmlFor="job-offer" className="text-body">
           {t('interview:oferta.etiqueta')}
         </Label>
@@ -155,22 +168,6 @@ export function OfferAndRoleForm({
           noResultsLabel={t('interview:rol.sinResultados')}
           errorMessage={roleError ?? undefined}
         />
-        {roleGroups[0] ? (
-          <div className="gap-space-2 mt-space-2 flex flex-col">
-            <span className="text-label text-text-muted uppercase">{roleGroups[0].label}</span>
-            <div className="gap-space-2 flex flex-wrap">
-              {roleGroups[0].options.map((option) => (
-                <Chip
-                  key={option.value}
-                  selected={selectedRoleId === option.value}
-                  onClick={() => onRoleSelect(option.value)}
-                >
-                  {option.label}
-                </Chip>
-              ))}
-            </div>
-          </div>
-        ) : null}
       </div>
     </div>
   );

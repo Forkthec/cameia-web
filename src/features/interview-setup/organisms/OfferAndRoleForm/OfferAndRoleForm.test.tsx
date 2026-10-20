@@ -77,4 +77,21 @@ describe('OfferAndRoleForm', () => {
     renderForm({ isErrorRoles: true, roles: [] });
     expect(screen.getByRole('button')).toBeInTheDocument();
   });
+
+  it('muestra «Elige un rol objetivo de la lista.» bajo el rol cuando se pide (CA-4.2.15/16)', () => {
+    renderForm({ roleError: 'Elige un rol objetivo de la lista.' });
+    expect(screen.getByText('Elige un rol objetivo de la lista.')).toBeInTheDocument();
+  });
+
+  it('cancela soltar un archivo sobre la oferta y conserva el texto (CA-4.2.13)', () => {
+    renderForm({ jobOffer: 'Texto previo' });
+    const textarea = screen.getByPlaceholderText('Pega aquí la oferta laboral (opcional)');
+    const event = new Event('drop', { bubbles: true, cancelable: true });
+    Object.defineProperty(event, 'dataTransfer', {
+      value: { types: ['Files'], dropEffect: 'copy' },
+    });
+    textarea.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    expect(textarea).toHaveValue('Texto previo');
+  });
 });
