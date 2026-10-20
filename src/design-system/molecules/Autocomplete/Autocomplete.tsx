@@ -50,7 +50,9 @@ export function Autocomplete({
   className,
   errorMessage,
 }: AutocompleteProps) {
-  const [query, setQuery] = useState('');
+  // Arranca con la opción ya elegida: al volver a un paso, el campo la muestra
+  // en vez de quedar vacío con un valor seleccionado por dentro.
+  const [query, setQuery] = useState(selected?.label ?? '');
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
 

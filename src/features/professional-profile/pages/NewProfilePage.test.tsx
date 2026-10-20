@@ -40,11 +40,11 @@ function EditProfileStub() {
   return <p>Editar perfil {id}</p>;
 }
 
-function renderPage() {
-  const queryClient = new QueryClient({
+function renderPage(
+  queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-
+  }),
+) {
   return render(
     <QueryClientProvider client={queryClient}>
       <I18nextProvider i18n={i18n}>
@@ -83,6 +83,21 @@ describe('NewProfilePage', () => {
 
     expect(await screen.findByText('Editar perfil perfil-existente')).toBeInTheDocument();
     expect(useUiPreferencesStore.getState().lastUsedProfileId).toBe('perfil-existente');
+  });
+
+  it('no se rompe si el asistente ya dejó su lista de perfiles en la caché (CM-339)', async () => {
+    await waitUntilReady();
+    useUiPreferencesStore.setState({ lastUsedProfileId: null });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    // Forma que guarda `interview-setup` en `['profiles', 'list']`: un arreglo.
+    queryClient.setQueryData(['profiles', 'list'], [{ id: 'otro', name: 'X' }]);
+    useHandlers(http.get('*/api/v1/profiles', () => HttpResponse.json({ profiles: [] })));
+    renderPage(queryClient);
+
+    expect(await screen.findByText('Llenado Manual')).toBeInTheDocument();
+    expect(queryClient.getQueryData(['profiles', 'list'])).toEqual([{ id: 'otro', name: 'X' }]);
   });
 
   it('si la lista de perfiles falla, muestra igual la selección del método', async () => {

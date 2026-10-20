@@ -180,3 +180,11 @@ oferta opcional con tope de 3000).
   mismo rol del autocomplete. El resumen de confirmación tiene «Cambiar» por fila (`goToStep`).
 - Los avisos de advertencia ahora se anuncian como `role="status"` (convención de `AlertInline`); los
   errores siguen como `alert`.
+
+### Ajustes tras el testeo del 19-10-2026 (CM-339)
+
+- La lista de perfiles del asistente conserva la clave `['profiles', 'list']`; `professional-profile` usa otra clave propia para no pisarla (CM-339).
+- Paso 1: «Siguiente» solo avanza si el perfil elegido sigue en la lista de activos.
+- Paso 1: los roles de cada perfil se nombran con el catálogo del idioma activo (respaldo: `roleTitle`).
+- Paso 2: al volver, «Rol objetivo» muestra el rol ya elegido (`Autocomplete` arranca con la opción seleccionada).
+- Confirmar: una oferta con solo espacios cuenta como «Sin oferta laboral»; el botón en carga usa `common:estados.cargando`.

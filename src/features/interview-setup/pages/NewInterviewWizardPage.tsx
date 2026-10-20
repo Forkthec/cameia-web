@@ -95,6 +95,8 @@ export function NewInterviewWizardPage() {
     !profileQuery.isError &&
     (profiles.length === 0 || activeProfiles.length === 0);
 
+  const trimmedJobOffer = store.jobOffer?.trim() ?? '';
+
   const jobOfferError = useMemo(() => {
     if (store.jobOffer && store.jobOffer.length > JOB_OFFER_MAX_LENGTH) {
       return t('interview:validacion.ofertaMaxCaracteres');
@@ -108,7 +110,9 @@ export function NewInterviewWizardPage() {
   const roleError =
     roleAttempted && !store.targetRoleId ? t('interview:validacion.rolDeLaLista') : null;
 
-  const canAdvanceStep0 = !!store.profileId;
+  // Solo cuenta un perfil que siga en la lista de activos: uno elegido en una
+  // visita anterior que ya no está no deja avanzar.
+  const canAdvanceStep0 = activeProfiles.some((p) => p.id === store.profileId);
   const canAdvanceStep1 = !jobOfferError && !!store.targetRoleId;
   const isConfigComplete = canAdvanceStep0 && canAdvanceStep1;
 
@@ -137,7 +141,7 @@ export function NewInterviewWizardPage() {
       {
         profile_id: store.profileId,
         target_role_id: store.targetRoleId,
-        job_offer: store.jobOffer?.trim() || null,
+        job_offer: trimmedJobOffer || null,
         mode: store.mode,
         tone: store.tone,
         answer_format: store.answerFormat,
@@ -264,10 +268,10 @@ export function NewInterviewWizardPage() {
       {
         label: t('interview:confirmar.ofertaLaboral'),
         icon: 'briefcase' as const,
-        value: store.jobOffer
-          ? store.jobOffer.length > 60
-            ? `${store.jobOffer.slice(0, 60)}…`
-            : store.jobOffer
+        value: trimmedJobOffer
+          ? trimmedJobOffer.length > 60
+            ? `${trimmedJobOffer.slice(0, 60)}…`
+            : trimmedJobOffer
           : t('interview:confirmar.sinOferta'),
       },
       {
@@ -332,6 +336,7 @@ export function NewInterviewWizardPage() {
         {store.currentStep === 0 ? (
           <ProfileSelector
             profiles={profiles}
+            roles={roleQuery.data ?? []}
             selectedProfileId={store.profileId}
             onSelectProfile={store.setProfile}
             isLoading={profileQuery.isLoading}
@@ -385,7 +390,7 @@ export function NewInterviewWizardPage() {
             startLabel={t('interview:confirmar.iniciarEntrevista')}
             onStart={handleCreateSession}
             isLoading={createSession.isPending}
-            loadingLabel={t('common:acciones.cargando')}
+            loadingLabel={t('common:estados.cargando')}
             isDisabled={!isConfigComplete}
             disabledMessage={!isConfigComplete ? t('interview:confirmar.datosIncompletos') : null}
             errorMessage={errorMessage}

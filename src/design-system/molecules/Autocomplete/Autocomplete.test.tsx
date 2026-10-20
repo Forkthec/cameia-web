@@ -31,6 +31,11 @@ function renderAutocomplete(props: Partial<React.ComponentProps<typeof Autocompl
 }
 
 describe('Autocomplete', () => {
+  it('al montarse con una opción elegida, el campo la muestra (volver a un paso)', () => {
+    renderAutocomplete({ selected: OPTIONS[1]! });
+    expect(screen.getByRole('combobox')).toHaveValue('Backend Developer');
+  });
+
   it('muestra opciones al enfocar el campo', async () => {
     const user = userEvent.setup();
     renderAutocomplete();
