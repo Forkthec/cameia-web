@@ -2,25 +2,123 @@
   "asistente": {
     "progreso": "Progreso del asistente",
     "pasos": {
+      "perfilProfesional": "Perfil profesional",
       "ofertaYRol": "Oferta y rol",
       "modoYTono": "Modo y tono",
-      "idiomaYFormato": "Idioma y forma de respuesta"
+      "idiomaYFormato": "Idioma y forma de respuesta",
+      "confirmar": "Confirmar"
+    },
+    "pasoDeTotal": "Paso {{actual}} de {{total}}",
+    "encabezados": {
+      "perfilProfesional": {
+        "titulo": "¿Con qué perfil te presentas?",
+        "descripcion": "Elige el Perfil Profesional que usará el entrevistador para preparar tus preguntas."
+      },
+      "ofertaYRol": {
+        "titulo": "¿A qué te estás postulando?",
+        "descripcion": "Pega la oferta si la tienes y elige el rol: así las preguntas se parecen a las de esa vacante."
+      },
+      "modoYTono": {
+        "titulo": "¿Cómo quieres que sea la entrevista?",
+        "descripcion": "Elige la modalidad y la personalidad de tu entrevistador."
+      },
+      "idiomaYFormato": {
+        "titulo": "¿En qué idioma y cómo respondes?",
+        "descripcion": "Puedes practicar en español o en inglés, hablando o escribiendo."
+      },
+      "confirmar": {
+        "titulo": "Todo listo para tu entrevista",
+        "descripcion": "Revisa tu configuración. Puedes cambiar cualquier dato antes de empezar."
+      }
+    }
+  },
+  "perfil": {
+    "grupo": "Perfiles profesionales disponibles",
+    "sinPerfiles": {
+      "titulo": "Sin perfiles profesionales",
+      "descripcion": "Necesitas un Perfil Profesional activo para iniciar una entrevista.",
+      "accion": "Crear mi Perfil Profesional"
+    },
+    "soloBorradores": {
+      "titulo": "Sin perfiles activos",
+      "descripcion": "Finaliza un Perfil Profesional para iniciar una entrevista.",
+      "accion": "Terminar mi perfil"
+    }
+  },
+  "oferta": {
+    "etiqueta": "Oferta laboral",
+    "placeholder": "Pega aquí la oferta laboral (opcional)",
+    "contador": "{{actual}} / {{max}} caracteres"
+  },
+  "rol": {
+    "etiqueta": "Rol objetivo",
+    "placeholder": "Busca un rol objetivo",
+    "sinResultados": "No se encontraron roles",
+    "deTuPerfil": "De tu perfil",
+    "otrosRoles": "Otros roles"
+  },
+  "validacion": {
+    "ofertaMaxCaracteres": "La oferta laboral no puede superar los 3000 caracteres.",
+    "rolObligatorio": "Elige un rol objetivo de la lista.",
+    "rolDeLaLista": "Elige un rol objetivo de la lista."
+  },
+  "modalidad": {
+    "etiqueta": "Modalidad",
+    "SIMULACION": "Simulación",
+    "ENTRENO": "Entreno",
+    "proximamente": "Próximamente"
+  },
+  "tono": {
+    "etiqueta": "Tono del entrevistador",
+    "PROFESIONAL_NEUTRO": "Profesional y neutro",
+    "PROFESIONAL_NEUTRO_descripcion": "Formal y directo, como en una entrevista corporativa estándar.",
+    "CALIDO": "Cálido",
+    "CALIDO_descripcion": "Amable y cercano, ideal para reducir la ansiedad.",
+    "ESTRICTO": "Estricto",
+    "ESTRICTO_descripcion": "Exigente y detallista, simula entrevistas de alta presión.",
+    "MOTIVADOR": "Motivador",
+    "MOTIVADOR_descripcion": "Positivo y alentador, destaca tus fortalezas."
+  },
+  "formaRespuesta": {
+    "etiqueta": "Forma de respuesta",
+    "AUDIO": "Audio",
+    "AUDIO_descripcion": "Responde con tu voz, como en una entrevista real.",
+    "TEXTO": "Texto",
+    "TEXTO_descripcion": "Escribe tus respuestas en el chat.",
+    "VIDEO": "Video",
+    "navegadorNoGraba": "Tu navegador no permite grabar. Responderás por texto."
+  },
+  "idiomaEntrevista": {
+    "etiqueta": "Idioma de la entrevista",
+    "es-CO": "Español (Colombia)",
+    "en": "Inglés"
+  },
+  "confirmar": {
+    "titulo": "Confirmar e iniciar",
+    "resumen": "Revisa tu configuración antes de iniciar la entrevista.",
+    "perfil": "Perfil profesional",
+    "ofertaLaboral": "Oferta laboral",
+    "sinOferta": "Sin oferta laboral",
+    "rolObjetivo": "Rol objetivo",
+    "modalidad": "Modalidad",
+    "tono": "Tono del entrevistador",
+    "formaRespuesta": "Forma de respuesta",
+    "idiomaEntrevista": "Idioma de la entrevista",
+    "iniciarEntrevista": "Iniciar entrevista",
+    "datosIncompletos": "Elige un Perfil Profesional y un rol objetivo para iniciar la entrevista.",
+    "errorGenerico": "Ocurrió un error. Inténtalo de nuevo.",
+    "perfilSincronizando": "Tu perfil se está actualizando. Inténtalo en unos segundos.",
+    "avisoEnCurso": {
+      "titulo": "Entrevista en curso",
+      "mensaje": "Tienes una entrevista en curso. Si inicias la nueva, la anterior se cerrará sin evaluación.",
+      "iniciarNueva": "Iniciar la nueva",
+      "volverEntrevista": "Volver a mi entrevista",
+      "cancelar": "Cancelar"
     }
   },
   "modo": {
     "ENTRENO": "Entreno",
     "SIMULACION": "Simulación"
-  },
-  "tono": {
-    "PROFESIONAL_NEUTRO": "Profesional y neutro",
-    "CALIDO": "Cálido",
-    "ESTRICTO": "Estricto",
-    "MOTIVADOR": "Motivador"
-  },
-  "formaRespuesta": {
-    "TEXTO": "Texto",
-    "AUDIO": "Audio",
-    "VIDEO": "Video"
   },
   "idioma": {
     "es-CO": "Español (Colombia)",

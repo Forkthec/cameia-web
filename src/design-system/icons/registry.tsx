@@ -14,6 +14,7 @@ import {
   ArrowRight,
   Briefcase,
   ChartColumn,
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -26,8 +27,10 @@ import {
   FileText,
   Flame,
   Globe,
+  Heart,
   Home,
   Info,
+  Keyboard,
   LoaderCircle,
   Lock,
   LogOut,
@@ -37,9 +40,12 @@ import {
   Pencil,
   Plus,
   Settings,
+  Shield,
   Sparkles,
+  Target,
   Trash2,
   TriangleAlert,
+  Trophy,
   Upload,
   User,
   X,
@@ -60,6 +66,7 @@ export const icons = {
   message: MessageCircle, // temporal · Lucide, reemplazar por SVG de Figma
   document: FileText, // temporal · Lucide, reemplazar por SVG de Figma
   briefcase: Briefcase, // temporal · Lucide, reemplazar por SVG de Figma
+  check: Check, // temporal · Lucide, reemplazar por SVG de Figma
   'check-circle': CircleCheckBig, // temporal · Lucide, reemplazar por SVG de Figma
   clock: Clock, // temporal · Lucide, reemplazar por SVG de Figma
   chart: ChartColumn, // temporal · Lucide, reemplazar por SVG de Figma
@@ -92,6 +99,11 @@ export const icons = {
   mail: Mail, // temporal · Lucide, reemplazar por SVG de Figma
   'loading-arc': LoaderCircle, // temporal · Lucide, reemplazar por SVG de Figma
   lock: Lock, // temporal · Lucide, reemplazar por SVG de Figma
+  target: Target, // temporal · Lucide, reemplazar por SVG de Figma
+  heart: Heart, // temporal · Lucide, reemplazar por SVG de Figma
+  shield: Shield, // temporal · Lucide, reemplazar por SVG de Figma
+  trophy: Trophy, // temporal · Lucide, reemplazar por SVG de Figma
+  keyboard: Keyboard, // temporal · Lucide, reemplazar por SVG de Figma
   // "google" ya usa el SVG real exportado de Figma (icon/google, nodo
   // 78:626), no un placeholder de Lucide: el set de Lucide no incluye logos
   // de marca. Excepción explícita a R2 (4 colores fijos de marca de Google),

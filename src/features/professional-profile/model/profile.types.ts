@@ -31,7 +31,7 @@
  * (`ProfessionalRoleController.java`, `ProfileController.java`), compartido
  * en la sesión que escribió ese ticket.
  */
-export type ProfileStatus = 'IN_PROGRESS' | 'COMPLETED';
+export type ProfileStatus = 'PENDING' | 'IN_PROGRESS' | 'IN_REVIEW' | 'COMPLETED';
 
 export type SummaryProvenance = 'MANUAL' | 'AI_SUGGESTED' | 'AI_EDITED' | null;
 

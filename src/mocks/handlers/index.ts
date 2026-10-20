@@ -11,7 +11,13 @@
  * tragaría el catálogo y respondería 404 `Perfil no encontrado`.
  */
 import { authHandlers } from './auth.handlers';
+import { interviewSessionsHandlers } from './interviewSessions.handlers';
 import { profilesHandlers } from './profiles.handlers';
 import { professionalRolesHandlers } from './professionalRoles.handlers';
 
-export const handlers = [...authHandlers, ...professionalRolesHandlers, ...profilesHandlers];
+export const handlers = [
+  ...authHandlers,
+  ...interviewSessionsHandlers,
+  ...professionalRolesHandlers,
+  ...profilesHandlers,
+];
