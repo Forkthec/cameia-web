@@ -3,7 +3,8 @@
  * el backlog v8.2 (CA-10.4.1): el título «Tablero de inicio», el mensaje
  * «Estamos construyendo tu tablero. Mientras tanto, crea tu Perfil
  * Profesional o inicia una entrevista.» y los dos accesos, sin resúmenes ni
- * datos del plan (los agrega HU-10.2).
+ * datos del plan (los agrega HU-10.2). Presentación «Amanecer»: banda
+ * `HomeHero` y los dos accesos como tarjetas «puerta», la principal en mostaza.
  *
  * Destinos (navegación de HU-10.4):
  * - «Nueva entrevista» → configuración de la entrevista (CA-10.4.2).
@@ -17,6 +18,7 @@
 import { useTranslation } from 'react-i18next';
 import { ROUTES } from '@/app/router/routes';
 import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
+import { HomeHero } from '../organisms/HomeHero';
 import { QuickAccessCard } from '../organisms/QuickAccessCard';
 
 export function HomePage() {
@@ -27,15 +29,18 @@ export function HomePage() {
     : ROUTES.perfilNuevo;
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <div className="mb-space-6">
-        <h1 className="text-h1 font-display text-brand-deep">{t('titulo')}</h1>
-        <p className="text-body text-text-muted mt-space-2">{t('mensaje')}</p>
-      </div>
+    <div className="gap-space-5 lg:gap-space-6 mx-auto flex min-h-full w-full max-w-[65rem] flex-col lg:justify-center">
+      <HomeHero title={t('titulo')} message={t('mensaje')} />
 
-      <div className="gap-space-4 flex flex-col">
-        <QuickAccessCard to={ROUTES.entrenarNueva} icon="plus" title={t('nuevaEntrevista')} />
-        <QuickAccessCard to={profileTarget} icon="user" title={t('miPerfil')} />
+      <div className="gap-space-4 lg:gap-space-6 grid lg:grid-cols-2">
+        <QuickAccessCard
+          to={ROUTES.entrenarNueva}
+          icon="plus"
+          title={t('nuevaEntrevista')}
+          emphasis="primary"
+          enterDelayMs={120}
+        />
+        <QuickAccessCard to={profileTarget} icon="user" title={t('miPerfil')} enterDelayMs={220} />
       </div>
     </div>
   );
