@@ -75,7 +75,9 @@ export function WizardLayout({
           to={exitTo}
           variant="tertiary"
           icon={<Icon name="chevron-left" />}
-          className="self-start"
+          // Margen negativo igual al padding del botón: el ícono queda alineado con
+          // el borde del contenido y el fondo del hover conserva su aire.
+          className="-ml-space-5 self-start"
         >
           {exitLabel}
         </ButtonLink>
