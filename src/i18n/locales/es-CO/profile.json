@@ -75,13 +75,15 @@
       "etiqueta": "Título obtenido",
       "placeholder": "Escribe aquí",
       "errorRequerido": "Ingresa el título obtenido.",
-      "errorLongitud": "El título obtenido no puede superar los 150 caracteres."
+      "errorLongitud": "El título obtenido no puede superar los 150 caracteres.",
+      "errorCaracteresInvalidos": "El título obtenido tiene caracteres no permitidos."
     },
     "institucion": {
       "etiqueta": "Institución",
       "placeholder": "Escribe aquí",
       "errorRequerido": "Ingresa la institución.",
-      "errorLongitud": "La institución no puede superar los 150 caracteres."
+      "errorLongitud": "La institución no puede superar los 150 caracteres.",
+      "errorCaracteresInvalidos": "La institución tiene caracteres no permitidos."
     },
     "fechaInicio": {
       "etiqueta": "Fecha de inicio",
@@ -108,8 +110,7 @@
     "errorUltimaFormacion": "No puedes quedarte sin formación académica con el perfil activo. Agrega otra antes de eliminar esta.",
     "errorLimite": "Ya tienes el máximo de 5 formaciones académicas.",
     "errorFechaInvalida": "Revisa las fechas de la formación académica.",
-    "errorFechaAnteriorNacimiento": "La fecha no puede ser anterior a tu fecha de nacimiento.",
-    "errorCaracteresInvalidos": "El campo contiene caracteres no permitidos."
+    "errorFechaAnteriorNacimiento": "La fecha no puede ser anterior a tu fecha de nacimiento."
   },
   "experiencia": {
     "titulo": "Experiencia Laboral",
@@ -118,13 +119,15 @@
       "etiqueta": "Cargo",
       "placeholder": "Escribe aquí",
       "errorRequerido": "Ingresa el cargo.",
-      "errorLongitud": "El cargo no puede superar los 100 caracteres."
+      "errorLongitud": "El cargo no puede superar los 100 caracteres.",
+      "errorCaracteresInvalidos": "El cargo tiene caracteres no permitidos."
     },
     "empresa": {
       "etiqueta": "Empresa",
       "placeholder": "Escribe aquí",
       "errorRequerido": "Ingresa la empresa.",
-      "errorLongitud": "La empresa no puede superar los 100 caracteres."
+      "errorLongitud": "La empresa no puede superar los 100 caracteres.",
+      "errorCaracteresInvalidos": "La empresa tiene caracteres no permitidos."
     },
     "fechaInicio": {
       "etiqueta": "Fecha de inicio"
@@ -140,7 +143,8 @@
       "etiqueta": "Descripción de funciones",
       "placeholder": "Escribe aquí. Este campo crece con el contenido.",
       "contador": "{{count}} / {{max}} caracteres",
-      "errorLongitud": "La descripción no puede superar los 500 caracteres."
+      "errorLongitud": "La descripción no puede superar los 500 caracteres.",
+      "errorCaracteresInvalidos": "La descripción tiene caracteres no permitidos."
     },
     "agregar": "Agregar experiencia",
     "agregando": "Agregando…",
@@ -160,8 +164,7 @@
     "errorLimite": "Ya tienes el máximo de 4 experiencias laborales.",
     "errorFechaInvalida": "Revisa las fechas de la experiencia laboral.",
     "errorFechaEdadMinima": "La experiencia laboral no puede iniciar antes del mes en que cumpliste 15 años.",
-    "errorFechaFinEdadMinima": "La fecha de fin no puede ser anterior al mes en que cumpliste 15 años.",
-    "errorCaracteresInvalidos": "El campo contiene caracteres no permitidos."
+    "errorFechaFinEdadMinima": "La fecha de fin no puede ser anterior al mes en que cumpliste 15 años."
   },
   "habilidades": {
     "titulo": "Habilidades",
