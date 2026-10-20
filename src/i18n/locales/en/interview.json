@@ -2,10 +2,40 @@
   "asistente": {
     "progreso": "Wizard progress",
     "pasos": {
+      "perfilProfesional": "Professional profile",
       "ofertaYRol": "Job posting and role",
       "modoYTono": "Mode and tone",
       "idiomaYFormato": "Language and answer format"
     }
+  },
+  "perfil": {
+    "grupo": "Available professional profiles",
+    "sinPerfiles": {
+      "titulo": "No professional profiles",
+      "descripcion": "You need an active Professional Profile to start an interview.",
+      "accion": "Create my Professional Profile"
+    },
+    "soloBorradores": {
+      "titulo": "No active profiles",
+      "descripcion": "Complete a Professional Profile to start an interview.",
+      "accion": "Finish my profile"
+    }
+  },
+  "oferta": {
+    "etiqueta": "Job posting",
+    "placeholder": "Paste the job posting here (optional)",
+    "contador": "{{actual}} / {{max}} characters"
+  },
+  "rol": {
+    "etiqueta": "Target role",
+    "placeholder": "Search for a target role",
+    "sinResultados": "No roles found",
+    "deTuPerfil": "From your profile",
+    "otrosRoles": "Other roles"
+  },
+  "validacion": {
+    "ofertaMaxCaracteres": "The job posting cannot exceed 3000 characters.",
+    "rolObligatorio": "Choose a target role from the list."
   },
   "modo": {
     "ENTRENO": "Practice",

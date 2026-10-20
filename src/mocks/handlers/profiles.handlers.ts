@@ -888,6 +888,22 @@ export const profilesHandlers: HttpHandler[] = [
     return HttpResponse.json(profile, { status: 201 });
   }),
 
+  // HU-4.2 (CA-4.2.18): lista de perfiles del usuario con su estado y roles
+  // objetivo. Devuelve todos los perfiles (la pantalla filtra por COMPLETED).
+  // Ordenados por fecha de creación ascendente (como HU-2.13).
+  http.get('*/api/v1/profiles', () => {
+    const summaries = profiles.map((p) => ({
+      id: p.id,
+      name: p.name,
+      status: p.status,
+      targetRoles: p.targetRoles.map((tr) => ({
+        professionalRoleId: tr.professionalRoleId,
+        roleTitle: resolveRoleTitle(tr.professionalRoleId),
+      })),
+    }));
+    return HttpResponse.json({ profiles: summaries }, { status: 200 });
+  }),
+
   // CM-53: SPEC.md §3.2 ya asumía este endpoint (estado de carga "mientras
   // se obtiene el perfil por id") antes de que existiera. Sin filtro por
   // `ownerId`, igual que PATCH/completion (nota transversal de SPEC.md §3,
