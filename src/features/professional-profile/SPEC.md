@@ -1045,9 +1045,33 @@ se edita.
 - **Desalineación del mock (C-20):** alinear el 400 a 422 sigue fuera de CM-273.
 - **Celda O41 de la v8 (caracteres de control):** el backend ya envía los textos por campo
   (`WorkExperience.java:33`, `:36`, `:39`; `Education.java:29`, `:32`) y el front los muestra con un solo texto
-  genérico (`profile.json:110` y `:160`, de Sofía). Fuera de CM-273 (D-Y); **aviso pendiente a Ana Sofía**, ver C-22 en §8.
+  genérico (`profile.json:110` y `:160`, de Sofía). Fuera de CM-273 (D-Y); se resuelve en CM-336, ver abajo y C-22 en §8.
 - **Verificación en staging y en un navegador real:** lo que dependa del servidor o del navegador queda
   PENDIENTE hasta que se pruebe; ninguna prueba automática lo reemplaza.
+
+**CM-336 — Caracteres de control bajo su campo (defecto de HU-2.4, 18-oct-2026).**
+
+- **Defecto:** un carácter de control en Empresa, Cargo, Descripción, Institución o Título obtenido hace que el
+  servidor responda `422 VALIDATION_FAILED` con `errors[] {field, code, message}`, pero la app muestra el aviso
+  genérico de la sección («El campo contiene caracteres no permitidos.») y no el mensaje bajo el campo (celda O41
+  de la v8.2 y RT-01: el mensaje va bajo el campo que lo nombra).
+- **Alcance (opción A, solo servidor):** se amplía D-T a los cinco códigos `COMPANY_`, `POSITION_`,
+  `DESCRIPTION_`, `INSTITUTION_` y `DEGREE_INVALID_CHARACTERS`, cada uno a su campo (`company`, `position`,
+  `description`, `institution`, `degree`). El texto sale de i18n, nunca del servidor (`CLAUDE.md` §8), uno por
+  campo y con las mismas llaves en `es-CO` y `en`. Se borran las cinco entradas de las tablas de `getItemErrorMessage`
+  y la llave `errorCaracteresInvalidos` de los dos `profile.json`, que quedan sin uso (`CLAUDE.md` §13).
+- **Fuera de CM-336 (PENDIENTES):** `PROFILE_NAME_INVALID_CHARACTERS` y `SUMMARY_INVALID_CHARACTERS` (HU-2.3, caen
+  en `errors:generico`) y `SKILL_NAME_INVALID_CHARACTERS` (HU-2.5, cae en `errorAgregar`); y la validación de
+  caracteres de control en el cliente antes de enviar (RT-01, «la misma validación en la interfaz y en el
+  backend»), que sigue sin cumplirse.
+- **Título obtenido:** el backlog v8.2 no lo lista, pero el servidor lo envía (`Education.java:32`); se incluye
+  con el texto del servidor, «El título obtenido tiene caracteres no permitidos.» (D-AI).
+- **Implementado (18-oct-2026):** `EditProfilePage.tsx` amplía `FieldErrors` y las dos tablas de `findFieldErrors`
+  con los cinco códigos; `WorkExperienceSection.tsx` y `EducationSection.tsx` aplican con `setError` todos los
+  campos que lleguen en `serverFieldErrors` (`SERVER_ERROR_FIELDS`) y sus `FormField` pintan el error de tipo
+  `server`; una llave `errorCaracteresInvalidos` por campo dentro de su objeto en los dos `profile.json`. Pruebas:
+  seis en `EditProfilePage.test.tsx` (una por código y la de «el error desaparece al escribir en Empresa»).
+  Verificación contra el backend real: PENDIENTE.
 
 ### 3.4 · `/perfiles/:id/editar` — Habilidades y finalizar · `PRT-02.03` · CM-65
 
@@ -1439,7 +1463,7 @@ seguimiento de Frontend a la respuesta del PO del 11-sep).
 | C-19 | ~~`maxLength` del nombre (255) y del resumen (2000) impide escribir el carácter 256 / 2001; CA-2.3.3 y CA-2.3.10 exigen ver «2001 / 2000 caracteres» y los mensajes de longitud sin guardar (RT-01-CA03 y RT-01-CA07: «sin cortar lo escrito»)~~ — **RESUELTO, 13-oct-2026.** El Product Owner (Juan David) decidió mantener el backlog con las reglas actuales, así que el código se adapta al criterio: CM-272 quita el `maxLength` de los dos campos de HU-2.3 (`GeneralInfoForm.tsx`). Los mensajes ya existían en es-CO y en; el contador ya pintaba «2001 / 2000» sin cortar. **Pendiente, fuera de esta tarjeta:** los campos de HU-2.4 y del registro siguen con el tope (ver «Fuera de alcance de CM-272») | — | detectado 11-oct-2026; resuelto 13-oct-2026, CM-272 |
 | C-20 | El `PATCH` de `profiles.handlers.ts` no coincide con el servidor real: responde `400` sin `code` al validar el nombre (`:235`, `:376`) donde el servidor responde `422 VALIDATION_FAILED`; no tiene rama de perfil `COMPLETED` que vacíe el resumen (`SUMMARY_NOT_ALLOWED`), ni de perfil ajeno (`403 PROFILE_NOT_ALLOWED`), ni valida el largo del resumen. Por eso las pruebas con el mock pueden pasar mientras staging falla. Alinearlo puede romper pruebas de HU-2.4, 2.5 y 2.11. Tarea propia, fuera de CM-272 | Frontend (con revisión de quien lleve HU-2.4, 2.5 y 2.11) | detectado 11-oct-2026, CM-272 |
 | C-21 | DF-007 (CA-2.3.1 y CA-2.3.4) sin causa confirmada: por código el servidor ya borra el resumen vacío en Borrador (`cameia-perfil` commit `66eccda`, 8-oct; prueba `GeneralInfoEndToEndIT.java:94-107`) y el cliente envía `""` y confirma solo tras un 2xx. **Evidencia nueva (12-oct-2026):** `cameia-perfil/specs/CM-54-informacion-general-resumen/spec.md:18` dice que el servidor ya está corregido y deja «la parte de CM-247 de la interfaz» a Frontend (`:224`); el aviso de testing del 11-oct probó staging con `cameia-perfil@9355f1a` y `cameia-web@4b3f915`; **no existe re-prueba de DF-007 posterior al 26-sep** (el aviso no lo menciona). Numeración: `CP-050/EJ-036` y `CP-056/EJ-038` son del **libro del Sprint 1**; el libro del Sprint 2 usa EJ-036 y EJ-038 para DF-003 y DF-005. Falta comprobar contra staging qué devuelve el `GET` tras el `PATCH` con la versión de CM-272. **SIGUE ABIERTO** | QA / Backend (Paula Andrea Muñoz Delgado) | probado 26-sep-2026 (`cameia-web@a3e46cb`); revisado 11-oct-2026, CM-272 |
-| C-22 | **Observación fuera de CM-273, aviso pendiente a Ana Sofía (celda O41 de la v8, caracteres de control).** La O41 trae literales por campo («La empresa tiene caracteres no permitidos.», etc.); el backend ya los envía (`WorkExperience.java:33`, `:36`, `:39`; `Education.java:29`, `:32`) con los cinco `code` `*_INVALID_CHARACTERS`, y el front los muestra con **un solo** texto genérico, «El campo contiene caracteres no permitidos.» (`profile.json:110` y `:160`; entradas en `EditProfilePage.tsx:370-371` y `:440-444`; todo de Ana Sofía, PR #72). Ningún criterio de HU-2.4 de la v7 lo exige y no se pudo comprobar si la O41 es texto nuevo de la v8 (el libro no está en disco). Hay una pregunta gemela abierta para HU-2.3 (nombre y resumen). CM-273 no lo toca (D-Y). **Avisar a Ana Sofía** de qué texto cambiaría si se decide implementarlo. **ABIERTO** | Ana Sofía / PO | observado 16-oct-2026, CM-273 PR 2 |
+| C-22 | **Celda O41 de la v8 (caracteres de control) — PARCIAL: resuelto en CM-336 para experiencia y formación; lo demás sigue ABIERTO.** La O41 trae literales por campo («La empresa tiene caracteres no permitidos.», etc.); el backend ya los envía (`WorkExperience.java:33`, `:36`, `:39`; `Education.java:29`, `:32`) con los cinco `code` `*_INVALID_CHARACTERS`. Antes el front los mostraba con **un solo** texto genérico (`errorCaracteresInvalidos`, de Ana Sofía, PR #72); CM-336 (D-AI) los pone bajo su campo y borra esas entradas y la llave. **Sigue abierto:** (a) `PROFILE_NAME_` y `SUMMARY_INVALID_CHARACTERS` (HU-2.3, caen en `errors:generico`) y `SKILL_NAME_INVALID_CHARACTERS` (HU-2.5, cae en `errorAgregar`); (b) la validación de caracteres de control en el cliente (RT-01). CM-273 no lo tocó (D-Y). El responsable de CM-336 avisa a Ana Sofía del borrado de sus entradas. | Ana Sofía / PO | observado 16-oct-2026, CM-273 PR 2; CM-336 18-oct-2026 |
 
 ## 9. Notas
 
@@ -1757,6 +1781,15 @@ respuestas del mismo día a los puntos que quedaron abiertos (adenda de 7.6). Co
   cargo/título, empresa/institución y periodo; `min-w-0` en el bloque de texto del `flex`; y `shrink-0` en el botón
   de eliminar. La descripción no se pinta en la tarjeta, así que no aplica. `jsdom` no calcula el diseño: no hay
   prueba de clases; la comprobación es manual en móvil.
+- **D-AI — CM-336: los cinco `*_INVALID_CHARACTERS` de experiencia y formación salen bajo su campo (D-T ampliado),
+  solo con la respuesta del servidor; la validación en el cliente queda fuera (18-oct-2026).** Motivo: celda O41 de
+  la v8.2 y RT-01 piden el mensaje bajo el campo que lo nombra. Se amplía `findFieldErrors` a `company`,
+  `position`, `description`, `institution` y `degree`, con un texto de i18n por campo y las mismas llaves en
+  `es-CO` y `en` (la traducción al inglés es de trabajo). «Título obtenido» se incluye aunque el backlog no lo
+  liste, porque el servidor ya lo envía (`Education.java:32`); su texto es el del servidor. Se borran las cinco
+  entradas de `getItemErrorMessage` (de Sofía, PR #72) y la llave `errorCaracteresInvalidos`: quedan sin uso
+  (`CLAUDE.md` §13). Queda **pendiente** el espejo en el cliente (RT-01: «la misma validación en la interfaz y en
+  el backend») y los códigos de otras secciones (`PROFILE_NAME_`, `SUMMARY_`, `SKILL_NAME_INVALID_CHARACTERS`).
 
 **Decisiones de diseño, PRT-02.03 (CM-65, 15-sep-2026 — Figma desactualizado para esta subtarea,
 guía visual únicamente, ver nota de §3.4).**

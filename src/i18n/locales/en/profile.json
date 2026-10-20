@@ -75,13 +75,15 @@
       "etiqueta": "Degree obtained",
       "placeholder": "Type here",
       "errorRequerido": "Enter the degree obtained.",
-      "errorLongitud": "The degree obtained can't be longer than 150 characters."
+      "errorLongitud": "The degree obtained can't be longer than 150 characters.",
+      "errorCaracteresInvalidos": "The degree obtained contains invalid characters."
     },
     "institucion": {
       "etiqueta": "Institution",
       "placeholder": "Type here",
       "errorRequerido": "Enter the institution.",
-      "errorLongitud": "The institution can't be longer than 150 characters."
+      "errorLongitud": "The institution can't be longer than 150 characters.",
+      "errorCaracteresInvalidos": "The institution contains invalid characters."
     },
     "fechaInicio": {
       "etiqueta": "Start date",
@@ -108,8 +110,7 @@
     "errorUltimaFormacion": "You can't be left without education while the profile is active. Add another one before removing this one.",
     "errorLimite": "You've reached the maximum of 5 education entries.",
     "errorFechaInvalida": "Check the education entry's dates.",
-    "errorFechaAnteriorNacimiento": "The date can't be earlier than your date of birth.",
-    "errorCaracteresInvalidos": "The field contains invalid characters."
+    "errorFechaAnteriorNacimiento": "The date can't be earlier than your date of birth."
   },
   "experiencia": {
     "titulo": "Work Experience",
@@ -118,13 +119,15 @@
       "etiqueta": "Job title",
       "placeholder": "Type here",
       "errorRequerido": "Enter the job title.",
-      "errorLongitud": "The job title can't be longer than 100 characters."
+      "errorLongitud": "The job title can't be longer than 100 characters.",
+      "errorCaracteresInvalidos": "The job title contains invalid characters."
     },
     "empresa": {
       "etiqueta": "Company",
       "placeholder": "Type here",
       "errorRequerido": "Enter the company.",
-      "errorLongitud": "The company can't be longer than 100 characters."
+      "errorLongitud": "The company can't be longer than 100 characters.",
+      "errorCaracteresInvalidos": "The company contains invalid characters."
     },
     "fechaInicio": {
       "etiqueta": "Start date"
@@ -140,7 +143,8 @@
       "etiqueta": "Description of duties",
       "placeholder": "Type here. This field grows with the content.",
       "contador": "{{count}} / {{max}} characters",
-      "errorLongitud": "The description can't be longer than 500 characters."
+      "errorLongitud": "The description can't be longer than 500 characters.",
+      "errorCaracteresInvalidos": "The description contains invalid characters."
     },
     "agregar": "Add experience",
     "agregando": "Adding…",
@@ -160,8 +164,7 @@
     "errorLimite": "You've reached the maximum of 4 work experiences.",
     "errorFechaInvalida": "Check the work experience's dates.",
     "errorFechaEdadMinima": "Work experience can't start before the month you turned 15.",
-    "errorFechaFinEdadMinima": "The end date can't be earlier than the month you turned 15.",
-    "errorCaracteresInvalidos": "The field contains invalid characters."
+    "errorFechaFinEdadMinima": "The end date can't be earlier than the month you turned 15."
   },
   "habilidades": {
     "titulo": "Skills",
