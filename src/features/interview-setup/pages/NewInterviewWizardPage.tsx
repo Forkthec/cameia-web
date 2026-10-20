@@ -314,7 +314,7 @@ export function NewInterviewWizardPage() {
         backLabel={t('common:acciones.atras')}
         onBack={store.currentStep > 0 ? handleBack : undefined}
         exitLabel={t('common:acciones.volverInicio')}
-        onExit={() => void navigate(ROUTES.inicio)}
+        exitTo={ROUTES.inicio}
         hidePrimaryAction={store.currentStep === 4}
       >
         <WizardStepHeader

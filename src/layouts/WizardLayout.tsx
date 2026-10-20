@@ -12,7 +12,7 @@
  * - Se monta dentro de `AppShell` (como el resto del área autenticada): la
  *   navegación de la app (NavHeader / TabBar / menú de usuario) la pone el
  *   shell, no esta plantilla.
- * - Arriba, una salida explícita (`exitLabel`/`onExit`, p. ej. «Volver al
+ * - Arriba, una salida explícita (`exitLabel`/`exitTo`, p. ej. «Volver al
  *   inicio», `Button` `tertiary`), distinta de «Atrás», que solo cambia de paso.
  * - El progreso vive en una tarjeta blanca con el `Stepper` («camino del
  *   amanecer»), y el contenido en una columna de lectura cómoda (`max-w-3xl`).
@@ -26,7 +26,7 @@
  *   dejarle el ancho a la acción primaria.
  */
 import type { ReactNode } from 'react';
-import { Button } from '@/design-system/atoms/Button';
+import { Button, ButtonLink } from '@/design-system/atoms/Button';
 import { Icon } from '@/design-system/icons/Icon';
 import { Stepper, type Step } from '@/design-system/molecules/Stepper';
 
@@ -45,8 +45,8 @@ interface WizardLayoutProps {
   progressText?: string;
   /** Texto de la salida del asistente (p. ej. «Volver al inicio»). Ya traducido. */
   exitLabel?: string;
-  /** Sale del asistente. Sin él no se muestra la salida. */
-  onExit?: () => void;
+  /** Ruta de salida del asistente. Sin ella no se muestra la salida. */
+  exitTo?: string;
   /** Oculta la barra de acciones; útil cuando el paso tiene su propia acción (p. ej. «Iniciar entrevista»). */
   hidePrimaryAction?: boolean;
   children: ReactNode;
@@ -64,22 +64,21 @@ export function WizardLayout({
   primaryActionDisabled = false,
   progressText,
   exitLabel,
-  onExit,
+  exitTo,
   hidePrimaryAction = false,
   children,
 }: WizardLayoutProps) {
   return (
     <div className="gap-space-5 mx-auto flex w-full max-w-4xl flex-col">
-      {onExit && exitLabel ? (
-        <Button
+      {exitTo && exitLabel ? (
+        <ButtonLink
+          to={exitTo}
           variant="tertiary"
-          size="md"
           icon={<Icon name="chevron-left" />}
-          onClick={onExit}
           className="self-start"
         >
           {exitLabel}
-        </Button>
+        </ButtonLink>
       ) : null}
 
       <div className="border-border-subtle bg-bg-surface px-space-4 py-space-5 md:px-space-6 rounded-xl border">

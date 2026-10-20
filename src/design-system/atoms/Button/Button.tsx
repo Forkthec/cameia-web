@@ -22,6 +22,7 @@
  */
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cloneElement, type ButtonHTMLAttributes, type ReactElement, type ReactNode } from 'react';
+import { Link } from 'react-router';
 import { cn } from '@/utils/cn';
 
 const buttonVariants = cva(
@@ -142,5 +143,50 @@ export function Button({
           })
         : null}
     </button>
+  );
+}
+
+interface ButtonLinkProps extends VariantProps<typeof buttonVariants> {
+  /** Ruta de destino (react-router). */
+  to: string;
+  /** Ícono a 20px, como en `Button`. */
+  icon?: ReactElement<{ size?: number; className?: string }>;
+  /** Lado del ícono respecto a la etiqueta. */
+  iconPosition?: 'start' | 'end';
+  className?: string;
+  /** Etiqueta visible. */
+  children: ReactNode;
+}
+
+/**
+ * `Button` con semántica de enlace (CM-329): mismas variantes, tamaños y
+ * estados visuales que `Button`, pero renderizado como `<a href>` de
+ * react-router. Es para navegar (p. ej. «Volver a inicio»), no para acciones:
+ * así un enlace y un botón de la misma variante se ven idénticos en toda la
+ * app sin copiar clases (ADR-0001).
+ */
+export function ButtonLink({
+  to,
+  variant = 'tertiary',
+  size = 'md',
+  icon,
+  iconPosition = 'start',
+  className,
+  children,
+}: ButtonLinkProps) {
+  return (
+    <Link to={to} className={cn(buttonVariants({ variant, size }), 'group/button', className)}>
+      {icon && iconPosition === 'start' ? cloneElement(icon, { size: 20 }) : null}
+      <span>{children}</span>
+      {icon && iconPosition === 'end'
+        ? cloneElement(icon, {
+            size: 20,
+            className: cn(
+              'transition-[translate] duration-[var(--duration-smooth)] ease-[var(--token-ease-out)] group-hover/button:translate-x-1',
+              icon.props.className,
+            ),
+          })
+        : null}
+    </Link>
   );
 }
