@@ -7,6 +7,8 @@
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
+import { Skeleton } from '@/design-system/atoms/Skeleton';
+import { Icon } from '@/design-system/icons/Icon';
 import { CardSelectable } from '@/design-system/molecules/CardSelectable';
 import { EmptyState } from '@/design-system/molecules/EmptyState';
 import type { ProfileSummaryItem } from '../../model/interviewSetup.types';
@@ -47,13 +49,9 @@ export function ProfileSelector({
 
   if (isLoading) {
     return (
-      <div className="gap-space-3 flex flex-col">
+      <div className="gap-space-3 flex flex-col" aria-busy="true">
         {[1, 2].map((i) => (
-          <div
-            key={i}
-            className="bg-bg-surface-sunken h-20 animate-pulse rounded-lg"
-            role="presentation"
-          />
+          <Skeleton key={i} className="h-[4.5rem] rounded-lg" />
         ))}
       </div>
     );
@@ -107,6 +105,7 @@ export function ProfileSelector({
             state={selectedProfileId === profile.id ? 'selected' : 'default'}
             onClick={() => onSelectProfile(profile.id)}
             title={profile.name}
+            icon={<Icon name="document" />}
             description={rolesText || undefined}
           />
         );

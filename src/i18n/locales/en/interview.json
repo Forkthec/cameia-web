@@ -5,7 +5,31 @@
       "perfilProfesional": "Professional profile",
       "ofertaYRol": "Job posting and role",
       "modoYTono": "Mode and tone",
-      "idiomaYFormato": "Language and answer format"
+      "idiomaYFormato": "Language and answer format",
+      "confirmar": "Confirm"
+    },
+    "pasoDeTotal": "Step {{actual}} of {{total}}",
+    "encabezados": {
+      "perfilProfesional": {
+        "titulo": "Which profile are you using?",
+        "descripcion": "Choose the Professional Profile the interviewer will use to prepare your questions."
+      },
+      "ofertaYRol": {
+        "titulo": "What are you applying for?",
+        "descripcion": "Paste the job offer if you have it and choose the role, so the questions match that position."
+      },
+      "modoYTono": {
+        "titulo": "How should the interview feel?",
+        "descripcion": "Choose the mode and your interviewer’s personality."
+      },
+      "idiomaYFormato": {
+        "titulo": "Which language, and how will you answer?",
+        "descripcion": "Practice in Spanish or English, speaking or writing."
+      },
+      "confirmar": {
+        "titulo": "Everything is ready for your interview",
+        "descripcion": "Review your setup. You can change anything before you start."
+      }
     }
   },
   "perfil": {
@@ -35,7 +59,8 @@
   },
   "validacion": {
     "ofertaMaxCaracteres": "The job posting cannot exceed 3000 characters.",
-    "rolObligatorio": "Choose a target role from the list."
+    "rolObligatorio": "Choose a target role from the list.",
+    "rolDeLaLista": "Choose a target role from the list."
   },
   "modalidad": {
     "etiqueta": "Mode",
@@ -67,6 +92,29 @@
     "etiqueta": "Interview language",
     "es-CO": "Spanish (Colombia)",
     "en": "English"
+  },
+  "confirmar": {
+    "titulo": "Confirm and start",
+    "resumen": "Review your settings before starting the interview.",
+    "perfil": "Professional profile",
+    "ofertaLaboral": "Job posting",
+    "sinOferta": "No job posting",
+    "rolObjetivo": "Target role",
+    "modalidad": "Mode",
+    "tono": "Interviewer tone",
+    "formaRespuesta": "Answer format",
+    "idiomaEntrevista": "Interview language",
+    "iniciarEntrevista": "Start interview",
+    "datosIncompletos": "Choose a Professional Profile and a target role to start the interview.",
+    "errorGenerico": "Something went wrong. Please try again.",
+    "perfilSincronizando": "Your profile is being updated. Try again in a few seconds.",
+    "avisoEnCurso": {
+      "titulo": "Interview in progress",
+      "mensaje": "You have an interview in progress. If you start a new one, the previous one will be closed without evaluation.",
+      "iniciarNueva": "Start the new one",
+      "volverEntrevista": "Back to my interview",
+      "cancelar": "Cancel"
+    }
   },
   "modo": {
     "ENTRENO": "Practice",

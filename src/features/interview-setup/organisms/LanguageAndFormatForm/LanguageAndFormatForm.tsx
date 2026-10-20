@@ -4,6 +4,7 @@
  * Forma: Audio preseleccionado, Texto seleccionable (CA-4.3.3);
  * si el navegador no permite grabar, Audio queda deshabilitado (CA-4.3.7).
  */
+import { AlertInline } from '@/design-system/molecules/AlertInline';
 import { CardSelectable } from '@/design-system/molecules/CardSelectable';
 import { Icon, type IconName } from '@/design-system/icons/Icon';
 import { cn } from '@/utils/cn';
@@ -75,9 +76,9 @@ export function LanguageAndFormatForm({
           {formatLabel}
         </legend>
         {!canRecordAudio ? (
-          <p className="text-small text-status-warning mb-space-3" role="alert">
+          <AlertInline variant="warning" className="mb-space-3">
             {browserCannotRecordMessage}
-          </p>
+          </AlertInline>
         ) : null}
         <div
           className={cn('gap-space-3 grid grid-cols-1 sm:grid-cols-2')}

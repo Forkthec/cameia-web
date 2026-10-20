@@ -14,6 +14,7 @@ import {
   ArrowRight,
   Briefcase,
   ChartColumn,
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -65,6 +66,7 @@ export const icons = {
   message: MessageCircle, // temporal · Lucide, reemplazar por SVG de Figma
   document: FileText, // temporal · Lucide, reemplazar por SVG de Figma
   briefcase: Briefcase, // temporal · Lucide, reemplazar por SVG de Figma
+  check: Check, // temporal · Lucide, reemplazar por SVG de Figma
   'check-circle': CircleCheckBig, // temporal · Lucide, reemplazar por SVG de Figma
   clock: Clock, // temporal · Lucide, reemplazar por SVG de Figma
   chart: ChartColumn, // temporal · Lucide, reemplazar por SVG de Figma

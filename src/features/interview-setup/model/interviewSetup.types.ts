@@ -7,7 +7,7 @@
 export interface ProfileSummaryItem {
   id: string;
   name: string;
-  status: 'IN_PROGRESS' | 'COMPLETED';
+  status: 'PENDING' | 'IN_PROGRESS' | 'IN_REVIEW' | 'COMPLETED';
   targetRoles: ProfileTargetRoleSummary[];
 }
 

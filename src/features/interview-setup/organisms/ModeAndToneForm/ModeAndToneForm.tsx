@@ -58,7 +58,11 @@ export function ModeAndToneForm({
         <legend className="text-body text-text-primary mb-space-3 font-semibold">
           {modeLabel}
         </legend>
-        <div className="gap-space-3 grid grid-cols-2" role="radiogroup" aria-label={modeLabel}>
+        <div
+          className="gap-space-3 grid grid-cols-1 sm:grid-cols-2"
+          role="radiogroup"
+          aria-label={modeLabel}
+        >
           {INTERVIEW_MODES.map((mode) => {
             const isDisabled = DISABLED_MODES.has(mode);
             return (
@@ -68,7 +72,7 @@ export function ModeAndToneForm({
                 onClick={() => !isDisabled && onModeChange(mode)}
                 icon={<Icon name={MODE_ICONS[mode]} />}
                 title={modeLabels[mode]}
-                description={isDisabled ? comingSoonLabel : undefined}
+                badge={isDisabled ? comingSoonLabel : undefined}
               />
             );
           })}

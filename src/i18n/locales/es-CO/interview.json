@@ -5,7 +5,31 @@
       "perfilProfesional": "Perfil profesional",
       "ofertaYRol": "Oferta y rol",
       "modoYTono": "Modo y tono",
-      "idiomaYFormato": "Idioma y forma de respuesta"
+      "idiomaYFormato": "Idioma y forma de respuesta",
+      "confirmar": "Confirmar"
+    },
+    "pasoDeTotal": "Paso {{actual}} de {{total}}",
+    "encabezados": {
+      "perfilProfesional": {
+        "titulo": "¿Con qué perfil te presentas?",
+        "descripcion": "Elige el Perfil Profesional que usará el entrevistador para preparar tus preguntas."
+      },
+      "ofertaYRol": {
+        "titulo": "¿A qué te estás postulando?",
+        "descripcion": "Pega la oferta si la tienes y elige el rol: así las preguntas se parecen a las de esa vacante."
+      },
+      "modoYTono": {
+        "titulo": "¿Cómo quieres que sea la entrevista?",
+        "descripcion": "Elige la modalidad y la personalidad de tu entrevistador."
+      },
+      "idiomaYFormato": {
+        "titulo": "¿En qué idioma y cómo respondes?",
+        "descripcion": "Puedes practicar en español o en inglés, hablando o escribiendo."
+      },
+      "confirmar": {
+        "titulo": "Todo listo para tu entrevista",
+        "descripcion": "Revisa tu configuración. Puedes cambiar cualquier dato antes de empezar."
+      }
     }
   },
   "perfil": {
@@ -35,7 +59,8 @@
   },
   "validacion": {
     "ofertaMaxCaracteres": "La oferta laboral no puede superar los 3000 caracteres.",
-    "rolObligatorio": "Elige un rol objetivo de la lista."
+    "rolObligatorio": "Elige un rol objetivo de la lista.",
+    "rolDeLaLista": "Elige un rol objetivo de la lista."
   },
   "modalidad": {
     "etiqueta": "Modalidad",
@@ -67,6 +92,29 @@
     "etiqueta": "Idioma de la entrevista",
     "es-CO": "Español (Colombia)",
     "en": "Inglés"
+  },
+  "confirmar": {
+    "titulo": "Confirmar e iniciar",
+    "resumen": "Revisa tu configuración antes de iniciar la entrevista.",
+    "perfil": "Perfil profesional",
+    "ofertaLaboral": "Oferta laboral",
+    "sinOferta": "Sin oferta laboral",
+    "rolObjetivo": "Rol objetivo",
+    "modalidad": "Modalidad",
+    "tono": "Tono del entrevistador",
+    "formaRespuesta": "Forma de respuesta",
+    "idiomaEntrevista": "Idioma de la entrevista",
+    "iniciarEntrevista": "Iniciar entrevista",
+    "datosIncompletos": "Elige un Perfil Profesional y un rol objetivo para iniciar la entrevista.",
+    "errorGenerico": "Ocurrió un error. Inténtalo de nuevo.",
+    "perfilSincronizando": "Tu perfil se está actualizando. Inténtalo en unos segundos.",
+    "avisoEnCurso": {
+      "titulo": "Entrevista en curso",
+      "mensaje": "Tienes una entrevista en curso. Si inicias la nueva, la anterior se cerrará sin evaluación.",
+      "iniciarNueva": "Iniciar la nueva",
+      "volverEntrevista": "Volver a mi entrevista",
+      "cancelar": "Cancelar"
+    }
   },
   "modo": {
     "ENTRENO": "Entreno",

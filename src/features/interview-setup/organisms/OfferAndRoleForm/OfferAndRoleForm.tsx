@@ -4,15 +4,26 @@
  * en tiempo real (CA-4.2.4). El Rol Objetivo es un autocomplete
  * single-select sobre el catalogo de roles activos, con los roles del
  * perfil sugeridos primero (CA-4.2.20).
+ *
+ * **Presentación «Amanecer» y Atomic Design (CM-208).** Solo diseño: el
+ * contador es la molécula `CharacterCounter`, las etiquetas son el átomo
+ * `Label` y los esqueletos de carga el átomo `Skeleton`.
+ *
+ * CA-4.2.13: soltar un archivo sobre la oferta no lo adjunta ni lo abre el
+ * navegador (se cancela el `drop` de archivos); el texto se conserva y la
+ * pantalla no ofrece ningún control de carga. Arrastrar texto sigue igual.
  */
-import { useMemo } from 'react';
+import { useMemo, type DragEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/design-system/atoms/Input';
+import { Label } from '@/design-system/atoms/Label';
+import { Skeleton } from '@/design-system/atoms/Skeleton';
 import {
   Autocomplete,
   type AutocompleteOption,
   type AutocompleteGroup,
 } from '@/design-system/molecules/Autocomplete';
+import { CharacterCounter } from '@/design-system/molecules/CharacterCounter';
 import { EmptyState } from '@/design-system/molecules/EmptyState';
 import { JOB_OFFER_MAX_LENGTH } from '../../model/interviewSetup.constants';
 import type { ProfileSummaryItem } from '../../model/interviewSetup.types';
@@ -30,6 +41,14 @@ interface OfferAndRoleFormProps {
   onRoleSelect: (roleId: string | null) => void;
   jobOfferError: string | null;
   roleError: string | null;
+}
+
+/** Cancela el arrastre de archivos (no de texto) sobre la oferta (CA-4.2.13). */
+function rejectFileDrop(event: DragEvent<HTMLDivElement>) {
+  if (event.dataTransfer.types.includes('Files')) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'none';
+  }
 }
 
 export function OfferAndRoleForm({
@@ -89,9 +108,9 @@ export function OfferAndRoleForm({
 
   if (isLoadingRoles) {
     return (
-      <div className="gap-space-4 flex flex-col">
-        <div className="bg-bg-surface-sunken h-32 animate-pulse rounded-lg" role="presentation" />
-        <div className="bg-bg-surface-sunken h-12 animate-pulse rounded-lg" role="presentation" />
+      <div className="gap-space-4 flex flex-col" aria-busy="true">
+        <Skeleton className="h-36 rounded-lg" />
+        <Skeleton className="h-12 rounded-lg" />
       </div>
     );
   }
@@ -109,10 +128,14 @@ export function OfferAndRoleForm({
 
   return (
     <div className="gap-space-6 flex flex-col">
-      <div className="gap-space-2 flex flex-col">
-        <label htmlFor="job-offer" className="text-body text-text-primary font-semibold">
+      <div
+        className="gap-space-2 flex flex-col"
+        onDragOverCapture={rejectFileDrop}
+        onDropCapture={rejectFileDrop}
+      >
+        <Label htmlFor="job-offer" className="text-body">
           {t('interview:oferta.etiqueta')}
-        </label>
+        </Label>
         <Input
           id="job-offer"
           type="textarea"
@@ -124,18 +147,17 @@ export function OfferAndRoleForm({
           state={jobOfferError || isOverLimit ? 'error' : 'default'}
           errorMessage={jobOfferError ?? undefined}
         />
-        <span
-          className={`text-small text-right ${isOverLimit ? 'text-danger-base' : 'text-text-muted'}`}
-          aria-live="polite"
-        >
-          {t('interview:oferta.contador', { actual: charCount, max: JOB_OFFER_MAX_LENGTH })}
-        </span>
+        <div aria-live="polite" className="flex justify-end">
+          <CharacterCounter
+            count={charCount}
+            max={JOB_OFFER_MAX_LENGTH}
+            formatLabel={(actual, max) => t('interview:oferta.contador', { actual, max })}
+          />
+        </div>
       </div>
 
       <div className="gap-space-2 flex flex-col">
-        <label className="text-body text-text-primary font-semibold">
-          {t('interview:rol.etiqueta')}
-        </label>
+        <p className="text-body text-text-primary font-semibold">{t('interview:rol.etiqueta')}</p>
         <Autocomplete
           label={t('interview:rol.etiqueta')}
           options={roleOptions}
