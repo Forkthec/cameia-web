@@ -37,20 +37,40 @@
     "ofertaMaxCaracteres": "La oferta laboral no puede superar los 3000 caracteres.",
     "rolObligatorio": "Elige un rol objetivo de la lista."
   },
+  "modalidad": {
+    "etiqueta": "Modalidad",
+    "SIMULACION": "Simulación",
+    "ENTRENO": "Entreno",
+    "proximamente": "Próximamente"
+  },
+  "tono": {
+    "etiqueta": "Tono del entrevistador",
+    "PROFESIONAL_NEUTRO": "Profesional y neutro",
+    "PROFESIONAL_NEUTRO_descripcion": "Formal y directo, como en una entrevista corporativa estándar.",
+    "CALIDO": "Cálido",
+    "CALIDO_descripcion": "Amable y cercano, ideal para reducir la ansiedad.",
+    "ESTRICTO": "Estricto",
+    "ESTRICTO_descripcion": "Exigente y detallista, simula entrevistas de alta presión.",
+    "MOTIVADOR": "Motivador",
+    "MOTIVADOR_descripcion": "Positivo y alentador, destaca tus fortalezas."
+  },
+  "formaRespuesta": {
+    "etiqueta": "Forma de respuesta",
+    "AUDIO": "Audio",
+    "AUDIO_descripcion": "Responde con tu voz, como en una entrevista real.",
+    "TEXTO": "Texto",
+    "TEXTO_descripcion": "Escribe tus respuestas en el chat.",
+    "VIDEO": "Video",
+    "navegadorNoGraba": "Tu navegador no permite grabar. Responderás por texto."
+  },
+  "idiomaEntrevista": {
+    "etiqueta": "Idioma de la entrevista",
+    "es-CO": "Español (Colombia)",
+    "en": "Inglés"
+  },
   "modo": {
     "ENTRENO": "Entreno",
     "SIMULACION": "Simulación"
-  },
-  "tono": {
-    "PROFESIONAL_NEUTRO": "Profesional y neutro",
-    "CALIDO": "Cálido",
-    "ESTRICTO": "Estricto",
-    "MOTIVADOR": "Motivador"
-  },
-  "formaRespuesta": {
-    "TEXTO": "Texto",
-    "AUDIO": "Audio",
-    "VIDEO": "Video"
   },
   "idioma": {
     "es-CO": "Español (Colombia)",

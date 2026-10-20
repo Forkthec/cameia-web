@@ -28,9 +28,9 @@ export function Stepper({ steps, label, className }: StepperProps) {
               className={cn(
                 'text-small flex h-8 w-8 items-center justify-center rounded-full font-semibold',
                 step.status === 'complete'
-                  ? 'bg-brand-base text-text-on-inverse'
+                  ? 'bg-brand-accent text-brand-deepest'
                   : step.status === 'current'
-                    ? 'border-brand-base text-brand-base border-2'
+                    ? 'border-brand-accent text-brand-accent border-2'
                     : 'border-border-strong text-text-muted border',
               )}
             >
