@@ -146,15 +146,19 @@ export function MenuUsuario({
             aria-hidden="true"
             className="bg-border-subtle my-space-1 h-px w-full"
           />
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => handleActionClick(cerrarSesion)}
-            className="gap-space-2 px-space-4 py-space-3 text-body text-danger-text hover:bg-bg-surface-sunken flex cursor-pointer items-center text-left"
-          >
-            <Icon name="log-out" size={20} />
-            {cerrarSesion.label}
-          </button>
+          {/* Mismo inset y radio que la fila de idioma: el resaltado no toca
+              los bordes del menú (reporte de Testeo, 19-10-2026). */}
+          <div role="none" className="px-space-2">
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => handleActionClick(cerrarSesion)}
+              className="gap-space-2 px-space-3 text-body text-danger-text hover:bg-bg-surface-sunken focus-visible:shadow-focus-ring min-h-touch-target flex w-full cursor-pointer items-center rounded-md text-left focus-visible:outline-none"
+            >
+              <Icon name="log-out" size={20} />
+              {cerrarSesion.label}
+            </button>
+          </div>
         </div>
       ) : null}
     </div>
