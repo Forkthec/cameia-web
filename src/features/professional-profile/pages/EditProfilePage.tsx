@@ -76,10 +76,17 @@
  * Cada sección muestra solo el mensaje de su última acción, alta o baja; los errores se resuelven por `code` con
  * tablas propias consultadas antes de las de `getItemErrorMessage`, y sin `code` conocido el texto es
  * `errors:generico` (o `errors:red` si no es un `ApiError`).
+ *
+ * **CM-338 (CA-2.5.6):** al finalizar con éxito muestra «Tu perfil ya está
+ * activo.» y, pasados `REDIRECT_AFTER_FINALIZE_MS` para que se alcance a leer
+ * (y a anunciar: `AlertInline` es `role="status"`), lleva a «Nueva
+ * entrevista» (`ROUTES.entrenarNueva`, HU-4.2). El temporizador se cancela si
+ * la página se desmonta antes.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
+import { ROUTES } from '@/app/router/routes';
 import { Button } from '@/design-system/atoms/Button';
 import { Spinner } from '@/design-system/atoms/Spinner';
 import { AlertInline } from '@/design-system/molecules/AlertInline';
@@ -177,6 +184,9 @@ function findFieldErrors(
   return Object.keys(result).length > 0 ? result : undefined;
 }
 
+/** Tiempo para leer «Tu perfil ya está activo.» antes de ir a «Nueva entrevista» (CM-338). */
+const REDIRECT_AFTER_FINALIZE_MS = 1800;
+
 export function EditProfilePage() {
   const { id } = useParams<{ id: string }>();
   const profileId = id as string;
@@ -202,10 +212,18 @@ export function EditProfilePage() {
   const addSkill = useAddSkill(profileId);
   const removeSkill = useRemoveSkill(profileId);
   const finalizeProfile = useFinalizeProfile(profileId);
+  const navigate = useNavigate();
   const addTargetRole = useAddTargetRole(profileId);
   const substituteTargetRole = useSubstituteTargetRole(profileId);
   const removeTargetRole = useRemoveTargetRole(profileId);
   const setLastUsedProfileId = useUiPreferencesStore((state) => state.setLastUsedProfileId);
+  useEffect(() => {
+    if (!finalizeProfile.isSuccess) return;
+    const timer = window.setTimeout(() => {
+      void navigate(ROUTES.entrenarNueva);
+    }, REDIRECT_AFTER_FINALIZE_MS);
+    return () => window.clearTimeout(timer);
+  }, [finalizeProfile.isSuccess, navigate]);
   // CM-272 (punto 2): «Cambios guardados.» solo es verdad mientras el formulario no tenga cambios sin guardar.
   const [isGeneralInfoDirty, setIsGeneralInfoDirty] = useState(false);
   // CM-273 (D-AA, D-AD): cada sección muestra solo el mensaje de su última acción, alta o baja.

@@ -45,6 +45,7 @@ function renderPage(profileId: string) {
         <MemoryRouter initialEntries={[`/perfiles/${profileId}/editar`]}>
           <Routes>
             <Route path="/perfiles/:id/editar" element={<EditProfilePage />} />
+            <Route path="/entrenar/nueva" element={<p>Pantalla Nueva entrevista</p>} />
           </Routes>
         </MemoryRouter>
       </I18nextProvider>
@@ -279,6 +280,10 @@ describe('EditProfilePage', () => {
     await user.click(finishButton);
 
     expect(await screen.findByText('Tu perfil ya está activo.')).toBeInTheDocument();
+    // CM-338 (CA-2.5.6): tras el mensaje, lleva a «Nueva entrevista».
+    expect(
+      await screen.findByText('Pantalla Nueva entrevista', {}, { timeout: 4000 }),
+    ).toBeInTheDocument();
   });
 
   it('CM-195: un perfil ya activo (COMPLETED) muestra el aviso visible y bloquea el botón', async () => {
