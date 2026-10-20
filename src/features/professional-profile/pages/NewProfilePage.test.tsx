@@ -71,6 +71,29 @@ describe('NewProfilePage', () => {
     expect(screen.getByText('Autocompletar con IA')).toBeInTheDocument();
   });
 
+  it('si el backend ya tiene un perfil del usuario, abre su formulario (CA-10.4.4)', async () => {
+    await waitUntilReady();
+    useUiPreferencesStore.setState({ lastUsedProfileId: null });
+    useHandlers(
+      http.get('*/api/v1/profiles', () =>
+        HttpResponse.json({ profiles: [{ id: 'perfil-existente' }] }),
+      ),
+    );
+    renderPage();
+
+    expect(await screen.findByText('Editar perfil perfil-existente')).toBeInTheDocument();
+    expect(useUiPreferencesStore.getState().lastUsedProfileId).toBe('perfil-existente');
+  });
+
+  it('si la lista de perfiles falla, muestra igual la selección del método', async () => {
+    await waitUntilReady();
+    useUiPreferencesStore.setState({ lastUsedProfileId: null });
+    useHandlers(http.get('*/api/v1/profiles', () => new HttpResponse(null, { status: 500 })));
+    renderPage();
+
+    expect(await screen.findByText('Llenado Manual')).toBeInTheDocument();
+  });
+
   it('la tarjeta de IA está deshabilitada y no navega', async () => {
     await waitUntilReady();
     const user = userEvent.setup();

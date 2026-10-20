@@ -43,19 +43,32 @@
  * usuario ya tiene un perfil. También se redirige de inmediato si ese id
  * ya existe al montar esta página — cubre exactamente el caso de "atrás del
  * navegador" que motivó este mensaje de error en primer lugar.
+ *
+ * **CA-10.4.3 / CA-10.4.4 (backend real):** `lastUsedProfileId` vive solo en
+ * este navegador; con otra sesión, otro equipo o tras cerrar sesión llega
+ * vacío aunque el Usuario ya tenga perfil, y «Mi Perfil Profesional» o
+ * «Perfiles» terminaban aquí ofreciendo crear otro (y el backend respondía
+ * con el cupo del plan). Por eso, sin ese id, se consulta
+ * `GET /api/v1/profiles`: si hay alguno, se abre su formulario; si no hay o
+ * la consulta falla, se muestra la selección del método como antes.
  */
 import { useEffect, useRef } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
 import { httpClient } from '@/services/http/httpClient';
 import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
 import { isProfileCreationInProgress, isProfileLimitReached } from '../model/profileLimit';
+import { Spinner } from '@/design-system/atoms/Spinner';
 import { ProfileMethodSelector } from '../organisms/ProfileMethodSelector';
 
 interface CreateProfileResponse {
   id: string;
+}
+
+interface ProfileListResponse {
+  profiles: { id: string }[];
 }
 
 export function NewProfilePage() {
@@ -72,6 +85,19 @@ export function NewProfilePage() {
     // pestaña), no se quiere interrumpir a alguien ya interactuando aquí.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const existingProfiles = useQuery({
+    queryKey: ['profiles', 'list'],
+    queryFn: () => httpClient.get<ProfileListResponse>('/api/v1/profiles'),
+    enabled: !lastUsedProfileId,
+  });
+  const existingProfileId = existingProfiles.data?.profiles[0]?.id;
+
+  useEffect(() => {
+    if (!existingProfileId) return;
+    setLastUsedProfileId(existingProfileId);
+    void navigate(ROUTES.perfilEditar(existingProfileId), { replace: true });
+  }, [existingProfileId, navigate, setLastUsedProfileId]);
 
   const isCreatingRef = useRef(false);
 
@@ -103,6 +129,14 @@ export function NewProfilePage() {
     } else {
       errorMessage = t('errors:generico');
     }
+  }
+
+  if (lastUsedProfileId || existingProfiles.isPending || existingProfileId) {
+    return (
+      <div className="py-space-9 flex justify-center">
+        <Spinner label={t('common:estados.cargando')} />
+      </div>
+    );
   }
 
   return (

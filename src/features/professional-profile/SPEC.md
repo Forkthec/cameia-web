@@ -128,6 +128,11 @@ Fuente: backlog `09102026_01` (v6), hoja HE-02, HU-2.2, CA-2.2.1 a CA-2.2.7.
   `lastUsedProfileId`. Efecto a tener presente: con ese id guardado el selector no se muestra, así que
   el mensaje de cupo de CA-2.2.3 solo es alcanzable sin él (otro navegador o dispositivo). Si eso es
   lo que se quiere frente a CA-2.2.3 y CA-2.2.5, está por confirmar.
+- **Perfil existente sin id guardado (CA-10.4.3, CA-10.4.4).** Sin `lastUsedProfileId` (otro navegador,
+  otro equipo, tras cerrar sesión), `NewProfilePage` consulta `GET /api/v1/profiles` antes de mostrar el
+  selector: si hay perfiles, guarda el primero en `lastUsedProfileId` y abre su formulario (`replace`);
+  si la lista está vacía o falla, muestra el selector. Mientras consulta, solo un `Spinner`. Así
+  «Mi Perfil Profesional» del tablero y «Perfiles» de `AppShell` abren el perfil real contra el backend.
 - **CA-2.2.2 (ruta de IA) — implementado.** La tarjeta «Autocompletar con IA» se muestra
   deshabilitada con la etiqueta «Próximamente» (`StateLocked`); no crea ningún perfil, no navega a la
   carga de la Hoja de Vida (HU-2.6, Sprint 2) y no llama al backend. Diverge del frame de Figma, que
