@@ -7,6 +7,29 @@
       "modoYTono": "Modo y tono",
       "idiomaYFormato": "Idioma y forma de respuesta",
       "confirmar": "Confirmar"
+    },
+    "pasoDeTotal": "Paso {{actual}} de {{total}}",
+    "encabezados": {
+      "perfilProfesional": {
+        "titulo": "¿Con qué perfil te presentas?",
+        "descripcion": "Elige el Perfil Profesional que usará el entrevistador para preparar tus preguntas."
+      },
+      "ofertaYRol": {
+        "titulo": "¿A qué te estás postulando?",
+        "descripcion": "Pega la oferta si la tienes y elige el rol: así las preguntas se parecen a las de esa vacante."
+      },
+      "modoYTono": {
+        "titulo": "¿Cómo quieres que sea la entrevista?",
+        "descripcion": "Elige la modalidad y la personalidad de tu entrevistador."
+      },
+      "idiomaYFormato": {
+        "titulo": "¿En qué idioma y cómo respondes?",
+        "descripcion": "Puedes practicar en español o en inglés, hablando o escribiendo."
+      },
+      "confirmar": {
+        "titulo": "Todo listo para tu entrevista",
+        "descripcion": "Revisa tu configuración. Puedes cambiar cualquier dato antes de empezar."
+      }
     }
   },
   "perfil": {
@@ -90,7 +113,8 @@
       "iniciarNueva": "Iniciar la nueva",
       "volverEntrevista": "Volver a mi entrevista",
       "cancelar": "Cancelar"
-    }
+    },
+    "cambiar": "Cambiar"
   },
   "modo": {
     "ENTRENO": "Entreno",

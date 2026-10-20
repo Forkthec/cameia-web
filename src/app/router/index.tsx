@@ -17,7 +17,7 @@ import { featureFlags } from '@/config/features';
 import { authRoutes, verifyEmailRoutes } from '@/features/auth';
 import { homeRoutes } from '@/features/home';
 import { interviewSessionRoutes } from '@/features/interview-session';
-import { interviewSetupRoutes } from '@/features/interview-setup';
+import { interviewSetupRoutes, interviewSetupShellRoutes } from '@/features/interview-setup';
 import { landingRoutes } from '@/features/landing';
 import { professionalProfileShellRoutes } from '@/features/professional-profile';
 import { AuthenticatedAppShell } from './AuthenticatedAppShell';
@@ -41,7 +41,11 @@ export const routeConfig: RouteObject[] = [
         children: [
           {
             element: <AuthenticatedAppShell progressEnabled={featureFlags.PROGRESS} />,
-            children: [...homeRoutes, ...professionalProfileShellRoutes],
+            children: [
+              ...homeRoutes,
+              ...professionalProfileShellRoutes,
+              ...interviewSetupShellRoutes,
+            ],
           },
           ...interviewSetupRoutes,
           ...interviewSessionRoutes,

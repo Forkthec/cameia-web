@@ -3,19 +3,40 @@
  * (PRT-04.11, HU-4.4). Muestra un resumen de las selecciones del usuario,
  * el boton con estado de carga (CA-4.4.17) y maneja el error generico
  * (CA-4.4.5) y el de perfil sincronizando (CA-4.4.19).
+ *
+ * **Presentación «Amanecer» y Atomic Design (CM-208).** Solo diseño, mismo
+ * comportamiento:
+ * - Los botones son el átomo `Button` (antes eran `<button>` escritos a
+ *   mano): «Iniciar entrevista» `primary` con flecha y estado `loading` del
+ *   átomo; «Atrás» `secondary`.
+ * - Los avisos usan la molécula `AlertInline` (antes cajas a mano con clases
+ *   que no existían en el tema, `bg-status-*`/`rounded-radius-*`).
+ * - Cada fila del resumen lleva su ícono y, si se pasa `onEdit`, un botón
+ *   «Cambiar» (`Button` `tertiary`) que vuelve al paso de ese dato.
+ * - `title`/`subtitle` son opcionales: el asistente ya muestra el
+ *   encabezado del paso con `WizardStepHeader`.
  */
-import { Icon } from '@/design-system/icons/Icon';
-import { cn } from '@/utils/cn';
+import { Button } from '@/design-system/atoms/Button';
+import { Icon, type IconName } from '@/design-system/icons/Icon';
+import { AlertInline } from '@/design-system/molecules/AlertInline';
 
 interface SummaryRow {
   label: string;
   value: string;
+  /** Ícono del dato (decorativo). */
+  icon?: IconName;
+  /** Vuelve al paso donde se elige este dato. */
+  onEdit?: () => void;
 }
 
 interface ConfirmAndStartFormProps {
-  title: string;
-  subtitle: string;
+  /** Título propio del bloque. Opcional: el asistente muestra su propio encabezado. */
+  title?: string;
+  /** Bajada propia del bloque. Opcional, igual que `title`. */
+  subtitle?: string;
   rows: SummaryRow[];
+  /** Texto del botón «Cambiar» de cada fila con `onEdit`. */
+  editLabel?: string;
   startLabel: string;
   onStart: () => void;
   isLoading: boolean;
@@ -31,6 +52,7 @@ export function ConfirmAndStartForm({
   title,
   subtitle,
   rows,
+  editLabel,
   startLabel,
   onStart,
   isLoading,
@@ -43,72 +65,76 @@ export function ConfirmAndStartForm({
 }: ConfirmAndStartFormProps) {
   return (
     <div className="gap-space-6 flex flex-col">
-      <div>
-        <h2 className="text-h3 text-text-primary font-semibold">{title}</h2>
-        <p className="text-body text-text-muted mt-space-1">{subtitle}</p>
-      </div>
+      {title || subtitle ? (
+        <div>
+          {title ? <h2 className="text-h3 text-text-primary font-semibold">{title}</h2> : null}
+          {subtitle ? <p className="text-body text-text-muted mt-space-1">{subtitle}</p> : null}
+        </div>
+      ) : null}
 
-      <div className="border-border-subtle bg-bg-surface rounded-radius-md divide-border-subtle divide-y border">
+      <ul className="gap-space-3 grid md:grid-cols-2">
         {rows.map((row) => (
-          <div key={row.label} className="p-space-4 flex items-center justify-between">
-            <span className="text-small text-text-muted">{row.label}</span>
-            <span className="text-body text-text-primary font-medium">{row.value}</span>
-          </div>
-        ))}
-      </div>
-
-      {disabledMessage ? (
-        <div
-          className="bg-status-warning-subtle rounded-radius-sm p-space-3 gap-space-2 flex items-center"
-          role="alert"
-        >
-          <Icon name="alert-triangle" size={16} className="text-status-warning shrink-0" />
-          <p className="text-small text-text-primary">{disabledMessage}</p>
-        </div>
-      ) : null}
-
-      {errorMessage ? (
-        <div
-          className="bg-status-error-subtle rounded-radius-sm p-space-3 gap-space-2 flex items-center"
-          role="alert"
-        >
-          <Icon name="alert-circle" size={16} className="text-status-error shrink-0" />
-          <p className="text-small text-text-primary">{errorMessage}</p>
-        </div>
-      ) : null}
-
-      <div className="gap-space-3 flex flex-col sm:flex-row-reverse">
-        <button
-          type="button"
-          onClick={onStart}
-          disabled={isDisabled || isLoading}
-          className={cn(
-            'min-h-touch-target rounded-radius-md px-space-6 py-space-3 text-body flex-1 font-semibold transition-colors',
-            'focus-visible:shadow-focus-ring focus-visible:outline-none',
-            isDisabled || isLoading
-              ? 'bg-bg-disabled text-text-disabled cursor-not-allowed'
-              : 'bg-action-primary text-brand-deepest hover:bg-action-primary-hover active:bg-action-primary-press cursor-pointer',
-          )}
-        >
-          {isLoading ? (
-            <span className="gap-space-2 inline-flex items-center justify-center">
-              <Icon name="loading-arc" size={18} className="animate-spin" />
-              {loadingLabel}
+          <li
+            key={row.label}
+            className="border-border-subtle bg-bg-surface gap-space-3 p-space-4 flex items-center rounded-lg border"
+          >
+            {row.icon ? (
+              <span
+                aria-hidden="true"
+                className="bg-brand-tint text-brand-base grid size-10 shrink-0 place-items-center rounded-md"
+              >
+                <Icon name={row.icon} size={20} />
+              </span>
+            ) : null}
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="text-label text-text-muted uppercase">{row.label}</span>
+              <span className="text-body text-text-primary font-semibold break-words">
+                {row.value}
+              </span>
             </span>
-          ) : (
-            startLabel
-          )}
-        </button>
-        <button
-          type="button"
+            {row.onEdit && editLabel ? (
+              <Button
+                variant="tertiary"
+                size="md"
+                onClick={row.onEdit}
+                aria-label={`${editLabel}: ${row.label}`}
+              >
+                {editLabel}
+              </Button>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+
+      {disabledMessage ? <AlertInline variant="warning">{disabledMessage}</AlertInline> : null}
+      {errorMessage ? <AlertInline variant="error">{errorMessage}</AlertInline> : null}
+
+      <div className="gap-space-3 flex flex-col sm:flex-row-reverse sm:justify-between">
+        {isLoading ? (
+          <Button size="lg" loading loadingLabel={loadingLabel} className="w-full sm:w-auto">
+            {startLabel}
+          </Button>
+        ) : (
+          <Button
+            size="lg"
+            icon={<Icon name="arrow-right" />}
+            iconPosition="end"
+            onClick={onStart}
+            disabled={isDisabled}
+            className="w-full sm:w-auto"
+          >
+            {startLabel}
+          </Button>
+        )}
+        <Button
+          variant="secondary"
+          size="lg"
+          icon={<Icon name="chevron-left" />}
           onClick={onBack}
-          className={cn(
-            'min-h-touch-target rounded-radius-md border-border-strong px-space-6 py-space-3 text-body text-text-primary border font-semibold transition-colors',
-            'hover:bg-bg-surface-sunken focus-visible:shadow-focus-ring focus-visible:outline-none',
-          )}
+          className="w-full sm:w-auto"
         >
           {backLabel}
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -106,7 +106,8 @@ describe('ProfileSelector', () => {
 
   it('muestra skeleton durante carga', () => {
     renderSelector({ isLoading: true });
-    expect(screen.getAllByRole('presentation')).toHaveLength(2);
+    // Esqueletos del átomo `Skeleton` (decorativos) dentro de un contenedor aria-busy (CM-208).
+    expect(document.querySelector('[aria-busy="true"]')?.children).toHaveLength(2);
   });
 
   it('muestra estado de error con boton reintentar', async () => {

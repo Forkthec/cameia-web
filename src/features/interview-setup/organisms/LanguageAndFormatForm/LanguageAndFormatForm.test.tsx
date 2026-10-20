@@ -71,7 +71,7 @@ describe('LanguageAndFormatForm', () => {
 
   it('deshabilita Audio y muestra alerta cuando el navegador no graba (CA-4.3.7)', () => {
     renderForm({ canRecordAudio: false });
-    expect(screen.getByRole('alert')).toHaveTextContent(
+    expect(screen.getByRole('status')).toHaveTextContent(
       'Tu navegador no soporta grabación de audio',
     );
   });

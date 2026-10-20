@@ -7,6 +7,29 @@
       "modoYTono": "Mode and tone",
       "idiomaYFormato": "Language and answer format",
       "confirmar": "Confirm"
+    },
+    "pasoDeTotal": "Step {{actual}} of {{total}}",
+    "encabezados": {
+      "perfilProfesional": {
+        "titulo": "Which profile are you using?",
+        "descripcion": "Choose the Professional Profile the interviewer will use to prepare your questions."
+      },
+      "ofertaYRol": {
+        "titulo": "What are you applying for?",
+        "descripcion": "Paste the job offer if you have it and choose the role, so the questions match that position."
+      },
+      "modoYTono": {
+        "titulo": "How should the interview feel?",
+        "descripcion": "Choose the mode and your interviewer’s personality."
+      },
+      "idiomaYFormato": {
+        "titulo": "Which language, and how will you answer?",
+        "descripcion": "Practice in Spanish or English, speaking or writing."
+      },
+      "confirmar": {
+        "titulo": "Everything is ready for your interview",
+        "descripcion": "Review your setup. You can change anything before you start."
+      }
     }
   },
   "perfil": {
@@ -90,7 +113,8 @@
       "iniciarNueva": "Start the new one",
       "volverEntrevista": "Back to my interview",
       "cancelar": "Cancel"
-    }
+    },
+    "cambiar": "Change"
   },
   "modo": {
     "ENTRENO": "Practice",

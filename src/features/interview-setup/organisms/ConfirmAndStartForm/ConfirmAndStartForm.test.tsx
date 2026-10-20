@@ -69,7 +69,7 @@ describe('ConfirmAndStartForm', () => {
 
   it('muestra el mensaje de datos incompletos cuando disabledMessage está presente', () => {
     renderForm({ disabledMessage: 'Faltan datos obligatorios.' });
-    expect(screen.getByRole('alert')).toHaveTextContent('Faltan datos obligatorios.');
+    expect(screen.getByRole('status')).toHaveTextContent('Faltan datos obligatorios.');
   });
 
   it('muestra el mensaje de error cuando errorMessage está presente (CA-4.4.5)', () => {

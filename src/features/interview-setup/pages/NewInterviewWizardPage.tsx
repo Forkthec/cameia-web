@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { ApiError } from '@/services/http/ApiError';
+import { ROUTES } from '@/app/router/routes';
 import { WizardLayout } from '@/layouts/WizardLayout';
 import { useInterviewSetupStore } from '../store/interviewSetup.store';
 import { useProfileList } from '../hooks/useProfileList';
@@ -26,6 +27,7 @@ import { ModeAndToneForm } from '../organisms/ModeAndToneForm';
 import { LanguageAndFormatForm } from '../organisms/LanguageAndFormatForm';
 import { ConfirmAndStartForm } from '../organisms/ConfirmAndStartForm';
 import { InProgressWarningDialog } from '../organisms/InProgressWarningDialog';
+import { WizardStepHeader } from '../organisms/WizardStepHeader';
 import { JOB_OFFER_MAX_LENGTH } from '../model/interviewSetup.constants';
 import type {
   InterviewTone,
@@ -42,6 +44,15 @@ function stepStatus(index: number, current: number): StepStatus {
   return 'upcoming';
 }
 
+/** Llave de i18n del encabezado de cada paso, en el orden del asistente. */
+const STEP_KEYS = [
+  'perfilProfesional',
+  'ofertaYRol',
+  'modoYTono',
+  'idiomaYFormato',
+  'confirmar',
+] as const;
+
 export function NewInterviewWizardPage() {
   const { t } = useTranslation(['interview', 'common']);
   const store = useInterviewSetupStore();
@@ -49,6 +60,10 @@ export function NewInterviewWizardPage() {
   const createSession = useCreateSession();
 
   const [warningData, setWarningData] = useState<CreateSessionResponseDto | null>(null);
+  // El foco va al título del paso solo cuando el usuario ya cambió de paso,
+  // no en la primera carga (robarle el foco al entrar sería desorientador).
+  const [initialStep] = useState(store.currentStep);
+  const focusStepTitle = store.currentStep !== initialStep;
 
   const profileQuery = useProfileList();
   const roleQuery = useRoleCatalog();
@@ -236,22 +251,51 @@ export function NewInterviewWizardPage() {
 
   const summaryRows = useMemo(
     () => [
-      { label: t('interview:confirmar.perfil'), value: selectedProfile?.name ?? '—' },
+      {
+        label: t('interview:confirmar.perfil'),
+        value: selectedProfile?.name ?? '—',
+        icon: 'document' as const,
+        onEdit: () => store.goToStep(0),
+      },
       {
         label: t('interview:confirmar.ofertaLaboral'),
+        icon: 'briefcase' as const,
+        onEdit: () => store.goToStep(1),
         value: store.jobOffer
           ? store.jobOffer.length > 60
             ? `${store.jobOffer.slice(0, 60)}…`
             : store.jobOffer
           : t('interview:confirmar.sinOferta'),
       },
-      { label: t('interview:confirmar.rolObjetivo'), value: selectedRole?.name ?? '—' },
-      { label: t('interview:confirmar.modalidad'), value: modeLabels[store.mode] },
-      { label: t('interview:confirmar.tono'), value: toneLabels[store.tone] },
-      { label: t('interview:confirmar.formaRespuesta'), value: formatLabels[store.answerFormat] },
+      {
+        label: t('interview:confirmar.rolObjetivo'),
+        value: selectedRole?.name ?? '—',
+        icon: 'target' as const,
+        onEdit: () => store.goToStep(1),
+      },
+      {
+        label: t('interview:confirmar.modalidad'),
+        value: modeLabels[store.mode],
+        icon: 'dumbbell' as const,
+        onEdit: () => store.goToStep(2),
+      },
+      {
+        label: t('interview:confirmar.tono'),
+        value: toneLabels[store.tone],
+        icon: 'message' as const,
+        onEdit: () => store.goToStep(2),
+      },
+      {
+        label: t('interview:confirmar.formaRespuesta'),
+        value: formatLabels[store.answerFormat],
+        icon: 'keyboard' as const,
+        onEdit: () => store.goToStep(3),
+      },
       {
         label: t('interview:confirmar.idiomaEntrevista'),
         value: languageLabels[store.sessionLanguage],
+        icon: 'globe' as const,
+        onEdit: () => store.goToStep(3),
       },
     ],
     [selectedProfile, store, selectedRole, modeLabels, toneLabels, formatLabels, languageLabels, t],
@@ -265,10 +309,28 @@ export function NewInterviewWizardPage() {
         primaryActionLabel={t('common:acciones.continuar')}
         onPrimaryAction={handleNextWithValidation}
         primaryActionDisabled={isPrimaryDisabled}
+        progressText={t('interview:asistente.pasoDeTotal', {
+          actual: store.currentStep + 1,
+          total: steps.length,
+        })}
         backLabel={t('common:acciones.atras')}
         onBack={store.currentStep > 0 ? handleBack : undefined}
+        exitLabel={t('common:acciones.volverInicio')}
+        onExit={() => void navigate(ROUTES.inicio)}
         hidePrimaryAction={store.currentStep === 4}
       >
+        <WizardStepHeader
+          key={store.currentStep}
+          index={store.currentStep + 1}
+          stepLabel={steps[store.currentStep]?.label ?? ''}
+          title={t(
+            `interview:asistente.encabezados.${STEP_KEYS[store.currentStep] ?? 'confirmar'}.titulo`,
+          )}
+          description={t(
+            `interview:asistente.encabezados.${STEP_KEYS[store.currentStep] ?? 'confirmar'}.descripcion`,
+          )}
+          focusOnMount={focusStepTitle}
+        />
         {store.currentStep === 0 ? (
           <ProfileSelector
             profiles={profiles}
@@ -321,9 +383,8 @@ export function NewInterviewWizardPage() {
           />
         ) : (
           <ConfirmAndStartForm
-            title={t('interview:confirmar.titulo')}
-            subtitle={t('interview:confirmar.resumen')}
             rows={summaryRows}
+            editLabel={t('interview:confirmar.cambiar')}
             startLabel={t('interview:confirmar.iniciarEntrevista')}
             onStart={handleCreateSession}
             isLoading={createSession.isPending}

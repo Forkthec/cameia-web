@@ -160,3 +160,23 @@ de tres pasos que precede a la creacion de la sesion (HU-4.4).
 - Los prototipos de Figma estan desactualizados y no son fuente de verdad; mandan los criterios del backlog (decision del PO del 15/10/2026).
 - Los datos de este paso no se persisten: viajan al crear la sesion en HU-4.4. El store de Zustand los mantiene en memoria durante la navegacion del wizard.
 - Al cambiar de perfil se conservan Oferta Laboral y Rol Objetivo (puede ser un rol fuera del perfil, CA-4.2.14); solo cambia la seccion "De tu perfil".
+
+**Presentación «Amanecer» y Atomic Design (CM-208, 19-oct-2026).** Solo diseño: mismos cinco pasos,
+campos, opciones y reglas (Entreno «Próximamente», Audio deshabilitado si el navegador no graba,
+oferta opcional con tope de 3000).
+- El asistente se monta dentro de `AppShell` (`interviewSetupShellRoutes`): misma navegación que el
+  resto del área autenticada (NavHeader, TabBar, menú de usuario), más una salida explícita «Volver a
+  inicio» arriba del progreso, distinta de «Atrás».
+- `Stepper` (molécula) pasa a «camino del amanecer»: nodos numerados, completados con check, el actual
+  como el sol de la marca; `CardSelectable` (molécula) gana recuadro de ícono, indicador de selección y
+  `badge` (átomo `Pill`). Ambos cambios aplican a todos sus consumidores (también
+  `ProfileMethodSelector`).
+- Cada paso tiene encabezado (`WizardStepHeader`: `Eyebrow` + pregunta + contexto, llaves
+  `interview:asistente.encabezados.*`) y la barra muestra «Paso x de 5» (`asistente.pasoDeTotal`).
+- Correcciones de Atomic Design: `ConfirmAndStartForm` usaba `<button>` escritos a mano (ahora
+  `Button`) y cajas de aviso con clases inexistentes en el tema (`bg-status-*`, `rounded-radius-*`;
+  ahora `AlertInline`); contador de la oferta con `CharacterCounter`, etiquetas con `Label`,
+  esqueletos con `Skeleton`. Los roles del perfil también se ofrecen como atajos `Chip` que eligen el
+  mismo rol del autocomplete. El resumen de confirmación tiene «Cambiar» por fila (`goToStep`).
+- Los avisos de advertencia ahora se anuncian como `role="status"` (convención de `AlertInline`); los
+  errores siguen como `alert`.

@@ -4,15 +4,25 @@
  * en tiempo real (CA-4.2.4). El Rol Objetivo es un autocomplete
  * single-select sobre el catalogo de roles activos, con los roles del
  * perfil sugeridos primero (CA-4.2.20).
+ *
+ * **Presentación «Amanecer» y Atomic Design (CM-208).** Solo diseño: el
+ * contador es la molécula `CharacterCounter`, las etiquetas son el átomo
+ * `Label`, los esqueletos de carga el átomo `Skeleton`, y los roles del
+ * perfil se ofrecen además como atajos (`Chip`) que eligen el mismo rol que
+ * el autocomplete — no es un campo nuevo, es otra forma de llenar el mismo.
  */
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Chip } from '@/design-system/atoms/Chip';
 import { Input } from '@/design-system/atoms/Input';
+import { Label } from '@/design-system/atoms/Label';
+import { Skeleton } from '@/design-system/atoms/Skeleton';
 import {
   Autocomplete,
   type AutocompleteOption,
   type AutocompleteGroup,
 } from '@/design-system/molecules/Autocomplete';
+import { CharacterCounter } from '@/design-system/molecules/CharacterCounter';
 import { EmptyState } from '@/design-system/molecules/EmptyState';
 import { JOB_OFFER_MAX_LENGTH } from '../../model/interviewSetup.constants';
 import type { ProfileSummaryItem } from '../../model/interviewSetup.types';
@@ -89,9 +99,9 @@ export function OfferAndRoleForm({
 
   if (isLoadingRoles) {
     return (
-      <div className="gap-space-4 flex flex-col">
-        <div className="bg-bg-surface-sunken h-32 animate-pulse rounded-lg" role="presentation" />
-        <div className="bg-bg-surface-sunken h-12 animate-pulse rounded-lg" role="presentation" />
+      <div className="gap-space-4 flex flex-col" aria-busy="true">
+        <Skeleton className="h-36 rounded-lg" />
+        <Skeleton className="h-12 rounded-lg" />
       </div>
     );
   }
@@ -110,9 +120,9 @@ export function OfferAndRoleForm({
   return (
     <div className="gap-space-6 flex flex-col">
       <div className="gap-space-2 flex flex-col">
-        <label htmlFor="job-offer" className="text-body text-text-primary font-semibold">
+        <Label htmlFor="job-offer" className="text-body">
           {t('interview:oferta.etiqueta')}
-        </label>
+        </Label>
         <Input
           id="job-offer"
           type="textarea"
@@ -124,18 +134,17 @@ export function OfferAndRoleForm({
           state={jobOfferError || isOverLimit ? 'error' : 'default'}
           errorMessage={jobOfferError ?? undefined}
         />
-        <span
-          className={`text-small text-right ${isOverLimit ? 'text-danger-base' : 'text-text-muted'}`}
-          aria-live="polite"
-        >
-          {t('interview:oferta.contador', { actual: charCount, max: JOB_OFFER_MAX_LENGTH })}
-        </span>
+        <div aria-live="polite" className="flex justify-end">
+          <CharacterCounter
+            count={charCount}
+            max={JOB_OFFER_MAX_LENGTH}
+            formatLabel={(actual, max) => t('interview:oferta.contador', { actual, max })}
+          />
+        </div>
       </div>
 
       <div className="gap-space-2 flex flex-col">
-        <label className="text-body text-text-primary font-semibold">
-          {t('interview:rol.etiqueta')}
-        </label>
+        <p className="text-body text-text-primary font-semibold">{t('interview:rol.etiqueta')}</p>
         <Autocomplete
           label={t('interview:rol.etiqueta')}
           options={roleOptions}
@@ -146,6 +155,22 @@ export function OfferAndRoleForm({
           noResultsLabel={t('interview:rol.sinResultados')}
           errorMessage={roleError ?? undefined}
         />
+        {roleGroups[0] ? (
+          <div className="gap-space-2 mt-space-2 flex flex-col">
+            <span className="text-label text-text-muted uppercase">{roleGroups[0].label}</span>
+            <div className="gap-space-2 flex flex-wrap">
+              {roleGroups[0].options.map((option) => (
+                <Chip
+                  key={option.value}
+                  selected={selectedRoleId === option.value}
+                  onClick={() => onRoleSelect(option.value)}
+                >
+                  {option.label}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
