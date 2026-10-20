@@ -6,9 +6,10 @@
  */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import { Icon } from '@/design-system/icons/Icon';
-import { Button } from './Button';
+import { Button, ButtonLink } from './Button';
 
 describe('Button', () => {
   it('renderiza la etiqueta recibida y dispara onClick', async () => {
@@ -83,5 +84,24 @@ describe('Button', () => {
 
     const button = screen.getByRole('button', { name: 'Crear cuenta' });
     expect(button.lastElementChild?.tagName.toLowerCase()).toBe('svg');
+  });
+});
+
+describe('ButtonLink', () => {
+  it('es un enlace con las mismas clases de la variante que Button (CM-329)', () => {
+    render(
+      <MemoryRouter>
+        <ButtonLink to="/inicio" variant="tertiary">
+          Volver a inicio
+        </ButtonLink>
+        <Button variant="tertiary">Volver a inicio</Button>
+      </MemoryRouter>,
+    );
+
+    const link = screen.getByRole('link', { name: 'Volver a inicio' });
+    const button = screen.getByRole('button', { name: 'Volver a inicio' });
+    expect(link).toHaveAttribute('href', '/inicio');
+    expect(link).toHaveClass('bg-transparent', 'text-brand-base', 'hover:bg-brand-tint');
+    expect(button).toHaveClass('bg-transparent', 'text-brand-base', 'hover:bg-brand-tint');
   });
 });

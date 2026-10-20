@@ -31,6 +31,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
 import { Eyebrow } from '@/design-system/atoms/Eyebrow';
+import { ButtonLink } from '@/design-system/atoms/Button';
 import { Logo } from '@/design-system/atoms/Logo';
 import { Icon } from '@/design-system/icons/Icon';
 
@@ -103,13 +104,17 @@ export function AuthLayout({ children, headline, highlights }: AuthLayoutProps) 
 
       <div className="px-space-4 pt-space-3 lg:px-space-8 lg:py-space-6 flex flex-1 flex-col lg:items-center lg:justify-center">
         <div className="gap-space-5 mx-auto flex w-full max-w-[32rem] flex-1 flex-col lg:flex-none">
-          <Link
+          {/* Mismo átomo que la salida del asistente (CM-329): «volver» se ve igual en toda la app. */}
+          <ButtonLink
             to={ROUTES.landing}
-            className="text-text-muted hover:text-text-primary gap-space-1 text-small focus-visible:shadow-focus-ring inline-flex w-fit items-center self-start rounded-sm focus-visible:outline-none"
+            variant="tertiary"
+            icon={<Icon name="chevron-left" />}
+            // Margen negativo igual al padding del botón: el ícono queda alineado con
+            // el borde del contenido y el fondo del hover conserva su aire.
+            className="-ml-space-5 self-start"
           >
-            <Icon name="chevron-left" size={16} />
             {t('acciones.volverInicio')}
-          </Link>
+          </ButtonLink>
           {children}
         </div>
       </div>

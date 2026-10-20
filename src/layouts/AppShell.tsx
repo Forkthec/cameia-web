@@ -39,10 +39,9 @@
  * muestra desde `md`): sin él, la cabecera queda vacía en móvil, donde
  * `NavHeader` está oculto (`hidden md:flex`). El frame de Figma PRT-02.02
  * (`121:184` en sm, `191:500` en lg) dibuja un logotipo compuesto de glifo
- * vectorial + wordmark; aquí solo se reproduce el wordmark, en texto, porque
- * el glifo es un activo de marca que no existe todavía en `design-system` —
- * inventarlo a mano no es una opción. Se completa cuando exista el SVG
- * oficial, sin rehacer esta cabecera (SPEC professional-profile §9).
+ * vectorial + wordmark. Desde CM-329 el glifo existe en el design system
+ * (`Logo`, con `BrandMark`), así que la cabecera usa el lockup completo —glifo
+ * y wordmark—, el mismo de la landing y de login/registro.
  *
  * Menú de usuario y Cerrar sesión (`CM-194`, `CA-1.8.1`; `SPEC.md` de
  * `features/auth` §3 "Menú de usuario y Cerrar sesión · PRT-01.08"): vive
@@ -75,6 +74,7 @@
 import { useTranslation } from 'react-i18next';
 import { Link, Outlet } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
+import { Logo } from '@/design-system/atoms/Logo';
 import { BottomSheet } from '@/design-system/organisms/BottomSheet';
 import { LanguageSwitcher } from '@/design-system/organisms/LanguageSwitcher';
 import { MenuUsuario } from '@/design-system/organisms/MenuUsuario';
@@ -162,8 +162,12 @@ export function AppShell({
   return (
     <div className="min-h-dvh">
       <header className="border-border-subtle bg-bg-surface px-space-5 py-space-3 gap-space-4 flex items-center justify-between border-b">
-        <Link to={ROUTES.inicio} className="font-display text-h3 text-text-primary font-extrabold">
-          {BRAND_WORDMARK}
+        <Link
+          to={ROUTES.inicio}
+          aria-label={BRAND_WORDMARK}
+          className="focus-visible:shadow-focus-ring rounded-sm focus-visible:outline-none"
+        >
+          <Logo variant="lockup" tone="default" wordmarkLabel={BRAND_WORDMARK} />
         </Link>
         <div className="gap-space-4 flex items-center">
           <NavHeader items={items} label={t('navegacion.principal')} />
