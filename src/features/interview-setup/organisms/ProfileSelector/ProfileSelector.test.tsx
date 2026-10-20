@@ -36,6 +36,7 @@ const SECOND_ACTIVE: ProfileSummaryItem = {
 function renderSelector(props: Partial<React.ComponentProps<typeof ProfileSelector>> = {}) {
   const defaults: React.ComponentProps<typeof ProfileSelector> = {
     profiles: [ACTIVE_PROFILE],
+    roles: [],
     selectedProfileId: null,
     onSelectProfile: vi.fn(),
     isLoading: false,
@@ -51,6 +52,16 @@ function renderSelector(props: Partial<React.ComponentProps<typeof ProfileSelect
 }
 
 describe('ProfileSelector', () => {
+  it('nombra los roles del perfil con el catálogo del idioma activo, no con roleTitle', () => {
+    renderSelector({
+      roles: [
+        { id: 'r1', name: 'Desarrollador Frontend', category: 'TECH' },
+        { id: 'r2', name: 'Analista QA', category: 'TECH' },
+      ],
+    });
+    expect(screen.getByText('Desarrollador Frontend, Analista QA')).toBeInTheDocument();
+  });
+
   it('muestra solo perfiles activos, no borradores (CA-4.2.1)', () => {
     renderSelector({ profiles: [ACTIVE_PROFILE, DRAFT_PROFILE] });
     expect(screen.getByText('Analista de datos')).toBeInTheDocument();

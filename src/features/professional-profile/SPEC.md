@@ -131,7 +131,8 @@ Fuente: backlog `09102026_01` (v6), hoja HE-02, HU-2.2, CA-2.2.1 a CA-2.2.7.
 - **Perfil existente sin id guardado (CA-10.4.3, CA-10.4.4).** Sin `lastUsedProfileId` (otro navegador,
   otro equipo, tras cerrar sesión), `NewProfilePage` consulta `GET /api/v1/profiles` antes de mostrar el
   selector: si hay perfiles, guarda el primero en `lastUsedProfileId` y abre su formulario (`replace`);
-  si la lista está vacía o falla, muestra el selector. Mientras consulta, solo un `Spinner`. Así
+  si la lista está vacía o falla, muestra el selector. Usa la clave de caché propia
+  `['professional-profile', 'existing-profiles']`, no la de `interview-setup` (CM-339). Mientras consulta, solo un `Spinner`. Así
   «Mi Perfil Profesional» del tablero y «Perfiles» de `AppShell` abren el perfil real contra el backend.
 - **CA-2.2.2 (ruta de IA) — implementado.** La tarjeta «Autocompletar con IA» se muestra
   deshabilitada con la etiqueta «Próximamente» (`StateLocked`); no crea ningún perfil, no navega a la

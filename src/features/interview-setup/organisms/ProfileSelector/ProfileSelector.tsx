@@ -12,9 +12,12 @@ import { Icon } from '@/design-system/icons/Icon';
 import { CardSelectable } from '@/design-system/molecules/CardSelectable';
 import { EmptyState } from '@/design-system/molecules/EmptyState';
 import type { ProfileSummaryItem } from '../../model/interviewSetup.types';
+import type { ProfessionalRoleMapped } from '../../api/interviewSetup.mapper';
 
 interface ProfileSelectorProps {
   profiles: ProfileSummaryItem[];
+  /** Catálogo de roles en el idioma activo; nombra los roles de cada perfil. */
+  roles: ProfessionalRoleMapped[];
   selectedProfileId: string | null;
   onSelectProfile: (id: string) => void;
   isLoading: boolean;
@@ -24,6 +27,7 @@ interface ProfileSelectorProps {
 
 export function ProfileSelector({
   profiles,
+  roles,
   selectedProfileId,
   onSelectProfile,
   isLoading,
@@ -32,6 +36,8 @@ export function ProfileSelector({
 }: ProfileSelectorProps) {
   const { t } = useTranslation(['interview', 'common']);
   const navigate = useNavigate();
+
+  const roleNames = useMemo(() => new Map(roles.map((r) => [r.id, r.name])), [roles]);
 
   const activeProfiles = useMemo(
     () => profiles.filter((p) => p.status === 'COMPLETED'),
@@ -98,7 +104,11 @@ export function ProfileSelector({
       className="gap-space-3 flex flex-col"
     >
       {activeProfiles.map((profile) => {
-        const rolesText = profile.targetRoles.map((r) => r.roleTitle).join(', ');
+        // El nombre sale del catálogo en el idioma activo; `roleTitle` de la
+        // lista viene en español y queda solo como respaldo.
+        const rolesText = profile.targetRoles
+          .map((r) => roleNames.get(r.professionalRoleId) ?? r.roleTitle)
+          .join(', ');
         return (
           <CardSelectable
             key={profile.id}

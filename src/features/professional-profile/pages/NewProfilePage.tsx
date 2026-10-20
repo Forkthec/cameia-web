@@ -87,7 +87,9 @@ export function NewProfilePage() {
   }, []);
 
   const existingProfiles = useQuery({
-    queryKey: ['profiles', 'list'],
+    // Clave propia: `['profiles', 'list']` ya es de `interview-setup` y guarda
+    // otra forma (arreglo mapeado); compartirla rompía las dos pantallas (CM-339).
+    queryKey: ['professional-profile', 'existing-profiles'],
     queryFn: () => httpClient.get<ProfileListResponse>('/api/v1/profiles'),
     enabled: !lastUsedProfileId,
   });
