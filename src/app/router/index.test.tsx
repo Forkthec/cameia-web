@@ -102,7 +102,7 @@ describe('routeConfig', () => {
 
     renderAt('/inicio');
 
-    expect(await screen.findByText('Pantalla pendiente · sin HU')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Tablero de inicio' })).toBeInTheDocument();
     expect(
       screen.getAllByRole('navigation', { name: 'Navegación principal' }).length,
     ).toBeGreaterThan(0);
@@ -167,7 +167,7 @@ describe('routeConfig', () => {
     const user = userEvent.setup();
 
     renderAt('/inicio');
-    await screen.findByText('Pantalla pendiente · sin HU');
+    await screen.findByRole('heading', { name: 'Tablero de inicio' });
 
     await user.click(screen.getByRole('button', { name: /Menú de usuario/ }));
     await user.click(screen.getByRole('menuitem', { name: /Cerrar sesión/ }));

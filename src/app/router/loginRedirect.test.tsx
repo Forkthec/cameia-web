@@ -99,7 +99,7 @@ describe('login con los guards reales', () => {
 
     await logInWithValidCredentials();
 
-    expect(await screen.findByText('Pantalla pendiente · sin HU')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Tablero de inicio' })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/inicio');
   });
 
