@@ -1,66 +1,41 @@
 /**
- * Tablero de inicio provisional (HU-10.4, PRT-00.02). Muestra un saludo y
- * tarjetas de acceso rapido a las funciones principales: nueva entrevista y
- * perfil profesional. Se reemplazara por el dashboard completo cuando entre
- * su HU con metricas y resumen de progreso.
+ * Tablero de inicio provisional (HU-10.4, PRT-00.02). Exactamente lo que pide
+ * el backlog v8.2 (CA-10.4.1): el título «Tablero de inicio», el mensaje
+ * «Estamos construyendo tu tablero. Mientras tanto, crea tu Perfil
+ * Profesional o inicia una entrevista.» y los dos accesos, sin resúmenes ni
+ * datos del plan (los agrega HU-10.2).
+ *
+ * Destinos (navegación de HU-10.4):
+ * - «Nueva entrevista» → configuración de la entrevista (CA-10.4.2).
+ * - «Mi Perfil Profesional» → formulario del perfil si el Usuario ya tiene
+ *   uno (CA-10.4.4) o selección del método si no (CA-10.4.3). Mientras no
+ *   exista la lista de perfiles para esta pantalla, usa la misma señal que
+ *   el enlace «Perfiles» de `AppShell`: el último perfil usado
+ *   (`stores/uiPreferences.store.ts`). Limitación anotada en
+ *   `docs/decisiones/19102026_v1_wizard-amanecer-vs-backlog.md`.
  */
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
-import { Icon } from '@/design-system/icons/Icon';
-import { cn } from '@/utils/cn';
-
-interface QuickActionCardProps {
-  to: string;
-  iconName: 'plus' | 'user';
-  title: string;
-  description: string;
-}
-
-function QuickActionCard({ to, iconName, title, description }: QuickActionCardProps) {
-  return (
-    <Link
-      to={to}
-      className={cn(
-        'border-border-subtle bg-bg-surface rounded-radius-md p-space-5 border',
-        'hover:border-brand-accent hover:shadow-elevation-1 transition-all',
-        'focus-visible:shadow-focus-ring focus-visible:outline-none',
-        'gap-space-4 flex items-start',
-      )}
-    >
-      <div className="bg-brand-accent/10 text-brand-accent rounded-radius-sm p-space-3 flex shrink-0 items-center justify-center">
-        <Icon name={iconName} size={24} />
-      </div>
-      <div>
-        <h2 className="text-body text-text-primary font-semibold">{title}</h2>
-        <p className="text-small text-text-muted mt-space-1">{description}</p>
-      </div>
-    </Link>
-  );
-}
+import { ROUTES } from '@/app/router/routes';
+import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
+import { QuickAccessCard } from '../organisms/QuickAccessCard';
 
 export function HomePage() {
   const { t } = useTranslation('home');
+  const lastUsedProfileId = useUiPreferencesStore((state) => state.lastUsedProfileId);
+  const profileTarget = lastUsedProfileId
+    ? ROUTES.perfilEditar(lastUsedProfileId)
+    : ROUTES.perfilNuevo;
 
   return (
-    <div className="p-space-5 mx-auto max-w-2xl">
-      <div className="mb-space-8">
-        <h1 className="text-h2 text-text-primary font-bold">{t('saludo')}</h1>
-        <p className="text-body text-text-muted mt-space-2">{t('descripcion')}</p>
+    <div className="mx-auto max-w-2xl">
+      <div className="mb-space-6">
+        <h1 className="text-h1 font-display text-brand-deep">{t('titulo')}</h1>
+        <p className="text-body text-text-muted mt-space-2">{t('mensaje')}</p>
       </div>
 
       <div className="gap-space-4 flex flex-col">
-        <QuickActionCard
-          to="/entrevistas/nueva"
-          iconName="plus"
-          title={t('nuevaEntrevista.titulo')}
-          description={t('nuevaEntrevista.descripcion')}
-        />
-        <QuickActionCard
-          to="/perfiles"
-          iconName="user"
-          title={t('miPerfil.titulo')}
-          description={t('miPerfil.descripcion')}
-        />
+        <QuickAccessCard to={ROUTES.entrenarNueva} icon="plus" title={t('nuevaEntrevista')} />
+        <QuickAccessCard to={profileTarget} icon="user" title={t('miPerfil')} />
       </div>
     </div>
   );

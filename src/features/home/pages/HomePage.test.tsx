@@ -1,12 +1,14 @@
 /**
- * Protege el tablero de inicio provisional (HU-10.4): verifica que el saludo,
- * las tarjetas de accion rapida y sus enlaces se renderizan correctamente.
+ * Protege el Tablero de inicio provisional tal como lo define HU-10.4 en el
+ * backlog v8.2: título, mensaje y los dos accesos con sus destinos
+ * (CA-10.4.1 a CA-10.4.4), sin datos técnicos (CA-10.4.6).
  */
 import { render, screen } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import i18n from '@/i18n';
+import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
 import { HomePage } from './HomePage';
 
 function renderPage() {
@@ -20,29 +22,50 @@ function renderPage() {
 }
 
 describe('HomePage', () => {
-  it('muestra el saludo y la descripción', () => {
-    renderPage();
-    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
-    expect(screen.getByText(/próxima entrevista|practice/i)).toBeInTheDocument();
+  afterEach(() => {
+    useUiPreferencesStore.setState({ lastUsedProfileId: null });
   });
 
-  it('muestra la tarjeta de nueva entrevista con enlace correcto', () => {
+  it('muestra el título y el mensaje del tablero provisional (CA-10.4.1)', () => {
     renderPage();
-    const link = screen.getByRole('link', { name: /nueva entrevista|new interview/i });
-    expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute('href', '/entrevistas/nueva');
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Tablero de inicio' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Estamos construyendo tu tablero. Mientras tanto, crea tu Perfil Profesional o inicia una entrevista.',
+      ),
+    ).toBeInTheDocument();
   });
 
-  it('muestra la tarjeta de perfil profesional con enlace correcto', () => {
+  it('«Nueva entrevista» lleva a la configuración de la entrevista (CA-10.4.2)', () => {
     renderPage();
-    const link = screen.getByRole('link', { name: /perfil profesional|professional profile/i });
-    expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute('href', '/perfiles');
+    expect(screen.getByRole('link', { name: 'Nueva entrevista' })).toHaveAttribute(
+      'href',
+      '/entrenar/nueva',
+    );
   });
 
-  it('renderiza exactamente 2 tarjetas de acción rápida', () => {
+  it('«Mi Perfil Profesional» sin perfil lleva a la selección del método (CA-10.4.3)', () => {
     renderPage();
-    const links = screen.getAllByRole('link');
-    expect(links).toHaveLength(2);
+    expect(screen.getByRole('link', { name: 'Mi Perfil Profesional' })).toHaveAttribute(
+      'href',
+      '/perfiles/nuevo',
+    );
+  });
+
+  it('«Mi Perfil Profesional» con un perfil abre su formulario (CA-10.4.4)', () => {
+    useUiPreferencesStore.setState({ lastUsedProfileId: 'p-123' });
+    renderPage();
+    expect(screen.getByRole('link', { name: 'Mi Perfil Profesional' })).toHaveAttribute(
+      'href',
+      '/perfiles/p-123/editar',
+    );
+  });
+
+  it('muestra solo los dos accesos y ningún texto «Pantalla pendiente» (CA-10.4.6)', () => {
+    renderPage();
+    expect(screen.getAllByRole('link')).toHaveLength(2);
+    expect(screen.queryByText(/pantalla pendiente/i)).not.toBeInTheDocument();
   });
 });
