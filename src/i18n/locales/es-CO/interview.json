@@ -137,5 +137,9 @@
     "reintentosAgotados": "No pudimos evaluar tu respuesta en este momento. Tu respuesta quedó guardada; inténtalo más tarde.",
     "irAlInicio": "Ir al inicio",
     "terminada": "Tu entrevista terminó."
+  },
+  "inicio": {
+    "titulo": "Iniciando sesión de entrevista",
+    "reintentosAgotados": "No pudimos preparar tu entrevista en este momento. Inténtalo más tarde."
   }
 }

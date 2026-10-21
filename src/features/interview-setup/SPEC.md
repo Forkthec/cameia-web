@@ -1,15 +1,15 @@
 ---
 feature: interview-setup
 estado: EN_CURSO
-hu: [HU-4.2]
-prt: [PRT-04.02, PRT-04.03]
-jira: [CM-202]
+hu: [HU-4.2, HU-4.5]
+prt: [PRT-04.02, PRT-04.03, PRT-04.11]
+jira: [CM-202, CM-213]
 rutas: [/entrenar/nueva]
 documentacion: tsdoc-es
 backlog: 16102026_01_v8.2
 decisiones: []
 figma: Cameia · Mockups MVP
-revisado: 2026-10-18
+revisado: 2026-10-20
 ---
 
 # Feature · Configuracion de sesion de entrevista
@@ -188,3 +188,26 @@ oferta opcional con tope de 3000).
 - Paso 1: los roles de cada perfil se nombran con el catálogo del idioma activo (respaldo: `roleTitle`).
 - Paso 2: al volver, «Rol objetivo» muestra el rol ya elegido (`Autocomplete` arranca con la opción seleccionada).
 - Confirmar: una oferta con solo espacios cuenta como «Sin oferta laboral»; el botón en carga usa `common:estados.cargando`.
+
+### Inicio de la entrevista (CM-213 · HU-4.5 · PRT-04.11)
+
+`/entrenar/nueva/iniciando` recibe `{sessionId}` del asistente y llama a
+`POST /api/v1/interviews/sessions/{session_id}/start` una sola vez (CA-4.5.12).
+
+- **Cargando:** firma animada `BrandReveal` (la misma de la landing, subida al design system),
+  «Iniciando sesión de entrevista» y un `Spinner`, sin controles (CA-4.5.13). Mínimo 1,6 s para
+  que termine la animación.
+- **Éxito:** abre `/entrenar/sesion/{id}` con `{sessionId, answerFormat, question, progress}` en el
+  estado de la navegación (`toChatEntry`) y limpia el asistente.
+- **Error:** `503 LLM_UNAVAILABLE` → «Ocurrió un error. Inténtalo de nuevo.» + «Reintentar» +
+  «Cancelar» (CA-4.5.14); tras 2 reintentos → «No pudimos preparar tu entrevista en este
+  momento. Inténtalo más tarde.» solo con «Cancelar» (CA-4.5.19); `404` → «No encontramos lo que
+  buscabas.» (CA-4.5.10); sin red → mensaje de conexión + «Reintentar».
+- **Cancelar:** `DELETE /api/v1/interviews/sessions/{id}` (provisional) y vuelve a «Nueva
+  entrevista» sin datos (CA-4.5.17).
+- **Vacío:** sin `sessionId` (recarga) → `/entrenar/nueva`.
+
+Diferencia consciente: CA-4.5.16 (volver a la entrevista anterior al cancelar) necesita
+`GET …/state` (HU-5.7), que no existe; mientras tanto «Cancelar» siempre va a «Nueva entrevista».
+`…/start` y `DELETE` no existen aún en cameia-entrevista: se prueban con MSW.
+
