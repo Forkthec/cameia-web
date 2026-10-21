@@ -123,5 +123,19 @@
   "idioma": {
     "es-CO": "Spanish (Colombia)",
     "en": "English"
+  },
+  "sesion": {
+    "progreso": "Question {{actual}} of {{total}}",
+    "modoYForma": "{{modo}} · {{forma}}",
+    "respuesta": {
+      "etiqueta": "Answer",
+      "contador": "{{count}} / {{max}} characters",
+      "demasiadoLarga": "Your answer can't be longer than {{max}} characters."
+    },
+    "enviar": "Send",
+    "procesando": "Processing your answer…",
+    "reintentosAgotados": "We couldn't evaluate your answer right now. Your answer was saved; try again later.",
+    "irAlInicio": "Go to home",
+    "terminada": "Your interview is over."
   }
 }

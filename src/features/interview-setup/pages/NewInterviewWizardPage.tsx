@@ -157,7 +157,7 @@ export function NewInterviewWizardPage() {
         },
       },
     );
-  }, [store, createSession, navigate]);
+  }, [store, createSession, navigate, trimmedJobOffer]);
 
   const handleStartNewFromWarning = useCallback(() => {
     if (!warningData) return;
@@ -300,7 +300,17 @@ export function NewInterviewWizardPage() {
         icon: 'globe' as const,
       },
     ],
-    [selectedProfile, store, selectedRole, modeLabels, toneLabels, formatLabels, languageLabels, t],
+    [
+      selectedProfile,
+      store,
+      selectedRole,
+      modeLabels,
+      toneLabels,
+      formatLabels,
+      languageLabels,
+      t,
+      trimmedJobOffer,
+    ],
   );
 
   return (
