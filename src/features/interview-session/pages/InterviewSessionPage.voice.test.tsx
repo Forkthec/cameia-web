@@ -10,10 +10,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { http, HttpResponse } from 'msw';
 import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '@/i18n';
+import { useHandlers } from '@/test/msw';
 import { InterviewSessionPage } from './InterviewSessionPage';
 
 const recorder = vi.hoisted(() => ({
@@ -80,6 +82,18 @@ describe('InterviewSessionPage (voz)', () => {
   it('con una grabación lista, «Enviar» avanza a «Pregunta 2 de 5» y suelta el audio (CA-5.8.5)', async () => {
     recorder.status = 'stopped';
     recorder.audio = new Blob(['x'], { type: 'audio/webm' });
+    // Respuesta propia sin leer el multipart: en Node 24, `request.formData()`
+    // de MSW rechaza el `Blob` de jsdom (en el navegador funciona).
+    useHandlers(
+      http.post('*/api/v1/interviews/sessions/:id/answers/audio', () =>
+        HttpResponse.json({
+          turno: { turno_id: 's1-t1', estado: 'COMPLETED' },
+          progreso: { pregunta_actual: 2, total_preguntas: 5 },
+          siguiente_pregunta: { turno_id: 's1-t2', numero: 2, texto: 'Segunda pregunta' },
+          entrevista_terminada: false,
+        }),
+      ),
+    );
     const user = userEvent.setup();
     renderPage();
     await user.click(screen.getByRole('button', { name: 'Enviar' }));
