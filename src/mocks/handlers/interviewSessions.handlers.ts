@@ -7,6 +7,8 @@
  *   4000 caracteres (CA-5.2.9, CA-5.2.10); misma `Idempotency-Key` → mismo
  *   resultado (CA-5.2.11).
  * - POST …/turns/{turno_id}/reprocess (provisional, CA-5.2.19).
+ * - POST …/sessions/{id}/start (HU-4.5): pregunta 1 y la forma de respuesta.
+ * - DELETE …/sessions/{id} (provisional, CA-4.5.17): 204.
  *
  * Las preguntas son datos de prueba; el texto real lo planifica el backend
  * (HU-4.5).
@@ -50,9 +52,13 @@ function advance(sessionId: string, turnId: string) {
   };
 }
 
+/** Forma de respuesta elegida al crear la sesión (HU-4.3). */
+const formatBySession = new Map<string, string>();
+
 /** Reinicia el estado en memoria entre pruebas. */
 export function resetInterviewSessions() {
   pendingBySession.clear();
+  formatBySession.clear();
   resultByKey.clear();
 }
 
@@ -88,6 +94,22 @@ export const interviewSessionsHandlers = [
     return HttpResponse.json(result);
   }),
 
+  http.post('*/api/v1/interviews/sessions/:sessionId/start', ({ params }) => {
+    const sessionId = String(params.sessionId);
+    pendingBySession.set(sessionId, 0);
+    return HttpResponse.json({
+      estado: 'EN_CURSO',
+      forma_respuesta: formatBySession.get(sessionId) ?? 'TEXTO',
+      pregunta: questionDto(sessionId, 0),
+      progreso: { pregunta_actual: 1, total_preguntas: MOCK_QUESTIONS.length },
+    });
+  }),
+
+  http.delete('*/api/v1/interviews/sessions/:sessionId', ({ params }) => {
+    formatBySession.delete(String(params.sessionId));
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   http.post('*/api/v1/interviews/sessions/:sessionId/turns/:turnId/reprocess', ({ params }) =>
     HttpResponse.json(advance(String(params.sessionId), String(params.turnId))),
   ),
@@ -110,9 +132,11 @@ export const interviewSessionsHandlers = [
       );
     }
 
+    const sessionId = crypto.randomUUID();
+    formatBySession.set(sessionId, body.answer_format === 'AUDIO' ? 'AUDIO' : 'TEXTO');
     return HttpResponse.json(
       {
-        session_id: crypto.randomUUID(),
+        session_id: sessionId,
         status: 'CONFIGURADA',
         ongoing_session: null,
       },

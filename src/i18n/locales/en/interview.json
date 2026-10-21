@@ -137,5 +137,9 @@
     "reintentosAgotados": "We couldn't evaluate your answer right now. Your answer was saved; try again later.",
     "irAlInicio": "Go to home",
     "terminada": "Your interview is over."
+  },
+  "inicio": {
+    "titulo": "Starting your interview session",
+    "reintentosAgotados": "We couldn't prepare your interview right now. Try again later."
   }
 }

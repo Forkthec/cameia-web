@@ -24,3 +24,15 @@ export interface CreateSessionResponseDto {
   status: string;
   ongoing_session?: OngoingSessionDto | null;
 }
+
+/**
+ * Respuesta de `POST …/sessions/{session_id}/start` (HU-4.5): la sesión pasa
+ * a EN_CURSO con la pregunta 1. Forma propuesta por Frontend; Backend aún no
+ * publica el endpoint.
+ */
+export interface StartSessionResponseDto {
+  estado: string;
+  forma_respuesta: string;
+  pregunta: { turno_id: string; numero: number; texto: string };
+  progreso: { pregunta_actual: number; total_preguntas: number };
+}

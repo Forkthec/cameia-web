@@ -11,10 +11,11 @@
  *
  * Es decorativa para tecnologías de asistencia: el logo y el lema se marcan
  * `aria-hidden` porque el header ya anuncia la marca; solo el botón de saltar
- * es interactivo.
+ * es interactivo. La secuencia del logo es la molécula `BrandReveal`, que
+ * también usa la pantalla «Iniciando sesión de entrevista» (CM-213).
  */
 import { useTranslation } from 'react-i18next';
-import { BrandMark } from '@/design-system/atoms/Logo';
+import { BrandReveal } from '@/design-system/molecules/BrandReveal';
 
 interface BrandIntroProps {
   /** Retira la intro de inmediato. */
@@ -23,43 +24,12 @@ interface BrandIntroProps {
 
 export function BrandIntro({ onSkip }: BrandIntroProps) {
   const { t } = useTranslation(['landing', 'common']);
-  const letters = t('common:marca.nombre').split('');
-
   return (
     <div
       data-testid="brand-intro"
-      className="bg-brand-deep gap-space-5 animate-curtain-up fixed inset-0 z-50 flex flex-col items-center justify-center [animation-delay:1450ms]"
+      className="bg-brand-deep animate-curtain-up fixed inset-0 z-50 flex flex-col items-center justify-center [animation-delay:1450ms]"
     >
-      <BrandMark
-        tone="inverse"
-        className="w-[min(12.5rem,42vw)] [--logo-seam:var(--brand-deep)]"
-        partClassNames={{
-          hump: 'animate-rise-in [transform-box:fill-box] [transform-origin:bottom_left] [animation-delay:50ms]',
-          neck: 'animate-rise-in [transform-box:fill-box] [transform-origin:bottom_center] [animation-delay:250ms]',
-          sun: 'animate-sun-rise [transform-box:fill-box] [animation-delay:550ms]',
-        }}
-      />
-      <span
-        aria-hidden="true"
-        className="font-brand text-text-on-inverse text-display-sm lg:text-h1 flex font-bold tracking-[0.06em] uppercase"
-      >
-        {letters.map((letter, index) => (
-          <span
-            // Las letras del wordmark pueden repetirse; la posición las distingue.
-            key={`${letter}-${index}`}
-            className="animate-enter-up inline-block"
-            style={{ animationDelay: `${800 + index * 50}ms` }}
-          >
-            {letter}
-          </span>
-        ))}
-      </span>
-      <span
-        aria-hidden="true"
-        className="font-brand text-brand-accent-light animate-fade-in text-small tracking-[0.3em] uppercase [animation-delay:1050ms]"
-      >
-        {t('common:marca.lema')}
-      </span>
+      <BrandReveal wordmark={t('common:marca.nombre')} tagline={t('common:marca.lema')} />
       <button
         type="button"
         onClick={onSkip}
