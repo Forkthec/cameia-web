@@ -1,16 +1,24 @@
 /**
- * CM-217 · HU-5.2 · PRT-05.10 — Chat de Simulación con respuesta escrita.
+ * CM-217 · CM-317 · HU-5.2 · HU-5.8 · PRT-05.10 — Chat de Simulación.
  *
  * Entra con la pregunta 1 que deja la pantalla de inicio (HU-4.5) en el
  * estado de la navegación (`readSessionEntry`). Sin esa entrada —una
  * recarga, mientras HU-5.7 no exista— vuelve a «Nueva entrevista», como
- * pide el backlog. Por cada pregunta: el campo «Respuesta» y «Enviar»;
- * nada de pausa, repregunta ni reintento de una respuesta ya enviada
- * (CA-5.2.15) y ninguna retroalimentación hasta el final (CA-5.2.2). Tras
- * la pregunta 5, «Tu entrevista terminó.» sin campo ni botón (CA-5.2.5).
+ * pide el backlog. Por cada pregunta: nada de pausa, repregunta ni
+ * reintento de una respuesta ya enviada (CA-5.2.15) y ninguna
+ * retroalimentación hasta el final (CA-5.2.2). Tras la pregunta 5, «Tu
+ * entrevista terminó.» sin controles (CA-5.2.5).
+ *
+ * **Respuesta.** Una entrevista con Texto muestra el campo desde el inicio
+ * (HU-5.2). Una con Audio muestra «Grabar» / «Detener» / «Enviar» y
+ * «Responder por texto» (HU-5.8); pasar a texto, o un micrófono denegado o
+ * ausente (CA-5.8.3, CA-5.8.23), deja el campo de texto en esa misma
+ * pregunta. Tras elegir texto, la pregunta siguiente vuelve a ofrecer la voz;
+ * con el micrófono denegado o ausente se sigue por texto.
  *
  * El texto escrito se guarda por turno: sobrevive a un error de red
- * (CA-5.2.18) y la pregunta siguiente arranca vacía.
+ * (CA-5.2.18) y la pregunta siguiente arranca vacía. La grabación detenida
+ * se conserva en el navegador si el envío falla por la red (CA-5.8.22).
  */
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -19,11 +27,17 @@ import { ROUTES } from '@/app/router/routes';
 import { AlertInline } from '@/design-system/molecules/AlertInline';
 import type { BrandOrbState } from '@/design-system/molecules/BrandOrb';
 import { useInterviewTurn } from '../hooks/useInterviewTurn';
-import { ANSWER_MAX_LENGTH } from '../model/interviewSession.constants';
+import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
+import {
+  ANSWER_MAX_LENGTH,
+  LONG_WAIT_NOTICE_MS,
+  MAX_RECORDING_SECONDS,
+} from '../model/interviewSession.constants';
 import { readSessionEntry } from '../model/sessionEntry';
 import { EvaluationRetryPanel } from '../organisms/EvaluationRetryPanel';
 import { SessionStage } from '../organisms/SessionStage';
 import { TextAnswerComposer } from '../organisms/TextAnswerComposer';
+import { VoiceAnswerComposer, type VoiceComposerStep } from '../organisms/VoiceAnswerComposer';
 import type { SessionEntry } from '../model/interviewSession.types';
 
 export function InterviewSessionPage() {
@@ -38,10 +52,19 @@ interface InterviewSessionViewProps {
 }
 
 function InterviewSessionView({ entry }: InterviewSessionViewProps) {
-  const { t } = useTranslation(['interview', 'common', 'errors']);
+  const { t, i18n } = useTranslation(['interview', 'common', 'errors']);
   const turn = useInterviewTurn(entry);
+  const recorder = useVoiceRecorder();
+  const turnId = turn.question.turnId;
+
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const answer = answers[turn.question.turnId] ?? '';
+  const [textTurns, setTextTurns] = useState<Record<string, boolean>>({});
+  const [hasRecorded, setHasRecorded] = useState(false);
+  const [longWaitTurn, setLongWaitTurn] = useState<string | null>(null);
+  const answer = answers[turnId] ?? '';
+
+  const micUnavailable = recorder.status === 'denied' || recorder.status === 'noMicrophone';
+  const answersByVoice = entry.answerFormat === 'AUDIO' && !textTurns[turnId] && !micUnavailable;
 
   const isBusy = turn.isSubmitting || turn.isRetrying;
   const orbState: BrandOrbState =
@@ -51,13 +74,40 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
         ? 'processing'
         : turn.phase === 'evaluationFailed'
           ? 'error'
-          : 'idle';
+          : recorder.status === 'recording'
+            ? 'recording'
+            : 'idle';
+
+  const seconds = new Intl.NumberFormat(i18n.language, { minimumIntegerDigits: 2 });
+  const clock = (total: number) => `${Math.floor(total / 60)}:${seconds.format(total % 60)}`;
 
   const retryMessage = turn.retryNetworkError
     ? t('errors:red')
     : turn.retriesExhausted
       ? t('interview:sesion.reintentosAgotados')
       : t('errors:generico');
+
+  const voiceStep: VoiceComposerStep =
+    recorder.status === 'recording'
+      ? 'recording'
+      : recorder.status === 'stopped'
+        ? 'stopped'
+        : recorder.status === 'requesting'
+          ? 'requesting'
+          : 'ready';
+
+  function sendAudio() {
+    if (!recorder.audio) return;
+    const sentTurn = turnId;
+    setLongWaitTurn(null);
+    window.setTimeout(() => setLongWaitTurn(sentTurn), LONG_WAIT_NOTICE_MS);
+    turn.submitAnswer({ kind: 'audio', audio: recorder.audio }, recorder.discard);
+  }
+
+  function switchToText() {
+    recorder.discard();
+    setTextTurns((current) => ({ ...current, [turnId]: true }));
+  }
 
   return (
     <SessionStage
@@ -97,22 +147,59 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
               {t(`errors:${turn.submitError}`)}
             </AlertInline>
           ) : null}
-          <TextAnswerComposer
-            value={answer}
-            onChange={(value) =>
-              setAnswers((current) => ({ ...current, [turn.question.turnId]: value }))
-            }
-            onSubmit={() => turn.submitAnswer(answer.trim())}
-            maxLength={ANSWER_MAX_LENGTH}
-            isSubmitting={turn.isSubmitting}
-            label={t('interview:sesion.respuesta.etiqueta')}
-            submitLabel={t('interview:sesion.enviar')}
-            submittingLabel={t('interview:sesion.procesando')}
-            tooLongMessage={t('interview:sesion.respuesta.demasiadoLarga', {
-              max: ANSWER_MAX_LENGTH,
-            })}
-            formatCounter={(count, max) => t('interview:sesion.respuesta.contador', { count, max })}
-          />
+
+          {answersByVoice ? (
+            <VoiceAnswerComposer
+              step={voiceStep}
+              elapsedLabel={`${clock(recorder.elapsedSeconds)} / ${clock(MAX_RECORDING_SECONDS)}`}
+              isSubmitting={turn.isSubmitting}
+              showLongWait={longWaitTurn === turnId}
+              showPrivacyNotice={!hasRecorded}
+              notice={recorder.status === 'noVoice' ? t('interview:sesion.voz.sinVoz') : undefined}
+              labels={{
+                record: t('interview:sesion.voz.grabar'),
+                stop: t('interview:sesion.voz.detener'),
+                send: t('interview:sesion.enviar'),
+                sending: t('interview:sesion.procesando'),
+                switchToText: t('interview:sesion.voz.responderPorTexto'),
+                privacy: t('interview:sesion.voz.privacidad'),
+                longWait: t('interview:sesion.voz.esperaLarga'),
+              }}
+              onRecord={() => {
+                setHasRecorded(true);
+                void recorder.start();
+              }}
+              onStop={recorder.stop}
+              onSend={sendAudio}
+              onSwitchToText={switchToText}
+            />
+          ) : (
+            <>
+              {micUnavailable && entry.answerFormat === 'AUDIO' && !textTurns[turnId] ? (
+                <AlertInline variant="warning">
+                  {recorder.status === 'denied'
+                    ? t('interview:sesion.voz.micDenegado')
+                    : t('interview:sesion.voz.sinMicrofono')}
+                </AlertInline>
+              ) : null}
+              <TextAnswerComposer
+                value={answer}
+                onChange={(value) => setAnswers((current) => ({ ...current, [turnId]: value }))}
+                onSubmit={() => turn.submitAnswer({ kind: 'text', text: answer.trim() })}
+                maxLength={ANSWER_MAX_LENGTH}
+                isSubmitting={turn.isSubmitting}
+                label={t('interview:sesion.respuesta.etiqueta')}
+                submitLabel={t('interview:sesion.enviar')}
+                submittingLabel={t('interview:sesion.procesando')}
+                tooLongMessage={t('interview:sesion.respuesta.demasiadoLarga', {
+                  max: ANSWER_MAX_LENGTH,
+                })}
+                formatCounter={(count, max) =>
+                  t('interview:sesion.respuesta.contador', { count, max })
+                }
+              />
+            </>
+          )}
         </div>
       ) : null}
     </SessionStage>

@@ -136,7 +136,17 @@
     "procesando": "Processing your answer…",
     "reintentosAgotados": "We couldn't evaluate your answer right now. Your answer was saved; try again later.",
     "irAlInicio": "Go to home",
-    "terminada": "Your interview is over."
+    "terminada": "Your interview is over.",
+    "voz": {
+      "grabar": "Record",
+      "detener": "Stop",
+      "responderPorTexto": "Answer by text",
+      "privacidad": "Your audio is only used to transcribe your answer and isn't stored.",
+      "sinVoz": "We didn't detect your voice, try again.",
+      "micDenegado": "We couldn't access your microphone. You can answer by text.",
+      "sinMicrofono": "We couldn't find a microphone. You can answer by text.",
+      "esperaLarga": "This can take up to 2 minutes. Don't close this page."
+    }
   },
   "inicio": {
     "titulo": "Starting your interview session",

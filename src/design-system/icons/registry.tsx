@@ -42,6 +42,7 @@ import {
   Settings,
   Shield,
   Sparkles,
+  Square,
   Target,
   Trash2,
   TriangleAlert,
@@ -99,6 +100,7 @@ export const icons = {
   mail: Mail, // temporal · Lucide, reemplazar por SVG de Figma
   'loading-arc': LoaderCircle, // temporal · Lucide, reemplazar por SVG de Figma
   lock: Lock, // temporal · Lucide, reemplazar por SVG de Figma
+  stop: Square, // temporal · Lucide, detener la grabación (CM-317)
   target: Target, // temporal · Lucide, reemplazar por SVG de Figma
   heart: Heart, // temporal · Lucide, reemplazar por SVG de Figma
   shield: Shield, // temporal · Lucide, reemplazar por SVG de Figma

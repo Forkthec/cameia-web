@@ -1,9 +1,9 @@
 ---
 feature: interview-session
 estado: EN_CURSO
-hu: [HU-5.2]
+hu: [HU-5.2, HU-5.8]
 prt: [PRT-05.10]
-jira: [CM-217]
+jira: [CM-217, CM-317]
 rutas: [/entrenar/sesion/:sessionId]
 documentacion: tsdoc-es
 backlog: 16102026_01_v8.2
@@ -25,7 +25,11 @@ Simulación en curso, sin ver retroalimentación hasta el final (HU-5.2).
 «Pregunta k de 5», errores de red, de la IA y de entrevista ajena, «Reintentar» (máx. 2) e
 «Ir al inicio», y «Tu entrevista terminó.» tras la pregunta 5.
 
-**No entra:** respuesta por voz (HU-5.8, CM-317), retomar tras recarga (HU-5.7), cierre y
+**Entra (CM-317, datos simulados):** respuesta por voz: «Grabar», «Detener» (3:00 máx.), «Enviar»,
+«Responder por texto», voz mínima de 2 s, aviso del audio, aviso de 20 s, micrófono denegado o
+ausente.
+
+**No entra:** transcripción real (HU-5.12), retomar tras recarga (HU-5.7), cierre y
 reporte (HU-5.5), preguntas de seguimiento (HU-5.9), reintentos automáticos (HU-5.6).
 
 ## 3. Comportamiento esperado
@@ -63,6 +67,7 @@ prueban con MSW (`mocks/handlers/interviewSessions.handlers.ts`).
 | --- | --- | --- |
 | Registrar respuesta | `POST /api/v1/interviews/sessions/{session_id}/answers` | `{turno_id, respuesta_texto}`, `Idempotency-Key` por turno |
 | Reintentar evaluación | `POST …/turns/{turno_id}/reprocess` | Provisional según el backlog |
+| Respuesta por voz | `POST …/answers/audio` | Multipart `{turno_id, audio}`, misma `Idempotency-Key` del turno, espera 130 s |
 
 La forma exacta de la respuesta 200 (`turno`, `progreso`, `siguiente_pregunta`,
 `entrevista_terminada`) es propuesta de Frontend; se ajusta solo en
@@ -84,18 +89,37 @@ respetan al no mostrar retroalimentación ni reformular preguntas.
 | `src/features/interview-session/organisms/TextAnswerComposer/TextAnswerComposer.tsx` | Hecho |
 | `src/features/interview-session/organisms/EvaluationRetryPanel/EvaluationRetryPanel.tsx` | Hecho |
 | `src/features/interview-session/api/interviewSession.api.ts` | Hecho (contrato provisional) |
+| `src/features/interview-session/hooks/useVoiceRecorder.ts` | Hecho (detección provisional) |
+| `src/features/interview-session/organisms/VoiceAnswerComposer/VoiceAnswerComposer.tsx` | Hecho |
 | `src/design-system/molecules/BrandOrb/BrandOrb.tsx` | Hecho |
 | `src/design-system/molecules/ProgressArc/ProgressArc.tsx` | Hecho |
+
+### Respuesta por voz (CM-317 · HU-5.8)
+
+- **Antes de grabar:** «Grabar», «Responder por texto» y «Tu audio se usa solo para transcribir tu
+  respuesta y no se guarda.» (CA-5.8.24).
+- **Grabando:** orbe en rojo con barras, tiempo «m:ss / 3:00» y «Detener»; a los 3:00 se detiene
+  sola (CA-5.8.2, CA-5.8.7).
+- **Detenido:** «Enviar»; al enviar, «Procesando tu respuesta…» y a los 20 s «Esto puede tardar
+  hasta 2 minutos. No cierres esta página.» (CA-5.8.5).
+- **Menos de 2 s de voz:** «No detectamos tu voz, intenta de nuevo.» y se graba otra vez sin enviar
+  (CA-5.8.10, CA-5.8.11).
+- **Micrófono denegado / ausente:** mensaje del backlog y el campo de texto en la misma pregunta
+  (CA-5.8.3, CA-5.8.23).
+- **Responder por texto:** descarta la grabación y muestra el campo (CA-5.8.19).
 
 ## 8. Bloqueos
 
 - Backend: `…/answers` y `…/reprocess` no existen en cameia-entrevista (CM-204/CM-207 y
   relacionados). Sin ellos no se puede probar contra el backend real.
 - La pregunta 1 llega desde la pantalla de inicio (HU-4.5, CM-213).
+- `…/answers/audio` no existe (HU-5.8/5.12 Backend). La voz se probó con datos simulados, como pide CM-317.
+- **Detección de voz provisional:** el backlog pide Silero VAD (spike CM-316); instalarla necesita
+  permiso (CLAUDE.md §2). Mientras tanto `useVoiceRecorder` mide la energía de la señal con la Web
+  Audio API; el backend revalida con 1,5 s de tolerancia.
 
 ## 9. Notas
 
 - Sin textos fuera del backlog: el orbe solo anuncia «Procesando tu respuesta…». No hay botón
   de salida en el chat (CA-5.2.15 y el backlog no lo define).
 - El número total de preguntas viene del backend en el progreso (CLAUDE.md §3.7).
-- Mientras sea Simulación por voz (CM-317), el campo de texto queda disponible (CA-5.8.19).
