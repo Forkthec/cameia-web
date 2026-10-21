@@ -38,6 +38,7 @@
 import '@testing-library/jest-dom/vitest';
 import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 import i18n from '@/i18n';
+import { resetInterviewSessions } from '@/mocks/handlers/interviewSessions.handlers';
 import { resetProfiles } from '@/mocks/handlers/profiles.handlers';
 import { server } from '@/mocks/server';
 import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
@@ -48,6 +49,7 @@ installMatchMediaStub();
 beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
 beforeEach(async () => {
   resetProfiles();
+  resetInterviewSessions();
   useUiPreferencesStore.setState({ lastUsedProfileId: null });
   await i18n.changeLanguage('es-CO');
 });
