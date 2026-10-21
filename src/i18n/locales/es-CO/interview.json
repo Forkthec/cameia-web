@@ -136,7 +136,17 @@
     "procesando": "Procesando tu respuesta…",
     "reintentosAgotados": "No pudimos evaluar tu respuesta en este momento. Tu respuesta quedó guardada; inténtalo más tarde.",
     "irAlInicio": "Ir al inicio",
-    "terminada": "Tu entrevista terminó."
+    "terminada": "Tu entrevista terminó.",
+    "voz": {
+      "grabar": "Grabar",
+      "detener": "Detener",
+      "responderPorTexto": "Responder por texto",
+      "privacidad": "Tu audio se usa solo para transcribir tu respuesta y no se guarda.",
+      "sinVoz": "No detectamos tu voz, intenta de nuevo.",
+      "micDenegado": "No pudimos acceder a tu micrófono. Puedes responder por texto.",
+      "sinMicrofono": "No encontramos un micrófono. Puedes responder por texto.",
+      "esperaLarga": "Esto puede tardar hasta 2 minutos. No cierres esta página."
+    }
   },
   "inicio": {
     "titulo": "Iniciando sesión de entrevista",

@@ -1,5 +1,7 @@
 /**
- * Estado y acciones del turno pendiente del chat de Simulación (HU-5.2).
+ * Estado y acciones del turno pendiente del chat de Simulación (HU-5.2), con
+ * respuesta escrita o por voz (HU-5.8): el audio se registra y se evalúa en la
+ * misma petición, con los mismos errores y reintentos que el texto.
  *
  * - Enviar registra la respuesta con una `Idempotency-Key` por turno: si se
  *   cae la red y se reintenta, se reutiliza la misma clave (RT-06,
@@ -17,7 +19,7 @@
 import { useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { ApiError } from '@/services/http/ApiError';
-import { reprocessTurn, submitTextAnswer } from '../api/interviewSession.api';
+import { reprocessTurn, submitAudioAnswer, submitTextAnswer } from '../api/interviewSession.api';
 import { MAX_EVALUATION_RETRIES } from '../model/interviewSession.constants';
 import type {
   AnswerResult,
@@ -25,6 +27,9 @@ import type {
   InterviewQuestion,
   SessionEntry,
 } from '../model/interviewSession.types';
+
+/** Respuesta a enviar: escrita (HU-5.2) o grabada (HU-5.8). */
+export type TurnAnswer = { kind: 'text'; text: string } | { kind: 'audio'; audio: Blob };
 
 export type TurnPhase = 'answering' | 'evaluationFailed' | 'finished';
 /** Mensaje de error del envío, como llave de `errors`. */
@@ -63,6 +68,7 @@ export function useInterviewTurn(entry: SessionEntry) {
     setPhase('answering');
   }
 
+  /** Una clave por turno y por forma de respuesta: el reintento de red reutiliza la misma (CA-5.8.22). */
   function idempotencyKeyFor(turnId: string) {
     let key = keysByTurn.current.get(turnId);
     if (!key) {
@@ -73,13 +79,20 @@ export function useInterviewTurn(entry: SessionEntry) {
   }
 
   const submit = useMutation({
-    mutationFn: (text: string) =>
-      submitTextAnswer({
-        sessionId: entry.sessionId,
-        turnId: question.turnId,
-        text,
-        idempotencyKey: idempotencyKeyFor(question.turnId),
-      }),
+    mutationFn: (answer: TurnAnswer) =>
+      answer.kind === 'text'
+        ? submitTextAnswer({
+            sessionId: entry.sessionId,
+            turnId: question.turnId,
+            text: answer.text,
+            idempotencyKey: idempotencyKeyFor(`${question.turnId}:text`),
+          })
+        : submitAudioAnswer({
+            sessionId: entry.sessionId,
+            turnId: question.turnId,
+            audio: answer.audio,
+            idempotencyKey: idempotencyKeyFor(`${question.turnId}:audio`),
+          }),
     onMutate: () => setSubmitError(null),
     onSuccess: applyResult,
     onError: (error) => {
@@ -113,12 +126,14 @@ export function useInterviewTurn(entry: SessionEntry) {
     isRetrying: reprocess.isPending,
     retryNetworkError,
     retriesExhausted: failedRetries >= MAX_EVALUATION_RETRIES,
-    submitAnswer: (text: string) => {
+    /** @param onAccepted se llama si el backend registró la respuesta (p. ej. para soltar la grabación). */
+    submitAnswer: (answer: TurnAnswer, onAccepted?: () => void) => {
       // Guarda síncrona: `isPending` llega tras un re-render y dos clics
       // seguidos podrían colarse antes (mismo caso que DF-004 en perfil).
       if (inFlight.current) return;
       inFlight.current = true;
-      submit.mutate(text, {
+      submit.mutate(answer, {
+        onSuccess: () => onAccepted?.(),
         onSettled: () => {
           inFlight.current = false;
         },

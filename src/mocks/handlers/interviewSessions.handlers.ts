@@ -7,6 +7,8 @@
  *   4000 caracteres (CA-5.2.9, CA-5.2.10); misma `Idempotency-Key` → mismo
  *   resultado (CA-5.2.11).
  * - POST …/turns/{turno_id}/reprocess (provisional, CA-5.2.19).
+ * - POST …/sessions/{id}/answers/audio (HU-5.8): mismo avance que el texto;
+ *   la transcripción la simula el backend real (HU-5.12).
  * - POST …/sessions/{id}/start (HU-4.5): pregunta 1 y la forma de respuesta.
  * - DELETE …/sessions/{id} (provisional, CA-4.5.17): 204.
  *
@@ -93,6 +95,20 @@ export const interviewSessionsHandlers = [
     resultByKey.set(key, result);
     return HttpResponse.json(result);
   }),
+
+  http.post(
+    '*/api/v1/interviews/sessions/:sessionId/answers/audio',
+    async ({ request, params }) => {
+      const key = request.headers.get('Idempotency-Key') ?? '';
+      const cached = resultByKey.get(key);
+      if (cached) return HttpResponse.json(cached);
+      const form = await request.formData();
+      const turnId = form.get('turno_id');
+      const result = advance(String(params.sessionId), typeof turnId === 'string' ? turnId : '');
+      resultByKey.set(key, result);
+      return HttpResponse.json(result);
+    },
+  ),
 
   http.post('*/api/v1/interviews/sessions/:sessionId/start', ({ params }) => {
     const sessionId = String(params.sessionId);
