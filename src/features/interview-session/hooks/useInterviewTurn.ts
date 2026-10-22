@@ -9,24 +9,36 @@
  * - `503 LLM_UNAVAILABLE` o `LLM_LIMIT_REACHED` (mismo trato, respuesta de
  *   Backend del 20-10-2026 §6.6): la respuesta ya quedó guardada (CA-5.2.12); el
  *   turno pasa a `evaluationFailed` y «Reintentar» llama a `…/reprocess`
- *   sin pedir texto nuevo (CA-5.2.19). Tras 2 reintentos fallidos cambia el
- *   mensaje y aparece «Ir al inicio» (CA-5.2.20), pero «Reintentar» sigue.
+ *   sin pedir texto nuevo (CA-5.2.19, fallo de la IA al evaluar la
+ *   respuesta). Tras 2 reintentos fallidos cambia el mensaje y aparece «Ir al
+ *   inicio» (CA-5.2.20, reintentos de evaluación agotados), pero «Reintentar»
+ *   sigue.
+ * - Al tope de «Reintentar» solo suma un fallo de `…/reprocess` con `code`
+ *   `LLM_UNAVAILABLE` o `LLM_LIMIT_REACHED` (D3, D4 del SPEC). Sin red, `404`
+ *   o cualquier otro error muestran su mensaje (`retryError`) sin sumar; una
+ *   vez agotado el tope, «Ir al inicio» no desaparece.
  * - Audio rechazado al transcribir (sin registrar respuesta ni gastar
  *   intento): `422 TRANSCRIPTION_EMPTY` (CA-5.12.7), `TRANSCRIPTION_TOO_LONG`
  *   (CA-5.12.9), `TRANSCRIPTION_LANGUAGE_MISMATCH` (CA-5.12.10) y
  *   `503 TRANSCRIPTION_UNAVAILABLE` (CA-5.12.8). Se descarta la grabación y
  *   se puede grabar de nuevo o responder por texto en la misma pregunta.
  * - `404`: entrevista ajena o inexistente (CA-5.2.7).
- * - Sin `ApiError` (sin red): mensaje de conexión, se conserva el texto.
+ * - Un `200` con forma inesperada (`AnswerResponseShapeError`, D10): mensaje
+ *   genérico, no el de conexión.
+ * - Cualquier otro error sin `ApiError` (sin red o tiempo agotado): mensaje de
+ *   conexión, se conserva el texto.
  *
- * Los errores se resuelven por `code` y clases amplias de estado HTTP
- * (CLAUDE.md §8); nunca se muestra `detail` ni `code`.
+ * Los errores se resuelven por `code` (los de `interviewSession.errorCodes`,
+ * D2) y clases amplias de estado HTTP (CLAUDE.md §8); nunca se muestra
+ * `detail` ni `code`.
  */
 import { useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { ApiError } from '@/services/http/ApiError';
+import { AnswerResponseShapeError } from '../api/AnswerResponseShapeError';
 import { reprocessTurn, submitAudioAnswer, submitTextAnswer } from '../api/interviewSession.api';
 import { MAX_EVALUATION_RETRIES } from '../model/interviewSession.constants';
+import { LLM_LIMIT_REACHED, LLM_UNAVAILABLE } from '../model/interviewSession.errorCodes';
 import type {
   AnswerResult,
   InterviewProgress,
@@ -50,7 +62,13 @@ const AUDIO_REJECTIONS: Record<string, AudioRejection> = {
   TRANSCRIPTION_UNAVAILABLE: 'noTranscrita',
 };
 
+/** Fallos de la IA al evaluar: abren el panel y, en `…/reprocess`, suman al tope (D3). */
+function isEvaluationFailure(error: unknown): boolean {
+  return error instanceof ApiError && error.hasCode(LLM_UNAVAILABLE, LLM_LIMIT_REACHED);
+}
+
 function toSubmitErrorKey(error: unknown): SubmitErrorKey {
+  if (error instanceof AnswerResponseShapeError) return 'generico';
   if (!(error instanceof ApiError)) return 'red';
   if (error.httpStatus === 404) return 'codigos.NOT_FOUND';
   return 'generico';
@@ -66,7 +84,8 @@ export function useInterviewTurn(entry: SessionEntry) {
   const [phase, setPhase] = useState<TurnPhase>('answering');
   const [failedRetries, setFailedRetries] = useState(0);
   const [submitError, setSubmitError] = useState<SubmitErrorKey | null>(null);
-  const [retryNetworkError, setRetryNetworkError] = useState(false);
+  /** Último fallo de `…/reprocess` que no es de evaluación; `null` si fue de la IA o no hubo. */
+  const [retryError, setRetryError] = useState<SubmitErrorKey | null>(null);
   const [audioRejection, setAudioRejection] = useState<AudioRejection | null>(null);
   const keysByTurn = useRef(new Map<string, string>());
   const inFlight = useRef(false);
@@ -74,7 +93,7 @@ export function useInterviewTurn(entry: SessionEntry) {
   function applyResult(result: AnswerResult) {
     setProgress(result.progress);
     setFailedRetries(0);
-    setRetryNetworkError(false);
+    setRetryError(null);
     setSubmitError(null);
     if (result.finished || !result.nextQuestion) {
       setPhase('finished');
@@ -115,7 +134,7 @@ export function useInterviewTurn(entry: SessionEntry) {
     },
     onSuccess: applyResult,
     onError: (error, answer) => {
-      if (error instanceof ApiError && error.hasCode('LLM_UNAVAILABLE', 'LLM_LIMIT_REACHED')) {
+      if (isEvaluationFailure(error)) {
         setPhase('evaluationFailed');
         return;
       }
@@ -133,14 +152,16 @@ export function useInterviewTurn(entry: SessionEntry) {
 
   const reprocess = useMutation({
     mutationFn: () => reprocessTurn(entry.sessionId, question.turnId),
-    onMutate: () => setRetryNetworkError(false),
+    onMutate: () => setRetryError(null),
     onSuccess: applyResult,
     onError: (error) => {
-      if (!(error instanceof ApiError)) {
-        setRetryNetworkError(true);
+      // Solo un fallo de la IA gasta un «Reintentar» (D4); el contador no baja
+      // con otros fallos, así que «Ir al inicio» se queda una vez agotado.
+      if (isEvaluationFailure(error)) {
+        setFailedRetries((count) => count + 1);
         return;
       }
-      setFailedRetries((count) => count + 1);
+      setRetryError(toSubmitErrorKey(error));
     },
   });
 
@@ -151,7 +172,7 @@ export function useInterviewTurn(entry: SessionEntry) {
     submitError,
     isSubmitting: submit.isPending,
     isRetrying: reprocess.isPending,
-    retryNetworkError,
+    retryError,
     retriesExhausted: failedRetries >= MAX_EVALUATION_RETRIES,
     audioRejection,
     clearAudioRejection: () => setAudioRejection(null),

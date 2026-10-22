@@ -81,8 +81,10 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
   const seconds = new Intl.NumberFormat(i18n.language, { minimumIntegerDigits: 2 });
   const clock = (total: number) => `${Math.floor(total / 60)}:${seconds.format(total % 60)}`;
 
-  const retryMessage = turn.retryNetworkError
-    ? t('errors:red')
+  // El panel muestra el último fallo de «Reintentar»: red, 404 u otro error
+  // con su mensaje; un fallo de la IA, el genérico o el de tope agotado (D4).
+  const retryMessage = turn.retryError
+    ? t(`errors:${turn.retryError}`)
     : turn.retriesExhausted
       ? t('interview:sesion.reintentosAgotados')
       : t('errors:generico');
@@ -205,12 +207,12 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
               <TextAnswerComposer
                 value={answer}
                 onChange={(value) => setAnswers((current) => ({ ...current, [turnId]: value }))}
-                onSubmit={() => turn.submitAnswer({ kind: 'text', text: answer.trim() })}
+                // Se envía tal como se escribió: `trim()` solo decide si está vacía (CA-5.2.3, CA-5.2.8).
+                onSubmit={() => turn.submitAnswer({ kind: 'text', text: answer })}
                 maxLength={ANSWER_MAX_LENGTH}
                 isSubmitting={turn.isSubmitting}
                 label={t('interview:sesion.respuesta.etiqueta')}
                 submitLabel={t('interview:sesion.enviar')}
-                submittingLabel={t('interview:sesion.procesando')}
                 tooLongMessage={t('interview:sesion.respuesta.demasiadoLarga', {
                   max: ANSWER_MAX_LENGTH,
                 })}

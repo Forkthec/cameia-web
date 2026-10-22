@@ -30,13 +30,13 @@ progreso «Pregunta k de 5»; errores de red, de la IA y de entrevista ajena; «
 datos simulados. Desde el PR #101 (`836d8e3`): contrato previsto de Backend en las tres rutas
 de respuesta (D1), `LLM_LIMIT_REACHED` en `…/answers` y los rechazos del audio al transcribir.
 
-**Entra (CM-217, rama `CM-217-contrato-y-errores-chat-simulacion`):** archivo de códigos de la
-feature (§4, D2); `LLM_LIMIT_REACHED` en `…/reprocess` decidido por `code` (D3); qué fallos de
-`…/reprocess` suman al tope (D4); la prueba exacta del tope (D5); una respuesta `200` con forma
-inesperada muestra el genérico (D10); «Pregunta k de 5» sin mayúsculas (§9, D7); conteo de
-caracteres por puntos de código NFC, también en el mock (§4, D9); envío sin recortar, también en
-el mock (§4); «Enviar» conserva su nombre mientras se procesa (CA-5.2.4); y las pruebas que
-faltan (§6).
+**Hecho en la rama `CM-217-contrato-y-errores-chat-simulacion` (CM-217):** archivo de códigos
+de la feature (§4, D2); `LLM_LIMIT_REACHED` en `…/reprocess` decidido por `code` (D3); solo los
+fallos de la IA de `…/reprocess` suman al tope (D4); la prueba exacta del tope (D5); una
+respuesta `200` con forma inesperada muestra el genérico (D10); «Pregunta k de 5» sin
+mayúsculas (§9, D7); conteo de caracteres por puntos de código NFC, también en el mock (§4, D9);
+envío sin recortar, también en el mock (§4); «Enviar» conserva su nombre mientras se procesa
+(CA-5.2.4); y las pruebas del plan (§6).
 
 **No entra:** transcripción real (HU-5.12, transcripción de la respuesta por voz), retomar tras
 recarga (HU-5.7, retomar una entrevista), cierre y reporte (HU-5.5, cierre de la entrevista),
@@ -55,7 +55,7 @@ Diseño «Escenario + orbe» (aprobado por Frontend, CM-217): cielo de madrugada
   visible «Procesando tu respuesta…», anunciado por la región `aria-live` de `SessionStage`;
   «Enviar» conserva su nombre y queda deshabilitado, y un segundo clic no envía otra respuesta
   — CA-5.2.4 (doble selección de «Enviar»). El botón no usa el modo de carga de `Button`,
-  porque ese modo cambia la etiqueta. **Pendiente de prueba** (§6).
+  porque ese modo cambia la etiqueta.
 - **Vacío:** sin entrada en el estado de la navegación (recarga) → `/entrenar/nueva`
   (HU-5.7, retomar, aún no existe: el backlog pide iniciar otra entrevista).
 - **Error:** según §4: sin red → «No hay conexión…» y se conserva el texto (CA-5.2.18, envío
@@ -71,7 +71,7 @@ Diseño «Escenario + orbe» (aprobado por Frontend, CM-217): cielo de madrugada
 
 En una entrevista con Texto el chat muestra solo el campo «Respuesta» y «Enviar», sin pausar,
 repreguntar ni reintentar una respuesta ya enviada — CA-5.2.15 (chat de Simulación sin pausa,
-repregunta ni reintento). **Pendiente de prueba** (§6).
+repregunta ni reintento).
 
 ## 4. Contrato observable
 
@@ -86,57 +86,56 @@ solo lo usa el aviso de idioma del audio (CA-5.12.10). Hecho en #101.
 obligatorios y validación de formularios; regla C-07): un emoji cuenta 1, no 2. El conteo
 se hace en la feature (`TextAnswerComposer`) con la utilidad existente `unicodeLength`
 (`src/utils/unicodeLength.ts`); la molécula `CharacterCounter` no cuenta, recibe `count` ya
-calculado, así que no cambia (D9). Hoy se cuenta con `value.length`
-(`TextAnswerComposer.tsx:60,91`).
+calculado, así que no cambia (D9).
 
 **Recorte.** RT-01, regla C-07, recorta al inicio y al final antes de validar solo los textos
 de una línea. La respuesta es texto largo: **se envía tal como se escribió** (`answerText`
 idéntico a lo escrito, con sus espacios al inicio y al final) y **se cuenta lo escrito**.
 `trim()` solo decide si está vacía — CA-5.2.3 (respuesta vacía o de solo espacios); ver §9,
-caracteres de ancho cero. Hoy la página recorta al enviar (`InterviewSessionPage.tsx:208`).
+caracteres de ancho cero.
 
-**Mock (D9 y recorte).** El handler de `…/answers` hoy recorta y cuenta en UTF-16
-(`src/mocks/handlers/interviewSessions.handlers.ts:75-77`). Pasa a: vacía si `trim()` queda
-vacío; longitud = puntos de código NFC de lo recibido, sin recortar. La política de ESLint de
-`mocks` solo permite importar `mocks` y `services`, así que el mock no importa `unicodeLength`:
-repite la expresión con un comentario que apunta a `src/utils/unicodeLength.ts`.
+**Mock (D9 y recorte).** El handler de `…/answers` da `422` si `trim()` queda vacío o si lo
+recibido, sin recortar, pasa de 4000 puntos de código NFC. La política de ESLint de `mocks` solo
+permite importar `mocks` y `services`, así que el mock no importa `unicodeLength`: repite la
+expresión con un comentario que apunta a `src/utils/unicodeLength.ts`.
 
-**Códigos de la feature (D2, ADR-0008, el `code` estable como discriminador).** Archivo
-nuevo en `model/` (`interviewSession.errorCodes.ts`), con `LLM_UNAVAILABLE`,
+**Códigos de la feature (D2, ADR-0008, el `code` estable como discriminador).**
+`src/features/interview-session/model/interviewSession.errorCodes.ts`, con `LLM_UNAVAILABLE`,
 `LLM_LIMIT_REACHED` y `VALIDATION_FAILED`, copiados tal cual del contrato y acotados a
-`…/answers` y `…/reprocess`. Hoy son literales en el hook (`useInterviewTurn.ts:118`) y en las
-pruebas (`InterviewSessionPage.test.tsx:53,192`). Las pruebas los **importan** de ese archivo.
-Los mocks los **copian como literal**, con un comentario que apunta a ese archivo, igual que
-hacen hoy los mocks de Perfil. Los códigos de transcripción de CM-317 se quedan donde los dejó
-#101 (`useInterviewTurn.ts:46-51`).
+`…/answers` y `…/reprocess`. El hook y las pruebas los **importan** de ese archivo. Los mocks
+los **copian como literal**, con un comentario que apunta a ese archivo, igual que hacen los
+mocks de Perfil. Los códigos de transcripción de CM-317 se quedan donde los dejó #101
+(`AUDIO_REJECTIONS` en el hook).
 
 **Mensajes.** Siguiendo el patrón actual, el hook devuelve la llave de `errors` que muestra la
-página (`SubmitErrorKey`, `useInterviewTurn.ts:42`); D6 queda para después (§9).
+página (`SubmitErrorKey`): `submitError` para `…/answers` y `retryError` para el último fallo de
+`…/reprocess` que no es de la IA (antes era `retryNetworkError`, un booleano solo para la red).
+D6 queda para después (§9).
 
-**Fallo de red frente a otro error (D10).** Cómo se distingue hoy:
+**Fallo de red frente a otro error (D10).** Por qué hace falta:
 
 - `fetch` rechazado (sin red) o abortado por el tope de 30 s (`src/services/http/httpClient.ts:87`)
   sale del cliente sin envolver: `try/finally` sin `catch` (`httpClient.ts:89-128`).
 - Toda respuesta no OK pasa a `ApiError` por `errorMap`, aunque el cuerpo no sea JSON
   (`httpClient.ts:110-119`; `src/services/http/errorMap.ts:81-111`).
-- Un `200` sale de `response.json()` sin validar (`httpClient.ts:125`). Si le falta `progress`, el
-  mapper lanza un `TypeError` al leerlo (`api/interviewSession.mapper.ts:25`): la misma clase
-  de error que un `fetch` sin red.
-- El hook trata todo lo que no es `ApiError` como red (`useInterviewTurn.ts:54`), igual que el
-  resto del proyecto (`src/features/professional-profile/pages/EditProfilePage.tsx:379,389`).
+- Un `200` sale de `response.json()` sin validar (`httpClient.ts:125`): si le faltaba
+  `progress`, el mapper lanzaba un `TypeError` al leerlo, la misma clase de error que un
+  `fetch` sin red.
+- El hook trata todo lo que no es `ApiError` como red, igual que el resto del proyecto
+  (`src/features/professional-profile/pages/EditProfilePage.tsx:379,389`).
 - `ApiError` solo lo construye `errorMap` (`src/services/http/ApiError.ts:2-3`): el mapper no
   debe crear uno.
 
-**Propuesta, dentro del patrón actual:** el mapper (el cortafuegos, CLAUDE.md §8) valida la
-respuesta `200` y, si no tiene la forma del contrato, lanza un error propio de la feature,
-definido en `api/`. El hook reconoce ese error como «otro» (`errors:generico`) y deja intacta la
-regla «no es `ApiError` = red» para el transporte. No se toca `services/`. Quedan como red, para
-después (§9): un `200` cuyo cuerpo no es JSON (`httpClient.ts:125`) y
+**Cómo quedó, dentro del patrón actual:** el mapper (el cortafuegos, CLAUDE.md §8) valida
+`progress`, `interviewFinished` y `nextQuestion` del `200` y, si no calzan, lanza
+`AnswerResponseShapeError` (`api/`). El hook lo trata como «otro» (`errors:generico`) y deja
+intacta la regla «no es `ApiError` = red» para el transporte. No se tocó `services/`. Siguen
+como red, para después (§9): un `200` cuyo cuerpo no es JSON (`httpClient.ts:125`) y
 `BackendNotConfiguredError` (`httpClient.ts:57`). Se descartó detectar la red en positivo
 (`TypeError` o `AbortError`), porque el `TypeError` del mapper es de la misma clase.
 
 **Errores.** Tope de «Reintentar» (D5): 2 usos después del primer fallo, 3 llamadas a la IA en
-total («Cambios v4», fila 8); `MAX_EVALUATION_RETRIES` (`model/interviewSession.constants.ts:11`).
+total («Cambios v4», fila 8); `MAX_EVALUATION_RETRIES` (`model/interviewSession.constants.ts`).
 Solo suma un fallo de evaluación (D4).
 
 | Code o situación | Petición | Clase | ¿Suma al tope? | Llave i18n | CA |
@@ -159,15 +158,15 @@ Solo suma un fallo de evaluación (D4).
 
 - `…/reprocess` solo suma un fallo de evaluación con `code` `LLM_UNAVAILABLE` o
   `LLM_LIMIT_REACHED`. Sin respuesta HTTP → «No hay conexión…»; `404` → «No encontramos lo que
-  buscabas.»; cualquier otro error → genérico. Ninguno de esos tres suma. Hoy suma cualquier
-  `ApiError` (`useInterviewTurn.ts:138-144`) y la página solo distingue la red
-  (`InterviewSessionPage.tsx:84-88`).
+  buscabas.»; cualquier otro error → genérico. Ninguno de esos tres suma. La página muestra en
+  el panel el mensaje del último fallo (`retryError`) y, si fue de la IA, el genérico o el de
+  tope agotado.
 - Tras cualquier fallo de `…/reprocess`, incluido un `404`, el panel **sigue mostrando
   «Reintentar»**, que siempre llama a `…/reprocess`, también después de agotar el tope
   (CA-5.2.20).
 - «Ir al inicio» (`/inicio`, destino de HU-10.4) aparece al agotar el tope y **no desaparece**
   aunque después llegue un fallo de otro tipo. El contador solo vuelve a cero con una respuesta
-  exitosa (`useInterviewTurn.ts:76`).
+  exitosa.
 
 **Rechazos del audio (CM-317, hecho en #101).** Solo en `…/answers/audio`, sin registrar
 respuesta ni gastar intento: `422 TRANSCRIPTION_EMPTY` → «No detectamos tu voz, intenta de
@@ -175,8 +174,8 @@ nuevo.» (CA-5.12.7); `422 TRANSCRIPTION_TOO_LONG` → «Tu respuesta es demasia
 (CA-5.12.9); `422 TRANSCRIPTION_LANGUAGE_MISMATCH` → «Tu entrevista es en inglés/español…»,
 según `sessionLanguage` (CA-5.12.10); `503 TRANSCRIPTION_UNAVAILABLE` → «No pudimos transcribir
 tu respuesta…» con «Grabar de nuevo» (CA-5.12.8). En todos se descarta la grabación y se puede
-grabar otra vez o responder por texto (`useInterviewTurn.ts:43-51,122-129`;
-`InterviewSessionPage.tsx:107-120`).
+grabar otra vez o responder por texto (`AUDIO_REJECTIONS` en el hook; `voiceNotice` en la
+página).
 
 Nunca se muestran `title`, `detail`, `code` ni `requestId` (CLAUDE.md §8).
 
@@ -204,8 +203,8 @@ nombres de campo van en inglés y camelCase; los **valores** quedan como los man
 `interviewSession.mapper.ts` la convierte al modelo: `progress` → `{current, total}`;
 `nextQuestion` → `InterviewQuestion` o `null`; `interviewFinished` o `nextQuestion = null` →
 fase `finished`. `turn.status` no se usa en la interfaz. Repetir la misma `Idempotency-Key`
-devuelve la misma respuesta; otra clave para el mismo turno → `409`. Con D10, el mapper además
-valida la forma (§4).
+devuelve la misma respuesta; otra clave para el mismo turno → `409`. El mapper además valida la
+forma y, si no calza, lanza `AnswerResponseShapeError` (D10, §4).
 
 **Las demás rutas de la entrevista (interview-setup, no las toca esta rama):** `POST
 /api/v1/interviews/sessions` (crear la sesión, HU-4.4) se migró en el PR #100 (`5bc70b2`,
@@ -240,67 +239,63 @@ front: el DTO no trae retroalimentación y la pregunta se muestra tal como llega
 ### Plan de pruebas
 
 Pruebas de la página en `pages/InterviewSessionPage.test.tsx` salvo que se diga otra cosa.
-«Nueva» = no existe; «Se corrige» = existe y se amplía o ajusta; las líneas son las de
-`develop` en `836d8e3`. Todas usan el contrato de §5 y los códigos de §4. Ya cubiertas por #101
-y fuera de este plan: `LLM_LIMIT_REACHED` en `…/answers` (`:188-202`) y la respuesta propia del
-audio (`InterviewSessionPage.voice.test.tsx:89-96`).
+Las pruebas se escribieron en rojo en `ce6b98f` y pasan con la implementación de esta rama.
+«Hecha» = escrita o ampliada en esta rama; «Se mantiene» = ya existía y no se tocó. Todas usan
+el contrato de §5 y los códigos de §4. Ya cubiertas por #101 y fuera de este plan:
+`LLM_LIMIT_REACHED` en `…/answers` y la respuesta propia del audio
+(`InterviewSessionPage.voice.test.tsx`).
 
 | CA o decisión | Prueba (`it`) | Qué afirma literalmente | Estado |
 | --- | --- | --- | --- |
-| CA-5.2.1 y CA-5.2.14 | al enviar muestra la pregunta 2 con su texto original, «Pregunta 2 de 5», el campo vacío y ninguna retroalimentación | Título nivel 1 con el texto exacto de `nextQuestion.text` del handler (con tildes y signos); barra de progreso «Pregunta 2 de 5»; campo «Respuesta» vacío; un texto de retroalimentación que el handler añade a la respuesta 200 **no** aparece en la pantalla | Se corrige (`:93-100`) |
-| CA-5.2.3 | mantiene «Enviar» deshabilitado con el campo vacío o solo espacios | «Enviar» deshabilitado vacío, con espacios, con tabuladores y saltos de línea, y con espacio no separable; el handler de `…/answers` no recibe ninguna llamada | Se corrige (`:72-79`) |
-| CA-5.2.4 | con doble clic en «Enviar» registra una sola respuesta y muestra «Procesando tu respuesta…» | Handler con demora: doble clic → 1 sola llamada a `…/answers`; durante la espera (a) el botón con nombre accesible «Enviar» está deshabilitado y (b) el texto «Procesando tu respuesta…» está visible en la región `aria-live` | Nueva |
-| CA-5.2.4 y CA-5.2.18 | tras un fallo de red el reenvío del mismo turno usa la misma Idempotency-Key | 1.ª llamada: error de red; 2.ª: 200. Las dos cabeceras `Idempotency-Key` son iguales y no vacías; los dos cuerpos llevan el mismo `turnId` | Nueva |
-| CA-5.2.5 | tras la pregunta 5 muestra «Tu entrevista terminó.» sin campo ni «Enviar» | Título «Tu entrevista terminó.»; sin campo «Respuesta» ni botón «Enviar» | Se mantiene (`:172-186`) |
-| CA-5.2.7 | con una entrevista ajena o inexistente muestra «No encontramos lo que buscabas.» | `404` con `code` `SESSION_NOT_FOUND` y `404` sin `code`: el mismo mensaje en ambos casos | Se corrige (`:156-170`, hoy solo `404` con `code` `NOT_FOUND`) |
-| CA-5.2.8 | acepta exactamente 4000 caracteres y los envía tal como se escribieron | Texto de 4000 caracteres con espacios al inicio y al final (p. ej. 2 + 3996 + 2): contador «4000 / 4000 caracteres»; sin mensaje de error; «Enviar» habilitado; el `answerText` recibido por el handler es idéntico a lo escrito, espacios incluidos; avanza a «Pregunta 2 de 5» | Nueva |
-| CA-5.2.9 | con 4001 caracteres marca el contador, muestra el mensaje y no envía | «4001 / 4000 caracteres»; «Tu respuesta no puede superar los 4000 caracteres.»; «Enviar» deshabilitado; el campo conserva los 4001; el handler no recibe llamadas | Se corrige (`:81-91`) |
-| D9 (C-07) | cuenta caracteres como puntos de código NFC | 4000 emojis → «4000 / 4000 caracteres» y «Enviar» habilitado; 4001 → mensaje de CA-5.2.9; una letra con tilde combinada (e + ◌́) cuenta 1 | Nueva |
-| CA-5.2.15 | en una entrevista con Texto solo muestra el campo «Respuesta» y «Enviar» | Un solo campo de texto y un solo botón («Enviar»); ningún botón ni enlace de pausar, repreguntar ni reintentar | Nueva |
-| CA-5.2.18 | sin conexión muestra el aviso y conserva el texto | «No hay conexión. Revisa tu internet e inténtalo de nuevo.»; el campo conserva el texto; el título sigue siendo la pregunta 1; «Pregunta 1 de 5» | Se corrige (`:102-113`) |
-| D10 | una respuesta 200 con forma inesperada muestra el error genérico, no el de conexión | El handler de `…/answers` responde 200 con un cuerpo sin `progress`: aparece «Ocurrió un error. Inténtalo de nuevo.»; **no** aparece «No hay conexión…»; el campo conserva el texto y sigue «Pregunta 1 de 5» | Nueva |
-| CA-5.2.19 | si la IA falla muestra el error genérico con «Reintentar» | «Ocurrió un error. Inténtalo de nuevo.»; botón «Reintentar»; sin campo; **sin** enlace «Ir al inicio»; el `detail` del cuerpo no aparece | Se corrige (`:115-124`) |
-| CA-5.2.19 | «Reintentar» con éxito avanza a la pregunta siguiente | «Pregunta 2 de 5» tras un `…/reprocess` 200 | Se mantiene (`:146-154`) |
-| CA-5.2.20 (D5) | agota «Reintentar» exactamente tras 2 usos fallidos y el tercero sigue llamando a la evaluación | Tras el 1.º «Reintentar» fallido: mensaje genérico y sin «Ir al inicio»; tras el 2.º: mensaje literal de CA-5.2.20, «Reintentar» y enlace «Ir al inicio» a `/inicio`; un 3.º «Reintentar» → el handler de `…/reprocess` suma 3 llamadas | Se corrige (`:126-144`) |
-| D3 | LLM_LIMIT_REACHED al reintentar suma al tope igual que LLM_UNAVAILABLE | `…/answers` responde `LLM_UNAVAILABLE`; `…/reprocess` responde `503 LLM_LIMIT_REACHED` dos veces: tras el 2.º, mensaje literal de CA-5.2.20 y enlace «Ir al inicio» | Nueva |
-| D4 | un fallo de red al reintentar muestra «No hay conexión…» sin sumar al tope | `…/reprocess`: red, luego `LLM_UNAVAILABLE`: tras el de red, «No hay conexión…» y «Reintentar»; tras el siguiente, mensaje genérico y **sin** «Ir al inicio» (solo un fallo contado) | Nueva |
-| D4 | otro error al reintentar muestra el genérico sin sumar al tope | `…/reprocess` responde `500 INTERNAL_ERROR` tres veces: siempre genérico y nunca «Ir al inicio» | Nueva |
-| D4 | un 404 al reintentar muestra «No encontramos lo que buscabas.» sin sumar | Mensaje de CA-5.2.7 en el panel; «Reintentar» sigue; sin «Ir al inicio» | Nueva |
-| D4 | tras agotar «Reintentar», «Ir al inicio» no desaparece si llega un fallo de otro tipo | Agotar el tope con 2 fallos `LLM_UNAVAILABLE` en `…/reprocess`; el 3.º «Reintentar» recibe un error de red: aparece «No hay conexión…», «Reintentar» sigue y el enlace «Ir al inicio» sigue visible | Nueva |
-| D1 y D10 | `api/interviewSession.mapper.test.ts`: convierte la respuesta 200 del contrato previsto y rechaza una forma inesperada | `progress`, `nextQuestion` e `interviewFinished` al modelo; `nextQuestion = null` → terminada; un cuerpo sin `progress` lanza el error propio de la feature, no un `TypeError` | Nueva |
-| D7 | `ProgressArc.test.tsx`: la etiqueta no fuerza mayúsculas | La etiqueta no lleva la clase `uppercase`. Es una prueba débil (jsdom no aplica Tailwind): se completa con **verificación manual en el paso 6** («Pregunta k de 5» visible tal cual en el navegador) | Se amplía (hoy `:10`, `:17`) |
+| CA-5.2.1 y CA-5.2.14 | al enviar muestra la pregunta 2 con su texto original, «Pregunta 2 de 5», el campo vacío y ninguna retroalimentación | Título nivel 1 con el texto exacto de `nextQuestion.text` del handler (con tildes y signos); barra de progreso «Pregunta 2 de 5»; campo «Respuesta» vacío; un texto de retroalimentación que el handler añade a la respuesta 200 **no** aparece en la pantalla | Hecha |
+| CA-5.2.3 | mantiene «Enviar» deshabilitado con el campo vacío o solo espacios | «Enviar» deshabilitado vacío, con espacios, con tabuladores y saltos de línea, y con espacio no separable; el handler de `…/answers` no recibe ninguna llamada | Hecha |
+| CA-5.2.4 | con doble clic en «Enviar» registra una sola respuesta y muestra «Procesando tu respuesta…» | Handler con demora: doble clic → 1 sola llamada a `…/answers`; durante la espera (a) el botón con nombre accesible «Enviar» está deshabilitado y (b) el texto «Procesando tu respuesta…» está visible en la región `aria-live` | Hecha |
+| CA-5.2.4 y CA-5.2.18 | tras un fallo de red el reenvío del mismo turno usa la misma Idempotency-Key | 1.ª llamada: error de red; 2.ª: 200. Las dos cabeceras `Idempotency-Key` son iguales y no vacías; los dos cuerpos llevan el mismo `turnId` | Hecha |
+| CA-5.2.5 | tras la pregunta 5 muestra «Tu entrevista terminó.» sin campo ni «Enviar» | Título «Tu entrevista terminó.»; sin campo «Respuesta» ni botón «Enviar» | Se mantiene |
+| CA-5.2.7 | con una entrevista ajena o inexistente muestra «No encontramos lo que buscabas.» | `404` con `code` `SESSION_NOT_FOUND` y `404` sin `code`: el mismo mensaje en ambos casos | Hecha |
+| CA-5.2.8 | acepta exactamente 4000 caracteres y los envía tal como se escribieron | Texto de 4000 caracteres con espacios al inicio y al final (p. ej. 2 + 3996 + 2): contador «4000 / 4000 caracteres»; sin mensaje de error; «Enviar» habilitado; el `answerText` recibido por el handler es idéntico a lo escrito, espacios incluidos; avanza a «Pregunta 2 de 5» | Hecha |
+| CA-5.2.9 | con 4001 caracteres marca el contador, muestra el mensaje y no envía | «4001 / 4000 caracteres»; «Tu respuesta no puede superar los 4000 caracteres.»; «Enviar» deshabilitado; el campo conserva los 4001; el handler no recibe llamadas | Hecha |
+| D9 (C-07) | cuenta caracteres como puntos de código NFC | 4000 emojis → «4000 / 4000 caracteres» y «Enviar» habilitado; 4001 → mensaje de CA-5.2.9; una letra con tilde combinada (e + ◌́) cuenta 1 | Hecha |
+| CA-5.2.15 | en una entrevista con Texto solo muestra el campo «Respuesta» y «Enviar» | Un solo campo de texto y un solo botón («Enviar»); ningún botón ni enlace de pausar, repreguntar ni reintentar | Hecha |
+| CA-5.2.18 | sin conexión muestra el aviso y conserva el texto | «No hay conexión. Revisa tu internet e inténtalo de nuevo.»; el campo conserva el texto; el título sigue siendo la pregunta 1; «Pregunta 1 de 5» | Hecha |
+| D10 | una respuesta 200 con forma inesperada muestra el error genérico, no el de conexión | El handler de `…/answers` responde 200 con un cuerpo sin `progress`: aparece «Ocurrió un error. Inténtalo de nuevo.»; **no** aparece «No hay conexión…»; el campo conserva el texto y sigue «Pregunta 1 de 5» | Hecha |
+| CA-5.2.19 | si la IA falla muestra el error genérico con «Reintentar» | «Ocurrió un error. Inténtalo de nuevo.»; botón «Reintentar»; sin campo; **sin** enlace «Ir al inicio»; el `detail` del cuerpo no aparece | Hecha |
+| CA-5.2.19 | «Reintentar» con éxito avanza a la pregunta siguiente | «Pregunta 2 de 5» tras un `…/reprocess` 200 | Se mantiene |
+| CA-5.2.20 (D5) | agota «Reintentar» exactamente tras 2 usos fallidos y el tercero sigue llamando a la evaluación | Tras el 1.º «Reintentar» fallido: mensaje genérico y sin «Ir al inicio»; tras el 2.º: mensaje literal de CA-5.2.20, «Reintentar» y enlace «Ir al inicio» a `/inicio`; un 3.º «Reintentar» → el handler de `…/reprocess` suma 3 llamadas | Hecha |
+| D3 | LLM_LIMIT_REACHED al reintentar suma al tope igual que LLM_UNAVAILABLE | `…/answers` responde `LLM_UNAVAILABLE`; `…/reprocess` responde `503 LLM_LIMIT_REACHED` dos veces: tras el 2.º, mensaje literal de CA-5.2.20 y enlace «Ir al inicio» | Hecha |
+| D4 | un fallo de red al reintentar muestra «No hay conexión…» sin sumar al tope | `…/reprocess`: red, luego `LLM_UNAVAILABLE`: tras el de red, «No hay conexión…» y «Reintentar»; tras el siguiente, mensaje genérico y **sin** «Ir al inicio» (solo un fallo contado) | Hecha |
+| D4 | otro error al reintentar muestra el genérico sin sumar al tope | `…/reprocess` responde `500 INTERNAL_ERROR` tres veces: siempre genérico y nunca «Ir al inicio» | Hecha |
+| D4 | un 404 al reintentar muestra «No encontramos lo que buscabas.» sin sumar | Mensaje de CA-5.2.7 en el panel; «Reintentar» sigue; sin «Ir al inicio» | Hecha |
+| D4 | tras agotar «Reintentar», «Ir al inicio» no desaparece si llega un fallo de otro tipo | Agotar el tope con 2 fallos `LLM_UNAVAILABLE` en `…/reprocess`; el 3.º «Reintentar» recibe un error de red: aparece «No hay conexión…», «Reintentar» sigue y el enlace «Ir al inicio» sigue visible | Hecha |
+| D1 y D10 | `api/interviewSession.mapper.test.ts`: convierte la respuesta 200 del contrato previsto y rechaza una forma inesperada | `progress`, `nextQuestion` e `interviewFinished` al modelo; `nextQuestion = null` → terminada; un cuerpo sin `progress` lanza el error propio de la feature, no un `TypeError` | Hecha |
+| D7 | `ProgressArc.test.tsx`: la etiqueta no fuerza mayúsculas | La etiqueta no lleva la clase `uppercase`. Es una prueba débil (jsdom no aplica Tailwind): se completa con **verificación manual en el paso 6** («Pregunta k de 5» visible tal cual en el navegador) | Hecha |
 
 ## 7. Estado de implementación
 
 | Archivo | Estado |
 | --- | --- |
-| `src/features/interview-session/pages/InterviewSessionPage.tsx` | Hecho, con el contrato previsto y los avisos de voz de #101; cambia: envía sin recortar (línea 208) y el mensaje del panel según el último fallo de reprocess (líneas 84-88, D4) |
-| `src/features/interview-session/hooks/useInterviewTurn.ts` | Hecho; D3 en answers y rechazos del audio en #101 (líneas 43-51 y 118); cambia: D3 y D4 en reprocess (líneas 134-145) y el error propio del mapper como genérico (líneas 53-57, D10); sigue devolviendo llaves de i18n (D6 fuera) |
-| `src/features/interview-session/organisms/SessionStage/SessionStage.tsx` | Hecho; región aria-live en las líneas 69-72 |
-| `src/features/interview-session/organisms/TextAnswerComposer/TextAnswerComposer.tsx` | Hecho; cambia: conteo por puntos de código NFC (líneas 60 y 91, D9) y deja el modo de carga del botón (líneas 101-103, CA-5.2.4); la prop de etiqueta de carga deja de usarse |
+| `src/features/interview-session/pages/InterviewSessionPage.tsx` | Hecho; contrato previsto y avisos de voz (#101); envía la respuesta sin recortar y el panel muestra el mensaje del último fallo de reprocess (D4) |
+| `src/features/interview-session/hooks/useInterviewTurn.ts` | Hecho; rechazos del audio (#101); códigos de D2; solo los fallos de la IA de reprocess suman al tope (D3, D4); retryError reemplaza a retryNetworkError; AnswerResponseShapeError da el genérico (D10); sigue devolviendo llaves de i18n (D6 fuera) |
+| `src/features/interview-session/organisms/SessionStage/SessionStage.tsx` | Hecho; región aria-live con el indicador de procesando |
+| `src/features/interview-session/organisms/TextAnswerComposer/TextAnswerComposer.tsx` | Hecho; cuenta puntos de código NFC con unicodeLength (D9); el botón Enviar solo se deshabilita, sin modo de carga, y ya no recibe etiqueta de carga (CA-5.2.4) |
 | `src/features/interview-session/organisms/EvaluationRetryPanel/EvaluationRetryPanel.tsx` | Hecho; conserva el modo de carga (§9) |
 | `src/features/interview-session/api/interviewSession.api.ts` | Hecho con el contrato previsto (#101); TSDoc de reprocessTurn para después (§9) |
 | `src/features/interview-session/api/interviewSession.dto.ts` | Hecho con el contrato previsto (#101) |
-| `src/features/interview-session/api/interviewSession.mapper.ts` | Hecho con el contrato previsto (#101); cambia: valida la forma de la respuesta 200 (D10) |
+| `src/features/interview-session/api/interviewSession.mapper.ts` | Hecho con el contrato previsto (#101); valida la forma de la respuesta 200 (D10) |
+| `src/features/interview-session/api/AnswerResponseShapeError.ts` | Hecho; error propio del mapper (D10) |
+| `src/features/interview-session/api/interviewSession.mapper.test.ts` | Hecha (D1 y D10) |
+| `src/features/interview-session/model/interviewSession.errorCodes.ts` | Hecho; LLM_UNAVAILABLE, LLM_LIMIT_REACHED y VALIDATION_FAILED (D2) |
 | `src/features/interview-session/model/interviewSession.types.ts` | Hecho; sessionLanguage en #101 |
 | `src/features/interview-session/model/sessionEntry.ts` | Hecho; valida sessionLanguage (#101) |
-| `src/features/interview-session/model/interviewSession.constants.ts` | Hecho; tope de 2 en la línea 11 |
+| `src/features/interview-session/model/interviewSession.constants.ts` | Hecho; tope de 2 |
 | `src/features/interview-session/hooks/useVoiceRecorder.ts` | Hecho (detección provisional) |
 | `src/features/interview-session/organisms/VoiceAnswerComposer/VoiceAnswerComposer.tsx` | Hecho |
 | `src/design-system/molecules/BrandOrb/BrandOrb.tsx` | Hecho |
-| `src/design-system/molecules/ProgressArc/ProgressArc.tsx` | Hecho; quitar las mayúsculas de la etiqueta (línea 77, D7) |
-| `src/mocks/handlers/interviewSessions.handlers.ts` | Hecho con el contrato previsto (#101); cambia: conteo por puntos de código y sin recortar (líneas 75-77) y los códigos copiados con comentario (D2) |
-| `src/features/interview-session/pages/InterviewSessionPage.test.tsx` | Incompleta: faltan CA-5.2.4, 5.2.8, 5.2.15, D4, D10 y el tope exacto de 5.2.20 (§6) |
+| `src/design-system/molecules/ProgressArc/ProgressArc.tsx` | Hecho; la etiqueta se muestra sin mayúsculas forzadas (D7) |
+| `src/mocks/handlers/interviewSessions.handlers.ts` | Hecho con el contrato previsto (#101); cuenta puntos de código NFC sin recortar y copia VALIDATION_FAILED con un comentario (D2, D9) |
+| `src/features/interview-session/pages/InterviewSessionPage.test.tsx` | Hecha; cubre el plan de §6 |
 | `src/features/interview-session/pages/InterviewSessionPage.voice.test.tsx` | Hecho; contrato previsto y rechazos del audio en #101 |
-| `src/design-system/molecules/ProgressArc/ProgressArc.test.tsx` | Se amplía (D7) |
-
-Archivos nuevos de esta rama (todavía no existen, por eso van fuera de la tabla):
-`model/interviewSession.errorCodes.ts` (D2) y `api/interviewSession.mapper.test.ts` (D1 y
-D10), los dos dentro de `src/features/interview-session/`.
-
-Pendientes de prueba hoy: CA-5.2.4 (doble selección de «Enviar») y CA-5.2.15 (sin pausa,
-repregunta ni reintento) no tienen una prueba que los respalde; CA-5.2.8 (respuesta de 4000
-caracteres) tampoco.
+| `src/design-system/molecules/ProgressArc/ProgressArc.test.tsx` | Hecha (D7, prueba débil; falta la revisión manual del paso 6) |
 
 ### Respuesta por voz (CM-317 · HU-5.8)
 
@@ -377,16 +372,21 @@ voz» de §7. Del inicio (interview-setup): `PLANNING_RETRIES_EXHAUSTED` deja so
 - El orbe solo anuncia «Procesando tu respuesta…». No hay botón de salida en el chat
   (CA-5.2.15, y el backlog no lo define).
 - El número total de preguntas viene del backend en el progreso (CLAUDE.md §3.7).
-- Hay una `Idempotency-Key` por turno y forma de respuesta (`useInterviewTurn.ts:104,110`): pasar
-  de voz a texto en la misma pregunta usa otra clave (CA-5.8.22).
+- Hay una `Idempotency-Key` por turno y forma de respuesta (`idempotencyKeyFor` en el hook):
+  pasar de voz a texto en la misma pregunta usa otra clave (CA-5.8.22).
 
 **Anotado para después (fuera de alcance de CM-217)**
 
 - **D6 · Tipos de fallo sin llaves de i18n en el hook.** CLAUDE.md pide que el mensaje lo
-  decida la página; hoy el hook devuelve llaves de `errors` (`SubmitErrorKey`,
-  `useInterviewTurn.ts:42`) y también nombra las de `interview:sesion.voz` (`AudioRejection`,
-  `useInterviewTurn.ts:43-51`, de CM-317). Cambiarlo tocaría código de CM-317 (voz, #101), así
-  que sale de esta rama y se acuerda antes con Frontend.
+  decida la página; hoy el hook devuelve llaves de `errors` (`SubmitErrorKey`, en
+  `submitError` y `retryError`) y también nombra las de `interview:sesion.voz`
+  (`AudioRejection`, de CM-317). Cambiarlo tocaría código de CM-317 (voz, #101), así que sale de
+  esta rama y se acuerda antes con Frontend.
+- El mapper exige `nextQuestion = null` tras la pregunta 5 (contrato del 20-10, §6.5): si
+  Backend omitiera el campo en vez de mandar `null`, el chat mostraría el genérico (D10). Se
+  revisa cuando exista la OpenAPI.
+- `tracking-[0.24em]` de la etiqueta de `ProgressArc` estaba pensado para mayúsculas; sin ellas
+  (D7) puede verse demasiado separado. Se revisa en el paso 6, en el navegador.
 - Un `200` cuyo cuerpo no es JSON (`src/services/http/httpClient.ts:125`) y
   `BackendNotConfiguredError` (`httpClient.ts:57`) siguen mostrando «No hay conexión…»: lo
   resuelve `services/`, compartido, no esta feature (§4, D10).

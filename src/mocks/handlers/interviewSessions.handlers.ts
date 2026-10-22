@@ -5,7 +5,8 @@
  *   la misma `Idempotency-Key` devuelve la misma sesión.
  * - POST …/sessions/{id}/answers (HU-5.2): registra la respuesta del turno
  *   pendiente y devuelve la siguiente pregunta; 422 si está vacía o pasa de
- *   4000 caracteres (CA-5.2.9, CA-5.2.10); misma `Idempotency-Key` → mismo
+ *   4000 caracteres, contados como puntos de código NFC sobre lo recibido sin
+ *   recortar (CA-5.2.8, CA-5.2.9, CA-5.2.10); misma `Idempotency-Key` → mismo
  *   resultado (CA-5.2.11).
  * - POST …/turns/{turnId}/reprocess (provisional, CA-5.2.19).
  * - POST …/sessions/{id}/answers/audio (HU-5.8): mismo avance que el texto;
@@ -73,18 +74,23 @@ export const interviewSessionsHandlers = [
     if (cached) return HttpResponse.json(cached);
 
     const body = (await request.json()) as { turnId?: string; answerText?: string };
-    const text = (body.answerText ?? '').trim();
-    if (!text || text.length > 4000) {
+    // Se cuenta lo recibido, sin recortar; `trim()` solo decide si está vacía.
+    // Puntos de código tras NFC, igual que `src/utils/unicodeLength.ts`
+    // (`mocks` no puede importar `utils`).
+    const text = body.answerText ?? '';
+    const isEmpty = !text.trim();
+    if (isEmpty || [...text.normalize('NFC')].length > 4000) {
       return HttpResponse.json(
         {
           title: 'Unprocessable Content',
           detail: 'Respuesta inválida',
           status: 422,
+          // Copia literal de `src/features/interview-session/model/interviewSession.errorCodes.ts`.
           code: 'VALIDATION_FAILED',
           errors: [
             {
               field: 'answerText',
-              code: text ? 'TOO_LONG' : 'REQUIRED',
+              code: isEmpty ? 'REQUIRED' : 'TOO_LONG',
               message: 'Respuesta inválida',
             },
           ],
