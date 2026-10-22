@@ -1,7 +1,8 @@
 /**
  * Mocks de Entrevistas mientras cameia-entrevista no publique sus
  * endpoints (solo expone `/health`):
- * - POST /api/v1/interviews/sessions (HU-4.4, CA-4.4.1): 201 con un session_id.
+ * - POST /api/v1/interviews/sessions (HU-4.4, CA-4.4.1): 201 con un sessionId;
+ *   la misma `Idempotency-Key` devuelve la misma sesión.
  * - POST …/sessions/{id}/answers (HU-5.2): registra la respuesta del turno
  *   pendiente y devuelve la siguiente pregunta; 422 si está vacía o pasa de
  *   4000 caracteres (CA-5.2.9, CA-5.2.10); misma `Idempotency-Key` → mismo
@@ -133,15 +134,24 @@ export const interviewSessionsHandlers = [
   http.post('*/api/v1/interviews/sessions', async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
 
-    if (!body.profile_id || !body.target_role_id || !body.tone || !body.mode) {
+    const key = request.headers.get('Idempotency-Key') ?? '';
+    const cached = resultByKey.get(key);
+    if (cached) return HttpResponse.json(cached, { status: 201 });
+
+    if (!body.profileId || !body.targetRoleId || !body.tone || !body.mode) {
       return HttpResponse.json(
         {
           title: 'Unprocessable Content',
+          detail: 'Configuración inválida',
           status: 422,
-          code: 'VALIDATION_ERROR',
+          code: 'VALIDATION_FAILED',
           errors: [
-            ...(!body.profile_id ? [{ field: 'profile_id', code: 'REQUIRED' }] : []),
-            ...(!body.target_role_id ? [{ field: 'target_role_id', code: 'REQUIRED' }] : []),
+            ...(!body.profileId
+              ? [{ field: 'profileId', code: 'REQUIRED', message: 'Requerido' }]
+              : []),
+            ...(!body.targetRoleId
+              ? [{ field: 'targetRoleId', code: 'REQUIRED', message: 'Requerido' }]
+              : []),
           ],
         },
         { status: 422 },
@@ -149,14 +159,9 @@ export const interviewSessionsHandlers = [
     }
 
     const sessionId = crypto.randomUUID();
-    formatBySession.set(sessionId, body.answer_format === 'AUDIO' ? 'AUDIO' : 'TEXTO');
-    return HttpResponse.json(
-      {
-        session_id: sessionId,
-        status: 'CONFIGURADA',
-        ongoing_session: null,
-      },
-      { status: 201 },
-    );
+    formatBySession.set(sessionId, body.answerFormat === 'AUDIO' ? 'AUDIO' : 'TEXTO');
+    const created = { sessionId, status: 'CONFIGURADA', ongoingSession: null };
+    resultByKey.set(key, created);
+    return HttpResponse.json(created, { status: 201 });
   }),
 ];

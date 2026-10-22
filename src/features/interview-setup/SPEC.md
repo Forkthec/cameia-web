@@ -3,13 +3,13 @@ feature: interview-setup
 estado: EN_CURSO
 hu: [HU-4.2, HU-4.5]
 prt: [PRT-04.02, PRT-04.03, PRT-04.11]
-jira: [CM-202, CM-213]
+jira: [CM-202, CM-213, CM-208]
 rutas: [/entrenar/nueva]
 documentacion: tsdoc-es
 backlog: 16102026_01_v8.2
 decisiones: []
 figma: Cameia · Mockups MVP
-revisado: 2026-10-20
+revisado: 2026-10-22
 ---
 
 # Feature · Configuracion de sesion de entrevista
@@ -210,4 +210,16 @@ oferta opcional con tope de 3000).
 Diferencia consciente: CA-4.5.16 (volver a la entrevista anterior al cancelar) necesita
 `GET …/state` (HU-5.7), que no existe; mientras tanto «Cancelar» siempre va a «Nueva entrevista».
 `…/start` y `DELETE` no existen aún en cameia-entrevista: se prueban con MSW.
+
+### Creación de la sesión: contrato acordado con Backend (CM-208, 22-10-2026)
+
+Según la respuesta de Backend del 20-10-2026 (§4.1 y §6.1):
+
+- Cuerpo de `POST /api/v1/interviews/sessions` en inglés y camelCase: `profileId`, `targetRoleId`,
+  `jobOffer`, `mode`, `tone`, `answerFormat`, `sessionLanguage`. Respuesta: `sessionId`, `status`,
+  `ongoingSession` (`{sessionId, answersCount}` o `null`). Se acepta `201` (nueva) y `200`
+  (reutilizada).
+- `Idempotency-Key` por configuración (`useCreateSession`): los reintentos automáticos por
+  `PROFILE_SYNC_PENDING` y un nuevo «Iniciar entrevista» con la misma configuración reutilizan la
+  clave; si cambia la configuración, se genera otra.
 

@@ -139,20 +139,20 @@ export function NewInterviewWizardPage() {
     if (!store.profileId || !store.targetRoleId) return;
     createSession.mutate(
       {
-        profile_id: store.profileId,
-        target_role_id: store.targetRoleId,
-        job_offer: trimmedJobOffer || null,
+        profileId: store.profileId,
+        targetRoleId: store.targetRoleId,
+        jobOffer: trimmedJobOffer || null,
         mode: store.mode,
         tone: store.tone,
-        answer_format: store.answerFormat,
-        session_language: store.sessionLanguage,
+        answerFormat: store.answerFormat,
+        sessionLanguage: store.sessionLanguage,
       },
       {
         onSuccess: (data) => {
-          if (data.ongoing_session && data.ongoing_session.answers_count < 5) {
+          if (data.ongoingSession && data.ongoingSession.answersCount < 5) {
             setWarningData(data);
           } else {
-            void navigate(ROUTES.entrenarIniciando, { state: { sessionId: data.session_id } });
+            void navigate(ROUTES.entrenarIniciando, { state: { sessionId: data.sessionId } });
           }
         },
       },
@@ -161,13 +161,13 @@ export function NewInterviewWizardPage() {
 
   const handleStartNewFromWarning = useCallback(() => {
     if (!warningData) return;
-    void navigate(ROUTES.entrenarIniciando, { state: { sessionId: warningData.session_id } });
+    void navigate(ROUTES.entrenarIniciando, { state: { sessionId: warningData.sessionId } });
     setWarningData(null);
   }, [warningData, navigate]);
 
   const handleBackToInterview = useCallback(() => {
-    if (!warningData?.ongoing_session) return;
-    void navigate(ROUTES.entrenarSesion(warningData.ongoing_session.session_id));
+    if (!warningData?.ongoingSession) return;
+    void navigate(ROUTES.entrenarSesion(warningData.ongoingSession.sessionId));
     setWarningData(null);
   }, [warningData, navigate]);
 

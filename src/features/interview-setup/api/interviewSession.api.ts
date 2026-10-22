@@ -12,10 +12,19 @@ import type {
   StartSessionResponseDto,
 } from './interviewSession.dto';
 
+/**
+ * @param body configuración completa del asistente.
+ * @param idempotencyKey misma clave en cada reintento de la misma configuración:
+ *   así un reintento no crea dos sesiones (respuesta de Backend, §4.1).
+ * @returns la sesión configurada (201 nueva o 200 reutilizada).
+ */
 export async function createInterviewSession(
   body: CreateSessionRequestDto,
+  idempotencyKey: string,
 ): Promise<CreateSessionResponseDto> {
-  return httpClient.post<CreateSessionResponseDto>('/api/v1/interviews/sessions', body);
+  return httpClient.post<CreateSessionResponseDto>('/api/v1/interviews/sessions', body, {
+    headers: { 'Idempotency-Key': idempotencyKey },
+  });
 }
 
 /**
