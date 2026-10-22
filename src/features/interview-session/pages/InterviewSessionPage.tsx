@@ -104,7 +104,23 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
     turn.submitAnswer({ kind: 'audio', audio: recorder.audio }, recorder.discard);
   }
 
+  // Aviso sobre los controles de voz: el del navegador (menos de 2 s de voz)
+  // o el rechazo de Backend al transcribir (CA-5.12.7 a CA-5.12.10).
+  const voiceNotice =
+    turn.audioRejection === 'idiomaDistinto'
+      ? t(
+          entry.sessionLanguage === 'en'
+            ? 'interview:sesion.voz.idiomaDistinto.en'
+            : 'interview:sesion.voz.idiomaDistinto.es-CO',
+        )
+      : turn.audioRejection
+        ? t(`interview:sesion.voz.${turn.audioRejection}`)
+        : recorder.status === 'noVoice'
+          ? t('interview:sesion.voz.sinVoz')
+          : undefined;
+
   function switchToText() {
+    turn.clearAudioRejection();
     recorder.discard();
     setTextTurns((current) => ({ ...current, [turnId]: true }));
   }
@@ -155,9 +171,12 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
               isSubmitting={turn.isSubmitting}
               showLongWait={longWaitTurn === turnId}
               showPrivacyNotice={!hasRecorded}
-              notice={recorder.status === 'noVoice' ? t('interview:sesion.voz.sinVoz') : undefined}
+              notice={voiceNotice}
               labels={{
-                record: t('interview:sesion.voz.grabar'),
+                record:
+                  turn.audioRejection === 'noTranscrita'
+                    ? t('interview:sesion.voz.grabarDeNuevo')
+                    : t('interview:sesion.voz.grabar'),
                 stop: t('interview:sesion.voz.detener'),
                 send: t('interview:sesion.enviar'),
                 sending: t('interview:sesion.procesando'),
@@ -167,6 +186,7 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
               }}
               onRecord={() => {
                 setHasRecorded(true);
+                turn.clearAudioRejection();
                 void recorder.start();
               }}
               onStop={recorder.stop}

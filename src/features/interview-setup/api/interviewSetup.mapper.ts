@@ -36,6 +36,8 @@ export function toProfessionalRoleCatalog(dto: ProfessionalRoleCatalogDto): Prof
 /** Entrada que el chat (feature `interview-session`) lee del estado de la navegación. */
 export interface ChatEntry {
   sessionId: string;
+  /** Idioma de la entrevista (BCP-47); lo usa el aviso de idioma distinto en la voz (CA-5.12.10). */
+  sessionLanguage: string;
   answerFormat: 'TEXTO' | 'AUDIO';
   question: { turnId: string; number: number; text: string };
   progress: { current: number; total: number };
@@ -48,17 +50,19 @@ export interface ChatEntry {
  *
  * @param sessionId sesión iniciada.
  * @param dto respuesta de `…/start`.
+ * @param sessionLanguage idioma elegido en el asistente; `…/start` no lo devuelve.
  * @returns la entrada del chat.
  */
-export function toChatEntry(sessionId: string, dto: StartSessionResponseDto): ChatEntry {
+export function toChatEntry(
+  sessionId: string,
+  dto: StartSessionResponseDto,
+  sessionLanguage: string,
+): ChatEntry {
   return {
     sessionId,
-    answerFormat: dto.forma_respuesta === 'AUDIO' ? 'AUDIO' : 'TEXTO',
-    question: {
-      turnId: dto.pregunta.turno_id,
-      number: dto.pregunta.numero,
-      text: dto.pregunta.texto,
-    },
-    progress: { current: dto.progreso.pregunta_actual, total: dto.progreso.total_preguntas },
+    sessionLanguage,
+    answerFormat: dto.answerFormat === 'AUDIO' ? 'AUDIO' : 'TEXTO',
+    question: { turnId: dto.question.turnId, number: dto.question.number, text: dto.question.text },
+    progress: { current: dto.progress.currentQuestion, total: dto.progress.totalQuestions },
   };
 }

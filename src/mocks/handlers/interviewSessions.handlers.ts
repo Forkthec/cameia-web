@@ -7,7 +7,7 @@
  *   pendiente y devuelve la siguiente pregunta; 422 si está vacía o pasa de
  *   4000 caracteres (CA-5.2.9, CA-5.2.10); misma `Idempotency-Key` → mismo
  *   resultado (CA-5.2.11).
- * - POST …/turns/{turno_id}/reprocess (provisional, CA-5.2.19).
+ * - POST …/turns/{turnId}/reprocess (provisional, CA-5.2.19).
  * - POST …/sessions/{id}/answers/audio (HU-5.8): mismo avance que el texto;
  *   la transcripción la simula el backend real (HU-5.12).
  * - POST …/sessions/{id}/start (HU-4.5): pregunta 1 y la forma de respuesta.
@@ -33,9 +33,9 @@ const resultByKey = new Map<string, unknown>();
 
 function questionDto(sessionId: string, index: number) {
   return {
-    turno_id: `${sessionId}-t${index + 1}`,
-    numero: index + 1,
-    texto: MOCK_QUESTIONS[index],
+    turnId: `${sessionId}-t${index + 1}`,
+    number: index + 1,
+    text: MOCK_QUESTIONS[index],
   };
 }
 
@@ -45,13 +45,13 @@ function advance(sessionId: string, turnId: string) {
   pendingBySession.set(sessionId, next);
   const finished = next >= MOCK_QUESTIONS.length;
   return {
-    turno: { turno_id: turnId, estado: 'COMPLETED' },
-    progreso: {
-      pregunta_actual: finished ? MOCK_QUESTIONS.length : next + 1,
-      total_preguntas: MOCK_QUESTIONS.length,
+    turn: { turnId, status: 'COMPLETED' },
+    progress: {
+      currentQuestion: finished ? MOCK_QUESTIONS.length : next + 1,
+      totalQuestions: MOCK_QUESTIONS.length,
     },
-    siguiente_pregunta: finished ? null : questionDto(sessionId, next),
-    entrevista_terminada: finished,
+    nextQuestion: finished ? null : questionDto(sessionId, next),
+    interviewFinished: finished,
   };
 }
 
@@ -72,18 +72,18 @@ export const interviewSessionsHandlers = [
     const cached = resultByKey.get(key);
     if (cached) return HttpResponse.json(cached);
 
-    const body = (await request.json()) as { turno_id?: string; respuesta_texto?: string };
-    const text = (body.respuesta_texto ?? '').trim();
+    const body = (await request.json()) as { turnId?: string; answerText?: string };
+    const text = (body.answerText ?? '').trim();
     if (!text || text.length > 4000) {
       return HttpResponse.json(
         {
           title: 'Unprocessable Content',
           detail: 'Respuesta inválida',
           status: 422,
-          code: 'VALIDATION_ERROR',
+          code: 'VALIDATION_FAILED',
           errors: [
             {
-              field: 'respuesta_texto',
+              field: 'answerText',
               code: text ? 'TOO_LONG' : 'REQUIRED',
               message: 'Respuesta inválida',
             },
@@ -92,7 +92,7 @@ export const interviewSessionsHandlers = [
         { status: 422 },
       );
     }
-    const result = advance(sessionId, String(body.turno_id));
+    const result = advance(sessionId, String(body.turnId));
     resultByKey.set(key, result);
     return HttpResponse.json(result);
   }),
@@ -104,7 +104,7 @@ export const interviewSessionsHandlers = [
       const cached = resultByKey.get(key);
       if (cached) return HttpResponse.json(cached);
       const form = await request.formData();
-      const turnId = form.get('turno_id');
+      const turnId = form.get('turnId');
       const result = advance(String(params.sessionId), typeof turnId === 'string' ? turnId : '');
       resultByKey.set(key, result);
       return HttpResponse.json(result);
@@ -115,10 +115,10 @@ export const interviewSessionsHandlers = [
     const sessionId = String(params.sessionId);
     pendingBySession.set(sessionId, 0);
     return HttpResponse.json({
-      estado: 'EN_CURSO',
-      forma_respuesta: formatBySession.get(sessionId) ?? 'TEXTO',
-      pregunta: questionDto(sessionId, 0),
-      progreso: { pregunta_actual: 1, total_preguntas: MOCK_QUESTIONS.length },
+      status: 'EN_CURSO',
+      answerFormat: formatBySession.get(sessionId) ?? 'TEXTO',
+      question: questionDto(sessionId, 0),
+      progress: { currentQuestion: 1, totalQuestions: MOCK_QUESTIONS.length },
     });
   }),
 

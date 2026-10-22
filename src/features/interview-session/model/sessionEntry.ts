@@ -19,8 +19,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  */
 export function readSessionEntry(state: unknown): SessionEntry | null {
   if (!isRecord(state) || !isRecord(state.question) || !isRecord(state.progress)) return null;
-  const { sessionId, answerFormat, question, progress } = state;
-  if (typeof sessionId !== 'string' || (answerFormat !== 'TEXTO' && answerFormat !== 'AUDIO')) {
+  const { sessionId, sessionLanguage, answerFormat, question, progress } = state;
+  if (
+    typeof sessionId !== 'string' ||
+    typeof sessionLanguage !== 'string' ||
+    (answerFormat !== 'TEXTO' && answerFormat !== 'AUDIO')
+  ) {
     return null;
   }
   if (
@@ -34,6 +38,7 @@ export function readSessionEntry(state: unknown): SessionEntry | null {
   }
   return {
     sessionId,
+    sessionLanguage,
     answerFormat,
     question: { turnId: question.turnId, number: question.number, text: question.text },
     progress: { current: progress.current, total: progress.total },

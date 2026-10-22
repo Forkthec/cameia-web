@@ -38,7 +38,7 @@ describe('httpClient', () => {
       .mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }));
     const { httpClient } = await import('./httpClient');
     const form = new FormData();
-    form.append('turno_id', 't1');
+    form.append('turnId', 't1');
 
     await httpClient.post('/x', form, { headers: { 'Idempotency-Key': 'k1' } });
 

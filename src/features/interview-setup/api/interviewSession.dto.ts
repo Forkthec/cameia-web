@@ -30,12 +30,12 @@ export interface CreateSessionResponseDto {
 
 /**
  * Respuesta de `POST …/sessions/{session_id}/start` (HU-4.5): la sesión pasa
- * a EN_CURSO con la pregunta 1. Forma propuesta por Frontend; Backend aún no
- * publica el endpoint.
+ * a EN_CURSO con la pregunta 1. Contrato previsto de Backend (respuesta del
+ * 20-10-2026, §6.3); el endpoint aún no está publicado.
  */
 export interface StartSessionResponseDto {
-  estado: string;
-  forma_respuesta: string;
-  pregunta: { turno_id: string; numero: number; texto: string };
-  progreso: { pregunta_actual: number; total_preguntas: number };
+  status: string;
+  answerFormat: string;
+  question: { turnId: string; number: number; text: string };
+  progress: { currentQuestion: number; totalQuestions: number };
 }

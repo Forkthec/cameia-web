@@ -145,7 +145,14 @@
       "sinVoz": "We didn't detect your voice, try again.",
       "micDenegado": "We couldn't access your microphone. You can answer by text.",
       "sinMicrofono": "We couldn't find a microphone. You can answer by text.",
-      "esperaLarga": "This can take up to 2 minutes. Don't close this page."
+      "esperaLarga": "This can take up to 2 minutes. Don't close this page.",
+      "grabarDeNuevo": "Record again",
+      "demasiadoLarga": "Your answer is too long. Record a shorter one or answer by text.",
+      "noTranscrita": "We couldn't transcribe your answer. Record again or answer by text.",
+      "idiomaDistinto": {
+        "en": "Your interview is in English. Answer in English.",
+        "es-CO": "Your interview is in Spanish. Answer in Spanish."
+      }
     }
   },
   "inicio": {

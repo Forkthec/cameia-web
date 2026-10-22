@@ -19,6 +19,7 @@ import { InterviewSessionPage } from './InterviewSessionPage';
 
 const ENTRY = {
   sessionId: 's1',
+  sessionLanguage: 'es-CO',
   answerFormat: 'TEXTO',
   question: { turnId: 's1-t1', number: 1, text: 'Cuéntame sobre un proyecto.' },
   progress: { current: 1, total: 5 },
@@ -182,5 +183,21 @@ describe('InterviewSessionPage', () => {
     ).toBeInTheDocument();
     expect(screen.queryByLabelText('Respuesta')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Enviar' })).not.toBeInTheDocument();
+  });
+
+  it('con LLM_LIMIT_REACHED se trata como fallo de la IA, con «Reintentar»', async () => {
+    useHandlers(
+      http.post('*/api/v1/interviews/sessions/:id/answers', () =>
+        HttpResponse.json(
+          { title: 'x', detail: 'x', status: 503, code: 'LLM_LIMIT_REACHED' },
+          { status: 503 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await user.type(screen.getByLabelText('Respuesta'), 'Mi respuesta');
+    await user.click(screen.getByRole('button', { name: 'Enviar' }));
+    expect(await screen.findByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
   });
 });

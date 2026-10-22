@@ -145,7 +145,14 @@
       "sinVoz": "No detectamos tu voz, intenta de nuevo.",
       "micDenegado": "No pudimos acceder a tu micrófono. Puedes responder por texto.",
       "sinMicrofono": "No encontramos un micrófono. Puedes responder por texto.",
-      "esperaLarga": "Esto puede tardar hasta 2 minutos. No cierres esta página."
+      "esperaLarga": "Esto puede tardar hasta 2 minutos. No cierres esta página.",
+      "grabarDeNuevo": "Grabar de nuevo",
+      "demasiadoLarga": "Tu respuesta es demasiado larga. Graba una más corta o responde por texto.",
+      "noTranscrita": "No pudimos transcribir tu respuesta. Graba de nuevo o responde por texto.",
+      "idiomaDistinto": {
+        "en": "Tu entrevista es en inglés. Responde en inglés.",
+        "es-CO": "Tu entrevista es en español. Responde en español."
+      }
     }
   },
   "inicio": {

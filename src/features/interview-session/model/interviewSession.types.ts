@@ -36,6 +36,8 @@ export interface AnswerResult {
  */
 export interface SessionEntry {
   sessionId: string;
+  /** Idioma de la entrevista (BCP-47, `GLOSSARY` §5): `es-CO` o `en`. */
+  sessionLanguage: string;
   answerFormat: AnswerFormat;
   question: InterviewQuestion;
   progress: InterviewProgress;

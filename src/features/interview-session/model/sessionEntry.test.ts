@@ -7,6 +7,7 @@ import { readSessionEntry } from './sessionEntry';
 
 const VALID = {
   sessionId: 's1',
+  sessionLanguage: 'es-CO',
   answerFormat: 'TEXTO',
   question: { turnId: 't1', number: 1, text: 'Pregunta' },
   progress: { current: 1, total: 5 },

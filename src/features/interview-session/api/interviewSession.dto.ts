@@ -1,32 +1,32 @@
 // PROVISIONAL — pendiente de OpenAPI
 /**
- * Contrato crudo del registro de respuestas (HU-5.2), tomado de las notas
- * técnicas del backlog v8.2: cuerpo `{turno_id, respuesta_texto}` con
- * cabecera `Idempotency-Key`, y respuesta 200 con «el estado del turno, el
- * progreso y la siguiente pregunta». Los nombres exactos de la respuesta no
- * están cerrados por Backend (cameia-entrevista aún no publica el endpoint):
- * se ajustan solo en `interviewSession.mapper.ts`.
+ * Contrato crudo del registro de respuestas (HU-5.2, HU-5.8) según el
+ * contrato previsto de Backend (respuesta de Paula del 20-10-2026, §6.5):
+ * nombres en inglés y camelCase; los valores (`COMPLETED`…) siguen el
+ * backlog. `…/answers`, `…/reprocess` y `…/answers/audio` responden lo mismo.
+ * Queda definitivo cuando Backend publique la OpenAPI; se ajusta solo en
+ * `interviewSession.mapper.ts`.
  */
 
 export interface SubmitAnswerRequestDto {
-  turno_id: string;
-  respuesta_texto: string;
+  turnId: string;
+  answerText: string;
 }
 
 export interface QuestionDto {
-  turno_id: string;
-  numero: number;
-  texto: string;
+  turnId: string;
+  number: number;
+  text: string;
 }
 
 export interface ProgressDto {
-  pregunta_actual: number;
-  total_preguntas: number;
+  currentQuestion: number;
+  totalQuestions: number;
 }
 
 export interface AnswerResponseDto {
-  turno: { turno_id: string; estado: string };
-  progreso: ProgressDto;
-  siguiente_pregunta: QuestionDto | null;
-  entrevista_terminada: boolean;
+  turn: { turnId: string; status: string };
+  progress: ProgressDto;
+  nextQuestion: QuestionDto | null;
+  interviewFinished: boolean;
 }

@@ -5,7 +5,8 @@
  * con el tiempo (CA-5.8.2), envío y avance (CA-5.8.5), voz insuficiente
  * (CA-5.8.10), micrófono denegado (CA-5.8.3) o ausente (CA-5.8.23),
  * «Responder por texto» (CA-5.8.19) y sin «Grabar» en una entrevista de
- * texto (CA-5.8.20).
+ * texto (CA-5.8.20), y los rechazos de Backend al transcribir
+ * (CA-5.12.8, CA-5.12.10).
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
@@ -31,6 +32,7 @@ vi.mock('../hooks/useVoiceRecorder', () => ({ useVoiceRecorder: () => recorder }
 
 const AUDIO_ENTRY = {
   sessionId: 's1',
+  sessionLanguage: 'es-CO',
   answerFormat: 'AUDIO',
   question: { turnId: 's1-t1', number: 1, text: 'Cuéntame sobre un proyecto.' },
   progress: { current: 1, total: 5 },
@@ -87,10 +89,10 @@ describe('InterviewSessionPage (voz)', () => {
     useHandlers(
       http.post('*/api/v1/interviews/sessions/:id/answers/audio', () =>
         HttpResponse.json({
-          turno: { turno_id: 's1-t1', estado: 'COMPLETED' },
-          progreso: { pregunta_actual: 2, total_preguntas: 5 },
-          siguiente_pregunta: { turno_id: 's1-t2', numero: 2, texto: 'Segunda pregunta' },
-          entrevista_terminada: false,
+          turn: { turnId: 's1-t1', status: 'COMPLETED' },
+          progress: { currentQuestion: 2, totalQuestions: 5 },
+          nextQuestion: { turnId: 's1-t2', number: 2, text: 'Segunda pregunta' },
+          interviewFinished: false,
         }),
       ),
     );
@@ -140,5 +142,49 @@ describe('InterviewSessionPage (voz)', () => {
     renderPage({ ...AUDIO_ENTRY, answerFormat: 'TEXTO' });
     expect(screen.queryByRole('button', { name: 'Grabar' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Respuesta')).toBeInTheDocument();
+  });
+
+  it('si Backend detecta otro idioma, avisa en el idioma de la entrevista y descarta la grabación (CA-5.12.10)', async () => {
+    recorder.status = 'stopped';
+    recorder.audio = new Blob(['x'], { type: 'audio/webm' });
+    useHandlers(
+      http.post('*/api/v1/interviews/sessions/:id/answers/audio', () =>
+        HttpResponse.json(
+          { title: 'x', detail: 'x', status: 422, code: 'TRANSCRIPTION_LANGUAGE_MISMATCH' },
+          { status: 422 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage({ ...AUDIO_ENTRY, sessionLanguage: 'en' });
+    await user.click(screen.getByRole('button', { name: 'Enviar' }));
+    expect(
+      await screen.findByText('Tu entrevista es en inglés. Responde en inglés.'),
+    ).toBeInTheDocument();
+    expect(recorder.discard).toHaveBeenCalled();
+    expect(screen.getByRole('progressbar', { name: 'Pregunta 1 de 5' })).toBeInTheDocument();
+  });
+
+  it('si falla la transcripción avisa, descarta la grabación y deja «Responder por texto» (CA-5.12.8)', async () => {
+    recorder.status = 'stopped';
+    recorder.audio = new Blob(['x'], { type: 'audio/webm' });
+    useHandlers(
+      http.post('*/api/v1/interviews/sessions/:id/answers/audio', () =>
+        HttpResponse.json(
+          { title: 'x', detail: 'x', status: 503, code: 'TRANSCRIPTION_UNAVAILABLE' },
+          { status: 503 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole('button', { name: 'Enviar' }));
+    expect(
+      await screen.findByText(
+        'No pudimos transcribir tu respuesta. Graba de nuevo o responde por texto.',
+      ),
+    ).toBeInTheDocument();
+    expect(recorder.discard).toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Responder por texto' })).toBeInTheDocument();
   });
 });
