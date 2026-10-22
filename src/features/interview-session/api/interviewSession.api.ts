@@ -2,7 +2,7 @@
  * Funciones de red del chat de Simulación (HU-5.2):
  * - `POST /api/v1/interviews/sessions/{session_id}/answers` registra la
  *   respuesta escrita con `Idempotency-Key` (CA-5.2.4, CA-5.2.11).
- * - `POST …/turns/{turno_id}/reprocess` (provisional) vuelve a evaluar la
+ * - `POST …/turns/{turnId}/reprocess` (provisional) vuelve a evaluar la
  *   respuesta guardada tras un fallo de la IA (CA-5.2.19).
  * - `POST …/answers/audio` (HU-5.8) envía la grabación como multipart, con
  *   la misma `Idempotency-Key` del turno (CA-5.8.6, CA-5.8.22), y espera
@@ -32,7 +32,7 @@ export async function submitTextAnswer({
   text,
   idempotencyKey,
 }: SubmitTextAnswerParams): Promise<AnswerResult> {
-  const body: SubmitAnswerRequestDto = { turno_id: turnId, respuesta_texto: text };
+  const body: SubmitAnswerRequestDto = { turnId, answerText: text };
   const dto = await httpClient.post<AnswerResponseDto>(
     `/api/v1/interviews/sessions/${sessionId}/answers`,
     body,
@@ -73,7 +73,7 @@ export async function submitAudioAnswer({
   idempotencyKey,
 }: SubmitAudioAnswerParams): Promise<AnswerResult> {
   const form = new FormData();
-  form.append('turno_id', turnId);
+  form.append('turnId', turnId);
   // El nombre del archivo no importa: el backend lo ignora (CA-5.8.16).
   form.append('audio', audio, audio.type.includes('mp4') ? 'respuesta.mp4' : 'respuesta.webm');
   const dto = await httpClient.post<AnswerResponseDto>(

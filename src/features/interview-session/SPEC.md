@@ -9,7 +9,7 @@ documentacion: tsdoc-es
 backlog: 16102026_01_v8.2
 decisiones: []
 figma: Cameia · Mockups MVP
-revisado: 2026-10-20
+revisado: 2026-10-22
 ---
 
 # Feature · Chat de la entrevista (Simulación)
@@ -123,3 +123,23 @@ respetan al no mostrar retroalimentación ni reformular preguntas.
 - Sin textos fuera del backlog: el orbe solo anuncia «Procesando tu respuesta…». No hay botón
   de salida en el chat (CA-5.2.15 y el backlog no lo define).
 - El número total de preguntas viene del backend en el progreso (CLAUDE.md §3.7).
+
+## Contrato acordado con Backend (22-10-2026)
+
+Respuesta de Backend del 20-10-2026 (§6.3 a §6.6). Sigue siendo **previsto** hasta que publiquen la
+OpenAPI:
+
+- Nombres en inglés y camelCase: `…/answers` recibe `{turnId, answerText}`; el audio va en multipart
+  con `turnId` y `audio`. Respuesta común: `turn {turnId, status}`, `progress {currentQuestion,
+  totalQuestions}`, `nextQuestion` y `interviewFinished`. `…/start` devuelve `status`,
+  `answerFormat`, `question` y `progress`.
+- La entrada del chat lleva también `sessionLanguage` (del asistente; `…/start` no lo devuelve).
+- `LLM_LIMIT_REACHED` se trata igual que `LLM_UNAVAILABLE` («Reintentar»).
+- Rechazos del audio: `TRANSCRIPTION_EMPTY` → «No detectamos tu voz, intenta de nuevo.»
+  (CA-5.12.7); `TRANSCRIPTION_TOO_LONG` → «Tu respuesta es demasiado larga…» (CA-5.12.9);
+  `TRANSCRIPTION_LANGUAGE_MISMATCH` → «Tu entrevista es en inglés/español…» (CA-5.12.10);
+  `TRANSCRIPTION_UNAVAILABLE` → «No pudimos transcribir tu respuesta…» con «Grabar de nuevo»
+  (CA-5.12.8). En todos se descarta la grabación y se puede grabar otra vez o responder por texto.
+- Inicio: `PLANNING_RETRIES_EXHAUSTED` deja solo «Cancelar» (CA-4.5.19); el contador lo lleva
+  Backend.
+

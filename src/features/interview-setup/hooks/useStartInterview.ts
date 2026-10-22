@@ -7,8 +7,10 @@
  * - Con éxito, espera a que termine la firma animada (`MIN_INTRO_MS`) y abre
  *   el chat con la pregunta 1 en el estado de la navegación.
  * - `503 LLM_UNAVAILABLE`: «Ocurrió un error…» con «Reintentar» y
- *   «Cancelar» (CA-4.5.14); tras 2 reintentos fallidos, el mensaje de
- *   CA-4.5.19 y solo «Cancelar».
+ *   «Cancelar» (CA-4.5.14). El contador de reintentos lo lleva Backend: al
+ *   agotarse responde `503 PLANNING_RETRIES_EXHAUSTED` y queda el mensaje de
+ *   CA-4.5.19 solo con «Cancelar». El contador local de 2 es respaldo visual
+ *   (respuesta de Backend del 20-10-2026, pregunta 2).
  * - `404`: «No encontramos lo que buscabas.» (CA-4.5.10).
  * - «Cancelar» elimina la sesión nueva y vuelve a «Nueva entrevista» sin
  *   datos (CA-4.5.17). CA-4.5.16 (volver a la entrevista anterior) necesita
@@ -37,6 +39,7 @@ export type StartError = 'generico' | 'agotados' | 'noEncontrada' | 'red';
 export function useStartInterview(sessionId: string) {
   const navigate = useNavigate();
   const resetWizard = useInterviewSetupStore((state) => state.reset);
+  const sessionLanguage = useInterviewSetupStore((state) => state.sessionLanguage);
   const startedAt = useRef(0);
   const requested = useRef(false);
   const [retries, setRetries] = useState(0);
@@ -51,7 +54,7 @@ export function useStartInterview(sessionId: string) {
         resetWizard();
         void navigate(ROUTES.entrenarSesion(sessionId), {
           replace: true,
-          state: toChatEntry(sessionId, dto),
+          state: toChatEntry(sessionId, dto, sessionLanguage),
         });
       }, wait);
     },
@@ -60,6 +63,8 @@ export function useStartInterview(sessionId: string) {
         setError('red');
       } else if (failure.httpStatus === 404) {
         setError('noEncontrada');
+      } else if (failure.hasCode('PLANNING_RETRIES_EXHAUSTED')) {
+        setError('agotados');
       } else {
         setError(retries >= MAX_START_RETRIES ? 'agotados' : 'generico');
       }

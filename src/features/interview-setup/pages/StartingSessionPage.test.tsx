@@ -3,7 +3,8 @@
  * carga sin controles (CA-4.5.13), apertura del chat con la pregunta 1,
  * fallo con «Reintentar» y «Cancelar» (CA-4.5.14), reintentos agotados
  * solo con «Cancelar» (CA-4.5.19), cancelar vuelve a «Nueva entrevista»
- * (CA-4.5.17) y entrevista ajena (CA-4.5.10).
+ * (CA-4.5.17), entrevista ajena (CA-4.5.10) y el código
+ * `PLANNING_RETRIES_EXHAUSTED` de Backend (respuesta del 20-10-2026).
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
@@ -118,5 +119,23 @@ describe('StartingSessionPage', () => {
     );
     renderPage();
     expect(await screen.findByText('No encontramos lo que buscabas.')).toBeInTheDocument();
+  });
+
+  it('con PLANNING_RETRIES_EXHAUSTED de Backend deja solo «Cancelar» (CA-4.5.19)', async () => {
+    useHandlers(
+      http.post('*/api/v1/interviews/sessions/:id/start', () =>
+        HttpResponse.json(
+          { title: 'x', detail: 'x', status: 503, code: 'PLANNING_RETRIES_EXHAUSTED' },
+          { status: 503 },
+        ),
+      ),
+    );
+    renderPage();
+    expect(
+      await screen.findByText(
+        'No pudimos preparar tu entrevista en este momento. Inténtalo más tarde.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument();
   });
 });
