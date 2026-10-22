@@ -1,28 +1,31 @@
 // PROVISIONAL — pendiente de OpenAPI
 /**
  * DTO para la creacion de una sesion de entrevista (POST /api/v1/interviews/sessions).
- * Contrato basado en CA-4.4.1 y el catalogo de campos del backlog v8.2.
+ * Nombres en ingles y camelCase segun el contrato previsto de Backend
+ * (respuesta de Paula del 20-10-2026, §6.1); los valores siguen el backlog.
+ * La respuesta es 201 (sesion nueva) o 200 (se reutilizo la configurada sin
+ * iniciar), con el mismo cuerpo.
  */
 
 export interface CreateSessionRequestDto {
-  profile_id: string;
-  target_role_id: string;
-  job_offer: string | null;
+  profileId: string;
+  targetRoleId: string;
+  jobOffer: string | null;
   mode: string;
   tone: string;
-  answer_format: string;
-  session_language: string;
+  answerFormat: string;
+  sessionLanguage: string;
 }
 
 export interface OngoingSessionDto {
-  session_id: string;
-  answers_count: number;
+  sessionId: string;
+  answersCount: number;
 }
 
 export interface CreateSessionResponseDto {
-  session_id: string;
+  sessionId: string;
   status: string;
-  ongoing_session?: OngoingSessionDto | null;
+  ongoingSession?: OngoingSessionDto | null;
 }
 
 /**
