@@ -58,6 +58,8 @@ hubiera antes en `node_modules`.
 | lucide-react                     | 1.43.0  |
 | react-helmet-async               | 3.0.0   |
 | libphonenumber-js                | 1.13.13 |
+| @ricky0123/vad-web               | 0.0.31  |
+| onnxruntime-web                  | 1.22.0  |
 
 ### devDependencies
 
@@ -116,6 +118,16 @@ actualizara, y pueden seguir subiendo. Esas versiones **se aceptan**. Una subida
   UI propia — el selector de país (`features/auth/organisms/PhoneField/`) se construye con los
   átomos existentes (`Select`/`Input`), solo se usa la librería para datos
   (`getCountries()`/`getCountryCallingCode()`) y validación (`isValidPhoneNumber`).
+- **`@ricky0123/vad-web@0.0.31` y `onnxruntime-web@1.22.0`, autorizadas explícitamente por el PO
+  el 23-oct-2026 (CM-317; ver `docs/decisiones/23102026_v1_decisiones-spike-cm316-hu-5-8.md`).**
+  Necesarias para contar la voz mínima de la respuesta por voz (HU-5.8, 2 s) con el modelo Silero
+  v5 en el navegador, tras el spike CM-316: la medición por volumen no rechazaba todos los casos
+  sin voz. `onnxruntime-web` es dependencia directa de `vad-web` (`^1.17.0`) y se fija en
+  1.22.0. **Restricción:** se cargan solo en una entrevista por voz, al pulsar «Grabar»
+  (`requesting`), con `import()` dinámico; nunca en el arranque de la aplicación ni en
+  entrevistas por texto. Los cuatro archivos que necesitan se sirven desde el mismo dominio
+  (`docs/adr/0009-assets-de-silero-vad-con-nombre-fijo.md`). Safari no se prueba por ahora
+  (CA-5.14.6).
 - **`husky@9.1.7` y `lint-staged@17.5.0`, autorizadas.** Son el hook de pre-commit
   (`.husky/pre-commit`): corre `prettier --write` y `eslint --fix` solo sobre los archivos del
   commit (configuración `lint-staged` en `package.json`). Estaban en el repositorio sin
