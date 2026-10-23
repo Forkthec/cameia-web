@@ -2,7 +2,9 @@
  * Progreso por pasos dibujado como el arco del sol: un punto por paso sobre
  * una curva; los pasos alcanzados se encienden en mostaza. Debajo va la
  * etiqueta que manda quien lo usa (por ejemplo «Pregunta 2 de 5»), que es
- * también el nombre accesible de la barra de progreso.
+ * también el nombre accesible de la barra de progreso. Se muestra tal cual
+ * llega, sin cambiar sus mayúsculas: el texto ya viene traducido
+ * (CLAUDE.md §14.7).
  *
  * No conoce el dominio ni el número de pasos: los recibe por props.
  */
@@ -74,7 +76,7 @@ export function ProgressArc({ current, total, label, className }: ProgressArcPro
       </svg>
       <span
         aria-hidden="true"
-        className="font-brand text-small text-brand-accent-light mt-1 font-bold tracking-[0.24em] uppercase"
+        className="font-brand text-small text-brand-accent-light mt-1 font-bold tracking-[0.24em]"
       >
         {label}
       </span>

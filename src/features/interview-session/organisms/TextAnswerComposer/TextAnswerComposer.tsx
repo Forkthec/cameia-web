@@ -3,10 +3,16 @@
  * a 4000 caracteres con contador, y «Enviar».
  *
  * - «Enviar» queda deshabilitado mientras el campo esté vacío o solo tenga
- *   espacios (CA-5.2.3) y mientras se procesa, con «Procesando tu
- *   respuesta…» (CA-5.2.4).
+ *   espacios (CA-5.2.3, respuesta vacía o de solo espacios) y mientras se
+ *   procesa (CA-5.2.4, doble selección de «Enviar»). Conserva su nombre: no
+ *   usa el modo de carga de `Button`, que cambia la etiqueta; el indicador
+ *   «Procesando tu respuesta…» lo anuncia `SessionStage` en su región
+ *   `aria-live`.
+ * - Los caracteres se cuentan como puntos de código tras NFC (RT-01, regla
+ *   C-07; D9 del SPEC), con `unicodeLength`: un emoji cuenta 1.
  * - Con más de 4000 caracteres el contador se marca y aparece el mensaje
- *   bajo el campo; no se corta lo escrito (CA-5.2.9, RT-01).
+ *   bajo el campo; no se corta lo escrito (CA-5.2.9, respuesta de 4001
+ *   caracteres; RT-01).
  * - El texto lo guarda quien lo usa: así sobrevive a un error de red
  *   (CA-5.2.18) y se limpia solo al avanzar de pregunta.
  *
@@ -19,6 +25,7 @@ import { Input } from '@/design-system/atoms/Input';
 import { Label } from '@/design-system/atoms/Label';
 import { CharacterCounter } from '@/design-system/molecules/CharacterCounter';
 import { cn } from '@/utils/cn';
+import { unicodeLength } from '@/utils/unicodeLength';
 
 interface TextAnswerComposerProps {
   /** Texto escrito. */
@@ -31,10 +38,8 @@ interface TextAnswerComposerProps {
   isSubmitting: boolean;
   /** Etiqueta del campo, ya traducida («Respuesta»). */
   label: string;
-  /** Texto del botón, ya traducido («Enviar»). */
+  /** Texto del botón, ya traducido («Enviar»); no cambia mientras se procesa. */
   submitLabel: string;
-  /** Texto del botón en carga, ya traducido («Procesando tu respuesta…»). */
-  submittingLabel: string;
   /** Mensaje bajo el campo cuando se pasa del máximo, ya traducido. */
   tooLongMessage: string;
   formatCounter: (count: number, max: number) => string;
@@ -49,7 +54,6 @@ export function TextAnswerComposer({
   isSubmitting,
   label,
   submitLabel,
-  submittingLabel,
   tooLongMessage,
   formatCounter,
   className,
@@ -57,7 +61,8 @@ export function TextAnswerComposer({
   const fieldId = useId();
   const counterId = `${fieldId}-contador`;
   const isEmpty = value.trim().length === 0;
-  const isTooLong = value.length > maxLength;
+  const length = unicodeLength(value);
+  const isTooLong = length > maxLength;
 
   return (
     <form
@@ -88,20 +93,13 @@ export function TextAnswerComposer({
       <div className="mt-space-2 gap-space-3 flex items-center justify-between">
         <span id={counterId}>
           <CharacterCounter
-            count={value.length}
+            count={length}
             max={maxLength}
             formatLabel={formatCounter}
             className="text-text-on-inverse/70"
           />
         </span>
-        <Button
-          type="submit"
-          variant="primary"
-          disabled={isEmpty || isTooLong}
-          {...(isSubmitting
-            ? { loading: true as const, loadingLabel: submittingLabel }
-            : { loading: false as const })}
-        >
+        <Button type="submit" variant="primary" disabled={isEmpty || isTooLong || isSubmitting}>
           {submitLabel}
         </Button>
       </div>
