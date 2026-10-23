@@ -16,6 +16,7 @@ que ya se discutió, y para que quien entre nuevo entienda por qué el código e
 | [0006](0006-registro-orquestado-por-backend-via-post-users.md) | El registro lo orquesta el backend; el cliente no crea la cuenta en Firebase | Aceptada | 18-sep-2026 |
 | [0007](0007-contrato-de-error-problemdetail.md)      | El contrato de error real es `ProblemDetail` (RFC 7807), sin código propio | Sustituida por 0008         | 19-sep-2026 |
 | [0008](0008-codigo-estable-del-backend-como-discriminador-de-errores.md) | El `code` estable del backend es el discriminador de errores de negocio | Aceptada | 10-oct-2026 |
+| [0009](0009-assets-de-silero-vad-con-nombre-fijo.md) | Los archivos de Silero VAD se sirven desde el mismo dominio, con nombre fijo | Aceptada | 23-oct-2026 |
 
 Notas al índice (los ADR no se editan, ver regla 1):
 
