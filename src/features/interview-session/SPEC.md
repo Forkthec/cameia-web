@@ -144,13 +144,14 @@ Solo suma un fallo de evaluación (D4).
 | `503 LLM_LIMIT_REACHED` | `…/answers` | evaluación → panel (D3, hecho en #101) | No (primer fallo) | `errors:generico` + «Reintentar» | CA-5.2.19 |
 | `404` (con o sin `code`, p. ej. `SESSION_NOT_FOUND`) | `…/answers` | no encontrada | — | `errors:codigos.NOT_FOUND` | CA-5.2.7 (entrevista ajena o inexistente) |
 | `422 VALIDATION_FAILED` (`errors[].field = answerText`) | `…/answers` | otro | — | `errors:generico` | CA-5.2.9 / 5.2.10 (la interfaz no deja llegar aquí) |
-| `409 SESSION_TRANSITION_NOT_ALLOWED`, `409 SESSION_CONFLICT`, `409` otra `Idempotency-Key` | `…/answers` | otro | — | `errors:generico` | CA-5.2.6 (entrevista que no está en curso), CA-5.2.11 (reenvío de la misma respuesta) |
+| `409 TURN_ALREADY_ANSWERED`, `409 TURN_PROCESSING`, `409 IDEMPOTENCY_KEY_CONFLICT`, `409 SESSION_TRANSITION_NOT_ALLOWED`, `409 SESSION_CONFLICT` | `…/answers` | otro | — | `errors:generico` (el backlog no define textos para ellos; ADR-0008 permite el genérico) | CA-5.2.6 (entrevista que no está en curso), CA-5.2.11 (reenvío de la misma respuesta) |
 | `500 INTERNAL_ERROR`, `503 DATABASE_UNAVAILABLE`, sin `code` | `…/answers` | otro | — | `errors:generico` | — |
 | `200` con forma inesperada (D10) | `…/answers` | otro | — | `errors:generico`; se conservan texto, pregunta y progreso | — |
 | Sin respuesta HTTP (`fetch` rechazado o tiempo agotado) | `…/answers` | red | — | `errors:red`; se conservan texto, pregunta y progreso | CA-5.2.18 (envío sin conexión) |
 | `LLM_UNAVAILABLE` o `LLM_LIMIT_REACHED` | `…/reprocess` | evaluación | **Sí** (D3, por `code`) | 1.º: `errors:generico`; 2.º en adelante: `interview:sesion.reintentosAgotados` | CA-5.2.19, CA-5.2.20 (reintentos agotados) |
 | Sin respuesta HTTP | `…/reprocess` | red | No | `errors:red`; «Reintentar» sigue | D4 |
 | `404` | `…/reprocess` | no encontrada | No | `errors:codigos.NOT_FOUND`; «Reintentar» sigue | D4 |
+| `409 TURN_TRANSITION_NOT_ALLOWED`, `409 TURN_PROCESSING`, `409 SESSION_CONFLICT` | `…/reprocess` | otro | No | `errors:generico` (sin textos en el backlog; ADR-0008); «Reintentar» sigue | D4 |
 | Cualquier otro error, incluido un `200` con forma inesperada | `…/reprocess` | otro | No | `errors:generico`; «Reintentar» sigue | D4 |
 | `401` | cualquiera | (lo atiende `httpClient`) | — | cierre de sesión | — |
 
@@ -268,7 +269,7 @@ el contrato de §5 y los códigos de §4. Ya cubiertas por #101 y fuera de este 
 | D4 | un 404 al reintentar muestra «No encontramos lo que buscabas.» sin sumar | Mensaje de CA-5.2.7 en el panel; «Reintentar» sigue; sin «Ir al inicio» | Hecha |
 | D4 | tras agotar «Reintentar», «Ir al inicio» no desaparece si llega un fallo de otro tipo | Agotar el tope con 2 fallos `LLM_UNAVAILABLE` en `…/reprocess`; el 3.º «Reintentar» recibe un error de red: aparece «No hay conexión…», «Reintentar» sigue y el enlace «Ir al inicio» sigue visible | Hecha |
 | D1 y D10 | `api/interviewSession.mapper.test.ts`: convierte la respuesta 200 del contrato previsto y rechaza una forma inesperada | `progress`, `nextQuestion` e `interviewFinished` al modelo; `nextQuestion = null` → terminada; un cuerpo sin `progress` lanza el error propio de la feature, no un `TypeError` | Hecha |
-| D7 | `ProgressArc.test.tsx`: la etiqueta no fuerza mayúsculas | La etiqueta no lleva la clase `uppercase`. Es una prueba débil (jsdom no aplica Tailwind): se completa con **verificación manual en el paso 6** («Pregunta k de 5» visible tal cual en el navegador) | Hecha |
+| D7 | `ProgressArc.test.tsx`: la etiqueta no fuerza mayúsculas | La etiqueta no lleva la clase `uppercase`. Es una prueba débil (jsdom no aplica Tailwind): se completó con **verificación manual el 22-10** (bitácora, Tarea 8): «Pregunta 1 de 5» se ve sin mayúsculas y el espaciado es correcto | Hecha |
 
 ## 7. Estado de implementación
 
@@ -295,7 +296,7 @@ el contrato de §5 y los códigos de §4. Ya cubiertas por #101 y fuera de este 
 | `src/mocks/handlers/interviewSessions.handlers.ts` | Hecho con el contrato previsto (#101); cuenta puntos de código NFC sin recortar y copia VALIDATION_FAILED con un comentario (D2, D9) |
 | `src/features/interview-session/pages/InterviewSessionPage.test.tsx` | Hecha; cubre el plan de §6 |
 | `src/features/interview-session/pages/InterviewSessionPage.voice.test.tsx` | Hecho; contrato previsto y rechazos del audio en #101 |
-| `src/design-system/molecules/ProgressArc/ProgressArc.test.tsx` | Hecha (D7, prueba débil; falta la revisión manual del paso 6) |
+| `src/design-system/molecules/ProgressArc/ProgressArc.test.tsx` | Hecha (D7, prueba débil; completada con la verificación manual del 22-10, bitácora Tarea 8) |
 
 ### Respuesta por voz (CM-317 · HU-5.8)
 
@@ -319,27 +320,27 @@ el contrato de §5 y los códigos de §4. Ya cubiertas por #101 y fuera de este 
 - Backend: `…/answers`, `…/reprocess` y `…/answers/audio` no existen en cameia-entrevista
   (solo `/health`). Sin ellos no se puede probar contra el backend real; el Sprint 3 cierra la
   subtarea de Frontend con datos simulados (planeación del 15/10).
-- **Pendientes con Backend (no se implementan aquí):** solicitudes 4.1 (tiempo máximo) y 4.2
-  (`…/reprocess` sobre un turno `COMPLETED`) de
-  `21102026_v1_solicitud-frontend-a-backend-tiempo-y-reproceso-hu-5-2.md` (Juan José, 21-10).
-  No son la solicitud 4.1 del documento de Backend del 20-10 (la `Idempotency-Key` al crear la
-  sesión, ya confirmada).
-  - **4.1 (tiempo máximo).** La evaluación de la IA es síncrona dentro de `…/answers`. El corte
-    de 30 s del Gateway está verificado en `cameia-gateway` (`develop`),
-    `src/main/resources/application.yml:97` (`response-timeout: ${GATEWAY_TIMEOUT_MS:30000}ms`),
-    y es global; en GCP el valor llega por variable de entorno (`application-prod.yml:2`). La
-    pantalla también corta a los 30 s (`src/services/http/httpClient.ts:10`). Hoy un tiempo
-    agotado cuenta como red (§4) y mostraría «No hay conexión…» en vez del mensaje de CA-5.2.19
-    (fallo de la IA al evaluar la respuesta). **Este caso se revisa con la respuesta de Backend
-    a la 4.1.**
-  - **Efecto sobre la voz (fuera de CM-217, pendiente de Backend).** Si ese corte global aplica
-    a `…/answers/audio`, la respuesta por voz se cortaría a los 30 s, antes de sus 130 s
-    (HU-5.8, grabar y enviar la respuesta por voz, prevé Gateway 120 s y pantalla 130 s).
-  - **4.2.** Qué responde `…/reprocess` sobre un turno ya `COMPLETED`.
-- **Puntos del documento de Frontend del 22-10 (Ana Sofía), §4, que tocan esta feature:**
-  4.1 (que los errores de `cameia-entrevista` siempre traigan `detail`, ver §9), 4.2 (el `code`
-  del `409` por otra clave en el mismo turno: hoy cae en el genérico, §4) y 4.3 (si con `503
-  TRANSCRIPTION_UNAVAILABLE` la respuesta no queda registrada; CM-317).
+- **Solicitudes a Backend del 21-10 (Juan José), respondidas el 22-10** en
+  `22102026_v1_respuesta-a-frontend-tiempos-y-confirmaciones.md` (Paula, Backend). No son la
+  solicitud 4.1 del documento de Backend del 20-10 (la `Idempotency-Key` al crear la sesión,
+  ya confirmada).
+  - **4.1 (tiempo máximo).** La evaluación de la IA es síncrona dentro de `…/answers`. Hoy el
+    Gateway corta a los 30 s (`cameia-gateway`, `application.yml:97`, global) y la pantalla
+    también (`src/services/http/httpClient.ts:10`); un tiempo agotado cuenta como red (§4) y
+    mostraría «No hay conexión…» en vez del mensaje de CA-5.2.19 (fallo de la IA al evaluar la
+    respuesta). Backend lo aceptó: el Gateway pasará a 120 s en `/api/v1/interviews/**`
+    (CM-296, alinear el estándar de calidad parte 2, Sprint 4, sin fecha todavía) y la pantalla
+    deberá esperar 130 s en `…/answers`, `…/reprocess`, `…/answers/audio` y `…/start`
+    (solicitud 5.1 de Backend, «cuando el Gateway cambie»). **Queda pendiente, fuera de esta
+    rama.** Hasta entonces, en staging el `503` de la IA puede llegar como corte a los 30 s. La
+    misma subida corrige el efecto sobre la voz (HU-5.8, grabar y enviar la respuesta por voz,
+    prevé Gateway 120 s y pantalla 130 s).
+  - **4.2 (`…/reprocess` sobre un turno `COMPLETED`).** Responde `200` con el mismo resultado,
+    sin llamar a la IA. El front ya lo trata como éxito; no requiere cambio.
+- **Puntos del documento de Frontend del 22-10 (Ana Sofía), §4, confirmados por Backend el
+  22-10:** los errores de `cameia-entrevista` siempre traen `detail` (4.1); los códigos del
+  `409` en `…/answers` (4.2, ver §4); y que en los cuatro fallos de transcripción la respuesta no
+  se registra, el turno no avanza y se descarta el audio (4.3; CA-5.12.7 a CA-5.12.10).
 - La pregunta 1 llega desde la pantalla de inicio (HU-4.5, CM-213).
 - **Detección de voz provisional:** el backlog pide Silero VAD (spike CM-316); instalarla necesita
   permiso (CLAUDE.md §2). Mientras tanto `useVoiceRecorder` mide la energía de la señal con la Web
@@ -357,7 +358,8 @@ el contrato de §5 y los códigos de §4. Ya cubiertas por #101 y fuera de este 
 - **D8 · La píldora «Simulación · Texto» (`interview:sesion.modoYForma`) se queda.** Elemento
   mínimo de UX que no contradice el backlog; acuerdo del equipo para cambios mínimos sin pasar
   por el PO. Es el único texto del chat que no sale de los criterios de HU-5.2: se arma con las
-  etiquetas existentes de modalidad y forma de respuesta.
+  etiquetas existentes de modalidad y forma de respuesta. Verificada a mano el 22-10: se lee bien
+  (bitácora, Tarea 8).
 
 **Contrato acordado con Backend (22-10-2026), sección de #101.** Se repartió así, sin perder
 nada: los nombres en camelCase y la respuesta común están en §5; `…/start` está en §5 («Las
@@ -385,8 +387,6 @@ voz» de §7. Del inicio (interview-setup): `PLANNING_RETRIES_EXHAUSTED` deja so
 - El mapper exige `nextQuestion = null` tras la pregunta 5 (contrato del 20-10, §6.5): si
   Backend omitiera el campo en vez de mandar `null`, el chat mostraría el genérico (D10). Se
   revisa cuando exista la OpenAPI.
-- `tracking-[0.24em]` de la etiqueta de `ProgressArc` estaba pensado para mayúsculas; sin ellas
-  (D7) puede verse demasiado separado. Se revisa en el paso 6, en el navegador.
 - Un `200` cuyo cuerpo no es JSON (`src/services/http/httpClient.ts:125`) y
   `BackendNotConfiguredError` (`httpClient.ts:57`) siguen mostrando «No hay conexión…»: lo
   resuelve `services/`, compartido, no esta feature (§4, D10).
@@ -395,9 +395,6 @@ voz» de §7. Del inicio (interview-setup): `PLANNING_RETRIES_EXHAUSTED` deja so
   nombre; se deja así.
 - El TSDoc de `reprocessTurn` (`api/interviewSession.api.ts:48`) solo menciona `LLM_UNAVAILABLE`;
   falta `LLM_LIMIT_REACHED`.
-- `errorMap.ts` exige `title` y `detail` para leer el `code` (`src/services/http/errorMap.ts:51`):
-  un `ProblemDetail` sin `detail` pierde el `code` y cae en el genérico (CM-298, ADR-0008). Es el
-  punto 4.1 del documento de Frontend del 22-10.
 - Botón Atrás del navegador tras «Ir al inicio»: el estado del historial devuelve la pregunta 1
   con claves nuevas (HU-5.7, retomar una entrevista).
 - Sombras de `BrandOrb` con valores arbitrarios en vez de tokens de elevación (CLAUDE.md §6).
