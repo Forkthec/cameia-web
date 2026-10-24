@@ -9,7 +9,7 @@ documentacion: tsdoc-es
 backlog: 16102026_01_v8.2
 decisiones: []
 figma: Cameia · Mockups MVP
-revisado: 2026-10-23
+revisado: 2026-10-24
 ---
 
 # Feature · Configuracion de sesion de entrevista
@@ -243,3 +243,8 @@ cameia-entrevista; documento del 23-10-2026):
   como en el resto de la app.
 - Se consulta al abrir el asistente y no se guarda entre visitas (la respuesta no trae
   `Cache-Control`).
+
+### Doble clic en «Iniciar entrevista» (CM-341, testeo del 24-10-2026)
+
+Un doble clic real llegaba antes de que el botón pasara a carga y enviaba 2 peticiones
+(CA-4.4.17). La página lleva un candado síncrono: solo sale una petición hasta que esa termina.
