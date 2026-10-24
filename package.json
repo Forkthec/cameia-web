@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "5.9.1",
+    "@ricky0123/vad-web": "0.0.31",
     "@tanstack/react-query": "5.102.8",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
@@ -36,6 +37,7 @@
     "i18next-browser-languagedetector": "8.2.1",
     "libphonenumber-js": "1.13.13",
     "lucide-react": "1.43.0",
+    "onnxruntime-web": "1.22.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-helmet-async": "3.0.0",
