@@ -34,7 +34,12 @@ en `firebase.json`).
 ## Decisión
 
 Los cuatro archivos se sirven desde el mismo dominio, como assets de Vite, importados con `?url`
-desde **un solo módulo de `interview-session`**. `build.rolldownOptions.output.assetFileNames`,
+desde **un solo módulo de `interview-session`**. Los dos de `@ricky0123/vad-web` se importan por
+el paquete (`@ricky0123/vad-web/dist/…?url`; el paquete no declara `exports`). Los dos de
+`onnxruntime-web` se importan con una ruta relativa a `node_modules`
+(`…/node_modules/onnxruntime-web/dist/…?url`): el `exports` de `onnxruntime-web` 1.22.0 solo
+expone `.`, `./all`, `./wasm`, `./webgl` y `./webgpu`, y Vite rechaza `onnxruntime-web/dist/…`
+(«is not exported under the conditions…»). `build.rolldownOptions.output.assetFileNames`,
 en `vite.config.ts`, conserva el nombre exacto **solo de esos cuatro archivos** en una carpeta
 fija (`vad/`); todos los demás assets siguen con hash. `baseAssetPath` y `onnxWASMBasePath` se
 derivan de las URLs importadas. Sin plugin ni dependencia nueva.
@@ -64,11 +69,19 @@ derivan de las URLs importadas. Sin plugin ni dependencia nueva.
   (`firebase.json`), con estado 200: el error de carga sería un fallo de análisis del modelo o
   del worklet, no un 404. Eso alimenta D3 (MicVAD no carga). **No comprobado.**
 - Comprobado: un `vite build` de prueba (Vite 8.2.2, fuera del repositorio) emitió los cuatro
-  archivos con nombre exacto en `vad/` y el resto con hash. **No comprobado:** `pnpm dev` (rutas
-  `/@fs/…`, worklet, `import()` del `.mjs`), la carga en un navegador real, ni que `?url` pueda
-  apuntar a `onnxruntime-web/dist/…` desde `src/` (el `exports` del paquete no expone esas rutas;
-  la prueba usó rutas de archivo).
+  archivos con nombre exacto en `vad/` y el resto con hash.
+- Comprobado en `pnpm dev` el 23-oct-2026 (tarea 1 de CM-317, `docs/bitacora-ia/CM-317.md`), en
+  Chrome 155, Edge 155 y Firefox 158 (Windows), desde un worktree fuera del repositorio:
+  `onnxruntime-web/dist/…?url` no resuelve por el `exports` y la ruta relativa a `node_modules`
+  sí; Vite sirve los cuatro archivos desde `/node_modules/.pnpm/…/dist/` (el modelo y el worklet
+  en una carpeta, el `.wasm` y el `.mjs` en otra), el `.wasm` con `application/wasm`; el
+  navegador pide los cuatro, y `MicVAD.new` carga en 331 a 502 ms y cuenta tramos con voz.
+- **No comprobado:** `vite build` y `vite preview` con el módulo real y la ruta relativa de ORT
+  (tarea 9 de CM-317).
 - En las pruebas el módulo de los assets se simula (jsdom no carga WebAssembly ni worklets).
 - Si un navegador pasa a servir el `.wasm` con hilos (`crossOriginIsolated`) hará falta COOP/COEP,
-  que hoy no existen. **No comprobado** si ORT lo necesita; sin ellos corre en un solo hilo.
+  que hoy no existen. En la prueba del 23-oct-2026 (`pnpm dev`) ORT corrió sin ellos en los tres
+  navegadores.
 - Revisor sugerido del PR: Juan Diego Gómez Garcés (DevOps), por el cambio en la salida del build.
+
+Corregido el 23-oct-2026 antes de fusionar, tras la prueba de la tarea 1 de CM-317.
