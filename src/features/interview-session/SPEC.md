@@ -6,10 +6,10 @@ prt: [PRT-05.10, PRT-05.12]
 jira: [CM-217, CM-317]
 rutas: [/entrenar/sesion/:sessionId]
 documentacion: tsdoc-es
-backlog: 23102026_01_v8.4
+backlog: 23102026_02_v8.5
 decisiones: [23102026_v1_decisiones-spike-cm316-hu-5-8.md]
 figma: Cameia · Mockups MVP
-revisado: 2026-10-23
+revisado: 2026-10-24
 ---
 
 # Feature · Chat de la entrevista (Simulación)
@@ -24,6 +24,8 @@ HU-5.2, `21102026_01_HU-5_2_criterios_backlog_v8_3.md` (backlog v8.3,
 `20102026_01_Backlog_v8_3.xlsx`, hoja HE-05); HU-5.8, `23102026_02_HU-5_8_criterios_backlog_v8_4.md`
 (25 CA, backlog v8.4, `23102026_01_Backlog_v8_4.xlsx`, hoja HE-05), verdad de QA de CM-317. Los
 dos viven fuera del repositorio (`cameia-backup/criterios/`).
+El backlog vigente es el v8.5 (`23102026_02_Backlog_v8_5.xlsx`), que solo cambió CA-5.14.1; HU-5.8
+es igual a la v8.4, así que su archivo de criterios v8.4 sigue vigente.
 
 Las decisiones del spike CM-316 (`docs/decisiones/23102026_v1_decisiones-spike-cm316-hu-5-8.md`)
 se citan «CM-316 D1» a «CM-316 D8», para no confundirlas con las D1 a D10 de CM-217 de este SPEC.
@@ -321,9 +323,8 @@ el contrato de §5 y los códigos de §4. Ya cubiertas por #101 y fuera de este 
 Los 25 CA de HU-5.8 por referencia (texto literal en el archivo de criterios v8.4). «Hook» =
 `hooks/useVoiceRecorder.test.ts` (nuevo, `describe('useVoiceRecorder')`; simula `./sileroVad`,
 `getUserMedia` y `MediaRecorder`). «Página» = `pages/InterviewSessionPage.voice.test.tsx`.
-Hoy `useVoiceRecorder` no tiene pruebas propias (la página lo reemplaza con `vi.mock`) y faltan
-las de CA-5.8.5 (aviso a los 20 s), 5.8.6, 5.8.11 (`TRANSCRIPTION_EMPTY`) y 5.8.22: las cubren
-las filas «Nueva» de abajo.
+Las filas «Hecha» tienen su prueba en verde (CM-317, tareas 3 a 9); «Se mantiene» son pruebas
+que ya existían.
 **No comprobado:** que las fake timers de Vitest 4 controlen `performance.now` sin configurarlas,
 y que el `delay` de MSW funcione con fake timers (si no, la prueba de 20 s usa un handler que
 espera una promesa resuelta a mano).
@@ -331,27 +332,27 @@ espera una promesa resuelta a mano).
 | CA | Etiq. | Qué hace el front que el CA no dice | Prueba (`it`) | Estado |
 | --- | --- | --- | --- | --- |
 | CA-5.8.1 | F y B | La parte F está en `interview-setup` (HU-4.3); nada en el chat | `LanguageAndFormatForm.test.tsx` «muestra Audio y Texto con descripciones (CA-4.3.3)» (**no comprobado** que afirme la preselección) | Fuera de CM-317 |
-| CA-5.8.2 | F | «Grabando» solo cuando MicVAD y el grabador ya arrancaron (CM-316 D4) | Página «al grabar muestra «Detener» y el tiempo sobre 3:00 (CA-5.8.2)» · Hook «arranca MicVAD con el mismo stream antes que el grabador y queda grabando» | Se mantiene · Nueva |
-| CA-5.8.3 | F | Todo error de `getUserMedia` salvo `NotFoundError` → `denied`, sin cargar MicVAD | Página «con el micrófono denegado ofrece el texto en la misma pregunta (CA-5.8.3)» · Hook «con el permiso negado queda en denied sin cargar MicVAD» | Se mantiene · Nueva |
-| CA-5.8.4 | F | «Detener» desde que empieza la grabación (lectura de §9); `Blob` con el `mimeType` real | Hook «al detener con voz suficiente conserva el audio con el tipo real del grabador» | Nueva |
-| CA-5.8.5 | F y B | Aviso de 20 s programado por envío y limpiado al terminar o desmontar | Página «con una grabación lista, «Enviar» avanza a «Pregunta 2 de 5» y suelta el audio (CA-5.8.5)» · «a los 20 s de espera agrega «Esto puede tardar hasta 2 minutos. No cierres esta página.»» · «tras un reenvío el aviso de 20 s no aparece antes de tiempo» | Se mantiene · Nueva · Nueva |
-| CA-5.8.6 | F y B | Guarda síncrona `inFlight`; «Enviar» conserva su nombre accesible, deshabilitado y con spinner visible; el estado se anuncia solo en `aria-live` (CM-316 D7) | Página «con doble clic en «Enviar» envía un solo audio»: 1 sola llamada a `…/answers/audio`; durante la espera el botón con nombre accesible «Enviar» está deshabilitado y muestra el spinner; «Procesando tu respuesta…» aparece una sola vez, en la región `aria-live`, y no como nombre del botón | Nueva |
-| CA-5.8.7 | F y B | Tope medido con `performance.now` (CM-316 D6) | Hook «a los 3:00 medidos con el reloj se detiene sola y habilita «Enviar»» | Nueva |
-| CA-5.8.8, 5.8.13, 5.8.14, 5.8.15 | B | Efecto visible: genérico y se descarta la grabación (§5) | Página «413, 415 y 422 sin code de transcripción muestran el genérico y descartan la grabación» | Nueva |
-| CA-5.8.9 | F y B | ≥ 62 tramos de 32 ms con `isSpeech` ≥ 0,3, según las notas técnicas de HU-5.8 (O75, backlog v8.4) | Hook «con 62 tramos de voz (1,984 s) habilita «Enviar»» | Nueva |
-| CA-5.8.10 | F y B | 59 tramos → `noVoice`, sin enviar | Página «con menos de 2 s de voz muestra el aviso y deja grabar otra vez (CA-5.8.10)» · Hook «con 59 tramos de voz (1,9 s) queda en noVoice sin audio» | Se mantiene · Nueva |
-| CA-5.8.11 | F y B | 0 tramos → `noVoice`; `TRANSCRIPTION_EMPTY` → mismo mensaje | Hook «sin voz queda en noVoice» · Página «si Backend responde TRANSCRIPTION_EMPTY avisa «No detectamos tu voz, intenta de nuevo.» y descarta la grabación» | Nueva · Nueva |
+| CA-5.8.2 | F | «Grabando» solo cuando MicVAD y el grabador ya arrancaron (CM-316 D4) | Página «al grabar muestra «Detener» y el tiempo sobre 3:00 (CA-5.8.2)» · Hook «arranca MicVAD con el mismo stream antes que el grabador y queda grabando» | Se mantiene · Hecha |
+| CA-5.8.3 | F | Todo error de `getUserMedia` salvo `NotFoundError` → `denied`, sin cargar MicVAD | Página «con el micrófono denegado ofrece el texto en la misma pregunta (CA-5.8.3)» · Hook «con el permiso negado queda en denied sin cargar MicVAD» | Se mantiene · Hecha |
+| CA-5.8.4 | F | «Detener» desde que empieza la grabación (lectura de §9); `Blob` con el `mimeType` real | Hook «al detener con voz suficiente conserva el audio con el tipo real del grabador» | Hecha |
+| CA-5.8.5 | F y B | Aviso de 20 s programado por envío y limpiado al terminar o desmontar | Página «con una grabación lista, «Enviar» avanza a «Pregunta 2 de 5» y suelta el audio (CA-5.8.5)» · «a los 20 s de espera agrega «Esto puede tardar hasta 2 minutos. No cierres esta página.»» · «tras un reenvío el aviso de 20 s no aparece antes de tiempo» | Se mantiene · Hecha · Hecha |
+| CA-5.8.6 | F y B | Guarda síncrona `inFlight`; «Enviar» conserva su nombre accesible, deshabilitado y con spinner visible; el estado se anuncia solo en `aria-live` (CM-316 D7) | Página «con doble clic en «Enviar» envía un solo audio»: 1 sola llamada a `…/answers/audio`; durante la espera el botón con nombre accesible «Enviar» está deshabilitado y muestra el spinner; «Procesando tu respuesta…» aparece una sola vez, en la región `aria-live`, y no como nombre del botón | Hecha |
+| CA-5.8.7 | F y B | Tope medido con `performance.now` (CM-316 D6) | Hook «a los 3:00 medidos con el reloj se detiene sola y habilita «Enviar»» | Hecha |
+| CA-5.8.8, 5.8.13, 5.8.14, 5.8.15 | B | Efecto visible: genérico y se descarta la grabación (§5) | Página «413, 415 y 422 sin code de transcripción muestran el genérico y descartan la grabación» | Hecha |
+| CA-5.8.9 | F y B | ≥ 62 tramos de 32 ms con `isSpeech` ≥ 0,3, según las notas técnicas de HU-5.8 (O75, backlog v8.4) | Hook «con 62 tramos de voz (1,984 s) habilita «Enviar»» | Hecha |
+| CA-5.8.10 | F y B | 59 tramos → `noVoice`, sin enviar | Página «con menos de 2 s de voz muestra el aviso y deja grabar otra vez (CA-5.8.10)» · Hook «con 59 tramos de voz (1,9 s) queda en noVoice sin audio» | Se mantiene · Hecha |
+| CA-5.8.11 | F y B | 0 tramos → `noVoice`; `TRANSCRIPTION_EMPTY` → mismo mensaje | Hook «sin voz queda en noVoice» · Página «si Backend responde TRANSCRIPTION_EMPTY avisa «No detectamos tu voz, intenta de nuevo.» y descarta la grabación» | Hecha · Hecha |
 | CA-5.8.12, 5.8.16, 5.8.17, 5.8.18 | B | Nombre de archivo fijo; el `Blob` solo vive en el estado de React | — | Sin prueba de front |
-| CA-5.8.19 | F y B | Otra `Idempotency-Key` para el texto; se registra en `…/answers` | Página ««Responder por texto» descarta la grabación y muestra el campo (CA-5.8.19)», ampliada: el envío llega a `…/answers`, no a `…/answers/audio` | Se amplía |
+| CA-5.8.19 | F y B | Otra `Idempotency-Key` para el texto; se registra en `…/answers` | Página ««Responder por texto» descarta la grabación y muestra el campo (CA-5.8.19)», ampliada: el envío llega a `…/answers`, no a `…/answers/audio` | Hecha (ampliada) |
 | CA-5.8.20 | F y B | Sin «Grabar» en una entrevista con Texto | Página «una entrevista de texto no muestra «Grabar» (CA-5.8.20)» | Se mantiene |
-| CA-5.8.21 | B | Efecto visible: `404` → `NOT_FOUND`; `409` → genérico | Página «al enviar audio a una entrevista ajena muestra «No encontramos lo que buscabas.»» | Nueva |
-| CA-5.8.22 | F y B | Conserva el `Blob` y reutiliza la clave `:audio` | Página «sin conexión conserva la grabación y el reenvío usa la misma Idempotency-Key» | Nueva |
-| CA-5.8.23 | F | `NotFoundError` → `noMicrophone` | Página «sin micrófono avisa y ofrece el texto (CA-5.8.23)» · Hook «sin micrófono queda en noMicrophone» | Se mantiene · Nueva |
-| CA-5.8.24 | F | Se oculta cuando la grabación empieza de verdad (CM-316 D8) | Página «muestra «Grabar», «Responder por texto» y el aviso del audio antes de grabar (CA-5.8.24)» · «el aviso sigue visible mientras se prepara la grabación y si MicVAD falla» (en `denied` no hay controles de grabación, así que el aviso no aplica) | Se mantiene · Nueva |
-| CA-5.8.25 | F | Fallo de carga de MicVAD (CM-316 D3) | Hook «si MicVAD no carga queda en vadFailed y libera el micrófono» · Página «si no se puede preparar la grabación muestra el aviso, el campo de texto y «Grabar»» | Nueva · Nueva |
-| Notas técnicas HU-5.8 (formatos) | F | Formatos y `mimeType` real, según las notas técnicas de HU-5.8 (O75, backlog v8.4); sin «Grabar» (lectura del front, §9) | Hook «sin un tipo admitido queda en unsupported sin pedir el micrófono» · «con un mimeType real no admitido descarta y queda en unsupported» · Página «con formato no admitido muestra «Tu navegador no permite grabar. Responderás por texto.» y el campo» | Nueva |
-| Defecto: audio de la pregunta anterior (§9) | — | Un `503 LLM_*` al enviar audio descarta la grabación | Página «tras un fallo de la IA con audio y un "Reintentar" exitoso, la pregunta siguiente queda en idle sin grabación previa» | Nueva |
-| Defecto: cancelación en `requesting` (§9) | — | Descartar o desmontar mientras se prepara libera todo | Hook «descartar mientras se prepara libera el micrófono y no graba» · «desmontar mientras se prepara libera el micrófono» | Nueva |
+| CA-5.8.21 | B | Efecto visible: `404` → `NOT_FOUND`; `409` → genérico | Página «al enviar audio a una entrevista ajena muestra «No encontramos lo que buscabas.»» | Hecha |
+| CA-5.8.22 | F y B | Conserva el `Blob` y reutiliza la clave `:audio` | Página «sin conexión conserva la grabación y el reenvío usa la misma Idempotency-Key» | Hecha |
+| CA-5.8.23 | F | `NotFoundError` → `noMicrophone` | Página «sin micrófono avisa y ofrece el texto (CA-5.8.23)» · Hook «sin micrófono queda en noMicrophone» | Se mantiene · Hecha |
+| CA-5.8.24 | F | Se oculta cuando la grabación empieza de verdad (CM-316 D8) | Página «muestra «Grabar», «Responder por texto» y el aviso del audio antes de grabar (CA-5.8.24)» · «el aviso sigue visible mientras se prepara la grabación y si MicVAD falla» (en `denied` no hay controles de grabación, así que el aviso no aplica) | Se mantiene · Hecha |
+| CA-5.8.25 | F | Fallo de carga de MicVAD (CM-316 D3) | Hook «si MicVAD no carga queda en vadFailed y libera el micrófono» · Página «si no se puede preparar la grabación muestra el aviso, el campo de texto y «Grabar»» | Hecha · Hecha |
+| Notas técnicas HU-5.8 (formatos) | F | Formatos y `mimeType` real, según las notas técnicas de HU-5.8 (O75, backlog v8.4); sin «Grabar» (lectura del front, §9) | Hook «sin un tipo admitido queda en unsupported sin pedir el micrófono» · «con un mimeType real no admitido descarta y queda en unsupported» · Página «con formato no admitido muestra «Tu navegador no permite grabar. Responderás por texto.» y el campo» | Hecha |
+| Defecto: audio de la pregunta anterior (§9) | — | Un `503 LLM_*` al enviar audio descarta la grabación | Página «tras un fallo de la IA con audio y un "Reintentar" exitoso, la pregunta siguiente queda en idle sin grabación previa» | Hecha |
+| Defecto: cancelación en `requesting` (§9) | — | Descartar o desmontar mientras se prepara libera todo | Hook «descartar mientras se prepara libera el micrófono y no graba» · «desmontar mientras se prepara libera el micrófono» | Hecha |
 
 ## 7. Estado de implementación
 
@@ -583,5 +584,5 @@ En orden. Las pruebas se escriben en rojo antes de la implementación, como en C
 | 7 | Página y `VoiceAnswerComposer`: «Enviar» sin modo de carga, con spinner visible y nombre accesible «Enviar» (CM-316 D7); aviso según CM-316 D8; temporizador de 20 s ligado al envío y limpiado; **descarte de la grabación tras un `503 LLM_*` con audio, para que tras un «Reintentar» exitoso la pregunta siguiente quede en `idle` sin el audio anterior**; descarte tras `413`, `415` y `422` genéricos; mensajes de CA-5.8.25 y del formato no admitido (sin «Grabar»); llave nueva en `es-CO` y `en` | CA-5.8.5, 5.8.6, 5.8.13 a 5.8.15, 5.8.24, 5.8.25; notas técnicas de HU-5.8 (O75, backlog v8.4); CM-316 D7, D8 | Hecha (24-10-2026; bitácora CM-317, Tarea 7) |
 | 8 | Encabezados v8.2 → v8.4 (`model/interviewSession.constants.ts`, `pages/InterviewSessionPage.voice.test.tsx`) y TSDoc de `useVoiceRecorder` sin «provisional» | — | Hecha (24-10-2026; bitácora CM-317, Tarea 8) |
 | 9 | `pnpm typecheck && pnpm lint && pnpm test`; `vite build`: chunk de Silero aparte y los cuatro archivos en `dist/vad/` | CLAUDE.md §2, ADR 0009 | Hecha (24-10-2026; bitácora CM-317, Tarea 9) |
-| 10 | Verificación manual en Chrome, Edge y Firefox (Windows): 2 s, 1,9 s, silencio, 3:00, permiso negado, sin micrófono, asset bloqueado en DevTools; bitácora `docs/bitacora-ia/CM-317.md` | CA-5.8.2 a 5.8.4, 5.8.7, 5.8.9 a 5.8.11, 5.8.23, 5.8.25 | Pendiente |
-| 11 | Cierre del SPEC: archivos nuevos en la tabla de §7 y estados del plan de §6 | CLAUDE.md §16 | Pendiente |
+| 10 | Verificación manual en Chrome, Edge y Firefox (Windows): 2 s, 1,9 s, silencio, 3:00, permiso negado, sin micrófono, asset bloqueado en DevTools; bitácora `docs/bitacora-ia/CM-317.md` | CA-5.8.2 a 5.8.4, 5.8.7, 5.8.9 a 5.8.11, 5.8.23, 5.8.25 | Hecha (24-10-2026; bitácora CM-317, Tarea 10) |
+| 11 | Cierre del SPEC: archivos nuevos en la tabla de §7 y estados del plan de §6 | CLAUDE.md §16 | Hecha (24-10-2026; bitácora CM-317, Tarea 11) |
