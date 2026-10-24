@@ -2,16 +2,13 @@
  * Paso 2 del wizard: Modo y Tono (PRT-04.07, HU-4.3).
  * Modalidad: Simulacion seleccionada, Entreno deshabilitada con "Proximamente" (CA-4.3.1).
  * Tono: 4 opciones con descripcion corta, Profesional y neutro preseleccionado (CA-4.3.2).
+ * Las opciones y su disponibilidad llegan del catálogo de Backend, en su orden
+ * (CA-4.3.10): una modalidad no disponible lleva «Próximamente».
  */
 import { CardSelectable } from '@/design-system/molecules/CardSelectable';
 import { Icon, type IconName } from '@/design-system/icons/Icon';
 import { cn } from '@/utils/cn';
-import {
-  INTERVIEW_MODES,
-  INTERVIEW_TONES,
-  type InterviewMode,
-  type InterviewTone,
-} from '../../model/interviewSetup.types';
+import type { CatalogOption, InterviewMode, InterviewTone } from '../../model/interviewSetup.types';
 
 const MODE_ICONS: Record<InterviewMode, IconName> = {
   SIMULACION: 'target',
@@ -26,6 +23,8 @@ const TONE_ICONS: Record<InterviewTone, IconName> = {
 };
 
 interface ModeAndToneFormProps {
+  modes: CatalogOption<InterviewMode>[];
+  tones: CatalogOption<InterviewTone>[];
   selectedMode: InterviewMode;
   selectedTone: InterviewTone;
   onModeChange: (mode: InterviewMode) => void;
@@ -38,9 +37,9 @@ interface ModeAndToneFormProps {
   comingSoonLabel: string;
 }
 
-const DISABLED_MODES: ReadonlySet<InterviewMode> = new Set(['ENTRENO']);
-
 export function ModeAndToneForm({
+  modes,
+  tones,
   selectedMode,
   selectedTone,
   onModeChange,
@@ -63,8 +62,8 @@ export function ModeAndToneForm({
           role="radiogroup"
           aria-label={modeLabel}
         >
-          {INTERVIEW_MODES.map((mode) => {
-            const isDisabled = DISABLED_MODES.has(mode);
+          {modes.map(({ value: mode, available }) => {
+            const isDisabled = !available;
             return (
               <CardSelectable
                 key={mode}
@@ -88,11 +87,11 @@ export function ModeAndToneForm({
           role="radiogroup"
           aria-label={toneLabel}
         >
-          {INTERVIEW_TONES.map((tone) => (
+          {tones.map(({ value: tone, available }) => (
             <CardSelectable
               key={tone}
-              state={selectedTone === tone ? 'selected' : 'default'}
-              onClick={() => onToneChange(tone)}
+              state={!available ? 'disabled' : selectedTone === tone ? 'selected' : 'default'}
+              onClick={() => available && onToneChange(tone)}
               icon={<Icon name={TONE_ICONS[tone]} />}
               title={toneLabels[tone]}
               description={toneDescriptions[tone]}

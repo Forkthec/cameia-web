@@ -25,6 +25,14 @@ const FORMAT_DESCRIPTIONS: Record<AnswerFormat, string> = {
 
 function renderForm(props: Partial<React.ComponentProps<typeof LanguageAndFormatForm>> = {}) {
   const defaults: React.ComponentProps<typeof LanguageAndFormatForm> = {
+    languages: [
+      { value: 'es-CO', available: true },
+      { value: 'en', available: true },
+    ],
+    answerFormats: [
+      { value: 'AUDIO', available: true },
+      { value: 'TEXTO', available: true },
+    ],
     selectedLanguage: 'es-CO',
     selectedFormat: 'AUDIO',
     onLanguageChange: vi.fn(),

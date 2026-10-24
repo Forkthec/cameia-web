@@ -3,8 +3,21 @@
  * Es el cortafuegos (ADR-0003, CLAUDE.md §8): todo lo que el backend
  * pueda cambiar se detiene aqui.
  */
-import type { ProfileSummaryItem } from '../model/interviewSetup.types';
-import type { ProfileSummaryDto, ProfessionalRoleCatalogDto } from './interviewSetup.dto';
+import {
+  ANSWER_FORMATS,
+  INTERVIEW_MODES,
+  INTERVIEW_TONES,
+  SESSION_LANGUAGES,
+  type CatalogOption,
+  type InterviewCatalog,
+  type ProfileSummaryItem,
+} from '../model/interviewSetup.types';
+import type {
+  CatalogOptionDto,
+  InterviewCatalogDto,
+  ProfileSummaryDto,
+  ProfessionalRoleCatalogDto,
+} from './interviewSetup.dto';
 import type { StartSessionResponseDto } from './interviewSession.dto';
 
 export function toProfileSummary(dto: ProfileSummaryDto): ProfileSummaryItem {
@@ -64,5 +77,29 @@ export function toChatEntry(
     answerFormat: dto.answerFormat === 'AUDIO' ? 'AUDIO' : 'TEXTO',
     question: { turnId: dto.question.turnId, number: dto.question.number, text: dto.question.text },
     progress: { current: dto.progress.currentQuestion, total: dto.progress.totalQuestions },
+  };
+}
+
+/**
+ * Conserva el orden de Backend y descarta los valores que la pantalla aún no
+ * conoce: no tienen texto en i18n y CLAUDE.md prohíbe mostrar textos fijos.
+ */
+function toCatalogOptions<T extends string>(
+  dtos: CatalogOptionDto[],
+  known: readonly T[],
+): CatalogOption<T>[] {
+  return dtos
+    .filter((dto): dto is { value: T; available: boolean } =>
+      (known as readonly string[]).includes(dto.value),
+    )
+    .map((dto) => ({ value: dto.value, available: dto.available }));
+}
+
+export function toInterviewCatalog(dto: InterviewCatalogDto): InterviewCatalog {
+  return {
+    modes: toCatalogOptions(dto.modes, INTERVIEW_MODES),
+    tones: toCatalogOptions(dto.tones, INTERVIEW_TONES),
+    answerFormats: toCatalogOptions(dto.answerFormats, ANSWER_FORMATS),
+    languages: toCatalogOptions(dto.languages, SESSION_LANGUAGES),
   };
 }
