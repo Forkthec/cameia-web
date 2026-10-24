@@ -347,7 +347,7 @@ espera una promesa resuelta a mano).
 | CA-5.8.21 | B | Efecto visible: `404` → `NOT_FOUND`; `409` → genérico | Página «al enviar audio a una entrevista ajena muestra «No encontramos lo que buscabas.»» | Nueva |
 | CA-5.8.22 | F y B | Conserva el `Blob` y reutiliza la clave `:audio` | Página «sin conexión conserva la grabación y el reenvío usa la misma Idempotency-Key» | Nueva |
 | CA-5.8.23 | F | `NotFoundError` → `noMicrophone` | Página «sin micrófono avisa y ofrece el texto (CA-5.8.23)» · Hook «sin micrófono queda en noMicrophone» | Se mantiene · Nueva |
-| CA-5.8.24 | F | Se oculta cuando la grabación empieza de verdad (CM-316 D8) | Página «muestra «Grabar», «Responder por texto» y el aviso del audio antes de grabar (CA-5.8.24)» · «el aviso sigue visible mientras se prepara la grabación y si el permiso se niega o MicVAD falla» | Se mantiene · Nueva |
+| CA-5.8.24 | F | Se oculta cuando la grabación empieza de verdad (CM-316 D8) | Página «muestra «Grabar», «Responder por texto» y el aviso del audio antes de grabar (CA-5.8.24)» · «el aviso sigue visible mientras se prepara la grabación y si MicVAD falla» (en `denied` no hay controles de grabación, así que el aviso no aplica) | Se mantiene · Nueva |
 | CA-5.8.25 | F | Fallo de carga de MicVAD (CM-316 D3) | Hook «si MicVAD no carga queda en vadFailed y libera el micrófono» · Página «si no se puede preparar la grabación muestra el aviso, el campo de texto y «Grabar»» | Nueva · Nueva |
 | Notas técnicas HU-5.8 (formatos) | F | Formatos y `mimeType` real, según las notas técnicas de HU-5.8 (O75, backlog v8.4); sin «Grabar» (lectura del front, §9) | Hook «sin un tipo admitido queda en unsupported sin pedir el micrófono» · «con un mimeType real no admitido descarta y queda en unsupported» · Página «con formato no admitido muestra «Tu navegador no permite grabar. Responderás por texto.» y el campo» | Nueva |
 | Defecto: audio de la pregunta anterior (§9) | — | Un `503 LLM_*` al enviar audio descarta la grabación | Página «tras un fallo de la IA con audio y un "Reintentar" exitoso, la pregunta siguiente queda en idle sin grabación previa» | Nueva |
@@ -512,6 +512,9 @@ Del inicio (interview-setup): `PLANNING_RETRIES_EXHAUSTED` deja solo «Cancelar�
 - `useCanRecordAudio.ts` (`interview-setup`, CA-4.3.7) aún acepta `audio/mp4` sin códec; se
   alinea con las notas técnicas de HU-5.8 (O75, backlog v8.4) en otro PR de `interview-setup`.
 - Safari (macOS e iOS) no se prueba por ahora (CA-5.14.6, decisión del PO del 23-10).
+- **MP4/AAC sin prueba en el hook.** `useVoiceRecorder.test.ts` no prueba un `mimeType` real de
+  MP4/AAC: no está comprobada la cadena que reporta el navegador al grabar MP4/AAC (§7,
+  «Formatos»), y Safari, el que graba MP4/AAC, está fuera de alcance (CA-5.14.6).
 
 **Defectos que corrige CM-317**
 
