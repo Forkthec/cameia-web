@@ -9,7 +9,7 @@ documentacion: tsdoc-es
 backlog: 16102026_01_v8.2
 decisiones: []
 figma: Cameia · Mockups MVP
-revisado: 2026-10-23
+revisado: 2026-10-24
 ---
 
 # Feature · Configuracion de sesion de entrevista
@@ -194,6 +194,10 @@ oferta opcional con tope de 3000).
 - Paso 2: al volver, «Rol objetivo» muestra el rol ya elegido (`Autocomplete` arranca con la opción seleccionada).
 - Confirmar: una oferta con solo espacios cuenta como «Sin oferta laboral»; el botón en carga usa `common:estados.cargando`.
 
+- Paso «Confirmar» (testeo del 24-10-2026, observación 2): si la configuración queda incompleta
+  después de un error, solo se ve «Elige un Perfil Profesional y un rol objetivo…»; el error del
+  intento anterior se oculta.
+
 ### Inicio de la entrevista (CM-213 · HU-4.5 · PRT-04.11)
 
 `/entrenar/nueva/iniciando` recibe `{sessionId}` del asistente y llama a
@@ -227,6 +231,8 @@ Según la respuesta de Backend del 20-10-2026 (§4.1 y §6.1):
 - `Idempotency-Key` por configuración (`useCreateSession`): los reintentos automáticos por
   `PROFILE_SYNC_PENDING` y un nuevo «Iniciar entrevista» con la misma configuración reutilizan la
   clave; si cambia la configuración, se genera otra.
+- Los reintentos automáticos por `PROFILE_SYNC_PENDING` van primero a 1 s y luego a 3 s
+  (CA-4.4.19); antes salían al revés (CM-342, testeo del 24-10-2026).
 
 ### Catálogo de personalización (CM-205 · HU-4.3, 23-10-2026)
 
@@ -243,3 +249,8 @@ cameia-entrevista; documento del 23-10-2026):
   como en el resto de la app.
 - Se consulta al abrir el asistente y no se guarda entre visitas (la respuesta no trae
   `Cache-Control`).
+
+### Doble clic en «Iniciar entrevista» (CM-341, testeo del 24-10-2026)
+
+Un doble clic real llegaba antes de que el botón pasara a carga y enviaba 2 peticiones
+(CA-4.4.17). La página lleva un candado síncrono: solo sale una petición hasta que esa termina.

@@ -14,7 +14,7 @@
  * (CA-4.3.10); si falla la carga, «Ocurrió un error. Inténtalo de nuevo.»
  * con «Reintentar carga» y sin avanzar (CA-4.3.11).
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { ApiError } from '@/services/http/ApiError';
@@ -65,6 +65,10 @@ export function NewInterviewWizardPage() {
   const store = useInterviewSetupStore();
   const navigate = useNavigate();
   const createSession = useCreateSession();
+  // CA-4.4.17 (CM-341): un doble clic real llega antes de que React pinte el
+  // botón en carga, así que `isPending` aún es falso en el segundo clic. Este
+  // candado síncrono deja pasar una sola petición hasta que termine.
+  const creatingRef = useRef(false);
 
   const [warningData, setWarningData] = useState<CreateSessionResponseDto | null>(null);
   // El foco va al título del paso solo cuando el usuario ya cambió de paso,
@@ -146,7 +150,8 @@ export function NewInterviewWizardPage() {
   }, [store.currentStep, store.targetRoleId, handleNext]);
 
   const handleCreateSession = useCallback(() => {
-    if (!store.profileId || !store.targetRoleId) return;
+    if (!store.profileId || !store.targetRoleId || creatingRef.current) return;
+    creatingRef.current = true;
     createSession.mutate(
       {
         profileId: store.profileId,
@@ -158,6 +163,9 @@ export function NewInterviewWizardPage() {
         sessionLanguage: store.sessionLanguage,
       },
       {
+        onSettled: () => {
+          creatingRef.current = false;
+        },
         onSuccess: (data) => {
           if (data.ongoingSession && data.ongoingSession.answersCount < 5) {
             setWarningData(data);
@@ -429,7 +437,10 @@ export function NewInterviewWizardPage() {
             loadingLabel={t('common:estados.cargando')}
             isDisabled={!isConfigComplete}
             disabledMessage={!isConfigComplete ? t('interview:confirmar.datosIncompletos') : null}
-            errorMessage={errorMessage}
+            // El error de un intento anterior no se mezcla con el aviso de datos
+            // incompletos: con la configuración incompleta no se puede reintentar
+            // (observación 2 del testeo del 24-10-2026).
+            errorMessage={isConfigComplete ? errorMessage : null}
             backLabel={t('common:acciones.atras')}
             onBack={handleBack}
           />
