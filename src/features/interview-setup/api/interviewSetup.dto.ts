@@ -24,3 +24,17 @@ export interface ProfessionalRoleCatalogDto {
   nombre: string;
   categoria: string;
 }
+
+/** Opción del catálogo de personalización (contrato de Backend del 20-10-2026, §6.2). */
+export interface CatalogOptionDto {
+  value: string;
+  available: boolean;
+}
+
+/** Respuesta 200 de `GET /api/v1/interviews/config/catalog` (CM-204, PR 36 de cameia-entrevista). */
+export interface InterviewCatalogDto {
+  modes: CatalogOptionDto[];
+  tones: CatalogOptionDto[];
+  answerFormats: CatalogOptionDto[];
+  languages: CatalogOptionDto[];
+}

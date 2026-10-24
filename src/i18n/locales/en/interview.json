@@ -30,6 +30,10 @@
         "titulo": "Everything is ready for your interview",
         "descripcion": "Review your setup. You can change anything before you start."
       }
+    },
+    "catalogo": {
+      "error": "Something went wrong. Please try again.",
+      "reintentarCarga": "Retry loading"
     }
   },
   "perfil": {

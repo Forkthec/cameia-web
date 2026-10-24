@@ -3,13 +3,13 @@ feature: interview-setup
 estado: EN_CURSO
 hu: [HU-4.2, HU-4.5]
 prt: [PRT-04.02, PRT-04.03, PRT-04.11]
-jira: [CM-202, CM-213, CM-208]
+jira: [CM-202, CM-213, CM-208, CM-205]
 rutas: [/entrenar/nueva]
 documentacion: tsdoc-es
 backlog: 16102026_01_v8.2
 decisiones: []
 figma: Cameia · Mockups MVP
-revisado: 2026-10-22
+revisado: 2026-10-23
 ---
 
 # Feature · Configuracion de sesion de entrevista
@@ -118,6 +118,7 @@ de tres pasos que precede a la creacion de la sesion (HU-4.4).
 | --------- | ------------- | ----- | ------ |
 | Listar perfiles del usuario | GET /api/v1/profiles | — | `{ profiles: [{ id, name, status, targetRoles: [{ professionalRoleId, roleTitle }] }] }` |
 | Catalogo de roles profesionales | GET /api/v1/profiles/professional-roles?lang=es | — | `[{ id, nombre, categoria }]` |
+| Catálogo de personalización (HU-4.3) | GET /api/v1/interviews/config/catalog | — | `{ modes, tones, answerFormats, languages }`, cada uno `[{ value, available }]` |
 
 ## 6. Criterios de aceptacion
 
@@ -139,6 +140,10 @@ de tres pasos que precede a la creacion de la sesion (HU-4.4).
 | `src/features/interview-setup/store/interviewSetup.store.ts` | Estado del wizard (Zustand) | — |
 | `src/features/interview-setup/hooks/useProfileList.ts` | Hook de query para lista de perfiles | — |
 | `src/features/interview-setup/hooks/useRoleCatalog.ts` | Hook de query para catalogo de roles | — |
+| `src/features/interview-setup/hooks/useInterviewCatalog.ts` | Hook de query para el catálogo de personalización | `NewInterviewWizardPage.test.tsx` |
+| `src/features/interview-setup/organisms/ModeAndToneForm/ModeAndToneForm.tsx` | Paso 2 con opciones del catálogo | `ModeAndToneForm.test.tsx` |
+| `src/features/interview-setup/organisms/LanguageAndFormatForm/LanguageAndFormatForm.tsx` | Paso 3 con opciones del catálogo | `LanguageAndFormatForm.test.tsx` |
+| `src/mocks/handlers/interviewConfig.handlers.ts` | Mock del catálogo de personalización | — |
 | `src/features/interview-setup/organisms/ProfileSelector/ProfileSelector.tsx` | Seleccion de perfil paso 0 | `ProfileSelector.test.tsx` |
 | `src/features/interview-setup/organisms/OfferAndRoleForm/OfferAndRoleForm.tsx` | Formulario paso 1 | `OfferAndRoleForm.test.tsx` |
 | `src/features/interview-setup/pages/NewInterviewWizardPage.tsx` | Orquesta los pasos del wizard | `NewInterviewWizardPage.test.tsx` |
@@ -223,3 +228,18 @@ Según la respuesta de Backend del 20-10-2026 (§4.1 y §6.1):
   `PROFILE_SYNC_PENDING` y un nuevo «Iniciar entrevista» con la misma configuración reutilizan la
   clave; si cambia la configuración, se genera otra.
 
+### Catálogo de personalización (CM-205 · HU-4.3, 23-10-2026)
+
+Backend publicó `GET /api/v1/interviews/config/catalog` en staging (CM-204, PR 36 de
+cameia-entrevista; documento del 23-10-2026):
+
+- Los pasos 2 y 3 muestran solo las opciones que entrega el catálogo, en su orden, y deshabilitan
+  las que llegan con `available: false` (CA-4.3.10). Entreno lleva «Próximamente» mientras el
+  catálogo lo marque no disponible; se habilita sola cuando Backend la active.
+- Los textos y la preselección los sigue poniendo la pantalla (aviso 3.3 de Backend). Un valor que
+  la pantalla no conoce se omite: no tiene texto en i18n y CLAUDE.md prohíbe textos fijos.
+- Mientras carga: esqueleto y «Siguiente» deshabilitado. Si falla: «Ocurrió un error. Inténtalo de
+  nuevo.» con «Reintentar carga» (CA-4.3.11). El `403 EMAIL_NOT_VERIFIED` lo maneja `httpClient`
+  como en el resto de la app.
+- Se consulta al abrir el asistente y no se guarda entre visitas (la respuesta no trae
+  `Cache-Control`).

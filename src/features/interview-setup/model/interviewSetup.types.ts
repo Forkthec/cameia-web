@@ -28,6 +28,20 @@ export type AnswerFormat = (typeof ANSWER_FORMATS)[number];
 export const SESSION_LANGUAGES = ['es-CO', 'en'] as const;
 export type SessionLanguage = (typeof SESSION_LANGUAGES)[number];
 
+/** Opción del catálogo de personalización y si hoy se puede elegir (CA-4.3.10). */
+export interface CatalogOption<T extends string> {
+  value: T;
+  available: boolean;
+}
+
+/** Catálogo de personalización de `GET /api/v1/interviews/config/catalog`, en el orden de Backend. */
+export interface InterviewCatalog {
+  modes: CatalogOption<InterviewMode>[];
+  tones: CatalogOption<InterviewTone>[];
+  answerFormats: CatalogOption<AnswerFormat>[];
+  languages: CatalogOption<SessionLanguage>[];
+}
+
 export interface InterviewSetupData {
   profileId: string | null;
   jobOffer: string | null;

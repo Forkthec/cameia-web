@@ -3,16 +3,16 @@
  * Idioma: es-CO preseleccionado, en disponible en todos los planes (CA-4.3.4, CA-4.3.9).
  * Forma: Audio preseleccionado, Texto seleccionable (CA-4.3.3);
  * si el navegador no permite grabar, Audio queda deshabilitado (CA-4.3.7).
+ * Las opciones y su disponibilidad llegan del catálogo de Backend (CA-4.3.10).
  */
 import { AlertInline } from '@/design-system/molecules/AlertInline';
 import { CardSelectable } from '@/design-system/molecules/CardSelectable';
 import { Icon, type IconName } from '@/design-system/icons/Icon';
 import { cn } from '@/utils/cn';
-import {
-  ANSWER_FORMATS,
-  SESSION_LANGUAGES,
-  type AnswerFormat,
-  type SessionLanguage,
+import type {
+  AnswerFormat,
+  CatalogOption,
+  SessionLanguage,
 } from '../../model/interviewSetup.types';
 
 const LANGUAGE_ICONS: Record<SessionLanguage, IconName> = {
@@ -26,6 +26,8 @@ const FORMAT_ICONS: Record<AnswerFormat, IconName> = {
 };
 
 interface LanguageAndFormatFormProps {
+  languages: CatalogOption<SessionLanguage>[];
+  answerFormats: CatalogOption<AnswerFormat>[];
   selectedLanguage: SessionLanguage;
   selectedFormat: AnswerFormat;
   onLanguageChange: (lang: SessionLanguage) => void;
@@ -40,6 +42,8 @@ interface LanguageAndFormatFormProps {
 }
 
 export function LanguageAndFormatForm({
+  languages,
+  answerFormats,
   selectedLanguage,
   selectedFormat,
   onLanguageChange,
@@ -59,11 +63,11 @@ export function LanguageAndFormatForm({
           {languageLabel}
         </legend>
         <div className="gap-space-3 grid grid-cols-2" role="radiogroup" aria-label={languageLabel}>
-          {SESSION_LANGUAGES.map((lang) => (
+          {languages.map(({ value: lang, available }) => (
             <CardSelectable
               key={lang}
-              state={selectedLanguage === lang ? 'selected' : 'default'}
-              onClick={() => onLanguageChange(lang)}
+              state={!available ? 'disabled' : selectedLanguage === lang ? 'selected' : 'default'}
+              onClick={() => available && onLanguageChange(lang)}
               icon={<Icon name={LANGUAGE_ICONS[lang]} />}
               title={languageLabels[lang]}
             />
@@ -85,8 +89,8 @@ export function LanguageAndFormatForm({
           role="radiogroup"
           aria-label={formatLabel}
         >
-          {ANSWER_FORMATS.map((format) => {
-            const isAudioDisabled = format === 'AUDIO' && !canRecordAudio;
+          {answerFormats.map(({ value: format, available }) => {
+            const isAudioDisabled = !available || (format === 'AUDIO' && !canRecordAudio);
             return (
               <CardSelectable
                 key={format}

@@ -30,6 +30,10 @@
         "titulo": "Todo listo para tu entrevista",
         "descripcion": "Revisa tu configuración. Puedes cambiar cualquier dato antes de empezar."
       }
+    },
+    "catalogo": {
+      "error": "Ocurrió un error. Inténtalo de nuevo.",
+      "reintentarCarga": "Reintentar carga"
     }
   },
   "perfil": {

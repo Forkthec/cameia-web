@@ -9,6 +9,10 @@
  * (CA-4.4.1), con proteccion de doble clic (CA-4.4.17), manejo de error
  * (CA-4.4.5), perfil sincronizando (CA-4.4.19) y aviso de entrevista en
  * curso (CA-4.4.7).
+ *
+ * Los pasos 2 y 3 muestran las opciones del catálogo de Backend
+ * (CA-4.3.10); si falla la carga, «Ocurrió un error. Inténtalo de nuevo.»
+ * con «Reintentar carga» y sin avanzar (CA-4.3.11).
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -16,10 +20,13 @@ import { useNavigate } from 'react-router';
 import { ApiError } from '@/services/http/ApiError';
 import { ROUTES } from '@/app/router/routes';
 import { WizardLayout } from '@/layouts/WizardLayout';
+import { Skeleton } from '@/design-system/atoms/Skeleton';
+import { EmptyState } from '@/design-system/molecules/EmptyState';
 import { useInterviewSetupStore } from '../store/interviewSetup.store';
 import { useProfileList } from '../hooks/useProfileList';
 import { useRoleCatalog } from '../hooks/useRoleCatalog';
 import { useCanRecordAudio } from '../hooks/useCanRecordAudio';
+import { useInterviewCatalog } from '../hooks/useInterviewCatalog';
 import { useCreateSession } from '../hooks/useCreateSession';
 import { ProfileSelector } from '../organisms/ProfileSelector';
 import { OfferAndRoleForm } from '../organisms/OfferAndRoleForm';
@@ -68,6 +75,9 @@ export function NewInterviewWizardPage() {
   const profileQuery = useProfileList();
   const roleQuery = useRoleCatalog();
   const canRecordAudio = useCanRecordAudio();
+  const catalogQuery = useInterviewCatalog();
+  const catalog = catalogQuery.data;
+  const isCatalogStep = store.currentStep === 2 || store.currentStep === 3;
 
   useEffect(() => {
     if (!canRecordAudio && store.answerFormat === 'AUDIO') {
@@ -187,6 +197,7 @@ export function NewInterviewWizardPage() {
   const isPrimaryDisabled =
     (store.currentStep === 0 && (!canAdvanceStep0 || hasEmptyState)) ||
     (store.currentStep === 1 && !!jobOfferError) ||
+    (isCatalogStep && !catalog) ||
     store.currentStep >= 4;
 
   const steps = [
@@ -367,8 +378,21 @@ export function NewInterviewWizardPage() {
             jobOfferError={jobOfferError}
             roleError={roleError}
           />
-        ) : store.currentStep === 2 ? (
+        ) : isCatalogStep && catalogQuery.isError ? (
+          <EmptyState
+            title={t('interview:asistente.catalogo.error')}
+            actionLabel={t('interview:asistente.catalogo.reintentarCarga')}
+            onAction={() => void catalogQuery.refetch()}
+          />
+        ) : isCatalogStep && !catalog ? (
+          <div className="gap-space-3 flex flex-col" aria-busy="true">
+            <Skeleton className="h-24 rounded-lg" />
+            <Skeleton className="h-24 rounded-lg" />
+          </div>
+        ) : store.currentStep === 2 && catalog ? (
           <ModeAndToneForm
+            modes={catalog.modes}
+            tones={catalog.tones}
             selectedMode={store.mode}
             selectedTone={store.tone}
             onModeChange={store.setMode}
@@ -380,8 +404,10 @@ export function NewInterviewWizardPage() {
             toneDescriptions={toneDescriptions}
             comingSoonLabel={t('interview:modalidad.proximamente')}
           />
-        ) : store.currentStep === 3 ? (
+        ) : store.currentStep === 3 && catalog ? (
           <LanguageAndFormatForm
+            languages={catalog.languages}
+            answerFormats={catalog.answerFormats}
             selectedLanguage={store.sessionLanguage}
             selectedFormat={store.answerFormat}
             onLanguageChange={store.setSessionLanguage}

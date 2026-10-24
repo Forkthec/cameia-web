@@ -1,6 +1,6 @@
 /**
  * Protege el paso 2 del wizard: modo y tono (CA-4.3.1, CA-4.3.2, CA-4.3.5,
- * CA-4.3.6). Fuente: backlog v8.2.
+ * CA-4.3.6, CA-4.3.10). Fuente: backlog v8.2.
  */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -29,6 +29,16 @@ const TONE_DESCRIPTIONS: Record<InterviewTone, string> = {
 
 function renderForm(props: Partial<React.ComponentProps<typeof ModeAndToneForm>> = {}) {
   const defaults: React.ComponentProps<typeof ModeAndToneForm> = {
+    modes: [
+      { value: 'SIMULACION', available: true },
+      { value: 'ENTRENO', available: false },
+    ],
+    tones: [
+      { value: 'PROFESIONAL_NEUTRO', available: true },
+      { value: 'CALIDO', available: true },
+      { value: 'ESTRICTO', available: true },
+      { value: 'MOTIVADOR', available: true },
+    ],
     selectedMode: 'SIMULACION',
     selectedTone: 'PROFESIONAL_NEUTRO',
     onModeChange: vi.fn(),
@@ -73,6 +83,29 @@ describe('ModeAndToneForm', () => {
     const { props } = renderForm();
     await user.click(screen.getByText('Cálido'));
     expect(props.onToneChange).toHaveBeenCalledWith('CALIDO');
+  });
+
+  it('sigue la disponibilidad del catálogo: una modalidad disponible pierde «Próximamente» (CA-4.3.10)', () => {
+    renderForm({
+      modes: [
+        { value: 'SIMULACION', available: true },
+        { value: 'ENTRENO', available: true },
+      ],
+    });
+    expect(screen.queryByText('Próximamente')).not.toBeInTheDocument();
+  });
+
+  it('no deja elegir un tono que el catálogo marca no disponible (CA-4.3.10)', async () => {
+    const user = userEvent.setup();
+    const { props } = renderForm({
+      tones: [
+        { value: 'PROFESIONAL_NEUTRO', available: true },
+        { value: 'CALIDO', available: false },
+      ],
+    });
+    expect(screen.queryByText('Estricto')).not.toBeInTheDocument();
+    await user.click(screen.getByText('Cálido'));
+    expect(props.onToneChange).not.toHaveBeenCalled();
   });
 
   it('tiene radiogroups accesibles para modalidad y tono', () => {
