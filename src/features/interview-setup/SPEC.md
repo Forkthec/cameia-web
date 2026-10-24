@@ -194,6 +194,10 @@ oferta opcional con tope de 3000).
 - Paso 2: al volver, «Rol objetivo» muestra el rol ya elegido (`Autocomplete` arranca con la opción seleccionada).
 - Confirmar: una oferta con solo espacios cuenta como «Sin oferta laboral»; el botón en carga usa `common:estados.cargando`.
 
+- Paso «Confirmar» (testeo del 24-10-2026, observación 2): si la configuración queda incompleta
+  después de un error, solo se ve «Elige un Perfil Profesional y un rol objetivo…»; el error del
+  intento anterior se oculta.
+
 ### Inicio de la entrevista (CM-213 · HU-4.5 · PRT-04.11)
 
 `/entrenar/nueva/iniciando` recibe `{sessionId}` del asistente y llama a
