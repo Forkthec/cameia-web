@@ -301,6 +301,7 @@ describe('InterviewSessionPage (voz)', () => {
 
     response.resolve(HttpResponse.json(OK_NEXT));
     expect(await screen.findByRole('progressbar', { name: 'Pregunta 2 de 5' })).toBeInTheDocument();
+    expect(screen.queryByText(LONG_WAIT)).not.toBeInTheDocument();
   });
 
   it('tras un reenvío el aviso de 20 s no aparece antes de tiempo (CA-5.8.5)', async () => {
