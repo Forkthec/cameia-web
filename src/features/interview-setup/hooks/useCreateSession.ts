@@ -42,6 +42,8 @@ export function useCreateSession() {
       }
       return false;
     },
-    retryDelay: (failureCount) => RETRY_DELAYS[failureCount - 1] ?? 3000,
+    // TanStack Query pasa a `retryDelay` las fallas previas a la actual
+    // (0 en el primer reintento), así que el índice es directo (CM-342).
+    retryDelay: (failureCount) => RETRY_DELAYS[failureCount] ?? 3000,
   });
 }

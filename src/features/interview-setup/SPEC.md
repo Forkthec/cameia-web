@@ -227,6 +227,8 @@ Según la respuesta de Backend del 20-10-2026 (§4.1 y §6.1):
 - `Idempotency-Key` por configuración (`useCreateSession`): los reintentos automáticos por
   `PROFILE_SYNC_PENDING` y un nuevo «Iniciar entrevista» con la misma configuración reutilizan la
   clave; si cambia la configuración, se genera otra.
+- Los reintentos automáticos por `PROFILE_SYNC_PENDING` van primero a 1 s y luego a 3 s
+  (CA-4.4.19); antes salían al revés (CM-342, testeo del 24-10-2026).
 
 ### Catálogo de personalización (CM-205 · HU-4.3, 23-10-2026)
 
