@@ -437,7 +437,10 @@ export function NewInterviewWizardPage() {
             loadingLabel={t('common:estados.cargando')}
             isDisabled={!isConfigComplete}
             disabledMessage={!isConfigComplete ? t('interview:confirmar.datosIncompletos') : null}
-            errorMessage={errorMessage}
+            // El error de un intento anterior no se mezcla con el aviso de datos
+            // incompletos: con la configuración incompleta no se puede reintentar
+            // (observación 2 del testeo del 24-10-2026).
+            errorMessage={isConfigComplete ? errorMessage : null}
             backLabel={t('common:acciones.atras')}
             onBack={handleBack}
           />
