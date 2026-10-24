@@ -11,16 +11,21 @@
  *
  * **Respuesta.** Una entrevista con Texto muestra el campo desde el inicio
  * (HU-5.2). Una con Audio muestra «Grabar» / «Detener» / «Enviar» y
- * «Responder por texto» (HU-5.8); pasar a texto, o un micrófono denegado o
- * ausente (CA-5.8.3, CA-5.8.23), deja el campo de texto en esa misma
- * pregunta. Tras elegir texto, la pregunta siguiente vuelve a ofrecer la voz;
- * con el micrófono denegado o ausente se sigue por texto.
+ * «Responder por texto» (HU-5.8); pasar a texto, un micrófono denegado o
+ * ausente (CA-5.8.3, CA-5.8.23) o un formato no admitido (notas técnicas de
+ * HU-5.8, texto de CA-4.3.7, sin «Grabar») dejan el campo de texto en esa
+ * misma pregunta. Si MicVAD no carga, se muestran el aviso, el campo de texto
+ * y «Grabar» (CA-5.8.25). Tras elegir texto, la pregunta siguiente vuelve a
+ * ofrecer la voz; con el micrófono denegado o ausente se sigue por texto.
+ * El aviso del audio se ve hasta que la grabación empieza de verdad
+ * (CA-5.8.24, CM-316 D8), y el de 20 s se programa por cada envío (CA-5.8.5).
  *
  * El texto escrito se guarda por turno: sobrevive a un error de red
  * (CA-5.2.18) y la pregunta siguiente arranca vacía. La grabación detenida
- * se conserva en el navegador si el envío falla por la red (CA-5.8.22).
+ * se conserva en el navegador si el envío falla por la red (CA-5.8.22); qué
+ * errores la descartan lo decide `useInterviewTurn` (SPEC §5).
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useLocation } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
@@ -60,11 +65,23 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [textTurns, setTextTurns] = useState<Record<string, boolean>>({});
   const [hasRecorded, setHasRecorded] = useState(false);
-  const [longWaitTurn, setLongWaitTurn] = useState<string | null>(null);
+  /** Envíos de audio hechos; el aviso de 20 s se liga a uno solo (CA-5.8.5). */
+  const [audioSends, setAudioSends] = useState(0);
+  const [longWaitSend, setLongWaitSend] = useState<number | null>(null);
   const answer = answers[turnId] ?? '';
 
-  const micUnavailable = recorder.status === 'denied' || recorder.status === 'noMicrophone';
-  const answersByVoice = entry.answerFormat === 'AUDIO' && !textTurns[turnId] && !micUnavailable;
+  // El aviso de CA-5.8.24 se oculta cuando la grabación empieza de verdad, no al pulsar
+  // «Grabar»: si se prepara, se niega el permiso o MicVAD falla, sigue visible (CM-316 D8).
+  if (recorder.status === 'recording' && !hasRecorded) setHasRecorded(true);
+
+  // Sin micrófono o sin formato admitido la pregunta sigue por texto; con MicVAD caído
+  // se muestran los dos, porque «Grabar» puede funcionar al reintentar (CA-5.8.25).
+  const voiceUnavailable =
+    recorder.status === 'denied' ||
+    recorder.status === 'noMicrophone' ||
+    recorder.status === 'unsupported';
+  const answersByVoice = entry.answerFormat === 'AUDIO' && !textTurns[turnId] && !voiceUnavailable;
+  const vadFailed = recorder.status === 'vadFailed';
 
   const isBusy = turn.isSubmitting || turn.isRetrying;
   const orbState: BrandOrbState =
@@ -98,16 +115,22 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
           ? 'requesting'
           : 'ready';
 
+  // Un temporizador por envío de audio, que vive mientras ese envío está en curso: al
+  // terminar, fallar o desmontar se limpia, y un reenvío no hereda el anterior (CA-5.8.5).
+  useEffect(() => {
+    if (!turn.isSubmitting || !answersByVoice || audioSends === 0) return;
+    const timer = window.setTimeout(() => setLongWaitSend(audioSends), LONG_WAIT_NOTICE_MS);
+    return () => window.clearTimeout(timer);
+  }, [turn.isSubmitting, answersByVoice, audioSends]);
+
   function sendAudio() {
     if (!recorder.audio) return;
-    const sentTurn = turnId;
-    setLongWaitTurn(null);
-    window.setTimeout(() => setLongWaitTurn(sentTurn), LONG_WAIT_NOTICE_MS);
+    setAudioSends((count) => count + 1);
     turn.submitAnswer({ kind: 'audio', audio: recorder.audio }, recorder.discard);
   }
 
-  // Aviso sobre los controles de voz: el del navegador (menos de 2 s de voz)
-  // o el rechazo de Backend al transcribir (CA-5.12.7 a CA-5.12.10).
+  // Aviso sobre los controles de voz: el del navegador (menos de 2 s de voz o
+  // MicVAD que no cargó) o el rechazo de Backend al transcribir (CA-5.12.7 a CA-5.12.10).
   const voiceNotice =
     turn.audioRejection === 'idiomaDistinto'
       ? t(
@@ -119,7 +142,31 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
         ? t(`interview:sesion.voz.${turn.audioRejection}`)
         : recorder.status === 'noVoice'
           ? t('interview:sesion.voz.sinVoz')
-          : undefined;
+          : vadFailed
+            ? t('interview:sesion.voz.noPreparada')
+            : undefined;
+
+  const unavailableMessage =
+    recorder.status === 'denied'
+      ? t('interview:sesion.voz.micDenegado')
+      : recorder.status === 'noMicrophone'
+        ? t('interview:sesion.voz.sinMicrofono')
+        : t('interview:formaRespuesta.navegadorNoGraba');
+
+  const textComposer = (
+    <TextAnswerComposer
+      value={answer}
+      onChange={(value) => setAnswers((current) => ({ ...current, [turnId]: value }))}
+      // Se envía tal como se escribió: `trim()` solo decide si está vacía (CA-5.2.3, CA-5.2.8).
+      onSubmit={() => turn.submitAnswer({ kind: 'text', text: answer })}
+      maxLength={ANSWER_MAX_LENGTH}
+      isSubmitting={turn.isSubmitting}
+      label={t('interview:sesion.respuesta.etiqueta')}
+      submitLabel={t('interview:sesion.enviar')}
+      tooLongMessage={t('interview:sesion.respuesta.demasiadoLarga', { max: ANSWER_MAX_LENGTH })}
+      formatCounter={(count, max) => t('interview:sesion.respuesta.contador', { count, max })}
+    />
+  );
 
   function switchToText() {
     turn.clearAudioRejection();
@@ -167,59 +214,42 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
           ) : null}
 
           {answersByVoice ? (
-            <VoiceAnswerComposer
-              step={voiceStep}
-              elapsedLabel={`${clock(recorder.elapsedSeconds)} / ${clock(MAX_RECORDING_SECONDS)}`}
-              isSubmitting={turn.isSubmitting}
-              showLongWait={longWaitTurn === turnId}
-              showPrivacyNotice={!hasRecorded}
-              notice={voiceNotice}
-              labels={{
-                record:
-                  turn.audioRejection === 'noTranscrita'
-                    ? t('interview:sesion.voz.grabarDeNuevo')
-                    : t('interview:sesion.voz.grabar'),
-                stop: t('interview:sesion.voz.detener'),
-                send: t('interview:sesion.enviar'),
-                sending: t('interview:sesion.procesando'),
-                switchToText: t('interview:sesion.voz.responderPorTexto'),
-                privacy: t('interview:sesion.voz.privacidad'),
-                longWait: t('interview:sesion.voz.esperaLarga'),
-              }}
-              onRecord={() => {
-                setHasRecorded(true);
-                turn.clearAudioRejection();
-                void recorder.start();
-              }}
-              onStop={recorder.stop}
-              onSend={sendAudio}
-              onSwitchToText={switchToText}
-            />
+            <>
+              <VoiceAnswerComposer
+                step={voiceStep}
+                elapsedLabel={`${clock(recorder.elapsedSeconds)} / ${clock(MAX_RECORDING_SECONDS)}`}
+                isSubmitting={turn.isSubmitting}
+                showLongWait={longWaitSend === audioSends}
+                showPrivacyNotice={!hasRecorded}
+                showSwitchToText={!vadFailed}
+                notice={voiceNotice}
+                labels={{
+                  record:
+                    turn.audioRejection === 'noTranscrita'
+                      ? t('interview:sesion.voz.grabarDeNuevo')
+                      : t('interview:sesion.voz.grabar'),
+                  stop: t('interview:sesion.voz.detener'),
+                  send: t('interview:sesion.enviar'),
+                  switchToText: t('interview:sesion.voz.responderPorTexto'),
+                  privacy: t('interview:sesion.voz.privacidad'),
+                  longWait: t('interview:sesion.voz.esperaLarga'),
+                }}
+                onRecord={() => {
+                  turn.clearAudioRejection();
+                  void recorder.start();
+                }}
+                onStop={recorder.stop}
+                onSend={sendAudio}
+                onSwitchToText={switchToText}
+              />
+              {vadFailed ? textComposer : null}
+            </>
           ) : (
             <>
-              {micUnavailable && entry.answerFormat === 'AUDIO' && !textTurns[turnId] ? (
-                <AlertInline variant="warning">
-                  {recorder.status === 'denied'
-                    ? t('interview:sesion.voz.micDenegado')
-                    : t('interview:sesion.voz.sinMicrofono')}
-                </AlertInline>
+              {voiceUnavailable && entry.answerFormat === 'AUDIO' && !textTurns[turnId] ? (
+                <AlertInline variant="warning">{unavailableMessage}</AlertInline>
               ) : null}
-              <TextAnswerComposer
-                value={answer}
-                onChange={(value) => setAnswers((current) => ({ ...current, [turnId]: value }))}
-                // Se envía tal como se escribió: `trim()` solo decide si está vacía (CA-5.2.3, CA-5.2.8).
-                onSubmit={() => turn.submitAnswer({ kind: 'text', text: answer })}
-                maxLength={ANSWER_MAX_LENGTH}
-                isSubmitting={turn.isSubmitting}
-                label={t('interview:sesion.respuesta.etiqueta')}
-                submitLabel={t('interview:sesion.enviar')}
-                tooLongMessage={t('interview:sesion.respuesta.demasiadoLarga', {
-                  max: ANSWER_MAX_LENGTH,
-                })}
-                formatCounter={(count, max) =>
-                  t('interview:sesion.respuesta.contador', { count, max })
-                }
-              />
+              {textComposer}
             </>
           )}
         </div>

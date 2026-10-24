@@ -22,6 +22,9 @@
  *   (CA-5.12.9), `TRANSCRIPTION_LANGUAGE_MISMATCH` (CA-5.12.10) y
  *   `503 TRANSCRIPTION_UNAVAILABLE` (CA-5.12.8). Se descarta la grabación y
  *   se puede grabar de nuevo o responder por texto en la misma pregunta.
+ * - El audio también se descarta tras `413`, `415` o `422` sin `code` de
+ *   transcripción (CA-5.8.8, CA-5.8.13 a 5.8.15) y tras un fallo de la IA,
+ *   para que la pregunta siguiente no herede la grabación anterior (SPEC §5).
  * - `404`: entrevista ajena o inexistente (CA-5.2.7).
  * - Un `200` con forma inesperada (`AnswerResponseShapeError`, D10): mensaje
  *   genérico, no el de conexión.
@@ -65,6 +68,21 @@ const AUDIO_REJECTIONS: Record<string, AudioRejection> = {
 /** Fallos de la IA al evaluar: abren el panel y, en `…/reprocess`, suman al tope (D3). */
 function isEvaluationFailure(error: unknown): boolean {
   return error instanceof ApiError && error.hasCode(LLM_UNAVAILABLE, LLM_LIMIT_REACHED);
+}
+
+/** `413`, `415` y `422`: el mismo audio fallaría igual al reenviarlo (SPEC §5). */
+const UNUSABLE_AUDIO_STATUSES = new Set([413, 415, 422]);
+
+/**
+ * Si la grabación ya no sirve tras un error de `…/answers/audio` (SPEC §5): un rechazo al
+ * transcribir, `413`, `415` o `422`, o un fallo de la IA, porque el audio ya quedó registrado y
+ * «Reintentar» no lo necesita. Sin red, `404`, `409` u otro `5xx` la conservan (CA-5.8.22).
+ */
+function discardsAudio(error: unknown): boolean {
+  if (!(error instanceof ApiError)) return false;
+  if (isEvaluationFailure(error)) return true;
+  if (error.code && error.code in AUDIO_REJECTIONS) return true;
+  return UNUSABLE_AUDIO_STATUSES.has(error.httpStatus);
 }
 
 function toSubmitErrorKey(error: unknown): SubmitErrorKey {
@@ -178,7 +196,7 @@ export function useInterviewTurn(entry: SessionEntry) {
     clearAudioRejection: () => setAudioRejection(null),
     /**
      * @param onSettledAudio se llama si el backend registró la respuesta o
-     *   rechazó el audio: en ambos casos la grabación ya no sirve.
+     *   el error deja la grabación sin uso (`discardsAudio`).
      */
     submitAnswer: (answer: TurnAnswer, onSettledAudio?: () => void) => {
       // Guarda síncrona: `isPending` llega tras un re-render y dos clics
@@ -188,9 +206,7 @@ export function useInterviewTurn(entry: SessionEntry) {
       submit.mutate(answer, {
         onSuccess: () => onSettledAudio?.(),
         onError: (error) => {
-          if (error instanceof ApiError && error.code && error.code in AUDIO_REJECTIONS) {
-            onSettledAudio?.();
-          }
+          if (discardsAudio(error)) onSettledAudio?.();
         },
         onSettled: () => {
           inFlight.current = false;

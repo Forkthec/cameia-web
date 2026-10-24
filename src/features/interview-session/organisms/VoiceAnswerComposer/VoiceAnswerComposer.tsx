@@ -4,6 +4,12 @@
  * antes de la primera grabación (CA-5.8.24) y, si el envío pasa de 20 s,
  * el aviso de que puede tardar hasta 2 minutos (CA-5.8.5).
  *
+ * Mientras se envía, «Enviar» queda deshabilitado con un spinner visible y
+ * conserva su nombre accesible (CA-5.8.6, CM-316 D7): no usa el modo de
+ * carga de `Button`, que cambia la etiqueta. «Procesando tu respuesta…» lo
+ * anuncia solo la región `aria-live` de `SessionStage`, como en el texto
+ * (CA-5.2.4).
+ *
  * Solo pinta: el estado de la grabación y el envío vienen de
  * `useVoiceRecorder` y `useInterviewTurn` a través de la página. Mismo
  * vidrio que `TextAnswerComposer`; usa los átomos `Button` e `Icon` y la
@@ -24,15 +30,16 @@ interface VoiceAnswerComposerProps {
   isSubmitting: boolean;
   /** `true` cuando el envío ya pasó de 20 s (CA-5.8.5). */
   showLongWait: boolean;
-  /** `true` hasta la primera grabación (CA-5.8.24). */
+  /** `true` hasta que la primera grabación empieza de verdad (CA-5.8.24, CM-316 D8). */
   showPrivacyNotice: boolean;
+  /** `false` cuando el campo de texto ya se muestra junto a la voz (CA-5.8.25). */
+  showSwitchToText: boolean;
   /** Aviso sobre los controles (p. ej. «No detectamos tu voz…»), ya traducido. */
   notice?: string;
   labels: {
     record: string;
     stop: string;
     send: string;
-    sending: string;
     switchToText: string;
     privacy: string;
     longWait: string;
@@ -50,6 +57,7 @@ export function VoiceAnswerComposer({
   isSubmitting,
   showLongWait,
   showPrivacyNotice,
+  showSwitchToText,
   notice,
   labels,
   onRecord,
@@ -86,10 +94,10 @@ export function VoiceAnswerComposer({
           <Button
             variant="primary"
             size="lg"
+            icon={isSubmitting ? <Icon name="loading-arc" className="animate-spin" /> : undefined}
+            disabled={isSubmitting}
+            aria-busy={isSubmitting || undefined}
             onClick={onSend}
-            {...(isSubmitting
-              ? { loading: true as const, loadingLabel: labels.sending }
-              : { loading: false as const })}
           >
             {labels.send}
           </Button>
@@ -105,7 +113,7 @@ export function VoiceAnswerComposer({
           </Button>
         )}
 
-        {isSubmitting ? null : (
+        {isSubmitting || !showSwitchToText ? null : (
           <button
             type="button"
             onClick={onSwitchToText}

@@ -358,7 +358,7 @@ espera una promesa resuelta a mano).
 | Archivo | Estado |
 | --- | --- |
 | `src/features/interview-session/pages/InterviewSessionPage.tsx` | Hecho; contrato previsto y avisos de voz (#101); envía la respuesta sin recortar y el panel muestra el mensaje del último fallo de reprocess (D4). CM-317: temporizador de 20 s, aviso de CA-5.8.24, descarte tras 503 LLM y tras 413, 415 y 422 genéricos, estados vadFailed y unsupported |
-| `src/features/interview-session/hooks/useInterviewTurn.ts` | Hecho; rechazos del audio (#101); códigos de D2; solo los fallos de la IA de reprocess suman al tope (D3, D4); retryError reemplaza a retryNetworkError; AnswerResponseShapeError da el genérico (D10); sigue devolviendo llaves de i18n (D6 fuera) |
+| `src/features/interview-session/hooks/useInterviewTurn.ts` | Hecho; rechazos del audio (#101); códigos de D2; solo los fallos de la IA de reprocess suman al tope (D3, D4); retryError reemplaza a retryNetworkError; AnswerResponseShapeError da el genérico (D10); sigue devolviendo llaves de i18n (D6 fuera). CM-317: descarta el audio tras 413, 415, 422 y 503 LLM_* (§5) |
 | `src/features/interview-session/organisms/SessionStage/SessionStage.tsx` | Hecho; región aria-live con el indicador de procesando |
 | `src/features/interview-session/organisms/TextAnswerComposer/TextAnswerComposer.tsx` | Hecho; cuenta puntos de código NFC con unicodeLength (D9); el botón Enviar solo se deshabilita, sin modo de carga, y ya no recibe etiqueta de carga (CA-5.2.4) |
 | `src/features/interview-session/organisms/EvaluationRetryPanel/EvaluationRetryPanel.tsx` | Hecho; conserva el modo de carga (§9) |
@@ -371,19 +371,19 @@ espera una promesa resuelta a mano).
 | `src/features/interview-session/model/interviewSession.types.ts` | Hecho; sessionLanguage en #101 |
 | `src/features/interview-session/model/sessionEntry.ts` | Hecho; valida sessionLanguage (#101) |
 | `src/features/interview-session/model/interviewSession.constants.ts` | Hecho; tope de 2. CM-317: encabezado (tarea 8 del Anexo A) |
-| `src/features/interview-session/hooks/useVoiceRecorder.ts` | En curso (CM-317): MicVAD y formatos según las notas técnicas de HU-5.8 (O75, backlog v8.4), orden de arranque (CM-316 D4), estados vadFailed y unsupported, cancelación y tope con reloj real (CM-316 D6); sin medición por energía |
-| `src/features/interview-session/organisms/VoiceAnswerComposer/VoiceAnswerComposer.tsx` | Hecho. CM-317: Enviar conserva su nombre accesible con spinner visible (CM-316 D7) y aviso de CA-5.8.24 (CM-316 D8) |
+| `src/features/interview-session/hooks/useVoiceRecorder.ts` | Hecho (CM-317): MicVAD y formatos según las notas técnicas de HU-5.8 (O75, backlog v8.4), orden de arranque (CM-316 D4), estados vadFailed y unsupported, cancelación y tope con reloj real (CM-316 D6); sin medición por energía |
+| `src/features/interview-session/hooks/useVoiceRecorder.test.ts` | Hecha (CM-317): filas «Hook» del plan de §6 |
+| `src/features/interview-session/hooks/sileroVad.ts` | Hecho (CM-317): único punto de entrada a MicVAD, con `import()` y los assets del ADR 0009 |
+| `src/features/interview-session/hooks/sileroVad.test.ts` | Hecha (CM-317): opciones de `MicVAD.new`, umbral de 0,3 y error de carga |
+| `vite.config.ts` | Hecho (CM-317): los cuatro assets de Silero sin hash en la carpeta `vad` del build (ADR 0009) |
+| `src/features/interview-session/organisms/VoiceAnswerComposer/VoiceAnswerComposer.tsx` | Hecho. CM-317: Enviar conserva su nombre accesible con spinner visible (CM-316 D7), aviso de CA-5.8.24 (CM-316 D8) y sin «Responder por texto» cuando el campo ya se muestra (vadFailed) |
 | `src/design-system/molecules/BrandOrb/BrandOrb.tsx` | Hecho |
 | `src/design-system/molecules/ProgressArc/ProgressArc.tsx` | Hecho; la etiqueta se muestra sin mayúsculas forzadas (D7) |
 | `src/mocks/handlers/interviewSessions.handlers.ts` | Hecho con el contrato previsto (#101); cuenta puntos de código NFC sin recortar y copia VALIDATION_FAILED con un comentario (D2, D9) |
 | `src/features/interview-session/pages/InterviewSessionPage.test.tsx` | Hecha; cubre el plan de §6 |
-| `src/features/interview-session/pages/InterviewSessionPage.voice.test.tsx` | Hecho; contrato previsto y rechazos del audio en #101. CM-317: pruebas de HU-5.8 de §6 |
+| `src/features/interview-session/pages/InterviewSessionPage.voice.test.tsx` | Hecha; contrato previsto y rechazos del audio en #101. CM-317: pruebas de HU-5.8 de §6 |
 | `src/design-system/molecules/ProgressArc/ProgressArc.test.tsx` | Hecha (D7, prueba débil; completada con la verificación manual del 22-10, bitácora Tarea 8) |
 
-Por crear en CM-317 (entran a la tabla cuando existan, tarea 11 del Anexo A):
-`src/features/interview-session/hooks/sileroVad.ts` (nombre propuesto),
-`src/features/interview-session/hooks/useVoiceRecorder.test.ts` y el cambio en `vite.config.ts`
-(ADR 0009).
 
 ### Respuesta por voz (CM-317 · HU-5.8)
 
@@ -576,12 +576,12 @@ En orden. Las pruebas se escriben en rojo antes de la implementación, como en C
 | --- | --- | --- | --- |
 | 1 | Verificar lo que el ADR 0009 dejó sin comprobar: `?url` hacia `onnxruntime-web/dist/…` (el `exports` del paquete no expone esas rutas), `pnpm dev` (rutas `/@fs/`, worklet, `.mjs`) | CM-316 D2 | Hecha (23-10-2026; bitácora CM-317, Tarea 1) |
 | 2 | `vite.config.ts` (`assetFileNames` para `vad/`) y `hooks/sileroVad.ts`: URLs `?url` y creación de MicVAD con las opciones de §7 | Notas técnicas de HU-5.8 (O75, backlog v8.4); CM-316 D2; base de CA-5.8.9 a 5.8.11 | Hecha (24-10-2026; bitácora CM-317, Tarea 2) |
-| 3 | Pruebas en rojo de `hooks/useVoiceRecorder.test.ts` | CA-5.8.2, 5.8.3, 5.8.4, 5.8.7, 5.8.9, 5.8.10, 5.8.11, 5.8.23, 5.8.25; notas técnicas de HU-5.8 (O75, backlog v8.4); CM-316 D4, D6; cancelación | Pendiente |
-| 4 | Pruebas en rojo de la página (filas «Nueva» y «Se amplía» de §6) | CA-5.8.5, 5.8.6, 5.8.8, 5.8.11, 5.8.13 a 5.8.15, 5.8.19, 5.8.21, 5.8.22, 5.8.24, 5.8.25; notas técnicas de HU-5.8 (O75, backlog v8.4); CM-316 D7, D8; audio de la pregunta anterior | Pendiente |
-| 5 | `useVoiceRecorder.ts`: MicVAD, conteo de tramos, orden de arranque, cancelación por intento, `vadFailed` y `unsupported`, tope con `performance.now`; sin medición por energía ni `AudioContext` propio | CA-5.8.2, 5.8.3, 5.8.4, 5.8.7, 5.8.9 a 5.8.11, 5.8.23, 5.8.25; notas técnicas de HU-5.8 (O75, backlog v8.4); CM-316 D4, D6 | Pendiente |
+| 3 | Pruebas en rojo de `hooks/useVoiceRecorder.test.ts` | CA-5.8.2, 5.8.3, 5.8.4, 5.8.7, 5.8.9, 5.8.10, 5.8.11, 5.8.23, 5.8.25; notas técnicas de HU-5.8 (O75, backlog v8.4); CM-316 D4, D6; cancelación | Hecha (24-10-2026; bitácora CM-317, Tarea 3) |
+| 4 | Pruebas en rojo de la página (filas «Nueva» y «Se amplía» de §6) | CA-5.8.5, 5.8.6, 5.8.8, 5.8.11, 5.8.13 a 5.8.15, 5.8.19, 5.8.21, 5.8.22, 5.8.24, 5.8.25; notas técnicas de HU-5.8 (O75, backlog v8.4); CM-316 D7, D8; audio de la pregunta anterior | Hecha (24-10-2026; bitácora CM-317, Tarea 4) |
+| 5 | `useVoiceRecorder.ts`: MicVAD, conteo de tramos, orden de arranque, cancelación por intento, `vadFailed` y `unsupported`, tope con `performance.now`; sin medición por energía ni `AudioContext` propio | CA-5.8.2, 5.8.3, 5.8.4, 5.8.7, 5.8.9 a 5.8.11, 5.8.23, 5.8.25; notas técnicas de HU-5.8 (O75, backlog v8.4); CM-316 D4, D6 | Hecha (24-10-2026; bitácora CM-317, Tarea 5) |
 | 6 | Revisar PRT-05.10 en Figma (CLAUDE.md §13) | CA-5.8.25 | Hecha (Juan José Arias, 23-10-2026; manda «Escenario + orbe», §9) |
-| 7 | Página y `VoiceAnswerComposer`: «Enviar» sin modo de carga, con spinner visible y nombre accesible «Enviar» (CM-316 D7); aviso según CM-316 D8; temporizador de 20 s ligado al envío y limpiado; **descarte de la grabación tras un `503 LLM_*` con audio, para que tras un «Reintentar» exitoso la pregunta siguiente quede en `idle` sin el audio anterior**; descarte tras `413`, `415` y `422` genéricos; mensajes de CA-5.8.25 y del formato no admitido (sin «Grabar»); llave nueva en `es-CO` y `en` | CA-5.8.5, 5.8.6, 5.8.13 a 5.8.15, 5.8.24, 5.8.25; notas técnicas de HU-5.8 (O75, backlog v8.4); CM-316 D7, D8 | Pendiente |
-| 8 | Encabezados v8.2 → v8.4 (`model/interviewSession.constants.ts`, `pages/InterviewSessionPage.voice.test.tsx`) y TSDoc de `useVoiceRecorder` sin «provisional» | — | Pendiente |
-| 9 | `pnpm typecheck && pnpm lint && pnpm test`; `vite build`: chunk de Silero aparte y los cuatro archivos en `dist/vad/` | CLAUDE.md §2, ADR 0009 | Pendiente |
+| 7 | Página y `VoiceAnswerComposer`: «Enviar» sin modo de carga, con spinner visible y nombre accesible «Enviar» (CM-316 D7); aviso según CM-316 D8; temporizador de 20 s ligado al envío y limpiado; **descarte de la grabación tras un `503 LLM_*` con audio, para que tras un «Reintentar» exitoso la pregunta siguiente quede en `idle` sin el audio anterior**; descarte tras `413`, `415` y `422` genéricos; mensajes de CA-5.8.25 y del formato no admitido (sin «Grabar»); llave nueva en `es-CO` y `en` | CA-5.8.5, 5.8.6, 5.8.13 a 5.8.15, 5.8.24, 5.8.25; notas técnicas de HU-5.8 (O75, backlog v8.4); CM-316 D7, D8 | Hecha (24-10-2026; bitácora CM-317, Tarea 7) |
+| 8 | Encabezados v8.2 → v8.4 (`model/interviewSession.constants.ts`, `pages/InterviewSessionPage.voice.test.tsx`) y TSDoc de `useVoiceRecorder` sin «provisional» | — | Hecha (24-10-2026; bitácora CM-317, Tarea 8) |
+| 9 | `pnpm typecheck && pnpm lint && pnpm test`; `vite build`: chunk de Silero aparte y los cuatro archivos en `dist/vad/` | CLAUDE.md §2, ADR 0009 | Hecha (24-10-2026; bitácora CM-317, Tarea 9) |
 | 10 | Verificación manual en Chrome, Edge y Firefox (Windows): 2 s, 1,9 s, silencio, 3:00, permiso negado, sin micrófono, asset bloqueado en DevTools; bitácora `docs/bitacora-ia/CM-317.md` | CA-5.8.2 a 5.8.4, 5.8.7, 5.8.9 a 5.8.11, 5.8.23, 5.8.25 | Pendiente |
 | 11 | Cierre del SPEC: archivos nuevos en la tabla de §7 y estados del plan de §6 | CLAUDE.md §16 | Pendiente |

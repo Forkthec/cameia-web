@@ -153,6 +153,7 @@
       "grabarDeNuevo": "Grabar de nuevo",
       "demasiadoLarga": "Tu respuesta es demasiado larga. Graba una más corta o responde por texto.",
       "noTranscrita": "No pudimos transcribir tu respuesta. Graba de nuevo o responde por texto.",
+      "noPreparada": "No pudimos preparar la grabación. Puedes responder por texto.",
       "idiomaDistinto": {
         "en": "Tu entrevista es en inglés. Responde en inglés.",
         "es-CO": "Tu entrevista es en español. Responde en español."

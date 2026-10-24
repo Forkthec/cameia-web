@@ -153,6 +153,7 @@
       "grabarDeNuevo": "Record again",
       "demasiadoLarga": "Your answer is too long. Record a shorter one or answer by text.",
       "noTranscrita": "We couldn't transcribe your answer. Record again or answer by text.",
+      "noPreparada": "We couldn't prepare the recording. You can answer by text.",
       "idiomaDistinto": {
         "en": "Your interview is in English. Answer in English.",
         "es-CO": "Your interview is in Spanish. Answer in Spanish."

@@ -1,5 +1,5 @@
 /**
- * Límites del chat de Simulación fijados por el backlog v8.2 (HU-5.2). Son
+ * Límites del chat de Simulación fijados por el backlog v8.4 (HU-5.2, HU-5.8). Son
  * reglas de validación de la interfaz que el backend revalida (RT-01), no
  * constantes de negocio que deba mandar el servidor.
  */

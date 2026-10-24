@@ -353,7 +353,8 @@ describe('InterviewSessionPage (voz)', () => {
     const send = screen.getByRole('button', { name: 'Enviar' });
     expect(send).toBeDisabled();
     // Spinner visible dentro del botón. Prueba débil, como la de `ProgressArc`: depende de la
-    // clase `animate-spin` del átomo `Spinner` (ícono «loading-arc»), porque jsdom no pinta.
+    // clase `animate-spin` sobre el ícono «loading-arc», el mismo del átomo `Spinner`, porque
+    // jsdom no pinta. El botón no usa `Spinner`: su texto repetiría «Procesando tu respuesta…».
     expect(send.querySelector('svg.animate-spin')).toBeInTheDocument();
     expect(screen.getAllByText(PROCESSING)).toHaveLength(1);
 
