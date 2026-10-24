@@ -571,7 +571,7 @@ En orden. Las pruebas se escriben en rojo antes de la implementación, como en C
 
 | # | Tarea | CA o decisión | Estado |
 | --- | --- | --- | --- |
-| 1 | Verificar lo que el ADR 0009 dejó sin comprobar: `?url` hacia `onnxruntime-web/dist/…` (el `exports` del paquete no expone esas rutas), `pnpm dev` (rutas `/@fs/`, worklet, `.mjs`) y `vite build` | CM-316 D2 | Pendiente |
+| 1 | Verificar lo que el ADR 0009 dejó sin comprobar: `?url` hacia `onnxruntime-web/dist/…` (el `exports` del paquete no expone esas rutas), `pnpm dev` (rutas `/@fs/`, worklet, `.mjs`) y `vite build` | CM-316 D2 | Hecha (23-10-2026; bitácora CM-317, Tarea 1) |
 | 2 | `vite.config.ts` (`assetFileNames` para `vad/`) y `hooks/sileroVad.ts`: URLs `?url` y creación de MicVAD con las opciones de §7 | Notas técnicas de HU-5.8 (O75, backlog v8.4); CM-316 D2; base de CA-5.8.9 a 5.8.11 | Pendiente |
 | 3 | Pruebas en rojo de `hooks/useVoiceRecorder.test.ts` | CA-5.8.2, 5.8.3, 5.8.4, 5.8.7, 5.8.9, 5.8.10, 5.8.11, 5.8.23, 5.8.25; notas técnicas de HU-5.8 (O75, backlog v8.4); CM-316 D4, D6; cancelación | Pendiente |
 | 4 | Pruebas en rojo de la página (filas «Nueva» y «Se amplía» de §6) | CA-5.8.5, 5.8.6, 5.8.8, 5.8.11, 5.8.13 a 5.8.15, 5.8.19, 5.8.21, 5.8.22, 5.8.24, 5.8.25; notas técnicas de HU-5.8 (O75, backlog v8.4); CM-316 D7, D8; audio de la pregunta anterior | Pendiente |
