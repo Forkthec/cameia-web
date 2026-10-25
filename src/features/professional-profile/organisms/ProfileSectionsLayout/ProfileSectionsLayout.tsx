@@ -58,7 +58,7 @@ function AccordionSection({ section }: AccordionSectionProps) {
   const panelId = useId();
 
   return (
-    <div className="bg-bg-surface p-space-4 rounded-lg">
+    <div className="bg-bg-surface p-space-4 shadow-elevation-1 border-border-subtle rounded-xl border">
       <button
         type="button"
         aria-expanded={isOpen}
@@ -130,12 +130,15 @@ export function ProfileSectionsLayout({
 
   return (
     <div className={cn('gap-space-6 grid md:grid-cols-[minmax(0,15rem)_1fr]', className)}>
-      <div className="bg-bg-surface p-space-5 rounded-lg">
+      <div className="bg-bg-surface p-space-5 shadow-elevation-2 md:top-space-6 self-start rounded-xl md:sticky">
         <StepList items={stepListItems} label={stepListLabel} />
       </div>
       <div className="gap-space-6 flex flex-col">
         {sections.map((section) => (
-          <div key={section.id} className="bg-bg-surface p-space-5 rounded-lg">
+          <div
+            key={section.id}
+            className="bg-bg-surface p-space-6 shadow-elevation-1 border-border-subtle rounded-xl border"
+          >
             {section.content}
           </div>
         ))}

@@ -3,13 +3,13 @@ feature: professional-profile
 estado: EN_CURSO
 hu: [HU-2.2, HU-2.3, HU-2.4, HU-2.5, HU-2.11]
 prt: [PRT-02.02, PRT-02.03, PRT-02.07]
-jira: [CM-46, CM-53, CM-61, CM-65, CM-69, CM-195, CM-243, CM-270, CM-272, CM-273, CM-298]
+jira: [CM-46, CM-53, CM-61, CM-65, CM-69, CM-195, CM-243, CM-270, CM-272, CM-273, CM-298, CM-337]
 rutas: [/perfiles/nuevo, /perfiles/:id/editar, /perfiles/:id/roles]
 documentacion: tsdoc-es
 backlog: 09102026_01
 decisiones: [10092026_v1, 11092026_v2, 11092026_v1, 13092026_v1]
 figma: Cameia · Mockups MVP
-revisado: 2026-10-16
+revisado: 2026-10-24
 ---
 
 # Feature · Perfil Profesional
@@ -1405,6 +1405,7 @@ específico).
 | `src/features/professional-profile/organisms/SkillsSection/SkillsSection.tsx`                    | §3.4 (CM-65): lista + alta/baja de Habilidades por ítem, mostradas como `Chip`; duplicado bloqueado con `setError` manual   | `src/features/professional-profile/organisms/SkillsSection/SkillsSection.test.tsx`                   |
 | `src/features/professional-profile/organisms/ProfileSectionsLayout/ProfileSectionsLayout.tsx`    | §3 (CM-61): índice de secciones — `StepList` en desktop, acordeón (`useDisclosure` por ítem) en móvil                       | `src/features/professional-profile/organisms/ProfileSectionsLayout/ProfileSectionsLayout.test.tsx`   |
 | `src/features/professional-profile/organisms/ProfileActionsBar/ProfileActionsBar.tsx`            | §3 (CM-61): barra de acciones compartida — completitud, «Guardar borrador», «Finalizar y Continuar»; CM-65 conecta `onFinish`/`isFinalizing` al endpoint real | `src/features/professional-profile/organisms/ProfileActionsBar/ProfileActionsBar.test.tsx`           |
+| `src/features/professional-profile/organisms/ProfilePageHero/ProfilePageHero.tsx` | Banda «Amanecer» con el `<h1>` de «Nuevo perfil» y «Editar perfil» (CM-337); solo decoración | `src/features/professional-profile/pages/NewProfilePage.test.tsx` |
 | `src/features/professional-profile/organisms/TargetRolesSection/TargetRolesSection.tsx`          | §3.5 (CM-69): lista + alta/sustitución/baja de Roles Objetivo por ítem; reutiliza `Combobox` (alta) y `Select` (sustitución), sin átomo nuevo | `src/features/professional-profile/organisms/TargetRolesSection/TargetRolesSection.test.tsx`         |
 | `src/features/professional-profile/api/profile.dto.ts`                                          | §3.2/§3.3/§3.4/§3.5: forma cruda del ProfileRecord; CM-61 agrega EducationDto, WorkExperienceDto y los dos Add*RequestDto (campos reales del backend); CM-65 agrega SkillDto, AddSkillRequestDto (campos reales); CM-69 agrega TargetRoleDto, AddTargetRoleRequestDto, UpdateTargetRoleRequestDto (campos reales) y ProfessionalRoleDto ({id, nombre, categoria}, confirmada contra ProfessionalRoleController.java en CM-195); CM-273 PR 2: `WorkExperienceDto.startDate` y `AddWorkExperienceRequestDto.startDate` admiten `null` (solo ensanchan) | cubierto por los hooks de datos (integración vía MSW)                                                |
 | `src/features/professional-profile/api/profile.mapper.ts`                                       | §3.2/§3.3/§3.4/§3.5: `ProfileDto → Profile`; CM-61 agrega `toAddEducationRequest`/`toAddWorkExperienceRequest` (deriva `employmentStatus`, trunca fecha — decisión D-F; CM-273 PR 1: dejó de truncar porque el esquema ya entrega «AAAA-MM»; la derivación de `employmentStatus` no cambia); CM-65 agrega `toAddSkillRequest` (sin derivación, solo fija `MANUAL_PROVENANCE`); CM-69 agrega `toProfessionalRole`, `toAddTargetRoleRequest`, `toUpdateTargetRoleRequest` (sin derivación real, solo fijan `MANUAL_PROVENANCE`); CM-273 PR 2: `toAddWorkExperienceRequest` envía `startDate: null` si está vacío | `src/features/professional-profile/api/profile.mapper.test.ts`                                       |
@@ -1979,3 +1980,13 @@ trata cualquier `409` de finalizar como «Este perfil ya está activo», de modo
 `PROFILE_UPDATE_IN_PROGRESS` (`409`, toda escritura del perfil) se mostraría con ese mensaje; el
 mismo patrón por estado está en las secciones de experiencia, formación, habilidades y roles.
 Migrarlas a `code` queda para otra tarea (`ADR-0008`).
+
+- **Presentación «Amanecer» (CM-337, 24-oct-2026).** Solo diseño y color, mismo flujo, mismos
+  textos y misma lógica que el resto de la app (asistente, inicio):
+  - «Nuevo perfil» y «Editar perfil» muestran su título en `ProfilePageHero`: el índigo de marca
+    (`bg-brand-surface`) con el sol y su resplandor. Sigue siendo el mismo `<h1>`.
+  - En «Nuevo perfil» las dos tarjetas (`CardSelectable`, sin cambios) suben sobre el borde de la
+    banda.
+  - Las secciones, el índice (`StepList`) y la barra de acciones pasan a `rounded-xl` con
+    elevación (`shadow-elevation-1/2`); el índice queda fijo al hacer scroll en escritorio.
+  - Prototipo aprobado en el lienzo de diseño (tableros «Perfil · …»).

@@ -62,6 +62,7 @@ import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
 import { isProfileCreationInProgress, isProfileLimitReached } from '../model/profileLimit';
 import { Spinner } from '@/design-system/atoms/Spinner';
 import { ProfileMethodSelector } from '../organisms/ProfileMethodSelector';
+import { ProfilePageHero } from '../organisms/ProfilePageHero';
 
 interface CreateProfileResponse {
   id: string;
@@ -143,8 +144,11 @@ export function NewProfilePage() {
 
   return (
     <section className="py-space-6 mx-auto max-w-[45rem]">
-      <h1 className="text-h1 font-display mb-space-6">{t('profile:metodo.titulo')}</h1>
+      <ProfilePageHero title={t('profile:metodo.titulo')} />
+      {/* Las tarjetas suben sobre el borde de la banda (presentación
+          «Amanecer», CM-337); `relative` las deja por encima de ella. */}
       <ProfileMethodSelector
+        className="-mt-space-6 px-space-3 lg:px-space-5 relative"
         groupLabel={t('profile:metodo.grupoEtiqueta')}
         manualTitle={t('profile:metodo.manual.titulo')}
         manualDescription={t('profile:metodo.manual.descripcion')}
