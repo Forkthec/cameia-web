@@ -125,6 +125,7 @@ import { EducationSection } from '../organisms/EducationSection';
 import { GeneralInfoForm } from '../organisms/GeneralInfoForm';
 import { ProfileActionsBar } from '../organisms/ProfileActionsBar';
 import { ProfileSectionsLayout, type ProfileSection } from '../organisms/ProfileSectionsLayout';
+import { ProfilePageHero } from '../organisms/ProfilePageHero';
 import { SkillsSection } from '../organisms/SkillsSection';
 import { TargetRolesSection } from '../organisms/TargetRolesSection';
 import { WorkExperienceSection } from '../organisms/WorkExperienceSection';
@@ -763,7 +764,7 @@ export function EditProfilePage() {
 
   return (
     <div className="gap-space-6 mx-auto flex max-w-5xl flex-col">
-      <h1 className="text-h1 font-display text-text-primary">{t('profile:formulario.titulo')}</h1>
+      <ProfilePageHero title={t('profile:formulario.titulo')} />
 
       <ProfileSectionsLayout
         sections={sections}

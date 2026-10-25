@@ -74,7 +74,7 @@ export function ProfileActionsBar({
   return (
     <div
       className={cn(
-        'bg-bg-surface border-border-subtle gap-space-4 p-space-4 flex flex-col rounded-lg border-t md:border',
+        'bg-bg-surface border-border-subtle gap-space-4 p-space-4 md:p-space-5 shadow-elevation-2 flex flex-col rounded-xl border-t md:border',
         className,
       )}
     >
