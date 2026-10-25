@@ -5,23 +5,27 @@
  * §3.6: el estado de sesión vive en Zustand, no en un estado local de
  * este componente). También `CA-1.8.3` (CM-243, DF-003): cuando Firebase
  * reporta que no hay usuario —cierre de sesión, 401 o sesión vencida— se
- * borra `lastUsedProfileId`.
+ * borra `lastUsedProfileId`. Y `CA-1.8.9` (CM-337): al restaurar una sesión
+ * que «Cerrar sesión» revocó en otro dispositivo, se cierra y se muestra
+ * «Tu sesión expiró. Inicia sesión de nuevo.».
  */
 import { render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuthStore } from '@/stores/auth.store';
 import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
 import { AuthProvider } from './AuthProvider';
 
-const { onAuthStateChangedMock, getIdTokenResultMock } = vi.hoisted(() => ({
+const { onAuthStateChangedMock, getIdTokenResultMock, signOutMock } = vi.hoisted(() => ({
   onAuthStateChangedMock: vi.fn(),
   getIdTokenResultMock: vi.fn(),
+  signOutMock: vi.fn(),
 }));
 
 // Se mockea el servicio (no Firebase directo) porque `firebaseApp.ts` valida
 // `config/env.ts` al importarse, y esta prueba no necesita un .env real.
 vi.mock('@/services/firebase/auth.service', () => ({
   onAuthStateChanged: onAuthStateChangedMock,
+  signOut: signOutMock,
 }));
 
 vi.mock('firebase/auth', () => ({
@@ -116,5 +120,63 @@ describe('AuthProvider', () => {
       emailVerified: true,
     });
     expect(useAuthStore.getState().plan).toBe('FREE');
+  });
+
+  describe('sesión revocada en otro dispositivo (CA-1.8.9)', () => {
+    const USER = { uid: 'u1', email: 'a@b.com', displayName: 'Ada', emailVerified: true };
+    let replaceSpy: ReturnType<typeof vi.fn>;
+
+    function captureCallback() {
+      let captured: ((user: unknown) => void) | undefined;
+      onAuthStateChangedMock.mockImplementation((callback: (user: unknown) => void) => {
+        captured = callback;
+        return () => {};
+      });
+      render(<AuthProvider>{null}</AuthProvider>);
+      return (user: unknown) => captured?.(user);
+    }
+
+    beforeEach(() => {
+      replaceSpy = vi.fn();
+      vi.stubGlobal('location', { ...window.location, replace: replaceSpy });
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('al restaurar la sesión pide un token nuevo', async () => {
+      getIdTokenResultMock.mockResolvedValue({ claims: {} });
+      captureCallback()(USER);
+      await vi.waitFor(() => expect(useAuthStore.getState().isAuthenticated).toBe(true));
+      expect(getIdTokenResultMock).toHaveBeenCalledWith(USER, true);
+    });
+
+    it('si Firebase dice que la sesión fue revocada, cierra y va a «Iniciar sesión» con el aviso', async () => {
+      getIdTokenResultMock.mockRejectedValue({ code: 'auth/user-token-expired' });
+      signOutMock.mockResolvedValue(undefined);
+      captureCallback()(USER);
+      await vi.waitFor(() => expect(replaceSpy).toHaveBeenCalledWith('/ingresar?sesionExpirada=1'));
+      expect(signOutMock).toHaveBeenCalled();
+      expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    });
+
+    it('sin red, sigue con el token guardado', async () => {
+      getIdTokenResultMock
+        .mockRejectedValueOnce({ code: 'auth/network-request-failed' })
+        .mockResolvedValue({ claims: {} });
+      captureCallback()(USER);
+      await vi.waitFor(() => expect(useAuthStore.getState().isAuthenticated).toBe(true));
+      expect(replaceSpy).not.toHaveBeenCalled();
+    });
+
+    it('tras iniciar sesión aquí mismo no fuerza un token nuevo', async () => {
+      getIdTokenResultMock.mockResolvedValue({ claims: {} });
+      const emit = captureCallback();
+      emit(null);
+      emit(USER);
+      await vi.waitFor(() => expect(useAuthStore.getState().isAuthenticated).toBe(true));
+      expect(getIdTokenResultMock).toHaveBeenCalledWith(USER, false);
+    });
   });
 });
