@@ -3,13 +3,13 @@ feature: auth
 estado: EN_CURSO
 hu: [HU-1.3, HU-1.1, HU-1.8, HU-1.2]
 prt: [PRT-01.03, PRT-01.01, PRT-01.08]
-jira: [CM-40, CM-34, CM-194, CM-195, CM-243, CM-267, CM-180, CM-15, CM-329]
+jira: [CM-40, CM-34, CM-194, CM-195, CM-243, CM-267, CM-180, CM-15, CM-329, CM-337]
 rutas: [/ingresar, /registro, /verificar-correo]
 documentacion: tsdoc-es
 backlog: 16092026_01
 decisiones: []
 figma: Cameia · Mockups MVP
-revisado: 2026-10-10
+revisado: 2026-10-24
 ---
 
 # Feature · Autenticación (auth)
@@ -1273,3 +1273,11 @@ sesión server-side propia) — ver §3 y §5.
 - ~~¿`RequireAuth` propaga la ruta de origen?~~ **Resuelto:** sí.
 - ~~¿Existe un prototipo de logout en Figma?~~ **Resuelto, 20-sep-2026:** sí, `PRT-01.08` (nodo
   `228:6443`) — corrige una premisa inicial equivocada del propio proceso de análisis de `CM-194`.
+
+- **`CA-1.8.9` (CM-337, testeo del 24-oct-2026): sesión cerrada en otro dispositivo.** «Cerrar
+  sesión» revoca la sesión en todos los dispositivos (`logout-all`, CM-331), pero al recargar el
+  otro dispositivo Firebase restauraba el usuario con el token guardado (válido hasta una hora) y,
+  al vencer, cerraba en silencio sin el aviso. `AuthProvider` ahora pide un token nuevo solo al
+  restaurar una sesión guardada: si Firebase responde que fue revocada, cierra y va a
+  `/ingresar?sesionExpirada=1` («Tu sesión expiró. Inicia sesión de nuevo.»). Sin red sigue con el
+  token guardado.
