@@ -1,11 +1,15 @@
-name: Desplegar a Firebase Hosting # staging desde develop, producción solo al promover a main
+name: Desplegar a Firebase Hosting # preproducción desde develop, producción solo al promover a main
 
-# Modelo de ambientes corregido el 11-sep-2026 (v2 del plan DevOps, ver
-# prompts/salidas/11092026_v2_plan-devops-72h.md sección A y ADR-0001 en docs/).
-# La versión anterior desplegaba a producción en cada push a develop, lo que
-# contradecía la guía del sprint (§2.8: "develop no es un ambiente, es la fuente
-# versionada de staging") y el Anexo_Despliegue aprobado (producción se promueve
-# manualmente desde main). No se repite ese error.
+# Tres caminos, separados a propósito:
+#
+# Producción: solo al fusionarse el PR de promoción develop → main, en el sitio live del
+# proyecto de producción, con aprobación previa del environment "production".
+#
+# Preproducción: cada push a develop publica en el canal "staging" del proyecto de
+# preproducción, nunca en producción.
+#
+# Vista previa: cada PR hacia develop recibe su propio canal temporal en preproducción,
+# sin tocar ningún ambiente.
 on:
   push:
     branches: [develop, main]
@@ -20,20 +24,103 @@ permissions:
   id-token: write # requerido por google-github-actions/auth para pedir el token OIDC (WIF)
 
 jobs:
-  # Publica en producción real. Solo corre al fusionar el PR de promoción
-  # develop→main (Merge commit, ya revisado) — nunca por un push directo,
-  # porque develop→main tampoco lo admite. Lleva el Environment de GitHub
-  # "production", que exige aprobación del equipo cameia-devops antes de
-  # correr: la revisión del código (el PR) y la aprobación de publicarlo a
-  # producción quedan como dos pasos separados, no el mismo.
+  # Producción: publica en el sitio live de Firebase Hosting del proyecto de producción.
+  # Solo corre al fusionarse el PR de promoción develop → main y lleva el environment
+  # "production", que exige aprobación antes de correr: revisar el código (el PR) y
+  # autorizar su publicación quedan como dos pasos separados.
+  #
+  # A diferencia de una imagen de contenedor, el bundle de la SPA lleva incrustada la
+  # configuración del ambiente (Firebase y URL de la API) en el momento del build, así que
+  # no puede reutilizarse el artefacto de preproducción. Se construye el mismo commit que
+  # se probó en preproducción, con la configuración de producción, y se comprueba que el
+  # código de main sea idéntico a ese commit.
   desplegar-main:
     name: Desplegar a producción (main)
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
+    env:
+      PROYECTO_PRODUCCION: cameia-prod-2026
+      API_PRODUCCION: https://api.cameia.app
     steps:
+      # fetch-depth: 0 porque el paso siguiente necesita el historial completo: lee los
+      # dos padres de la fusión y comprueba que el segundo esté en develop.
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # main solo recibe commits por un PR de promoción fusionado con merge commit, así
+      # que HEAD debe tener dos padres y el segundo es la punta de develop que ya se
+      # publicó y probó en preproducción. Se comprueba, además de los dos padres, que el
+      # árbol sea idéntico al de ese commit (una resolución de conflictos durante la
+      # fusión cambiaría el código sin que nadie lo haya probado) y que ese commit siga
+      # siendo parte de develop. Cualquiera de las tres cosas rota significa que el código
+      # que se va a publicar no corresponde al que se probó.
+      - name: Verificar que el commit de main es una promoción de develop
+        id: origen
+        run: |
+          set -euo pipefail
+          NUM_PADRES=$(($(git rev-list --parents -n 1 HEAD | wc -w) - 1))
+          if [ "$NUM_PADRES" -ne 2 ]; then
+            echo "::error::HEAD tiene ${NUM_PADRES} padre(s); se esperaba una fusión de dos padres. main solo admite el merge commit del PR de promoción."
+            exit 1
+          fi
+          SHA_DEVELOP=$(git rev-parse "HEAD^2")
+          if ! git diff --quiet "HEAD^2" HEAD; then
+            echo "::error::El árbol de main difiere del commit ${SHA_DEVELOP} de develop; ese código no se probó en preproducción."
+            git --no-pager diff --stat "HEAD^2" HEAD
+            exit 1
+          fi
+          git fetch --no-tags origin develop
+          if ! git merge-base --is-ancestor "$SHA_DEVELOP" FETCH_HEAD; then
+            echo "::error::El commit ${SHA_DEVELOP} no es ancestro de origin/develop; el segundo padre de la fusión no viene de develop."
+            exit 1
+          fi
+          echo "sha_develop=${SHA_DEVELOP}" >> "$GITHUB_OUTPUT"
+          echo "sha_corto=$(echo "$SHA_DEVELOP" | cut -c1-7)" >> "$GITHUB_OUTPUT"
+
+      # Las variables de proyecto, identidad y configuración del frontend existen a nivel de
+      # repositorio apuntando a preproducción, y el environment las sobrescribe con las de
+      # producción. Si faltara una, GitHub usaría en silencio la del repositorio y el sitio
+      # de producción quedaría hablando con el Firebase o la API de preproducción.
+      - name: Verificar que el environment apunta a producción
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_DEPLOY_SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+        run: |
+          set -euo pipefail
+          if [ "$GCP_PROJECT_ID" != "$PROYECTO_PRODUCCION" ]; then
+            echo "::error::GCP_PROJECT_ID vale '${GCP_PROJECT_ID}' y se esperaba '${PROYECTO_PRODUCCION}'; falta definirla en el environment."
+            exit 1
+          fi
+          case "$GCP_DEPLOY_SERVICE_ACCOUNT" in
+            *"@${PROYECTO_PRODUCCION}.iam.gserviceaccount.com") ;;
+            *)
+              echo "::error::La cuenta de despliegue no pertenece al proyecto de producción; falta definirla en el environment."
+              exit 1
+              ;;
+          esac
+          if [ "$VITE_FIREBASE_PROJECT_ID" != "$PROYECTO_PRODUCCION" ]; then
+            echo "::error::VITE_FIREBASE_PROJECT_ID vale '${VITE_FIREBASE_PROJECT_ID}' y se esperaba '${PROYECTO_PRODUCCION}'; falta definirla en el environment."
+            exit 1
+          fi
+          if [ "$VITE_API_BASE_URL" != "$API_PRODUCCION" ]; then
+            echo "::error::VITE_API_BASE_URL vale '${VITE_API_BASE_URL}' y se esperaba '${API_PRODUCCION}'; falta definirla en el environment."
+            exit 1
+          fi
+          for NOMBRE in VITE_FIREBASE_API_KEY VITE_FIREBASE_AUTH_DOMAIN VITE_FIREBASE_APP_ID; do
+            if [ -z "${!NOMBRE}" ]; then
+              echo "::error::${NOMBRE} está vacía; falta definirla en el environment."
+              exit 1
+            fi
+          done
+          echo "El environment apunta al proyecto ${GCP_PROJECT_ID}."
 
       - name: Habilitar pnpm vía corepack
         run: corepack enable
@@ -47,10 +134,6 @@ jobs:
       - name: Instalar dependencias
         run: pnpm install --frozen-lockfile
 
-      # VITE_API_BASE_URL: sin valor todavía — el API Gateway no está desplegado
-      # (depende de que se active billing de GCP). Bloqueado por respuesta de
-      # Frontend, ver comunicaciones/11092026_frontend_variable-api-base-url.md.
-      # No se inventa un valor.
       - name: Build
         env:
           VITE_APP_NAME: ${{ vars.VITE_APP_NAME }}
@@ -62,16 +145,30 @@ jobs:
           VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
         run: pnpm build
 
-      # Inicia sesión en Google Cloud con una credencial temporal que Google
-      # genera para esta ejecución puntual (Workload Identity Federation), en
-      # vez de una llave guardada para siempre. Detalle completo de por qué
-      # en la cabecera de .github/scripts/desplegar-hosting.sh.
-      #
-      # El proyecto de GCP, el proveedor de identidad y la cuenta de servicio
-      # viven como variables del repositorio (Settings → Variables), no
-      # escritos aquí a mano: si el proyecto vuelve a cambiar (ya pasó una
-      # vez, de cameia-app a cameia-e245f), se edita en un solo lugar sin
-      # tocar este archivo.
+      # Comprobación del artefacto antes de publicarlo: el bundle debe llevar el proyecto
+      # de Firebase y la API de producción, y ninguna referencia a los de preproducción.
+      # Es la última barrera antes de que el sitio live sirva una configuración cruzada.
+      - name: Verificar la configuración incrustada en el build
+        run: |
+          set -euo pipefail
+          if ! grep -rqF "$PROYECTO_PRODUCCION" dist; then
+            echo "::error::El build no contiene el proyecto ${PROYECTO_PRODUCCION}."
+            exit 1
+          fi
+          if ! grep -rqF "$API_PRODUCCION" dist; then
+            echo "::error::El build no contiene la API ${API_PRODUCCION}."
+            exit 1
+          fi
+          for PROHIBIDO in cameia-e245f api-staging.cameia.app; do
+            if grep -rlF "$PROHIBIDO" dist; then
+              echo "::error::El build contiene '${PROHIBIDO}', propio de preproducción."
+              exit 1
+            fi
+          done
+          echo "El build lleva la configuración de producción."
+
+      # Credencial temporal de Workload Identity Federation para la cuenta de despliegue
+      # de producción, en vez de una llave guardada.
       - name: Autenticar en GCP (WIF)
         uses: google-github-actions/auth@v3
         with:
@@ -79,14 +176,57 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
 
-      # Deja lista la herramienta de línea de comandos de Google Cloud (gcloud),
-      # ya con la sesión temporal del paso anterior, para que el script de
-      # despliegue pueda usarla.
       - name: Configurar gcloud
         uses: google-github-actions/setup-gcloud@v3
 
       - name: Desplegar
-        run: .github/scripts/desplegar-hosting.sh ${{ vars.GCP_PROJECT_ID }} dist live
+        id: despliegue
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          URL=$(.github/scripts/desplegar-hosting.sh "$GCP_PROJECT_ID" dist live | tail -n1)
+          echo "url=${URL}" >> "$GITHUB_OUTPUT"
+          echo "$URL"
+
+      # El sitio debe responder 200 y servir exactamente el index.html recién construido;
+      # si sirve otro, la publicación no quedó activa aunque el script terminara bien.
+      - name: Smoke test — el sitio live sirve el build publicado
+        env:
+          URL: ${{ steps.despliegue.outputs.url }}
+        run: |
+          set -euo pipefail
+          ESPERADO=$(sha256sum dist/index.html | cut -d' ' -f1)
+          for intento in 1 2 3 4 5; do
+            CODIGO=$(curl -s -o /tmp/index.html -w "%{http_code}" "${URL}/" || echo "000")
+            if [ "$CODIGO" = "200" ] && [ "$(sha256sum /tmp/index.html | cut -d' ' -f1)" = "$ESPERADO" ]; then
+              echo "Smoke test PASA: ${URL} sirve el build publicado (intento ${intento})."
+              exit 0
+            fi
+            echo "Intento ${intento}: respuesta ${CODIGO}; reintento en 5 s."
+            sleep 5
+          done
+          echo "::error::Smoke test FALLA: ${URL} no sirve el index.html del build publicado."
+          exit 1
+
+      # Evidencia de la publicación: qué commit se promovió y dónde quedó.
+      - name: Resumen de la publicación
+        if: always()
+        env:
+          SHA_DEVELOP: ${{ steps.origen.outputs.sha_develop }}
+          SHA_MAIN: ${{ github.sha }}
+          URL: ${{ steps.despliegue.outputs.url }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Publicación en producción"
+            echo ""
+            echo "| Dato | Valor |"
+            echo "| --- | --- |"
+            echo "| Commit de develop promovido | \`${SHA_DEVELOP:-no resuelto}\` |"
+            echo "| Commit de main | \`${SHA_MAIN}\` |"
+            echo "| URL | ${URL:-no publicada} |"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # Publica en un canal aparte, nunca en producción: el canal 'staging' en
   # cada push a develop, o un canal propio por cada Pull Request para
