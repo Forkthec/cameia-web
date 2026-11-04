@@ -17,14 +17,12 @@ const TONE_LABELS: Record<InterviewTone, string> = {
   PROFESIONAL_NEUTRO: 'Profesional y neutro',
   CALIDO: 'Cálido',
   ESTRICTO: 'Estricto',
-  MOTIVADOR: 'Motivador',
 };
 
 const TONE_DESCRIPTIONS: Record<InterviewTone, string> = {
   PROFESIONAL_NEUTRO: 'Desc neutro',
   CALIDO: 'Desc cálido',
   ESTRICTO: 'Desc estricto',
-  MOTIVADOR: 'Desc motivador',
 };
 
 function renderForm(props: Partial<React.ComponentProps<typeof ModeAndToneForm>> = {}) {
@@ -37,7 +35,6 @@ function renderForm(props: Partial<React.ComponentProps<typeof ModeAndToneForm>>
       { value: 'PROFESIONAL_NEUTRO', available: true },
       { value: 'CALIDO', available: true },
       { value: 'ESTRICTO', available: true },
-      { value: 'MOTIVADOR', available: true },
     ],
     selectedMode: 'SIMULACION',
     selectedTone: 'PROFESIONAL_NEUTRO',
@@ -62,12 +59,11 @@ describe('ModeAndToneForm', () => {
     expect(screen.getByText('Próximamente')).toBeInTheDocument();
   });
 
-  it('muestra los 4 tonos con sus descripciones (CA-4.3.2)', () => {
+  it('muestra los 3 tonos con sus descripciones (CA-4.3.2)', () => {
     renderForm();
     expect(screen.getByText('Profesional y neutro')).toBeInTheDocument();
     expect(screen.getByText('Cálido')).toBeInTheDocument();
     expect(screen.getByText('Estricto')).toBeInTheDocument();
-    expect(screen.getByText('Motivador')).toBeInTheDocument();
     expect(screen.getByText('Desc neutro')).toBeInTheDocument();
   });
 

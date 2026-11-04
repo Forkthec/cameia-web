@@ -19,7 +19,7 @@ export interface ProfileTargetRoleSummary {
 export const INTERVIEW_MODES = ['SIMULACION', 'ENTRENO'] as const;
 export type InterviewMode = (typeof INTERVIEW_MODES)[number];
 
-export const INTERVIEW_TONES = ['PROFESIONAL_NEUTRO', 'CALIDO', 'ESTRICTO', 'MOTIVADOR'] as const;
+export const INTERVIEW_TONES = ['PROFESIONAL_NEUTRO', 'CALIDO', 'ESTRICTO'] as const;
 export type InterviewTone = (typeof INTERVIEW_TONES)[number];
 
 export const ANSWER_FORMATS = ['AUDIO', 'TEXTO'] as const;

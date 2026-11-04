@@ -13,7 +13,6 @@ const INTERVIEW_CATALOG_FIXTURE = {
     { value: 'PROFESIONAL_NEUTRO', available: true },
     { value: 'CALIDO', available: true },
     { value: 'ESTRICTO', available: true },
-    { value: 'MOTIVADOR', available: true },
   ],
   answerFormats: [
     { value: 'AUDIO', available: true },
