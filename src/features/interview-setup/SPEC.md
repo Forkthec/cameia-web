@@ -220,6 +220,10 @@ Diferencia consciente: CA-4.5.16 (volver a la entrevista anterior al cancelar) n
 `GET …/state` (HU-5.7), que no existe; mientras tanto «Cancelar» siempre va a «Nueva entrevista».
 `…/start` y `DELETE` no existen aún en cameia-entrevista: se prueban con MSW.
 
+Ajuste del backlog v10 (CA-4.5.12): `409 SESSION_CONFLICT` se reintenta solo una vez; si se repite,
+error genérico. `409 SESSION_TRANSITION_NOT_ALLOWED` → «Esta entrevista ya no admite esa acción.»,
+sin «Reintentar». `404 SESSION_NOT_FOUND` → «No encontramos lo que buscabas.» (ya cubierto por estado).
+
 ### Creación de la sesión: contrato acordado con Backend (CM-208, 22-10-2026)
 
 Según la respuesta de Backend del 20-10-2026 (§4.1 y §6.1):

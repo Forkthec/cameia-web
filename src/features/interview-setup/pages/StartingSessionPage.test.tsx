@@ -138,4 +138,53 @@ describe('StartingSessionPage', () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument();
   });
+
+  it('con SESSION_CONFLICT reintenta solo una vez y abre el chat (CA-4.5.12)', async () => {
+    let calls = 0;
+    useHandlers(
+      http.post('*/api/v1/interviews/sessions/:id/start', () => {
+        calls += 1;
+        if (calls > 1) return undefined;
+        return HttpResponse.json(
+          { title: 'x', detail: 'x', status: 409, code: 'SESSION_CONFLICT' },
+          { status: 409 },
+        );
+      }),
+    );
+    renderPage();
+    expect(
+      await screen.findByText(/Chat: Cuéntame sobre un proyecto/, {}, { timeout: 4000 }),
+    ).toBeInTheDocument();
+    expect(calls).toBe(2);
+  });
+
+  it('si SESSION_CONFLICT se repite, no insiste más y muestra el error', async () => {
+    let calls = 0;
+    useHandlers(
+      http.post('*/api/v1/interviews/sessions/:id/start', () => {
+        calls += 1;
+        return HttpResponse.json(
+          { title: 'x', detail: 'x', status: 409, code: 'SESSION_CONFLICT' },
+          { status: 409 },
+        );
+      }),
+    );
+    renderPage();
+    expect(await screen.findByText('Ocurrió un error. Inténtalo de nuevo.')).toBeInTheDocument();
+    expect(calls).toBe(2);
+  });
+
+  it('con SESSION_TRANSITION_NOT_ALLOWED avisa y no ofrece «Reintentar»', async () => {
+    useHandlers(
+      http.post('*/api/v1/interviews/sessions/:id/start', () =>
+        HttpResponse.json(
+          { title: 'x', detail: 'x', status: 409, code: 'SESSION_TRANSITION_NOT_ALLOWED' },
+          { status: 409 },
+        ),
+      ),
+    );
+    renderPage();
+    expect(await screen.findByText('Esta entrevista ya no admite esa acción.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument();
+  });
 });

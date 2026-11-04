@@ -12,6 +12,9 @@
  *   CA-4.5.19 solo con «Cancelar». El contador local de 2 es respaldo visual
  *   (respuesta de Backend del 20-10-2026, pregunta 2).
  * - `404`: «No encontramos lo que buscabas.» (CA-4.5.10).
+ * - `409 SESSION_CONFLICT` (otro pedido de inicio llegó al mismo tiempo): se
+ *   reintenta solo, una vez, y se muestra el estado actual (CA-4.5.12, backlog v10).
+ * - `409 SESSION_TRANSITION_NOT_ALLOWED`: «Esta entrevista ya no admite esa acción.».
  * - «Cancelar» elimina la sesión nueva y vuelve a «Nueva entrevista» sin
  *   datos (CA-4.5.17). CA-4.5.16 (volver a la entrevista anterior) necesita
  *   recuperar su estado (HU-5.7), que aún no existe.
@@ -30,7 +33,7 @@ const MIN_INTRO_MS = 1600;
 /** «Reintentar» la preparación: máximo 2 veces por sesión (CA-4.5.15, CA-4.5.19). */
 const MAX_START_RETRIES = 2;
 
-export type StartError = 'generico' | 'agotados' | 'noEncontrada' | 'red';
+export type StartError = 'generico' | 'agotados' | 'noEncontrada' | 'noAdmitida' | 'red';
 
 /**
  * @param sessionId sesión CONFIGURADA recién creada.
@@ -48,6 +51,9 @@ export function useStartInterview(sessionId: string) {
   const start = useMutation({
     mutationFn: () => startInterviewSession(sessionId),
     onMutate: () => setError(null),
+    retry: (failureCount, failure) =>
+      failureCount < 1 && failure instanceof ApiError && failure.hasCode('SESSION_CONFLICT'),
+    retryDelay: 0,
     onSuccess: (dto) => {
       const wait = Math.max(0, MIN_INTRO_MS - (Date.now() - startedAt.current));
       window.setTimeout(() => {
@@ -63,6 +69,8 @@ export function useStartInterview(sessionId: string) {
         setError('red');
       } else if (failure.httpStatus === 404) {
         setError('noEncontrada');
+      } else if (failure.hasCode('SESSION_TRANSITION_NOT_ALLOWED')) {
+        setError('noAdmitida');
       } else if (failure.hasCode('PLANNING_RETRIES_EXHAUSTED')) {
         setError('agotados');
       } else {
