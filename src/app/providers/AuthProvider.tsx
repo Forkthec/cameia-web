@@ -15,11 +15,19 @@
  * nuevo: si Firebase responde que la sesión fue revocada, se cierra y se va a
  * «Iniciar sesión» con «Tu sesión expiró. Inicia sesión de nuevo.». Sin red
  * se sigue con el token guardado; el backend responde 401 cuando haga falta.
+ * Firebase también puede descubrir la revocación por su cuenta al arrancar: borra
+ * el usuario y su primer aviso llega «sin usuario». Para ese caso, una marca
+ * (`sessionMarker.ts`) indica que aquí había una sesión que nadie cerró.
  */
 import { getIdTokenResult, type IdTokenResult, type User } from 'firebase/auth';
 import { useEffect, type ReactNode } from 'react';
 import { ROUTES } from '@/app/router/routes';
 import { onAuthStateChanged, signOut } from '@/services/firebase/auth.service';
+import {
+  clearSessionMarker,
+  hasSessionMarker,
+  markSessionOpen,
+} from '@/services/firebase/sessionMarker';
 import { useAuthStore } from '@/stores/auth.store';
 import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
 
@@ -58,6 +66,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // único sitio desde el que el 401 puede llegar a este store sin que
         // `services` importe de `stores`.
         useUiPreferencesStore.getState().setLastUsedProfileId(null);
+        if (isRestoring && hasSessionMarker()) {
+          clearSessionMarker();
+          window.location.replace(`${ROUTES.ingresar}?sesionExpirada=1`);
+        }
         return;
       }
 
@@ -77,6 +89,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         // PROVISIONAL — pendiente de contrato del backend: nombre y forma del
         // custom claim de plan todavía no está publicado en ningún OpenAPI.
+        markSessionOpen();
         const plan = typeof tokenResult.claims.plan === 'string' ? tokenResult.claims.plan : null;
         useAuthStore.getState().setUser(
           {

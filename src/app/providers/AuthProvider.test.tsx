@@ -11,6 +11,11 @@
  */
 import { render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  clearSessionMarker,
+  hasSessionMarker,
+  markSessionOpen,
+} from '@/services/firebase/sessionMarker';
 import { useAuthStore } from '@/stores/auth.store';
 import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
 import { AuthProvider } from './AuthProvider';
@@ -137,6 +142,7 @@ describe('AuthProvider', () => {
     }
 
     beforeEach(() => {
+      clearSessionMarker();
       replaceSpy = vi.fn();
       vi.stubGlobal('location', { ...window.location, replace: replaceSpy });
     });
@@ -159,6 +165,25 @@ describe('AuthProvider', () => {
       await vi.waitFor(() => expect(replaceSpy).toHaveBeenCalledWith('/ingresar?sesionExpirada=1'));
       expect(signOutMock).toHaveBeenCalled();
       expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    });
+
+    it('si Firebase borró el usuario al arrancar y había sesión abierta, muestra el aviso', () => {
+      markSessionOpen();
+      captureCallback()(null);
+      expect(replaceSpy).toHaveBeenCalledWith('/ingresar?sesionExpirada=1');
+      expect(hasSessionMarker()).toBe(false);
+    });
+
+    it('sin sesión abierta antes, arrancar sin usuario no muestra ningún aviso', () => {
+      captureCallback()(null);
+      expect(replaceSpy).not.toHaveBeenCalled();
+    });
+
+    it('una sesión válida deja la marca para la próxima recarga', async () => {
+      getIdTokenResultMock.mockResolvedValue({ claims: {} });
+      captureCallback()(USER);
+      await vi.waitFor(() => expect(useAuthStore.getState().isAuthenticated).toBe(true));
+      expect(hasSessionMarker()).toBe(true);
     });
 
     it('sin red, sigue con el token guardado', async () => {
