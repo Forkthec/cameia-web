@@ -13,7 +13,7 @@
  *   (respuesta de Backend del 20-10-2026, pregunta 2).
  * - `404`: «No encontramos lo que buscabas.» (CA-4.5.10).
  * - `409 SESSION_CONFLICT` (otro pedido de inicio llegó al mismo tiempo): se
- *   reintenta solo, una vez, y se muestra el estado actual (CA-4.5.12, backlog v10).
+ *   reintenta solo, una vez, y se muestra el estado actual (CA-4.5.12; código de cameia-entrevista, docs/errores.md).
  * - `409 SESSION_TRANSITION_NOT_ALLOWED`: «Esta entrevista ya no admite esa acción.».
  * - «Cancelar» elimina la sesión nueva y vuelve a «Nueva entrevista» sin
  *   datos (CA-4.5.17). CA-4.5.16 (volver a la entrevista anterior) necesita
