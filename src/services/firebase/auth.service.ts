@@ -24,6 +24,7 @@ import {
 } from 'firebase/auth';
 import { env } from '@/config/env';
 import { firebaseApp } from './firebaseApp';
+import { clearSessionMarker } from './sessionMarker';
 
 /** Host del emulador de Firebase Auth cuando no se configura uno (puerto publicado por cameia-gateway). */
 export const DEFAULT_AUTH_EMULATOR_HOST = 'localhost:9099';
@@ -120,6 +121,7 @@ export async function signIn(email: string, password: string): Promise<User> {
 
 /** Envuelto en `AuthError` igual que `signIn()` (`CM-194`, corrige una inconsistencia real del archivo). */
 export async function signOut(): Promise<void> {
+  clearSessionMarker();
   try {
     await firebaseSignOut(auth);
   } catch (error) {

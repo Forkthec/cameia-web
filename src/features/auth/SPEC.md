@@ -1281,3 +1281,7 @@ sesión server-side propia) — ver §3 y §5.
   restaurar una sesión guardada: si Firebase responde que fue revocada, cierra y va a
   `/ingresar?sesionExpirada=1` («Tu sesión expiró. Inicia sesión de nuevo.»). Sin red sigue con el
   token guardado.
+  **Reprueba del 24-oct:** seguía fallando porque Firebase puede validar y borrar el usuario antes
+  del primer aviso, que llega «sin usuario». Se agrega `services/firebase/sessionMarker.ts`: un
+  indicador sin datos personales que `signOut()` borra. Primer aviso sin usuario + marca presente =
+  sesión revocada, se muestra el mensaje. Un cierre voluntario o una visita sin sesión no lo muestran.
