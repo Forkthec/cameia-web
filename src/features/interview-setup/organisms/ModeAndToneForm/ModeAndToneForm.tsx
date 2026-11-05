@@ -1,7 +1,7 @@
 /**
  * Paso 2 del wizard: Modo y Tono (PRT-04.07, HU-4.3).
  * Modalidad: Simulacion seleccionada, Entreno deshabilitada con "Proximamente" (CA-4.3.1).
- * Tono: 4 opciones con descripcion corta, Profesional y neutro preseleccionado (CA-4.3.2).
+ * Tono: opciones con descripcion corta, Profesional y neutro preseleccionado (CA-4.3.2).
  * Las opciones y su disponibilidad llegan del catálogo de Backend, en su orden
  * (CA-4.3.10): una modalidad no disponible lleva «Próximamente».
  */
@@ -19,7 +19,6 @@ const TONE_ICONS: Record<InterviewTone, IconName> = {
   PROFESIONAL_NEUTRO: 'briefcase',
   CALIDO: 'heart',
   ESTRICTO: 'shield',
-  MOTIVADOR: 'trophy',
 };
 
 interface ModeAndToneFormProps {

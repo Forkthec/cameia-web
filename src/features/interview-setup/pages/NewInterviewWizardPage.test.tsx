@@ -44,6 +44,25 @@ describe('NewInterviewWizardPage · catálogo de personalización', () => {
     expect(screen.getByText('Próximamente')).toBeInTheDocument();
   });
 
+  it('no muestra «Motivador» aunque el catálogo aún lo entregue (HT-09)', async () => {
+    useHandlers(
+      http.get(catalogUrl, () =>
+        HttpResponse.json({
+          modes: [{ value: 'SIMULACION', available: true }],
+          tones: [
+            { value: 'PROFESIONAL_NEUTRO', available: true },
+            { value: 'MOTIVADOR', available: true },
+          ],
+          answerFormats: [{ value: 'TEXTO', available: true }],
+          languages: [{ value: 'es-CO', available: true }],
+        }),
+      ),
+    );
+    renderAtStep(2);
+    expect(await screen.findByText('Profesional y neutro')).toBeInTheDocument();
+    expect(screen.queryByText('Motivador')).not.toBeInTheDocument();
+  });
+
   it('si el catálogo habilita Entreno, ya no dice «Próximamente» (CA-4.3.10)', async () => {
     useHandlers(
       http.get(catalogUrl, () =>

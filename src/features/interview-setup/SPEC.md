@@ -3,7 +3,7 @@ feature: interview-setup
 estado: EN_CURSO
 hu: [HU-4.2, HU-4.5]
 prt: [PRT-04.02, PRT-04.03, PRT-04.11]
-jira: [CM-202, CM-213, CM-208, CM-205]
+jira: [CM-202, CM-213, CM-208, CM-205, CM-353]
 rutas: [/entrenar/nueva]
 documentacion: tsdoc-es
 backlog: 16102026_01_v8.2
@@ -254,3 +254,8 @@ cameia-entrevista; documento del 23-10-2026):
 
 Un doble clic real llegaba antes de que el botón pasara a carga y enviaba 2 peticiones
 (CA-4.4.17). La página lleva un candado síncrono: solo sale una petición hasta que esa termina.
+
+### Sin tono Motivador (CM-353 · HT-09, backlog v10)
+
+«Motivador» sale del catálogo de tonos, sus textos y su ícono. Quedan Profesional y neutro, Cálido y
+Estricto. Si el catálogo de Backend aún lo entrega (CM-352), el mapper lo omite como valor desconocido.

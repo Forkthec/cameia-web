@@ -238,7 +238,6 @@ export function NewInterviewWizardPage() {
       PROFESIONAL_NEUTRO: t('interview:tono.PROFESIONAL_NEUTRO'),
       CALIDO: t('interview:tono.CALIDO'),
       ESTRICTO: t('interview:tono.ESTRICTO'),
-      MOTIVADOR: t('interview:tono.MOTIVADOR'),
     }),
     [t],
   ) as Record<InterviewTone, string>;
@@ -248,7 +247,6 @@ export function NewInterviewWizardPage() {
       PROFESIONAL_NEUTRO: t('interview:tono.PROFESIONAL_NEUTRO_descripcion'),
       CALIDO: t('interview:tono.CALIDO_descripcion'),
       ESTRICTO: t('interview:tono.ESTRICTO_descripcion'),
-      MOTIVADOR: t('interview:tono.MOTIVADOR_descripcion'),
     }),
     [t],
   ) as Record<InterviewTone, string>;

@@ -79,9 +79,7 @@
     "CALIDO": "Cálido",
     "CALIDO_descripcion": "Amable y cercano, ideal para reducir la ansiedad.",
     "ESTRICTO": "Estricto",
-    "ESTRICTO_descripcion": "Exigente y detallista, simula entrevistas de alta presión.",
-    "MOTIVADOR": "Motivador",
-    "MOTIVADOR_descripcion": "Positivo y alentador, destaca tus fortalezas."
+    "ESTRICTO_descripcion": "Exigente y detallista, simula entrevistas de alta presión."
   },
   "formaRespuesta": {
     "etiqueta": "Forma de respuesta",

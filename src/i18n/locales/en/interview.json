@@ -79,9 +79,7 @@
     "CALIDO": "Warm",
     "CALIDO_descripcion": "Friendly and approachable, ideal for reducing anxiety.",
     "ESTRICTO": "Strict",
-    "ESTRICTO_descripcion": "Demanding and thorough, simulates high-pressure interviews.",
-    "MOTIVADOR": "Motivating",
-    "MOTIVADOR_descripcion": "Positive and encouraging, highlights your strengths."
+    "ESTRICTO_descripcion": "Demanding and thorough, simulates high-pressure interviews."
   },
   "formaRespuesta": {
     "etiqueta": "Answer format",
