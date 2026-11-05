@@ -160,6 +160,7 @@
   },
   "inicio": {
     "titulo": "Starting your interview session",
-    "reintentosAgotados": "We couldn't prepare your interview right now. Try again later."
+    "reintentosAgotados": "We couldn't prepare your interview right now. Try again later.",
+    "accionNoAdmitida": "This interview no longer allows that action."
   }
 }

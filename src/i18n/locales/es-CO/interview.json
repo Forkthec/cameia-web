@@ -160,6 +160,7 @@
   },
   "inicio": {
     "titulo": "Iniciando sesión de entrevista",
-    "reintentosAgotados": "No pudimos preparar tu entrevista en este momento. Inténtalo más tarde."
+    "reintentosAgotados": "No pudimos preparar tu entrevista en este momento. Inténtalo más tarde.",
+    "accionNoAdmitida": "Esta entrevista ya no admite esa acción."
   }
 }

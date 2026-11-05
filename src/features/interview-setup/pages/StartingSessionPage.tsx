@@ -43,6 +43,7 @@ const ERROR_KEYS: Record<StartError, string> = {
   generico: 'errors:generico',
   red: 'errors:red',
   noEncontrada: 'errors:codigos.NOT_FOUND',
+  noAdmitida: 'interview:inicio.accionNoAdmitida',
   agotados: 'interview:inicio.reintentosAgotados',
 };
 
