@@ -29,4 +29,14 @@ describe('StepList', () => {
 
     expect(screen.getByText('2')).toHaveAttribute('aria-current', 'step');
   });
+
+  it('CM-195: muestra secondaryLabel junto al label cuando viene, y nada cuando no', () => {
+    const itemsWithSecondary: StepListItem[] = [
+      ...items,
+      { label: 'Experiencia laboral', status: 'upcoming', secondaryLabel: 'Opcional' },
+    ];
+    render(<StepList items={itemsWithSecondary} label="Secciones del perfil" />);
+
+    expect(screen.getByText('Opcional')).toBeInTheDocument();
+  });
 });

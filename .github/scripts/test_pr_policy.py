@@ -1,9 +1,10 @@
 """Pruebas del validador de PR (CM-123). Ejecutar: python3 .github/scripts/test_pr_policy.py
 
-Cubre 14 casos negativos (cada regla del validador debe rechazar su caso malo) mas la
-regresion encontrada el 11-sep-2026: con draft=true, 'result' siempre da 'BORRADOR' aunque
-'errors' tenga hallazgos reales. El workflow que consume este script debe revisar 'errors',
-no solo 'result' (ver validar-plantilla-pr.yml).
+Cubre 14 casos negativos (cada regla del validador debe rechazar su caso malo) mas dos
+regresiones: la del 11-sep-2026 (con draft=true, 'result' siempre da 'BORRADOR' aunque
+'errors' tenga hallazgos reales; el workflow que consume este script debe revisar 'errors',
+no solo 'result', ver validar-plantilla-pr.yml) y la del 18-sep-2026/CM-175 ("IA: si" con
+tilde, la ortografia correcta, no debia fallar y fallaba).
 """
 import json
 import sys
@@ -13,8 +14,6 @@ sys.path.insert(0, str(Path(__file__).parent))
 from pr_policy import validate  # noqa: E402
 
 
-# PR "de oro": cumple todas las reglas. Cada caso de prueba parte de esta copia y
-# rompe una sola cosa a propósito, para comprobar que esa regla puntual lo rechaza.
 BASE = {
     "title": "CM-500 | docs(web): caso base valido",
     "head": "CM-500-caso-base-valido",
@@ -22,7 +21,7 @@ BASE = {
     "body": (
         "## Cambio\n"
         "- Jira: https://f0rktech.atlassian.net/browse/CM-500\n"
-        "- Responsable: Paula Andrea Munoz Delgado | DevOps\n"
+        "- Responsable: Nombre Apellido | DevOps\n"
         "- Cambio: caso base para pruebas negativas.\n\n"
         "## Evidencia\n"
         "- Evidencia: PASA - revision manual\n\n"
@@ -31,15 +30,13 @@ BASE = {
         "- Riesgo: bajo — sin impacto real\n\n"
         "## IA y responsabilidad\n"
         "- IA: no — caso de prueba manual\n"
-        "- Control humano: pendiente — Paula Andrea Munoz Delgado\n"
+        "- Control humano: pendiente — Nombre Apellido\n"
     ),
     "draft": True,
     "same_repository": True,
 }
 
 
-# Copia BASE (para no mutar el original), aplica el cambio roto de este caso, y
-# guarda qué texto de error se espera encontrar en la respuesta del validador.
 def case(name, expect_error_substr, mutate, draft=True):
     payload = json.loads(json.dumps(BASE))
     payload["draft"] = draft
@@ -47,7 +44,6 @@ def case(name, expect_error_substr, mutate, draft=True):
     return name, expect_error_substr, payload
 
 
-# Un caso por regla del validador: el nombre ya dice qué se rompe a propósito.
 CASES = [
     case("N1 rama con formato invalido", "rama:",
          lambda p: p.__setitem__("head", "mi-rama-sin-formato")),
@@ -76,8 +72,8 @@ CASES = [
              "- IA: no — caso de prueba manual", "- IA: si — uso real de IA"))),
     case("N11 Control humano con palabra vieja 'confirmado' (PR NO borrador)", "control humano:",
          lambda p: p.__setitem__("body", p["body"].replace(
-             "- Control humano: pendiente — Paula Andrea Munoz Delgado",
-             "- Control humano: confirmado — Paula Andrea Munoz Delgado")),
+             "- Control humano: pendiente — Nombre Apellido",
+             "- Control humano: confirmado — Nombre Apellido")),
          draft=False),
     case("N12 promocion develop->main con head distinto de develop", "rama:",
          lambda p: (p.__setitem__("base", "main"),
@@ -102,6 +98,21 @@ def main():
     if base_out["errors"]:
         failures.append(f"Caso base sin mutar no deberia tener errores: {base_out['errors']}")
 
+    # Regresion CM-175: "IA: si" con tilde (ortografia correcta de "si" afirmativo) no
+    # debe fallar. El bug real: la regex solo aceptaba "si" sin tilde.
+    tilde = json.loads(json.dumps(BASE))
+    tilde["draft"] = False
+    tilde["title"] += " [IA-ASISTIDO]"
+    tilde["body"] = tilde["body"].replace(
+        "- IA: no — caso de prueba manual",
+        "- IA: sí — caso de prueba manual")
+    tilde["body"] = tilde["body"].replace(
+        "- Control humano: pendiente — Nombre Apellido",
+        "- Control humano: revisado por el autor — Nombre Apellido; 18-sep-2026; abc1234")
+    tilde_out = validate(tilde)
+    if tilde_out["errors"]:
+        failures.append(f"Regresion CM-175: 'IA: si' con tilde no deberia fallar: {tilde_out['errors']}")
+
     # Regresion CM-123: un PR Draft con un campo invalido debe seguir reportando el error
     # en 'errors' aunque 'result' diga BORRADOR (asi lo consume el workflow: por longitud de errors).
     broken_draft = json.loads(json.dumps(BASE))
@@ -111,7 +122,7 @@ def main():
         failures.append(
             f"Regresion CM-123: se esperaba result=BORRADOR con errors no vacios, se obtuvo {out}")
 
-    print(f"Casos ejecutados: {len(CASES) + 2} (incluye control y regresion CM-123)")
+    print(f"Casos ejecutados: {len(CASES) + 3} (incluye control, regresion CM-175 y regresion CM-123)")
     if failures:
         print(f"FALLARON {len(failures)}:")
         for f in failures:

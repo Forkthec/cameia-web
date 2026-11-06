@@ -13,9 +13,15 @@
  * se funde con el aria-describedby que Input calcula de su propio
  * errorMessage/helperText, en vez de que Input tenga que dejar de saber
  * generar el suyo.
+ *
+ * `forwardRef` (CM-34 seguimiento): reenvía al elemento nativo
+ * (`<input>`/`<textarea>` según `type`) para que `react-hook-form` pueda
+ * enfocar el primer campo con error al enviar (`shouldFocusError`, activado
+ * por defecto) — antes no exponía `ref`, así que ese foco automático no
+ * hacía nada.
  */
 import { cva } from 'class-variance-authority';
-import { useId, type ChangeEvent, type FocusEvent } from 'react';
+import { forwardRef, useId, type ChangeEvent, type FocusEvent } from 'react';
 import { cn } from '@/utils/cn';
 import { ErrorText } from '../ErrorText';
 import { HelperText } from '../HelperText';
@@ -60,9 +66,14 @@ interface InputProps {
   required?: boolean;
   readOnly?: boolean;
   maxLength?: number;
+  /** Solo aplica cuando `type="date"`: límite superior nativo del selector (p. ej. hoy, para no dejar elegir una fecha futura). */
+  max?: string;
+  /** Solo aplica cuando `type="date"`. */
+  min?: string;
   /** Solo aplica cuando `type="textarea"`. */
   rows?: number;
   autoComplete?: string;
+  inputMode?: 'text' | 'numeric' | 'tel' | 'email' | 'search' | 'none' | 'decimal' | 'url';
   className?: string;
   /** Contenido obligatorio cuando `state="error"`. */
   errorMessage?: string;
@@ -76,18 +87,21 @@ interface InputProps {
   onFocus?: (event: FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
 }
 
-export function Input({
-  type = 'text',
-  state = 'default',
-  id,
-  className,
-  errorMessage,
-  helperText,
-  disabledTooltip,
-  describedBy: externalDescribedBy,
-  rows,
-  ...rest
-}: InputProps) {
+export const Input = forwardRef<HTMLInputElement | HTMLTextAreaElement, InputProps>(function Input(
+  {
+    type = 'text',
+    state = 'default',
+    id,
+    className,
+    errorMessage,
+    helperText,
+    disabledTooltip,
+    describedBy: externalDescribedBy,
+    rows,
+    ...rest
+  },
+  ref,
+) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const helperId = `${inputId}-helper`;
@@ -105,6 +119,7 @@ export function Input({
     <div className="gap-space-1 flex flex-col">
       {type === 'textarea' ? (
         <textarea
+          ref={ref as React.Ref<HTMLTextAreaElement>}
           id={inputId}
           rows={rows ?? 4}
           disabled={isDisabled}
@@ -115,6 +130,7 @@ export function Input({
         />
       ) : (
         <input
+          ref={ref as React.Ref<HTMLInputElement>}
           id={inputId}
           type={type}
           disabled={isDisabled}
@@ -134,4 +150,4 @@ export function Input({
       ) : null}
     </div>
   );
-}
+});

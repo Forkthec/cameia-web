@@ -15,4 +15,12 @@ describe('cn', () => {
   it('resuelve conflictos de Tailwind quedándose con la última utilidad', () => {
     expect(cn('p-space-2', 'p-space-4')).toBe('p-space-4');
   });
+
+  it('conserva un tamaño de texto de la escala junto a un color de texto', () => {
+    expect(cn('text-display', 'text-text-on-inverse')).toBe('text-display text-text-on-inverse');
+  });
+
+  it('resuelve el conflicto entre dos tamaños de texto de la escala', () => {
+    expect(cn('text-small text-brand-base', 'text-body')).toBe('text-brand-base text-body');
+  });
 });

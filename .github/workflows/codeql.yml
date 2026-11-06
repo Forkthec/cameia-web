@@ -24,7 +24,7 @@ jobs:
 
       # Prepara el análisis para este lenguaje; no compila nada todavía.
       - name: Preparar CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: javascript-typescript
 
@@ -32,9 +32,9 @@ jobs:
       # directo. "autobuild" solo existe para lenguajes que sí necesitan un build real
       # (Java, C++...); aquí es un paso vacío que se deja por consistencia con esos repos.
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+        uses: github/codeql-action/autobuild@v4
 
       - name: Ejecutar análisis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: '/language:javascript-typescript'

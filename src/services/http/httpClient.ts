@@ -1,13 +1,13 @@
 /**
  * Envoltorio delgado de fetch (CLAUDE.md §8: no usamos axios). Adjunta el ID
- * Token de Firebase cuando hay sesión, corta la petición a los 10 s, y
+ * Token de Firebase cuando hay sesión, corta la petición a los 30 s, y
  * traduce cualquier respuesta no-OK a un ApiError vía errorMap.
  */
 import { env } from '@/config/env';
 import { getIdToken, signOut } from '../firebase/auth.service';
 import { mapErrorResponse } from './errorMap';
 
-const REQUEST_TIMEOUT_MS = 10_000;
+const REQUEST_TIMEOUT_MS = 30_000;
 const LOGIN_PATH = '/ingresar';
 
 const I18NEXT_LANGUAGE_STORAGE_KEY = 'i18nextLng';
@@ -33,6 +33,10 @@ type QueryParams = Record<string, string | number | boolean | undefined>;
 
 interface RequestOptions {
   params?: QueryParams;
+  /** Cabeceras extra, p. ej. `Idempotency-Key` (RT-06). */
+  headers?: Record<string, string>;
+  /** Tope propio de la petición; por defecto 30 s. La respuesta por voz espera hasta 130 s (HU-5.8). */
+  timeoutMs?: number;
 }
 
 /**
@@ -61,10 +65,16 @@ function buildUrl(path: string, params?: QueryParams): string {
   return url.toString();
 }
 
-/** Limpia la sesión y manda a /ingresar: un 401 del backend significa token inválido o expirado. */
+/** Limpia la sesión y manda a /ingresar: un 401 del backend significa token inválido o expirado (CM-331). */
 async function handleUnauthorized(): Promise<void> {
   await signOut();
-  window.location.href = LOGIN_PATH;
+  window.location.href = `${LOGIN_PATH}?sesionExpirada=1`;
+}
+
+/** RT-02-CA06 (CM-180): el Gateway rechazó la petición porque el correo no está verificado. */
+async function handleEmailNotVerified(): Promise<void> {
+  await signOut();
+  window.location.href = `${LOGIN_PATH}?correoNoVerificado=1`;
 }
 
 async function request<T>(
@@ -74,13 +84,17 @@ async function request<T>(
   options?: RequestOptions,
 ): Promise<T> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), options?.timeoutMs ?? REQUEST_TIMEOUT_MS);
 
   try {
     const idToken = await getIdToken();
+    // Un `FormData` (audio, HU-5.8) lleva su propio `Content-Type` con el
+    // boundary del multipart: no se fija a mano ni se serializa a JSON.
+    const isFormData = body instanceof FormData;
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       'Accept-Language': getActiveLocale(),
+      ...options?.headers,
     };
     if (idToken) {
       headers.Authorization = `Bearer ${idToken}`;
@@ -89,7 +103,7 @@ async function request<T>(
     const response = await fetch(buildUrl(path, options?.params), {
       method,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
       signal: controller.signal,
     });
 
@@ -97,6 +111,9 @@ async function request<T>(
       const apiError = await mapErrorResponse(response);
       if (apiError.isUnauthorized()) {
         await handleUnauthorized();
+      }
+      if (apiError.hasCode('EMAIL_NOT_VERIFIED')) {
+        await handleEmailNotVerified();
       }
       throw apiError;
     }

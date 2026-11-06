@@ -1,8 +1,8 @@
 /**
- * Barril de `Button`. Expone `Button` para quien lo
+ * Barril de `Button`. Expone `Button` y `ButtonLink` (mismas variantes, como enlace) para quien lo
  * consuma desde fuera de esta carpeta. No exporta `ButtonProps` (CLAUDE.md
  * §14.5: las interfaces *Props no se exportan) ni actúa como barril de
  * categoría — cada componente del design system tiene el suyo, nunca uno
  * compartido (§14.6).
  */
-export { Button } from './Button';
+export { Button, ButtonLink } from './Button';

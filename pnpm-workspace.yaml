@@ -16,3 +16,9 @@ onlyBuiltDependencies:
   - msw
   - protobufjs
   - unrs-resolver
+# Fuerza el parche de seguridad de "handlebars", dependencia transitiva del
+# plugin de lint "eslint-plugin-boundaries" que la fija en una versión exacta
+# con vulnerabilidades. Solo afecta al entorno de desarrollo, no al sitio
+# publicado.
+overrides:
+  handlebars: 4.7.10

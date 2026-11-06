@@ -1,0 +1,166 @@
+{
+  "asistente": {
+    "progreso": "Wizard progress",
+    "pasos": {
+      "perfilProfesional": "Professional profile",
+      "ofertaYRol": "Job posting and role",
+      "modoYTono": "Mode and tone",
+      "idiomaYFormato": "Language and answer format",
+      "confirmar": "Confirm"
+    },
+    "pasoDeTotal": "Step {{actual}} of {{total}}",
+    "encabezados": {
+      "perfilProfesional": {
+        "titulo": "Which profile are you using?",
+        "descripcion": "Choose the Professional Profile the interviewer will use to prepare your questions."
+      },
+      "ofertaYRol": {
+        "titulo": "What are you applying for?",
+        "descripcion": "Paste the job offer if you have it and choose the role, so the questions match that position."
+      },
+      "modoYTono": {
+        "titulo": "How should the interview feel?",
+        "descripcion": "Choose the mode and your interviewer’s personality."
+      },
+      "idiomaYFormato": {
+        "titulo": "Which language, and how will you answer?",
+        "descripcion": "Practice in Spanish or English, speaking or writing."
+      },
+      "confirmar": {
+        "titulo": "Everything is ready for your interview",
+        "descripcion": "Review your setup. You can change anything before you start."
+      }
+    },
+    "catalogo": {
+      "error": "Something went wrong. Please try again.",
+      "reintentarCarga": "Retry loading"
+    }
+  },
+  "perfil": {
+    "grupo": "Available professional profiles",
+    "sinPerfiles": {
+      "titulo": "No professional profiles",
+      "descripcion": "You need an active Professional Profile to start an interview.",
+      "accion": "Create my Professional Profile"
+    },
+    "soloBorradores": {
+      "titulo": "No active profiles",
+      "descripcion": "Complete a Professional Profile to start an interview.",
+      "accion": "Finish my profile"
+    }
+  },
+  "oferta": {
+    "etiqueta": "Job posting",
+    "placeholder": "Paste the job posting here (optional)",
+    "contador": "{{actual}} / {{max}} characters"
+  },
+  "rol": {
+    "etiqueta": "Target role",
+    "placeholder": "Search for a target role",
+    "sinResultados": "No roles found",
+    "deTuPerfil": "From your profile",
+    "otrosRoles": "Other roles"
+  },
+  "validacion": {
+    "ofertaMaxCaracteres": "The job posting cannot exceed 3000 characters.",
+    "rolObligatorio": "Choose a target role from the list.",
+    "rolDeLaLista": "Choose a target role from the list."
+  },
+  "modalidad": {
+    "etiqueta": "Mode",
+    "SIMULACION": "Simulation",
+    "ENTRENO": "Practice",
+    "proximamente": "Coming soon"
+  },
+  "tono": {
+    "etiqueta": "Interviewer tone",
+    "PROFESIONAL_NEUTRO": "Professional and neutral",
+    "PROFESIONAL_NEUTRO_descripcion": "Formal and direct, like a standard corporate interview.",
+    "CALIDO": "Warm",
+    "CALIDO_descripcion": "Friendly and approachable, ideal for reducing anxiety.",
+    "ESTRICTO": "Strict",
+    "ESTRICTO_descripcion": "Demanding and thorough, simulates high-pressure interviews."
+  },
+  "formaRespuesta": {
+    "etiqueta": "Answer format",
+    "AUDIO": "Audio",
+    "AUDIO_descripcion": "Answer with your voice, like a real interview.",
+    "TEXTO": "Text",
+    "TEXTO_descripcion": "Type your answers in the chat.",
+    "VIDEO": "Video",
+    "navegadorNoGraba": "Your browser does not support recording. You will answer by text."
+  },
+  "idiomaEntrevista": {
+    "etiqueta": "Interview language",
+    "es-CO": "Spanish (Colombia)",
+    "en": "English"
+  },
+  "confirmar": {
+    "titulo": "Confirm and start",
+    "resumen": "Review your settings before starting the interview.",
+    "perfil": "Professional profile",
+    "ofertaLaboral": "Job posting",
+    "sinOferta": "No job posting",
+    "rolObjetivo": "Target role",
+    "modalidad": "Mode",
+    "tono": "Interviewer tone",
+    "formaRespuesta": "Answer format",
+    "idiomaEntrevista": "Interview language",
+    "iniciarEntrevista": "Start interview",
+    "datosIncompletos": "Choose a Professional Profile and a target role to start the interview.",
+    "errorGenerico": "Something went wrong. Please try again.",
+    "perfilSincronizando": "Your profile is being updated. Try again in a few seconds.",
+    "avisoEnCurso": {
+      "titulo": "Interview in progress",
+      "mensaje": "You have an interview in progress. If you start a new one, the previous one will be closed without evaluation.",
+      "iniciarNueva": "Start the new one",
+      "volverEntrevista": "Back to my interview",
+      "cancelar": "Cancel"
+    }
+  },
+  "modo": {
+    "ENTRENO": "Practice",
+    "SIMULACION": "Simulation"
+  },
+  "idioma": {
+    "es-CO": "Spanish (Colombia)",
+    "en": "English"
+  },
+  "sesion": {
+    "progreso": "Question {{actual}} of {{total}}",
+    "modoYForma": "{{modo}} · {{forma}}",
+    "respuesta": {
+      "etiqueta": "Answer",
+      "contador": "{{count}} / {{max}} characters",
+      "demasiadoLarga": "Your answer can't be longer than {{max}} characters."
+    },
+    "enviar": "Send",
+    "procesando": "Processing your answer…",
+    "reintentosAgotados": "We couldn't evaluate your answer right now. Your answer was saved; try again later.",
+    "irAlInicio": "Go to home",
+    "terminada": "Your interview is over.",
+    "voz": {
+      "grabar": "Record",
+      "detener": "Stop",
+      "responderPorTexto": "Answer by text",
+      "privacidad": "Your audio is only used to transcribe your answer and isn't stored.",
+      "sinVoz": "We didn't detect your voice, try again.",
+      "micDenegado": "We couldn't access your microphone. You can answer by text.",
+      "sinMicrofono": "We couldn't find a microphone. You can answer by text.",
+      "esperaLarga": "This can take up to 2 minutes. Don't close this page.",
+      "grabarDeNuevo": "Record again",
+      "demasiadoLarga": "Your answer is too long. Record a shorter one or answer by text.",
+      "noTranscrita": "We couldn't transcribe your answer. Record again or answer by text.",
+      "noPreparada": "We couldn't prepare the recording. You can answer by text.",
+      "idiomaDistinto": {
+        "en": "Your interview is in English. Answer in English.",
+        "es-CO": "Your interview is in Spanish. Answer in Spanish."
+      }
+    }
+  },
+  "inicio": {
+    "titulo": "Starting your interview session",
+    "reintentosAgotados": "We couldn't prepare your interview right now. Try again later.",
+    "accionNoAdmitida": "This interview no longer allows that action."
+  }
+}

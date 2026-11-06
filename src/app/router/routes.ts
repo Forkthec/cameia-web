@@ -7,6 +7,7 @@ export const ROUTES = {
   landing: '/',
   registro: '/registro',
   ingresar: '/ingresar',
+  verificarCorreo: '/verificar-correo',
   inicio: '/inicio',
   perfilNuevo: '/perfiles/nuevo',
   perfilEditar: (id: string) => `/perfiles/${id}/editar`,

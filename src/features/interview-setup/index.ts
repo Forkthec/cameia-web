@@ -1,8 +1,8 @@
 /**
- * Barril de esta feature. Expone únicamente `interviewSetupRoutes` para que
- * `app/router` las monte. Organismos, páginas, hooks y store internos de
+ * Barril de esta feature. Expone `interviewSetupShellRoutes` (dentro de
+ * `AppShell`) e `interviewSetupRoutes` (fuera) para que `app/router` las monte. Organismos, páginas, hooks y store internos de
  * la feature no se exportan aquí — nadie fuera de la feature los necesita
  * todavía (CLAUDE.md §4; §14.6: barril solo en la raíz de la feature, no
  * de categoría).
  */
-export { interviewSetupRoutes } from './routes';
+export { interviewSetupRoutes, interviewSetupShellRoutes } from './routes';

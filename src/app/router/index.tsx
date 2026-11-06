@@ -14,16 +14,13 @@
  */
 import { createBrowserRouter, type RouteObject } from 'react-router';
 import { featureFlags } from '@/config/features';
-import { authRoutes } from '@/features/auth';
+import { authRoutes, verifyEmailRoutes } from '@/features/auth';
 import { homeRoutes } from '@/features/home';
 import { interviewSessionRoutes } from '@/features/interview-session';
-import { interviewSetupRoutes } from '@/features/interview-setup';
+import { interviewSetupRoutes, interviewSetupShellRoutes } from '@/features/interview-setup';
 import { landingRoutes } from '@/features/landing';
-import {
-  professionalProfileShellRoutes,
-  professionalProfileWizardRoutes,
-} from '@/features/professional-profile';
-import { AppShell } from '@/layouts/AppShell';
+import { professionalProfileShellRoutes } from '@/features/professional-profile';
+import { AuthenticatedAppShell } from './AuthenticatedAppShell';
 import { NotFoundPage } from './NotFoundPage';
 import { RouteErrorBoundary } from './RouteErrorBoundary';
 import { RedirectIfAuthenticated, RequireAuth } from './guards/RequireAuth';
@@ -43,14 +40,18 @@ export const routeConfig: RouteObject[] = [
         element: <RequireAuth />,
         children: [
           {
-            element: <AppShell progressEnabled={featureFlags.PROGRESS} />,
-            children: [...homeRoutes, ...professionalProfileShellRoutes],
+            element: <AuthenticatedAppShell progressEnabled={featureFlags.PROGRESS} />,
+            children: [
+              ...homeRoutes,
+              ...professionalProfileShellRoutes,
+              ...interviewSetupShellRoutes,
+            ],
           },
-          ...professionalProfileWizardRoutes,
           ...interviewSetupRoutes,
           ...interviewSessionRoutes,
         ],
       },
+      ...verifyEmailRoutes,
       { path: '*', element: <NotFoundPage /> },
     ],
   },

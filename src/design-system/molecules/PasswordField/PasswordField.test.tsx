@@ -5,6 +5,7 @@
  */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { createRef } from 'react';
 import { describe, expect, it } from 'vitest';
 import { PasswordField } from './PasswordField';
 
@@ -34,5 +35,18 @@ describe('PasswordField', () => {
 
     await user.click(screen.getByRole('button', { name: 'Ocultar contraseña' }));
     expect(document.querySelector('input')).toHaveAttribute('type', 'password');
+  });
+
+  it('reenvía el ref al Input interno (foco automático de react-hook-form)', () => {
+    const ref = createRef<HTMLInputElement | HTMLTextAreaElement>();
+    render(
+      <PasswordField
+        ref={ref}
+        showPasswordLabel="Mostrar contraseña"
+        hidePasswordLabel="Ocultar contraseña"
+      />,
+    );
+
+    expect(ref.current).toBe(document.querySelector('input'));
   });
 });

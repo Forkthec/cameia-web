@@ -6,7 +6,10 @@
  * devuelto, que dos toques seguidos no crean dos perfiles (guarda contra
  * doble creación — el Plan Gratis permite uno solo, consulta C-03), que un
  * fallo de red muestra `errors:generico` y permite reintentar, que el grupo
- * expone su nombre accesible, y que la pantalla no tiene ningún campo de
+ * expone su nombre accesible, que el cupo agotado se reconoce por `code`
+ * (CM-298, `ADR-0008`) y no se confunde con `PROFILE_CREATION_IN_PROGRESS`
+ * (mensaje propio) ni con un 409 sin `code` (mensaje genérico), y que la
+ * pantalla no tiene ningún campo de
  * texto (CA-2.2.1: el perfil se crea vacío, el nombre se fija después por
  * PATCH en HU-2.3). No prueba el guard de sesión: `RequireAuth` vive en
  * `app` y esta feature no puede importarlo (docs/ARCHITECTURE.md §4); esa
@@ -14,13 +17,14 @@
  * real.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter, Route, Routes, useParams } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import i18n from '@/i18n';
+import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
 import { useHandlers } from '@/test/msw';
 import { NewProfilePage } from './NewProfilePage';
 
@@ -36,11 +40,11 @@ function EditProfileStub() {
   return <p>Editar perfil {id}</p>;
 }
 
-function renderPage() {
-  const queryClient = new QueryClient({
+function renderPage(
+  queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
-
+  }),
+) {
   return render(
     <QueryClientProvider client={queryClient}>
       <I18nextProvider i18n={i18n}>
@@ -65,6 +69,44 @@ describe('NewProfilePage', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Llenado Manual')).toBeInTheDocument();
     expect(screen.getByText('Autocompletar con IA')).toBeInTheDocument();
+  });
+
+  it('si el backend ya tiene un perfil del usuario, abre su formulario (CA-10.4.4)', async () => {
+    await waitUntilReady();
+    useUiPreferencesStore.setState({ lastUsedProfileId: null });
+    useHandlers(
+      http.get('*/api/v1/profiles', () =>
+        HttpResponse.json({ profiles: [{ id: 'perfil-existente' }] }),
+      ),
+    );
+    renderPage();
+
+    expect(await screen.findByText('Editar perfil perfil-existente')).toBeInTheDocument();
+    expect(useUiPreferencesStore.getState().lastUsedProfileId).toBe('perfil-existente');
+  });
+
+  it('no se rompe si el asistente ya dejó su lista de perfiles en la caché (CM-339)', async () => {
+    await waitUntilReady();
+    useUiPreferencesStore.setState({ lastUsedProfileId: null });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    // Forma que guarda `interview-setup` en `['profiles', 'list']`: un arreglo.
+    queryClient.setQueryData(['profiles', 'list'], [{ id: 'otro', name: 'X' }]);
+    useHandlers(http.get('*/api/v1/profiles', () => HttpResponse.json({ profiles: [] })));
+    renderPage(queryClient);
+
+    expect(await screen.findByText('Llenado Manual')).toBeInTheDocument();
+    expect(queryClient.getQueryData(['profiles', 'list'])).toEqual([{ id: 'otro', name: 'X' }]);
+  });
+
+  it('si la lista de perfiles falla, muestra igual la selección del método', async () => {
+    await waitUntilReady();
+    useUiPreferencesStore.setState({ lastUsedProfileId: null });
+    useHandlers(http.get('*/api/v1/profiles', () => new HttpResponse(null, { status: 500 })));
+    renderPage();
+
+    expect(await screen.findByText('Llenado Manual')).toBeInTheDocument();
   });
 
   it('la tarjeta de IA está deshabilitada y no navega', async () => {
@@ -112,6 +154,52 @@ describe('NewProfilePage', () => {
     expect(requestCount).toBe(1);
   });
 
+  // DF-004 (QA, 11-oct-2026, staging): `userEvent` cede un turno entre clics y deja que
+  // React renderice `isPending`; en el navegador los dos clics llegaron con 2,9 ms de
+  // diferencia y la guarda por render no alcanzó. Estas pruebas despachan ambos clics sin
+  // ceder el turno, que es lo que el `userEvent` de arriba no puede reproducir.
+  it('dos clics síncronos en un mismo turno producen una sola petición (DF-004)', async () => {
+    await waitUntilReady();
+    let requestCount = 0;
+    useHandlers(
+      http.post('*/api/v1/profiles', async () => {
+        requestCount += 1;
+        await delay(100);
+        return HttpResponse.json({ id: 'profile-df-004' }, { status: 201 });
+      }),
+    );
+    renderPage();
+
+    const manualCard = await screen.findByRole('radio', { name: /Llenado Manual/ });
+    act(() => {
+      manualCard.click();
+      manualCard.click();
+    });
+
+    expect(await screen.findByText('Editar perfil profile-df-004')).toBeInTheDocument();
+    expect(requestCount).toBe(1);
+  });
+
+  it('dos fireEvent.click seguidos producen una sola petición (DF-004)', async () => {
+    await waitUntilReady();
+    let requestCount = 0;
+    useHandlers(
+      http.post('*/api/v1/profiles', async () => {
+        requestCount += 1;
+        await delay(100);
+        return HttpResponse.json({ id: 'profile-df-004-fe' }, { status: 201 });
+      }),
+    );
+    renderPage();
+
+    const manualCard = await screen.findByRole('radio', { name: /Llenado Manual/ });
+    fireEvent.click(manualCard);
+    fireEvent.click(manualCard);
+
+    expect(await screen.findByText('Editar perfil profile-df-004-fe')).toBeInTheDocument();
+    expect(requestCount).toBe(1);
+  });
+
   it('si la creación falla muestra el error genérico y el siguiente toque reintenta', async () => {
     await waitUntilReady();
     useHandlers(
@@ -137,6 +225,164 @@ describe('NewProfilePage', () => {
 
     await user.click(manualCard);
     expect(await screen.findByText('Editar perfil profile-1')).toBeInTheDocument();
+  });
+
+  it('CM-195: tocar Llenado Manual guarda el id en lastUsedProfileId', async () => {
+    await waitUntilReady();
+    const user = userEvent.setup();
+    renderPage();
+
+    const manualCard = await screen.findByRole('radio', { name: /Llenado Manual/ });
+    await user.click(manualCard);
+
+    await screen.findByText('Editar perfil profile-1');
+    expect(useUiPreferencesStore.getState().lastUsedProfileId).toBe('profile-1');
+  });
+
+  it('CM-195: con lastUsedProfileId ya guardado, redirige de inmediato sin mostrar el selector', async () => {
+    await waitUntilReady();
+    useUiPreferencesStore.setState({ lastUsedProfileId: 'profile-existente' });
+    renderPage();
+
+    expect(await screen.findByText('Editar perfil profile-existente')).toBeInTheDocument();
+    expect(screen.queryByText('¿Cómo quieres completarlo?')).not.toBeInTheDocument();
+  });
+
+  it('CA-2.2.3: con el cupo agotado hoy (409 PROFILE_LIMIT_REACHED) muestra el mensaje del plan, no crea perfil y no navega', async () => {
+    await waitUntilReady();
+    useHandlers(
+      http.post(
+        '*/api/v1/profiles',
+        () =>
+          HttpResponse.json(
+            {
+              type: 'about:blank',
+              title: 'Conflicto',
+              status: 409,
+              // Distinto del texto esperado a propósito: el mensaje sale del catálogo
+              // i18n, no del `detail` del backend (CLAUDE.md §8, SPEC §3.1).
+              detail: 'detalle del servidor',
+              code: 'PROFILE_LIMIT_REACHED',
+              errors: [],
+            },
+            { status: 409 },
+          ),
+        { once: true },
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    const manualCard = await screen.findByRole('radio', { name: /Llenado Manual/ });
+    await user.click(manualCard);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Tu Plan Free permite 1 Perfil Profesional.',
+    );
+    expect(screen.queryByText(/Editar perfil/)).not.toBeInTheDocument();
+    expect(useUiPreferencesStore.getState().lastUsedProfileId).toBeNull();
+  });
+
+  it('CA-2.2.3: con el cupo agotado mañana (403 PLAN_LIMIT) muestra el mismo mensaje, no crea perfil y no navega', async () => {
+    await waitUntilReady();
+    useHandlers(
+      http.post(
+        '*/api/v1/profiles',
+        () =>
+          HttpResponse.json(
+            {
+              type: 'about:blank',
+              title: 'Prohibido',
+              status: 403,
+              detail: 'detalle del servidor',
+              code: 'PLAN_LIMIT',
+              errors: [],
+            },
+            { status: 403 },
+          ),
+        { once: true },
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    const manualCard = await screen.findByRole('radio', { name: /Llenado Manual/ });
+    await user.click(manualCard);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Tu Plan Free permite 1 Perfil Profesional.',
+    );
+    expect(screen.queryByText(/Editar perfil/)).not.toBeInTheDocument();
+    expect(useUiPreferencesStore.getState().lastUsedProfileId).toBeNull();
+  });
+
+  it('CM-298: con 409 PROFILE_CREATION_IN_PROGRESS muestra el mensaje de creación en curso, no el del cupo, no navega y no guarda lastUsedProfileId', async () => {
+    await waitUntilReady();
+    useHandlers(
+      http.post(
+        '*/api/v1/profiles',
+        () =>
+          HttpResponse.json(
+            {
+              type: 'about:blank',
+              title: 'Conflicto',
+              status: 409,
+              // Distinto del texto esperado a propósito: el mensaje sale del catálogo
+              // i18n, no del `detail` del backend (CLAUDE.md §8).
+              detail: 'detalle del servidor',
+              code: 'PROFILE_CREATION_IN_PROGRESS',
+              errors: [],
+            },
+            { status: 409 },
+          ),
+        { once: true },
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    const manualCard = await screen.findByRole('radio', { name: /Llenado Manual/ });
+    await user.click(manualCard);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(
+      'Estamos creando tu perfil. Inténtalo de nuevo en unos segundos.',
+    );
+    expect(alert).not.toHaveTextContent('Tu Plan Free permite 1 Perfil Profesional.');
+    expect(screen.queryByText(/Editar perfil/)).not.toBeInTheDocument();
+    expect(useUiPreferencesStore.getState().lastUsedProfileId).toBeNull();
+  });
+
+  it('CM-298: con un 409 sin code muestra el mensaje genérico, no el del cupo', async () => {
+    await waitUntilReady();
+    useHandlers(
+      http.post(
+        '*/api/v1/profiles',
+        () =>
+          HttpResponse.json(
+            {
+              type: 'about:blank',
+              title: 'Conflicto',
+              status: 409,
+              detail: 'detalle del servidor',
+              errors: [],
+            },
+            { status: 409 },
+          ),
+        { once: true },
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    const manualCard = await screen.findByRole('radio', { name: /Llenado Manual/ });
+    await user.click(manualCard);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Ocurrió un error. Inténtalo de nuevo.');
+    expect(alert).not.toHaveTextContent('Tu Plan Free permite 1 Perfil Profesional.');
+    expect(screen.queryByText(/Editar perfil/)).not.toBeInTheDocument();
+    expect(useUiPreferencesStore.getState().lastUsedProfileId).toBeNull();
   });
 
   it('expone un radiogroup con el nombre accesible del método de configuración', async () => {

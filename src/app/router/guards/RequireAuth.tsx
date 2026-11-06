@@ -8,20 +8,21 @@
  * entre al sprint, no antes (CLAUDE.md §4).
  */
 import { useTranslation } from 'react-i18next';
-import { Navigate, Outlet, useLocation } from 'react-router';
+import { Navigate, Outlet } from 'react-router';
 import { Spinner } from '@/design-system/atoms/Spinner';
 import { useAuthStore } from '@/stores/auth.store';
 import { ROUTES } from '../routes';
 
 /**
- * Protege las rutas autenticadas. Redirige a `/ingresar` preservando el
- * destino en `location.state.from`, para que el login pueda volver ahí.
+ * Protege las rutas autenticadas. Redirige a `/ingresar` sin preservar el
+ * destino anterior: CM-334 demostró que `location.state.from` persiste en el
+ * historial del navegador y otra cuenta lo hereda al iniciar sesión después
+ * de un «Atrás», llevándola a un perfil ajeno.
  */
 export function RequireAuth() {
   const { t } = useTranslation('common');
   const isLoading = useAuthStore((state) => state.isLoading);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -32,7 +33,7 @@ export function RequireAuth() {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to={ROUTES.ingresar} state={{ from: location }} replace />;
+    return <Navigate to={ROUTES.ingresar} replace />;
   }
 
   return <Outlet />;

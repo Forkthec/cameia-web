@@ -8,13 +8,14 @@ import { z } from 'zod';
 /**
  * Forma cruda de las variables de entorno, tal como llegan de Vite.
  *
- * VITE_API_BASE_URL es opcional aquí a propósito: el API Gateway todavía no
- * está desplegado (depende de Billing de GCP), así que exigirla siempre
- * dejaría el sitio en blanco en cualquier ambiente desplegado. El
- * `superRefine` de abajo la vuelve a exigir, pero solo en producción — ver
+ * VITE_API_BASE_URL es opcional aquí a propósito: el Gateway de producción
+ * todavía no existe, así que exigirla siempre dejaría el sitio en blanco en
+ * cualquier ambiente que aún no tenga backend. El `superRefine` de abajo la
+ * vuelve a exigir, pero solo en producción — ver
  * comunicaciones/11092026_frontend_variable-api-base-url.md (opción 1,
  * decidida por Frontend el 11-sep-2026, implementada por DevOps con permiso
- * de Frontend el 12-sep-2026).
+ * de Frontend el 12-sep-2026). En staging sí tiene valor real desde el
+ * environment "staging" de GitHub Actions.
  */
 const rawEnvSchema = z
   .object({
@@ -33,6 +34,10 @@ const rawEnvSchema = z
     VITE_FIREBASE_AUTH_DOMAIN: z.string().min(1),
     VITE_FIREBASE_PROJECT_ID: z.string().min(1),
     VITE_FIREBASE_APP_ID: z.string().min(1),
+    // Opcional a propósito: solo la define quien necesita un host distinto de localhost:9099 para
+    // el emulador de Firebase Auth. El emulador solo se usa en local y, si falta, auth.service.ts
+    // aplica el host por defecto.
+    VITE_FIREBASE_AUTH_EMULATOR_HOST: z.optional(z.string()),
     // Opcional a propósito: puede no existir en .env. El valor efectivo se
     // calcula abajo en "enableMsw", que además solo lo respeta en local.
     VITE_ENABLE_MSW: z.optional(z.string()),
@@ -79,6 +84,8 @@ export const env = {
     authDomain: rawEnv.VITE_FIREBASE_AUTH_DOMAIN,
     projectId: rawEnv.VITE_FIREBASE_PROJECT_ID,
     appId: rawEnv.VITE_FIREBASE_APP_ID,
+    // Solo tiene efecto en 'local' (ver auth.service.ts) — igual que "enableMsw" de abajo.
+    authEmulatorHost: rawEnv.VITE_FIREBASE_AUTH_EMULATOR_HOST,
   },
   // VITE_ENABLE_MSW solo tiene efecto en entorno local; fuera de local se ignora siempre.
   enableMsw: rawEnv.VITE_APP_ENV === 'local' && rawEnv.VITE_ENABLE_MSW === 'true',

@@ -1,11 +1,14 @@
 # model/
 
 Tipos de dominio, enums de catálogo y máquinas de estado de la feature: lo que la interfaz
-necesita saber del negocio, sin depender de cómo viaja por HTTP (`docs/ARCHITECTURE.md` §3).
+necesita saber del negocio, sin depender de cómo viaja por HTTP (`docs/ARCHITECTURE.md` §3,
+«Anatomía canónica de una feature»).
 
-Ejemplo planeado (`docs/ARCHITECTURE.md` §3, línea 167; HE-04, Sprint 1): `catalogs.ts`
-(códigos, NO etiquetas) y `setup.types.ts` en `interview-setup` — no existe todavía en disco.
-Verificado contra `interview-setup` con `find` el 11-sep-2026.
+Ejemplos reales en `professional-profile/model/`: `profile.types.ts` (tipos de dominio y códigos
+de los enumerados), `profile.constants.ts`, y lógica pura del dominio como
+`missingRequirements.ts`, `profileCompleteness.ts` y `yearMonth.ts`. En `auth/model/` viven
+`pronouns.ts`, `commonPasswords.ts` y `authErrorMessage.ts`.
 
 Es la **primera** pieza que se llena, paso 1 del orden de construcción de `CLAUDE.md` §8: sale
-del glosario y el backlog, antes de que exista ningún contrato de red.
+del glosario y el backlog, antes de que exista ningún contrato de red. Los catálogos guardan
+códigos, no etiquetas (`CLAUDE.md` §7).

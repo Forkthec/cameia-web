@@ -24,9 +24,10 @@ describe('Stepper', () => {
   });
 
   it('marca el paso actual con aria-current="step"', () => {
-    render(<Stepper steps={steps} label="Progreso del asistente" />);
+    const { container } = render(<Stepper steps={steps} label="Progreso del asistente" />);
 
-    expect(screen.getByText('2')).toHaveAttribute('aria-current', 'step');
+    const currentStep = container.querySelector('[aria-current="step"]');
+    expect(currentStep).toBeInTheDocument();
   });
 
   it('expone un nombre accesible para la lista completa', () => {

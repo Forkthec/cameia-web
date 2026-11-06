@@ -26,7 +26,14 @@ interface UiPreferencesState {
    */
   idioma: UiLanguage;
   // Conveniencia por dispositivo. El perfil activo NO se persiste en el backend
-  // (GLO-TBD-06, recomendación de Frontend).
+  // (GLO-TBD-06, recomendación de Frontend). Conectado desde CM-195
+  // (SPEC professional-profile §9, decisión D-I): `NewProfilePage.tsx` lo
+  // guarda al crear, `EditProfilePage.tsx` lo guarda al cargar (backfill),
+  // y `AppShell.tsx` lo lee para que "Perfiles" enlace directo al perfil en
+  // vez de siempre a `/perfiles/nuevo`. Antes de esa conexión, este campo
+  // existía sin ningún lector ni escritor real.
+  // Se pone en `null` al perder la sesión (`useLogout` y `AuthProvider`,
+  // CA-1.8.3, CM-243): es de la cuenta, no del dispositivo, a diferencia de `idioma`.
   lastUsedProfileId: string | null;
   setIdioma: (idioma: UiLanguage) => void;
   setLastUsedProfileId: (profileId: string | null) => void;

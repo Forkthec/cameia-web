@@ -1,0 +1,48 @@
+/**
+ * Comportamiento observable de `useRemoveSkill` contra el mock real: el
+ * `DELETE` devuelve 204 e invalida la caché de `useProfileQuery`.
+ */
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { renderHook, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { describe, expect, it } from 'vitest';
+import { httpClient } from '@/services/http/httpClient';
+import { useRemoveSkill } from './useRemoveSkill';
+
+interface CreatedProfile {
+  id: string;
+}
+
+interface ProfileWithSkills {
+  profileSkills: { id: string }[];
+}
+
+describe('useRemoveSkill', () => {
+  it('elimina la habilidad e invalida la caché de useProfileQuery', async () => {
+    const created = await httpClient.post<CreatedProfile>('/api/v1/profiles', {
+      name: 'Ana María Pérez',
+    });
+    const withSkill = await httpClient.post<ProfileWithSkills>(
+      `/api/v1/profiles/${created.id}/skills`,
+      { skillName: 'React', level: 'ADVANCED' },
+    );
+    const skillId = withSkill.profileSkills[0]?.id;
+    if (!skillId) throw new Error('El perfil sembrado no tiene habilidad.');
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    queryClient.setQueryData(['profile', created.id], { skills: [{ id: skillId }] });
+
+    function Wrapper({ children }: { children: ReactNode }) {
+      return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+    }
+
+    const { result } = renderHook(() => useRemoveSkill(created.id), { wrapper: Wrapper });
+    result.current.mutate(skillId);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const state = queryClient.getQueryState(['profile', created.id]);
+    expect(state?.isInvalidated).toBe(true);
+  });
+});

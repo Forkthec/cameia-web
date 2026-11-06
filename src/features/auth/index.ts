@@ -1,8 +1,6 @@
 /**
- * Barril de esta feature. Expone únicamente `authRoutes` para que
- * `app/router` las monte. Organismos, páginas, hooks y store internos de
- * la feature no se exportan aquí — nadie fuera de la feature los necesita
- * todavía (CLAUDE.md §4; §14.6: barril solo en la raíz de la feature, no
- * de categoría).
+ * Barril de esta feature. Expone `authRoutes` (login/registro, dentro de
+ * `RedirectIfAuthenticated`) y `verifyEmailRoutes` (verificación de correo,
+ * pública sin guard) para que `app/router` las monte.
  */
-export { authRoutes } from './routes';
+export { authRoutes, verifyEmailRoutes } from './routes';

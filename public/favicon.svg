@@ -1,0 +1,15 @@
+<!--
+  Ícono de la pestaña (favicon): el glifo «Amanecer» de BrandMark.tsx (CM-329)
+  en tono inverso sobre un cuadro índigo, para que se lea igual en pestañas
+  claras y oscuras. Es un archivo estático que el navegador lee sin CSS de la
+  app, por eso lleva los hex de primitives.css (indigo-500 y mustard-400)
+  en vez de tokens. Si cambia el trazado de BrandMark, se copia aquí.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#24356b"/>
+  <svg x="6" y="8" width="52" height="48" viewBox="20 30 740 600">
+    <circle cx="635" cy="132" r="100" fill="#e8a33d"/>
+    <path fill="#ffffff" d="M65 620 C 20 430, 140 175, 300 165 C 390 160, 435 250, 430 365 C 330 320, 170 400, 65 620 Z"/>
+    <path fill="#ffffff" stroke="#24356b" stroke-width="22" paint-order="stroke" d="M432 380 C 410 420, 370 470, 368 530 C 366 590, 410 625, 460 622 C 520 618, 555 580, 568 500 L 600 330 C 606 300, 625 292, 650 290 C 685 287, 700 262, 696 225 C 694 205, 670 196, 640 198 L 580 202 C 545 205, 528 225, 520 260 L 497 350 C 490 390, 470 412, 452 410 C 440 408, 434 395, 432 380 Z"/>
+  </svg>
+</svg>

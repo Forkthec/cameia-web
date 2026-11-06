@@ -3,12 +3,24 @@
  *
  * Usa `defineConfig` de `vitest/config` (no de `vite`) para que el bloque
  * `test` de abajo quede tipado, sin depender de una referencia de tipos aparte.
+ *
+ * `build.rolldownOptions.output.assetFileNames` deja sin hash, en `vad/`, solo los cuatro
+ * archivos de Silero VAD: MicVAD y ORT arman su ruta con un nombre fijo (ADR-0009). Es el
+ * único asset del proyecto que sale del hash.
  */
 import path from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 import svgr from 'vite-plugin-svgr';
+
+/** Los cuatro archivos del ADR-0009; cualquier otro asset conserva el hash. */
+const VAD_ASSET_NAMES = new Set([
+  'silero_vad_v5.onnx',
+  'vad.worklet.bundle.min.js',
+  'ort-wasm-simd-threaded.wasm',
+  'ort-wasm-simd-threaded.mjs',
+]);
 
 export default defineConfig({
   plugins: [
@@ -21,6 +33,18 @@ export default defineConfig({
       // "@/algo" en vez de una ruta larga con "../../../". Debe reflejar
       // exactamente el alias "@/*" de tsconfig.app.json.
       '@': path.resolve(import.meta.dirname, './src'),
+    },
+  },
+  build: {
+    rolldownOptions: {
+      output: {
+        // Rolldown llena `names` con el nombre de archivo que Vite le da al asset de `?url`.
+        assetFileNames: (asset) => {
+          const vadName = asset.names.find((name) => VAD_ASSET_NAMES.has(name));
+          // Mismo patrón que Vite usa por defecto (build.assetsDir = 'assets').
+          return vadName ? `vad/${vadName}` : 'assets/[name]-[hash][extname]';
+        },
+      },
     },
   },
   test: {

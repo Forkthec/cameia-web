@@ -1,0 +1,92 @@
+{
+  "cta": {
+    "crearCuenta": "Create account",
+    "iniciarSesion": "Log in"
+  },
+  "header": {
+    "idiomaInterfaz": "Interface language"
+  },
+  "hero": {
+    "titulo": "Walk into your interview ready",
+    "subtitulo": "Practice with an AI interviewer, get structured feedback, and walk into your next interview with confidence.",
+    "esGratis": "It's free",
+    "tarjeta": {
+      "titulo": "Practice session",
+      "descripcion": "The AI interviewer listens and responds in real time, by voice or by text.",
+      "tiempoReal": "Real time",
+      "texto": "Text",
+      "voz": "Voice"
+    },
+    "detalleRetroalimentacion": "Question-by-question breakdown"
+  },
+  "modulos": {
+    "titulo": "Everything you need to show up prepared",
+    "simulacros": {
+      "titulo": "Voice and text mock interviews",
+      "descripcion": "Practice full interviews conversing with an AI interviewer, by voice or by text, however you prefer."
+    },
+    "perfil": {
+      "titulo": "Professional profile and résumé",
+      "descripcion": "Upload your CV and let AI fill in your profile, or fill it out yourself. You always have the final say."
+    },
+    "retroalimentacion": {
+      "titulo": "Structured feedback",
+      "descripcion": "Get a question-by-question breakdown of your performance, with a score and concrete suggestions for improvement."
+    },
+    "etiqueta": "Features"
+  },
+  "entrenoVsSimulacion": {
+    "titulo": "Practice at your own pace, or put your real performance to the test",
+    "entreno": {
+      "titulo": "Practice",
+      "descripcion": "Ask follow-up questions whenever you need to, and get feedback after every answer. Ideal for practicing without pressure.",
+      "etiqueta": "At your own pace",
+      "lineaTiempo": {
+        "inicio": "Answer",
+        "fin": "Feedback after each one"
+      }
+    },
+    "simulacion": {
+      "titulo": "Simulation",
+      "descripcion": "A continuous flow with no pauses, just like a real interview. Get your full evaluation at the end.",
+      "etiqueta": "Like the real thing",
+      "lineaTiempo": {
+        "inicio": "No pauses",
+        "fin": "Full evaluation at the end"
+      }
+    },
+    "etiqueta": "Two modes"
+  },
+  "cierre": {
+    "titulo": "Your next interview starts here"
+  },
+  "pie": {
+    "terminos": "Terms",
+    "privacidad": "Privacy",
+    "copyright": "© 2026 Cameia"
+  },
+  "seo": {
+    "titulo": "CAMEIA · Practice job interviews with AI",
+    "descripcion": "Practice with an AI interviewer, get structured feedback, and get to your next interview with confidence."
+  },
+  "intro": {
+    "saltar": "Skip intro"
+  },
+  "pasos": {
+    "etiqueta": "How it works",
+    "titulo": "Three steps to your next interview",
+    "numero": "Step {{numero}}",
+    "practica": {
+      "titulo": "Practice",
+      "descripcion": "Choose Practice or Simulation and talk with the AI interviewer, by voice or by text."
+    },
+    "mejora": {
+      "titulo": "Improve",
+      "descripcion": "Get a question-by-question breakdown of your performance, with a score and concrete suggestions."
+    },
+    "avanza": {
+      "titulo": "Advance",
+      "descripcion": "Walk into your next interview with confidence."
+    }
+  }
+}

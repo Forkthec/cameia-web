@@ -33,7 +33,8 @@ actualizar o cambiar la versión de Node ni de pnpm del sistema — usa siempre 
 activa en la terminal. Si `node -v` no reporta 24.x al empezar una sesión, detente y dilo;
 no continúes instalando dependencias sobre una versión distinta a la declarada aquí.
 Todo lo demás de esta sección (React, Vite, TypeScript, etc.) sí lo instala `pnpm install`
-automáticamente y en la versión exacta indicada, sin importar qué hubiera antes en `node_modules`.
+automáticamente y en la versión exacta fijada en `package.json` y `pnpm-lock.yaml`, sin importar qué
+hubiera antes en `node_modules`.
 
 ### dependencies
 
@@ -41,7 +42,7 @@ automáticamente y en la versión exacta indicada, sin importar qué hubiera ant
 | -------------------------------- | ------- |
 | react                            | 19.2.8  |
 | react-dom                        | 19.2.8  |
-| react-router                     | 7.18.3  |
+| react-router                     | 8.3.1   |
 | @tanstack/react-query            | 5.102.8 |
 | zustand                          | 5.0.15  |
 | react-hook-form                  | 7.87.0  |
@@ -54,8 +55,11 @@ automáticamente y en la versión exacta indicada, sin importar qué hubiera ant
 | clsx                             | 2.1.1   |
 | tailwind-merge                   | 3.6.0   |
 | class-variance-authority         | 0.7.1   |
-| lucide-react                     | 1.38.0  |
+| lucide-react                     | 1.43.0  |
 | react-helmet-async               | 3.0.0   |
+| libphonenumber-js                | 1.13.13 |
+| @ricky0123/vad-web               | 0.0.31  |
+| onnxruntime-web                  | 1.22.0  |
 
 ### devDependencies
 
@@ -69,7 +73,7 @@ automáticamente y en la versión exacta indicada, sin importar qué hubiera ant
 | @tailwindcss/vite                 | 4.3.3   |
 | @types/react                      | 19.2.18 |
 | @types/react-dom                  | 19.2.7  |
-| @types/node                       | 24.13.3 |
+| @types/node                       | 26.5.0  |
 | vitest                            | 4.1.11  |
 | @vitest/coverage-v8               | 4.1.11  |
 | @vitest/ui                        | 4.1.11  |
@@ -79,9 +83,9 @@ automáticamente y en la versión exacta indicada, sin importar qué hubiera ant
 | @testing-library/user-event       | 14.6.7  |
 | @testing-library/jest-dom         | 7.0.1   |
 | msw                               | 2.15.0  |
-| eslint                            | 10.9.1  |
+| eslint                            | 10.10.0 |
 | @eslint/js                        | 10.0.1  |
-| typescript-eslint                 | 8.69.0  |
+| typescript-eslint                 | 8.70.0  |
 | eslint-plugin-react-hooks         | 7.1.1   |
 | eslint-plugin-react-refresh       | 0.5.6   |
 | eslint-plugin-jsx-a11y            | 6.10.2  |
@@ -91,14 +95,44 @@ automáticamente y en la versión exacta indicada, sin importar qué hubiera ant
 | globals                           | 17.12.0 |
 | prettier                          | 3.9.6   |
 | prettier-plugin-tailwindcss       | 0.8.1   |
+| husky                             | 9.1.7   |
+| lint-staged                       | 17.5.0  |
 
-**Restricciones que explican estas versiones. No las cambies sin verificar los peers:**
+**Fuente de verdad de las versiones.** `package.json` y `pnpm-lock.yaml` mandan; esta tabla es una
+referencia y se resincroniza de vez en cuando (última vez: 6-oct-2026). El repositorio tiene
+**Dependabot activo** (`.github/dependabot.yml`, configurado por DevOps): por eso subieron versiones
+—`react-router` a 8.x y `@types/node` a 26.x, entre otras— sin que esta documentación se
+actualizara, y pueden seguir subiendo. Esas versiones **se aceptan**. Una subida que rompa
+`pnpm typecheck`, `pnpm lint` o `pnpm test` sí se revisa antes de fusionarla. La regla anterior
+«`@types/node` 24.x, no 26.x» (y la línea equivalente de ADR-0002) quedó superada.
 
-- **TypeScript 6.0.3, nunca 7.x.** `typescript-eslint@8.69.0` declara `typescript: ">=4.8.4 <6.1.0"`.
-- **`@types/node` 24.x, no 26.x.** Los tipos deben corresponder al runtime.
+**Restricciones que sí siguen vigentes. No las cambies sin verificar los peers:**
+
+- **TypeScript 6.0.3, nunca 7.x** mientras `typescript-eslint` lo exija: `typescript-eslint@8.70.0`
+  declara `typescript: ">=4.8.4 <6.1.0"` (verificado en `node_modules` el 6-oct-2026).
 - **`@testing-library/dom@10.4.1` va declarado explícitamente.** Es peer de `@testing-library/react` y de `jest-dom`.
 - `eslint-plugin-jsx-a11y@6.10.2` emite un aviso de peer con ESLint 10. Es cosmético, se ignora.
-- **`eslint-import-resolver-typescript@4.4.5` es la única excepción a esta lista, ya autorizada.**
+- **`libphonenumber-js@1.13.13`, autorizada explícitamente el 19-sep-2026 (CM-34, seguimiento).**
+  Necesaria para validar/formatear el celular internacional del Registro (`PhoneNumber.java` exige
+  E.164 estricto, sin adivinar país) sin mantener a mano un catálogo de ~245 indicativos. No trae
+  UI propia — el selector de país (`features/auth/organisms/PhoneField/`) se construye con los
+  átomos existentes (`Select`/`Input`), solo se usa la librería para datos
+  (`getCountries()`/`getCountryCallingCode()`) y validación (`isValidPhoneNumber`).
+- **`@ricky0123/vad-web@0.0.31` y `onnxruntime-web@1.22.0`, autorizadas explícitamente por el PO
+  el 23-oct-2026 (CM-317; ver `docs/decisiones/23102026_v1_decisiones-spike-cm316-hu-5-8.md`).**
+  Necesarias para contar la voz mínima de la respuesta por voz (HU-5.8, 2 s) con el modelo Silero
+  v5 en el navegador, tras el spike CM-316: la medición por volumen no rechazaba todos los casos
+  sin voz. `onnxruntime-web` es dependencia directa de `vad-web` (`^1.17.0`) y se fija en
+  1.22.0. **Restricción:** se cargan solo en una entrevista por voz, al pulsar «Grabar»
+  (`requesting`), con `import()` dinámico; nunca en el arranque de la aplicación ni en
+  entrevistas por texto. Los cuatro archivos que necesitan se sirven desde el mismo dominio
+  (`docs/adr/0009-assets-de-silero-vad-con-nombre-fijo.md`). Safari no se prueba por ahora
+  (CA-5.14.6).
+- **`husky@9.1.7` y `lint-staged@17.5.0`, autorizadas.** Son el hook de pre-commit
+  (`.husky/pre-commit`): corre `prettier --write` y `eslint --fix` solo sobre los archivos del
+  commit (configuración `lint-staged` en `package.json`). Estaban en el repositorio sin
+  autorización escrita; esta línea la registra.
+- **`eslint-import-resolver-typescript@4.4.5` es una excepción más a esta lista, ya autorizada.**
   `eslint-plugin-boundaries` solo resuelve imports relativos con su resolver interno
   (`eslint-import-resolver-node`, que ya trae empaquetado); un import con el alias `@/` lo ve
   como paquete externo no resuelto y la regla de fronteras nunca lo evalúa. Sin este resolver,
@@ -232,11 +266,16 @@ Regla de anidado de radios: un hijo siempre lleva un radio menor que su contened
 
 ## 7. Internacionalización
 
-- `es-CO` es el **único idioma con recursos**. `en` sigue declarado en `SUPPORTED_LANGUAGES` pero
-  no tiene archivos propios: cuando el navegador pide inglés, i18next resuelve cada llave por
-  `fallbackLng: 'es-CO'`. No hay copia en inglés aprobada; el fallback es el mecanismo, no un
-  parche. `locales/en/` ya no existe: se borró y `fallbackLng` opera de verdad.
-- Un namespace por feature: `common`, `auth`, `profile`, `interview`, `errors`. (No existe
+- `es-CO` sigue siendo la fuente principal de copy, pero `en` ya no es solo un fallback: **desde
+  CM-186 tiene recursos propios en `locales/en/`** (los 6 namespaces: `common`, `auth`, `errors`,
+  `interview`, `landing`, `profile`), y cuando el idioma activo es inglés i18next los usa
+  directamente. El copy en inglés es una traducción de trabajo, no una copia con revisión editorial
+  cerrada — se ajusta llave por llave a medida que se revisa. `fallbackLng: 'es-CO'` sigue activo,
+  pero para lo que de verdad resuelve: una llave puntual que todavía no se tradujo (una feature
+  nueva construida solo en español), no el idioma completo como antes. El selector de idioma
+  (`LanguageSwitcher`) ya es alcanzable desde dos sitios: la landing pública (`context="public-header"`,
+  CM-186) y el menú de usuario autenticado (`context="menu-row"`, CM-194).
+- Un namespace por feature: `common`, `auth`, `profile`, `interview`, `errors`, `landing`. (No existe
   `report`; se crea cuando entre su feature.)
 - Llaves en `camelCase`; `UPPER_SNAKE_CASE` cuando la llave es un código de dominio; nunca
   kebab-case. Los códigos BCP-47 (`idioma.es-CO`) se copian tal cual porque son código de dominio,
@@ -264,16 +303,23 @@ Regla de anidado de radios: un hijo siempre lleva un radio menor que su contened
 
 - `services/http/httpClient.ts` es un envoltorio delgado de `fetch`. **No usamos axios.**
 - El cliente adjunta el ID Token de Firebase (`await getIdToken()`) en cada petición y maneja el refresh.
-- `services/http/errorMap.ts` traduce el cuerpo de error del backend a errores tipados de dominio.
-  **Objetivo acordado con backend:** Problem Details, **RFC 9457**, con extensiones propias (un
-  código estable, `correlationId` y el detalle de validación). **El frontend nunca renderiza
-  `title`, `detail` ni ningún mensaje crudo del backend**: usa el código estable como llave de
-  `errors:*`.
-  **PENDIENTE — no está implementado:** hoy `errorMap.ts` implementa el formato provisional
-  `{ code, message, details }` y lo declara en su primera línea (`// PROVISIONAL — … API-TBD-14`).
-  La migración a RFC 9457 es de un solo archivo y depende del contrato real (ADR-0003
-  §Consecuencias; `docs/decisiones/11092026_v2_…` «Cierre de TBD obsoletos», API-TBD-14). No se
-  afirma como hecho lo que no lo está.
+- `services/http/errorMap.ts` traduce el cuerpo de error del backend a un `ApiError` tipado.
+  **Contrato (`ADR-0008`, que sustituye al `ADR-0007`):** `ProblemDetail`, **RFC 7807** —
+  `title`/`detail`/`status` estándar del RFC, más las extensiones propias `code`, `requestId` y
+  `errors: [{field, code, message}]`. El backend envía `code` estable desde el 8-oct-2026
+  (documentos de Backend del 6, 8 y 9-oct; ver `ADR-0008` para las fuentes). El Gateway responde
+  además `{code, message}` sin `title` ni `detail` (p. ej. `401 AUTH_REQUIRED`), y `errorMap.ts`
+  también lo acepta.
+  **El frontend nunca renderiza `title`/`detail` crudos, ni `code`, ni `requestId`.** Siguen
+  prohibidos: el texto visible sale de i18n (§3.2, §7). El `code` no se muestra, **elige una llave
+  de i18n**.
+  **Discriminación.** La decisión de negocio sobre un error se toma por `code` (`error.hasCode(…)`),
+  acotada al endpoint cuyo contrato lo define, con los códigos copiados tal cual del backend. **Es
+  estricto: sin `code` no hay respaldo por `httpStatus`, y la pantalla muestra el mensaje genérico**
+  (`errors:generico`): un genérico es honesto, uno específico equivocado no. El `httpStatus` queda
+  para las clases amplias: `401` (cierre de sesión), `404`, `5xx` y los reintentos de
+  `queryClient.ts`. `errors[].field` ubica un mensaje bajo un campo. Nunca se discrimina por un código
+  inventado por el mock ni por el propio frontend: los mocks usan los `code` del catálogo de Backend.
 - Los DTO viven en `features/*/api/*.dto.ts` y se convierten a modelo de UI en `*.mapper.ts`.
   Ningún componente toca un DTO directamente.
 - Mientras no exista el OpenAPI del backend, los DTO se escriben a mano y se marcan con
@@ -319,43 +365,70 @@ No es opcional y ya está especificada en el Figma:
 
 ---
 
-## 11. Alcance real de Sprint 1 (31-ago → 28-sep)
+## 11. Alcance y estado de Sprint 1 (31-ago → 28-sep, cerrado)
 
-Solo estas features existen todavía: `landing` (pública), `auth`, `professional-profile`,
-`interview-setup`, `interview-session`, y un `home` mínimo para el shell autenticado.
+Features que existen: `landing` (pública), `auth`, `professional-profile`, `interview-setup`,
+`interview-session`, y un `home` mínimo para el shell autenticado. Solo las tres primeras tienen
+código funcional; las otras tres son páginas placeholder (ver la tabla).
 
-Rutas públicas, sin `RequireAuth`: `/` (landing, PRT-00.01), `/registro`, `/ingresar`.
+Rutas públicas, sin `RequireAuth`: `/` (landing, PRT-00.01), `/registro`, `/ingresar`. Con sesión
+activa estas tres redirigen a `/inicio` (`RedirectIfAuthenticated`, `src/app/router/guards/RequireAuth.tsx`).
 Todo lo demás vive detrás de `RequireAuth`, incluida `/inicio` (dashboard, PRT-00.02).
 
 **No crees** `account`, `progress`, `evaluation-report`, `billing`, `usage` ni `job-offers`.
 `job-offers` (HE-03) está fuera del alcance del MVP completo.
 
-**Son 13 subtareas** de frontend en el sprint. Los entregables ya incorporan la respuesta del PO
-del 11-sep-2026 (`docs/decisiones/11092026_v2_respuesta-decisiones-frontend-sprint-1.md`; los
-títulos en Jira se actualizan por parte del PO):
+**Eran 13 subtareas** de frontend en el sprint. Los entregables incorporan la respuesta del PO del
+11-sep-2026 (`docs/decisiones/11092026_v2_respuesta-decisiones-frontend-sprint-1.md`). La columna
+«Estado» es el resultado al cierre (verificado contra `git log` y el código el 6-oct-2026):
 
-| Jira  | HU   | Entregable                                                                                                                                                                                 |
-| ----- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| CM-34 | 1.1  | Formulario de registro con Firebase Auth · PRT-01.01                                                                                                                                       |
-| CM-40 | 1.3  | Inicio de sesión con Firebase Auth · PRT-01.03                                                                                                                                             |
-| CM-46 | 2.2  | Selección del método de configuración · PRT-02.02                                                                                                                                          |
-| CM-53 | 2.3  | Sección «Información General» · PRT-02.03                                                                                                                                                  |
-| CM-61 | 2.4  | Experiencia laboral **y educación**; la educación es **obligatoria** para activar el perfil (J-01) · PRT-02.03                                                                             |
-| CM-65 | 2.5  | Habilidades (texto libre + nivel) y finalizar · **sin expectativas**, fuera del MVP (D-02) · PRT-02.03                                                                                     |
-| CM-69 | 2.11 | Roles Objetivo **dentro del formulario del perfil**: consultar, agregar, sustituir y eliminar; de catálogo, sin prioridad ni reorden (D-01, J-03) · PRT-02.03. **PRT-02.07 sale del MVP.** |
-| CM-80 | 4.2  | Pasos Perfil / Oferta / Rol · PRT-04.02, 04.03, 04.06                                                                                                                                      |
-| CM-84 | 4.3  | Pasos Modo y Tono/Personalidad · PRT-04.07                                                                                                                                                 |
-| CM-85 | 4.3  | Forma de respuesta e Idioma · PRT-04.09                                                                                                                                                    |
-| CM-89 | 4.4  | Botón «Iniciar entrevista» con estado de carga · PRT-04.11                                                                                                                                 |
-| CM-93 | 4.5  | Pantalla de espera y error de la transición (J-04) · PRT-04.11                                                                                                                             |
-| CM-31 | 5.2  | Chat de turno, Entreno y Simulación · PRT-05.08, 05.10                                                                                                                                     |
+| Jira  | HU   | Entregable                                                                                                                                                                                 | Estado                                |
+| ----- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------- |
+| CM-34 | 1.1  | Formulario de registro con Firebase Auth · PRT-01.01                                                                                                                                       | Entregado (#47)                       |
+| CM-40 | 1.3  | Inicio de sesión con Firebase Auth · PRT-01.03                                                                                                                                             | Entregado (#43)                       |
+| CM-46 | 2.2  | Selección del método de configuración · PRT-02.02                                                                                                                                          | Entregado                             |
+| CM-53 | 2.3  | Sección «Información General» · PRT-02.03                                                                                                                                                  | Entregado (#33)                       |
+| CM-61 | 2.4  | Experiencia laboral **y educación**; la educación es **obligatoria** para activar el perfil (J-01) · PRT-02.03                                                                             | Entregado (#34)                       |
+| CM-65 | 2.5  | Habilidades (texto libre + nivel) y finalizar · **sin expectativas**, fuera del MVP (D-02) · PRT-02.03                                                                                     | Entregado (#36)                       |
+| CM-69 | 2.11 | Roles Objetivo **dentro del formulario del perfil**: consultar, agregar, sustituir y eliminar; de catálogo, sin prioridad ni reorden (D-01, J-03) · PRT-02.03. **PRT-02.07 sale del MVP.** | Entregado (#35)                       |
+| CM-80 | 4.2  | Pasos Perfil / Oferta / Rol · PRT-04.02, 04.03, 04.06                                                                                                                                      | **Sin construir** (placeholder)       |
+| CM-84 | 4.3  | Pasos Modo y Tono/Personalidad · PRT-04.07                                                                                                                                                 | **Sin construir** (placeholder)       |
+| CM-85 | 4.3  | Forma de respuesta e Idioma · PRT-04.09                                                                                                                                                    | **Sin construir** (placeholder)       |
+| CM-89 | 4.4  | Botón «Iniciar entrevista» con estado de carga · PRT-04.11                                                                                                                                 | **Sin construir** (placeholder)       |
+| CM-93 | 4.5  | Pantalla de espera y error de la transición (J-04) · PRT-04.11                                                                                                                             | **Sin construir** (placeholder)       |
+| CM-31 | 5.2  | Chat de turno, Entreno y Simulación · PRT-05.08, 05.10                                                                                                                                     | **Sin construir** (placeholder)       |
 
-Landing (PRT-00.01) y Tablero (PRT-00.02) siguen sin HU: el PO las incorporará al backlog (D-03).
-Se puede trabajar sobre los prototipos aprobados, pero **no se asumen dentro del alcance
-comprometido** hasta que existan como historias.
+**7 de las 13 subtareas se entregaron; 6 no se construyeron.** CM-80, 84, 85, 89 y 93 viven en
+`interview-setup` (`NewInterviewWizardPage`, `StartingSessionPage`, páginas placeholder con
+`common:pendiente.*`) y CM-31 en `interview-session` (`InterviewSessionPage`, placeholder); no hay
+contrato, DTO, mocks ni SPEC de entrevistas. `AppShell` ya enlaza «Entrenar» hacia el placeholder.
+
+**Entregado y no listado en la tabla** (HU que se incorporaron o adelantaron después de escribirla):
+
+| Jira   | HU      | Qué es                                                                                                                 | Estado           |
+| ------ | ------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| CM-186 | 10.1    | Landing pública (PRT-00.01): header, hero, tarjetas, i18n ES/EN funcional, `<title>`/Open Graph                         | Entregado (#49)  |
+| CM-194 | 1.8     | Cierre de sesión local con menú de usuario y confirmación (`CA-1.8.1`; la HU figura en Sprint 3 del backlog)            | Entregado (#51)  |
+| CM-195 | —        | Perfil funcional: autoguardado de Información General, validación real contra el backend, un solo perfil por usuario    | Entregado (#52)  |
+
+Con CM-195 la experiencia laboral pasó a **opcional** en el formulario; la educación sigue siendo
+obligatoria para finalizar.
+
+Landing (PRT-00.01) **sí tiene HU**: HU-10.1 / CM-186, ya implementada (D-03 resuelto para ella).
+El Tablero (PRT-00.02, `/inicio`) **sigue sin HU**: es un `EmptyState` placeholder, no forma parte
+del alcance comprometido hasta que el PO lo cree como historia. Se puede trabajar sobre los
+prototipos aprobados, pero **no se asumen dentro del alcance comprometido** hasta que existan como
+historias.
 
 El asistente de configuración de sesión tiene **tres pasos**, no siete:
 «Oferta y rol» → «Modo y tono» → «Idioma y forma de respuesta».
+
+> **Sobre el backlog.** Hasta la entrega del frontend (2026-10-06) el trabajo se hizo contra versiones
+> anteriores del backlog (las que indica el front-matter `backlog` de cada `SPEC.md`). Existe una
+> versión más reciente, `05102026_01_Backlog.xlsx` (v4, con la hoja «Cambios v4»), que llegó
+> después, **no se tuvo en cuenta en lo ya construido y no se cruzó contra el código**. El backlog
+> sigue cambiando: el equipo debe contrastar cada `SPEC.md` con la versión vigente antes de tocar su
+> feature (§16).
 
 ---
 
@@ -377,36 +450,66 @@ escribiendo código**: si el trabajo lo toca, para y pregunta.
    preseleccionado**. En Sprint 1 no hay captura ni transcripción (HU-5.8 es Sprint 2) (D-04).
 5. **Video.** Fuera del MVP. Se muestra deshabilitado con «Próximamente», alineado visualmente con
    el tratamiento de la voz (D-05).
+6. **Valores del nivel de habilidad** (`SkillLevel`): `BASIC`, `INTERMEDIATE`, `ADVANCED`
+   (`docs/decisiones/13092026_v1_…`, C-06; ya en `profile.types.ts`).
+7. **Idioma de los enumerados de Entrevistas.** No cambia: los códigos de sesión, modalidad y forma
+   de respuesta siguen en español (`docs/decisiones/13092026_v1_…`, C-08; `GLOSSARY` §5). No se
+   rehacen traducciones ni referencias a la máquina de estados de sesión. (Perfil Profesional sí usa
+   enumerados en inglés, tal como los publica el backend.)
 
 **Abiertas — para y pregunta:**
 
-1. **Origen del contrato de la API.** No hay OpenAPI; los DTO se escriben a mano contra mocks y
-   los nombres de campo del perfil siguen `pendiente` en `GLOSSARY` §2 (T-03; consulta C-01).
-2. **Identidad por cabecera `X-User-Id`.** La respuesta del PO la menciona para HU-2.2; no está
-   confirmado que sea definitiva frente al ID Token que el gateway ya valida.
-3. **Valores del nivel de habilidad** (`SkillLevel`): enum sin valores publicados (C-06).
-4. **Textos en español de los niveles educativos** `TECHNICAL`, `UNDERGRADUATE`, `POSTGRADUATE`
-   (C-07).
-5. **Si los enumerados de Entrevistas pasan a inglés.** El marco general dice «enums en inglés»,
-   pero los códigos de sesión, modalidad y forma de respuesta están en español (C-08;
-   `GLOSSARY` §5).
+1. **Origen del contrato de la API — parcial.** C-01 (13-sep) fijó la fuente: el código de
+   MicroPerfilPro y su OpenAPI generado. Los nombres de campo se alinearon con el backend real
+   (20-sep), pero el JSON de OpenAPI **no está versionado en el repo** y los DTO siguen marcados
+   `// PROVISIONAL — pendiente de OpenAPI` (§8). Los nombres de `GLOSSARY` §2 aún dicen `pendiente`.
+2. **Identidad por cabecera `X-User-Id`.** C-02 (13-sep): el diseño previsto es que el **Gateway**
+   verifique el token de Firebase y propague el UID en esa cabecera; no la envía el navegador. Queda
+   remitida a Arquitectura la confirmación del esquema definitivo y la fecha de configuración del
+   Gateway, sin respuesta.
+3. *(Movida a Resueltas 6. El número se conserva porque otros documentos citan «abierta N».)*
+4. **Textos en español de los niveles educativos** `TECHNICAL`, `UNDERGRADUATE`, `POSTGRADUATE`.
+   Los niveles están confirmados (C-07); las etiquetas Técnico/Pregrado/Posgrado de `profile.json`
+   son propuesta de Frontend **sin aprobación registrada** de Producto.
+5. *(Movida a Resueltas 7.)*
 6. **Verificación de correo.** HU-1.2 no está en Sprint 1 pero el registro debería redirigir allí.
    Sin decisión escrita.
 7. **Autocompletar con IA.** El selector de método (CM-46) ofrece esa ruta, pero HU-2.6 a HU-2.10
    son Sprint 2. Se renderiza deshabilitada. Sin decisión escrita.
-8. **Landing y Tablero.** PRT-00.01 (`/`) y PRT-00.02 (`/inicio`) siguen sin HU; el PO las creará
-   antes de comprometerlas (D-03). Hasta entonces no forman parte del alcance comprometido.
+8. **Tablero.** **Resuelto para la Landing** (PRT-00.01, `/`): el PO la incorporó al backlog como
+   CM-186/HU-10.1, ya implementada. PRT-00.02 (`/inicio`) sigue sin HU; hasta que el PO la cree, no
+   forma parte del alcance comprometido (D-03).
 9. **Referencias a prototipos.** La lista de PRT del backlog puede estar desactualizada frente a
    Figma (S-02). Los frames mandan; solo se construyen las pantallas efectivamente dibujadas.
-10. **Destino de HU-2.10 y de PRT-02.07.** El PO retiró PRT-02.07 del MVP (D-01) pero no dijo qué
-    pasa con la sugerencia de roles con IA de Sprint 2, que usaba esa pantalla (consulta C-04).
-    `ProfileRolesPage.tsx` y la ruta `/perfiles/:id/roles` **no se borran** hasta tener respuesta.
+10. **Destino de PRT-02.07 y su ruta — parcial.** C-04 (13-sep) respondió: HU-2.10 sigue en
+    Sprint 2, se retira la pantalla PRT-02.07 y la sugerencia de roles con IA irá *dentro* del
+    formulario de PRT-02.03. Lo que no está escrito es cuándo se borra la página:
+    `ProfileRolesPage.tsx` (placeholder) y la ruta `/perfiles/:id/roles` **se conservan hasta
+    HU-2.10** y no se borran antes.
+
+**Anotación — nombres de tipos vs. glosario.** `docs/GLOSSARY.md` §2 nombra tipos
+(`ProfessionalProfile`, `WorkExperience`, `Education`, `Skill`, `TargetRole`) que en el código se
+llaman `Profile`, `WorkExperienceItem`, `EducationItem`, `SkillItem` y `TargetRoleItem`
+(`features/professional-profile/model/profile.types.ts`). Está **pendiente de decidir** si se
+renombra el código o se corrige el glosario; hasta entonces no se renombra nada por cuenta propia.
 
 ---
 
 ## 13. Cómo trabajar en este repositorio
 
 - Antes de tocar código de una feature, lee su `SPEC.md` (§16).
+- **Antes de tocar código de una pantalla con prototipo (cualquier `PRT-XX.XX`), ábrelo y
+  revísalo en vivo en Figma** (`get_metadata` para ubicar el frame exacto por su nombre, luego
+  `get_design_context` con la skill `figma-design-to-code` cargada primero) — layout, componentes
+  usados, copy literal y estados. **Que `SPEC.md`, un ADR o un commit anterior ya describan el
+  diseño no es evidencia de que alguien lo comprobó contra Figma esa vez.** CM-53 se construyó
+  completo (organismo, página, mocks, pruebas, 4 commits) asumiendo un asistente por pasos
+  (`WizardLayout`) porque así lo describía la documentación heredada, sin abrir el archivo real;
+  el prototipo real de PRT-02.03 es una sola página con índice de secciones (`step-list` en
+  desktop, acordeón en `sm`) y una barra de acciones compartida — nada de wizard paginado. Hubo
+  que revertir y rehacer. Incidente completo en
+  `docs/bitacora-ia/hallazgo-figma-no-revisado-cm53.md`. Si no hay una URL de Figma con `node-id`
+  a la mano, se pide antes de escribir código, no después.
 - Antes de escribir código, mira si el componente ya existe en `design-system/`.
 - Antes de crear un archivo, mira si su carpeta ya tiene la convención definida arriba.
 - Cambios grandes: propón el plan y espera confirmación antes de generar archivos.
@@ -418,10 +521,10 @@ escribiendo código**: si el trabajo lo toca, para y pregunta.
 
 ## 14. Estándares de código
 
-Estas reglas no son aspiración: se midieron sobre los 121 archivos fuente y 51 de prueba de
-`src/` y se cumplen sin excepción (evidencia, con comandos y archivo:línea, en
-`docs/bitacora-ia/CM-100-convenciones-observadas.md` §1). Código nuevo que las rompa es un defecto,
-no un estilo distinto.
+Estas reglas no son aspiración: se midieron sobre el código de `src/` cuando se escribieron
+(evidencia, con comandos y archivo:línea, en `docs/bitacora-ia/CM-100-convenciones-observadas.md`
+§1; foto del 11-sep-2026, cuando `src/` era bastante más chico que hoy). Código nuevo que las rompa
+es un defecto, no un estilo distinto.
 
 1. **Idioma.** Identificadores —variables, funciones, tipos, archivos, carpetas, el nombre de
    cada `describe`— en **inglés**. Todo lo que lee una persona —TSDoc, comentarios, el nombre de
@@ -439,8 +542,11 @@ no un estilo distinto.
    `errorMap.ts` línea 8.
 5. **Las interfaces y tipos `*Props` no se exportan.** El componente es la superficie pública;
    sus props se leen en el archivo del componente.
-6. **Barriles `index.ts` solo en dos sitios:** la carpeta de cada componente del design system
-   (`atoms/Button/index.ts`) y la raíz de cada feature (`features/auth/index.ts`). No hay barril de
+6. **Barriles `index.ts` en tres sitios:** la carpeta de cada componente del design system
+   (`atoms/Button/index.ts`), la raíz de cada feature (`features/auth/index.ts`) y la carpeta de cada
+   organismo de feature (`features/auth/organisms/LoginForm/index.ts`). Dos excepciones puntuales:
+   `src/i18n/index.ts` (inicializa i18next y exporta la instancia, ver 14.2) y
+   `src/mocks/handlers/index.ts` (reúne los handlers de MSW). No hay barril de
    categoría (`atoms/index.ts`, `design-system/index.ts`) ni de carpeta técnica (`hooks/`, `utils/`,
    `services/`, `stores/`). Se importa el archivo concreto: `@/utils/cn`, `@/hooks/useDebounce`,
    `@/stores/auth.store`.
@@ -489,11 +595,10 @@ exacta que ya usa el código:
   `CA-2.11.3`.
 - Cuidado con §6: es «Tokens y estilos». La regla de Zustand y Query es `§3.6`, no `§6`.
 
-**PENDIENTE — paso 3 (documentación):** hoy 37 de los 39 barriles y 45 de las 51 pruebas no
-tienen cabecera; 8 archivos fuente la tienen después de los imports (`App.tsx`, `cn.ts` y los seis
-`features/*/routes.tsx`); `queryClient.ts:2` y `auth.store.ts:2` citan «§6» donde corresponde
-`§3.6`; `auth.store.ts:4-6` describe `app/providers/` como inexistente cuando ya existe. Lista
-completa en `docs/bitacora-ia/CM-100-convenciones-observadas.md` §2.2–2.6.
+**PENDIENTE — paso 3 (documentación):** verificado el 6-oct-2026, ningún barril ni prueba carece de
+cabecera en la línea 1. Lo que queda: **7 archivos fuente** con la cabecera después de los imports
+(`src/utils/cn.ts` y los seis `src/features/*/routes.tsx`) y **un comentario obsoleto** en
+`src/stores/auth.store.ts` (líneas 5-6: dice que `app/providers/` no existe, y existe).
 
 ---
 
@@ -526,26 +631,30 @@ y su estado de implementación archivo por archivo.
 | `docs/decisiones/`                | **Lo que el PO resolvió por fuera del backlog**, por escrito y con fecha. Cada SPEC lista en `decisiones` los que lo modifican.                                        |
 | `docs/bitacora-ia/`               | Evidencia de sesiones asistidas por IA (CONTRIBUTING §Uso de IA).                                                                                                      |
 
-`pnpm spec:check` ya existe (`package.json`) y corre en CI (`.github/workflows/validar-specs.yml`,
-fase informativa hasta el 18-sep-2026). La instanciación de la plantilla por feature está en
-marcha: `professional-profile` ya tiene `SPEC.md` (`BLOQUEADA`); las cinco features restantes
-siguen sin el suyo. El estado real, por feature, se rastrea en `docs/SPEC-INDEX.md` (regenerado por
-`pnpm spec:check --write`), no aquí.
+`pnpm spec:check` ya existe (`package.json`) y corre en CI (`.github/workflows/validar-specs.yml`).
+Solo valida el encabezado, el estado, las rutas, los archivos citados con ruta completa y el campo
+`backlog`; no comprueba las nueve secciones ni los cuatro estados por pantalla.
+
+A 6-oct-2026, **3 de las 6 features tienen `SPEC.md`**: `auth`, `landing` y `professional-profile`,
+las tres en `EN_CURSO`. `home`, `interview-setup` e `interview-session` no tienen el suyo. El estado
+real, por feature, se rastrea en `docs/SPEC-INDEX.md` (regenerado por `pnpm spec:check --write`),
+no aquí.
+
+Los SPEC se escribieron contra versiones anteriores del backlog (campo `backlog` del encabezado);
+existe una versión más reciente que no se revisó (nota en §11). Contrasta el SPEC con el backlog
+vigente antes de tocar la feature.
 
 ---
 
 ## 17. Pendientes de este archivo
 
-Reglas de arriba que describen algo que **todavía no existe en el código**. No se suavizan ni se
-borran: cada una tiene el paso que la resuelve. Evidencia en
-`docs/bitacora-ia/CM-100-convenciones-observadas.md` §3.
+Reglas de arriba que describen algo que **todavía no se cumple en el código**. No se suavizan ni se
+borran: cada una tiene el paso que la resuelve. Revisado el 6-oct-2026 (las filas que ya se
+cumplían —`api/`, `*.dto.ts`, `*.mapper.ts`, anatomía de las features con historias, TSDoc masivo— se
+retiraron). Evidencia histórica en `docs/bitacora-ia/CM-100-convenciones-observadas.md` §3.
 
-| Regla                                           | Qué falta en el código                                                                                       | Paso que lo resuelve                                                                |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| §6 tamaños de botón 52/34 px                    | 4 literales en `Button.tsx`; `size="sm"` mide 34 px, por debajo del 44×44 de §10                             | decisión aparte, sin resolver                                                       |
-| §8 errores en formato RFC 9457                  | `errorMap.ts` implementa `{ code, message, details }` provisional                                            | cuando exista el contrato real                                                      |
-| §8 `*.dto.ts`, `*.mapper.ts` por feature        | `src/mocks/handlers/` ya existe (resuelto); ninguna feature tiene todavía `api/`, `*.dto.ts` ni `*.mapper.ts` | primera feature que necesite `api/`                                                 |
-| §15 TSDoc en línea 1 de todos los archivos      | 37 barriles, 45 pruebas y 8 fuentes sin cabecera en línea 1; 2 citas «§6» incorrectas; 1 comentario obsoleto | paso 3 (documentación)                                                              |
-| §11 PRT-02.07 fuera del MVP                     | `ProfileRolesPage.tsx` y la ruta `/perfiles/:id/roles` existen                                               | pendiente de **C-04** (§12 abierta 10); se retiran solo si la respuesta lo confirma |
-| §4 anatomía completa de feature                 | las seis features solo tienen `pages/`, `routes.tsx`, `index.ts`                                             | conforme entren HU al sprint (regla de crecimiento)                                 |
-| §5 nombre de esta rama                          | `feat/CM-100-estructura-inicial` conserva el prefijo `feat/` por excepción explícita de la estrategia de branching v1.2, corrección del 5-sep-2026 (`docs/referencias/03092026_v1_estrategia-branching-pull-requests.md`, línea 6: «se corrige la documentación, no se cambia el flujo ni se renombran ramas remotas») | no se resuelve: excepción permanente para esta rama ya creada; `CM-<numero>-<kebab>` sin prefijo aplica desde la siguiente rama en adelante |
+| Regla                                      | Qué falta en el código                                                                                                          | Paso que lo resuelve                                                         |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| §6 tamaños de botón 52/34 px               | 4 literales en `Button.tsx`; `size="sm"` mide 34 px, por debajo del 44×44 de §10                                                | decisión aparte, sin resolver                                                |
+| §15 TSDoc en línea 1 de todos los archivos | 7 archivos con la cabecera tras los imports (`src/utils/cn.ts` y los 6 `src/features/*/routes.tsx`); comentario obsoleto en `src/stores/auth.store.ts` líneas 5-6 | paso 3 (documentación)                                                       |
+| §11 PRT-02.07 fuera del MVP                | `ProfileRolesPage.tsx` (placeholder) y la ruta `/perfiles/:id/roles` existen; nada enlaza a ellas                               | se conservan hasta HU-2.10 (§12 abierta 10, C-04 respondido)                 |

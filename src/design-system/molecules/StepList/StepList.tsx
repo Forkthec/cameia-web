@@ -2,6 +2,13 @@
  * Lista vertical de secciones para el formulario de perfil — a diferencia de
  * Stepper (horizontal, 3 pasos de un asistente), aquí cada ítem es una
  * sección con nombre propio, sin conector visual entre ellas.
+ *
+ * `secondaryLabel` (CM-195, decisión D-H): texto mudo junto a `label`, para
+ * secciones que nunca llegan a `'complete'` porque no son un requisito de
+ * finalización (p. ej. "Experiencia Laboral (Opcional)") — sin esto, un
+ * ítem que nunca marca el check se lee como un bug, no como "no es
+ * obligatorio". Ya viene traducido por quien arma `items`; este componente
+ * no conoce el dominio ni llama `useTranslation` (`CLAUDE.md §14.7`).
  */
 import { cn } from '@/utils/cn';
 import { Icon } from '../../icons/Icon';
@@ -9,6 +16,7 @@ import type { StepStatus } from '../Stepper';
 
 export interface StepListItem {
   label: string;
+  secondaryLabel?: string;
   status: StepStatus;
 }
 
@@ -45,6 +53,9 @@ export function StepList({ items, label, className }: StepListProps) {
           >
             {item.label}
           </span>
+          {item.secondaryLabel ? (
+            <span className="text-label text-text-muted">{item.secondaryLabel}</span>
+          ) : null}
         </li>
       ))}
     </ol>

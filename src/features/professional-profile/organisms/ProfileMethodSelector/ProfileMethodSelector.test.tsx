@@ -53,6 +53,12 @@ describe('ProfileMethodSelector', () => {
     expect(onSelectManual).not.toHaveBeenCalled();
   });
 
+  it('la tarjeta de IA muestra la etiqueta «Próximamente» (CA-2.2.2)', () => {
+    render(<ProfileMethodSelector {...baseProps} />);
+
+    expect(screen.getByText('Próximamente')).toBeInTheDocument();
+  });
+
   it('tocar Llenado Manual dispara onSelectManual', async () => {
     const user = userEvent.setup();
     const onSelectManual = vi.fn();
@@ -85,6 +91,18 @@ describe('ProfileMethodSelector', () => {
     );
     expect(screen.getByRole('radiogroup')).toHaveAttribute('aria-busy', 'true');
     expect(screen.getByRole('status')).toBeInTheDocument();
+  });
+
+  it('loading deja la tarjeta manual con el atributo disabled, no solo con aria-busy (CA-2.2.7, DF-004)', () => {
+    render(<ProfileMethodSelector {...baseProps} loading />);
+
+    expect(screen.getByRole('radio', { name: /Llenado Manual/ })).toBeDisabled();
+  });
+
+  it('sin loading la tarjeta manual está habilitada (CA-2.2.7, DF-004)', () => {
+    render(<ProfileMethodSelector {...baseProps} />);
+
+    expect(screen.getByRole('radio', { name: /Llenado Manual/ })).toBeEnabled();
   });
 
   it('errorMessage se anuncia como una alerta', () => {

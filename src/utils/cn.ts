@@ -8,8 +8,14 @@ import { extendTailwindMerge } from 'tailwind-merge';
  * `ease-inout`) que no calzan con esos validadores por defecto, así que sin
  * esta extensión `cn('p-space-2', 'p-space-4')` dejaría AMBAS clases en vez
  * de resolver el conflicto — verificado corriendo tailwind-merge directamente
- * antes de asumirlo. Colores, sombras y tamaños de texto sí son permisivos
- * por defecto (aceptan cualquier nombre) y no necesitan extensión.
+ * antes de asumirlo. Colores y sombras sí son permisivos por defecto (aceptan
+ * cualquier nombre) y no necesitan extensión.
+ *
+ * Los tamaños de texto **sí** necesitan extensión (corregido en CM-329): un
+ * `text-<nombre>` desconocido se clasifica como color, así que
+ * `cn('text-display', 'text-text-on-inverse')` descartaba el tamaño y dejaba
+ * solo el color — el texto caía al tamaño heredado sin ningún aviso. Se
+ * registran los nombres de la escala tipográfica de `styles/index.css`.
  */
 const twMerge = extendTailwindMerge({
   extend: {
@@ -26,6 +32,18 @@ const twMerge = extendTailwindMerge({
         'space-9',
       ],
       ease: ['inout'],
+      text: [
+        'display-xl',
+        'display',
+        'display-sm',
+        'h1',
+        'h2',
+        'h2-sm',
+        'h3',
+        'body',
+        'small',
+        'label',
+      ],
     },
   },
 });
