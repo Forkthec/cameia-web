@@ -453,7 +453,7 @@ describe('InterviewSessionPage', () => {
     expect(screen.queryByRole('button', { name: /pausar|repreguntar|reintentar/i })).toBeNull();
   });
 
-  it('tras la pregunta 5 muestra «Tu entrevista terminó.» sin campo ni «Enviar» (CA-5.2.5)', async () => {
+  it('tras la pregunta 5 sigue con el cierre de HU-5.5, sin campo ni «Enviar» (CA-5.2.5, backlog v11)', async () => {
     const user = userEvent.setup();
     renderPage({
       ...ENTRY,
@@ -463,7 +463,7 @@ describe('InterviewSessionPage', () => {
     await user.type(screen.getByLabelText('Respuesta'), 'Fin');
     await user.click(screen.getByRole('button', { name: 'Enviar' }));
     expect(
-      // Con HU-5.5 el título pasa al mensaje de cierre de CA-5.5.3, que empieza igual.
+      // Con HU-5.5 el título pasa al mensaje de cierre de CA-5.5.3.
       await screen.findByRole('heading', { level: 1, name: /^Tu entrevista terminó\./ }),
     ).toBeInTheDocument();
     expect(screen.queryByLabelText('Respuesta')).not.toBeInTheDocument();
@@ -510,7 +510,7 @@ describe('InterviewSessionPage', () => {
       return user;
     }
 
-    it('mientras reúne la evaluación muestra «Procesando tu respuesta…» sin campo ni «Enviar» (CA-5.5.6)', async () => {
+    it('mientras reúne la evaluación muestra «Procesando tu respuesta…», no «Tu entrevista terminó.», sin campo ni «Enviar» (CA-5.5.6)', async () => {
       useHandlers(
         http.post(ANSWERS_URL, () => HttpResponse.json(FINISHED)),
         http.post(CONSOLIDATION_URL, async () => {
@@ -521,6 +521,7 @@ describe('InterviewSessionPage', () => {
       await answerLast();
       expect(await screen.findByText('Procesando tu respuesta…')).toBeInTheDocument();
       expect(screen.queryByLabelText('Respuesta')).not.toBeInTheDocument();
+      expect(screen.queryByText(/^Tu entrevista terminó/)).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Enviar' })).not.toBeInTheDocument();
     });
 

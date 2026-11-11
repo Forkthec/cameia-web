@@ -593,8 +593,9 @@ Contratos del aviso de Backend del 7-11-2026 (§6.1), propuestos hasta que Backe
 especificaciones de CM-216 y CM-220:
 
 - Tras registrar la pregunta 5, el chat pide `POST …/consolidation` (`useInterviewClosing`, una sola
-  vez; el endpoint es idempotente). Mientras responde: orbe girando, «Procesando tu respuesta…»,
-  sin campo ni «Enviar» (CA-5.5.6).
+  vez; el endpoint es idempotente). Mientras responde: orbe girando, la última pregunta con
+  «Procesando tu respuesta…» en lugar de «Tu entrevista terminó.», sin campo ni «Enviar» (CA-5.5.6,
+  backlog v11). Con HU-5.5 ya no se usa «Tu entrevista terminó.» (CA-5.2.5 y CA-5.12.6, v11).
 - `200` con `status: FINALIZADA`: el título pasa a «Tu entrevista terminó. Tu Reporte de Evaluación
   estará disponible en breve.», sin resultados ni resumen (CA-5.5.3).
 - `503 SESSION_CONSOLIDATION_FAILED`, red u otra respuesta: «Ocurrió un error. Inténtalo de

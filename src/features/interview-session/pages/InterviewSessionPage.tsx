@@ -195,12 +195,12 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
       })}
       orbState={orbState}
       statusText={isBusy || isClosingBusy ? t('interview:sesion.procesando') : undefined}
+      // Hasta que la entrevista quede finalizada se mantiene la última pregunta con
+      // «Procesando tu respuesta…», no «Tu entrevista terminó.» (CA-5.5.6, backlog v11).
       heading={
-        turn.phase !== 'finished'
-          ? turn.question.text
-          : closing.status === 'finalized'
-            ? t('interview:sesion.cierre')
-            : t('interview:sesion.terminada')
+        turn.phase === 'finished' && closing.status === 'finalized'
+          ? t('interview:sesion.cierre')
+          : turn.question.text
       }
     >
       {turn.phase === 'finished' && closing.status === 'failed' ? (
