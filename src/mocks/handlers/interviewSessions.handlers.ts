@@ -12,7 +12,8 @@
  * - POST …/sessions/{id}/consolidation (HU-5.5): la entrevista queda FINALIZADA.
  * - POST …/sessions/{id}/answers/audio (HU-5.8): mismo avance que el texto;
  *   la transcripción la simula el backend real (HU-5.12).
- * - POST …/sessions/{id}/start (HU-4.5): pregunta 1 y la forma de respuesta.
+ * - POST …/sessions/{id}/start (HU-4.5) y GET …/{id}/state: objeto de estado
+ *   con la pregunta pendiente (aviso de Backend del 7-11-2026, §6.1).
  * - DELETE …/sessions/{id} (provisional, CA-4.5.17): 204.
  *
  * Las preguntas son datos de prueba; el texto real lo planifica el backend
@@ -38,6 +39,24 @@ function questionDto(sessionId: string, index: number) {
     turnId: `${sessionId}-t${index + 1}`,
     number: index + 1,
     text: MOCK_QUESTIONS[index],
+  };
+}
+
+/** Objeto de estado de la sesión (aviso de Backend del 7-11-2026, §6.1). */
+function sessionState(sessionId: string) {
+  const pending = pendingBySession.get(sessionId) ?? 0;
+  const finished = pending >= MOCK_QUESTIONS.length;
+  return {
+    sessionId,
+    status: finished ? 'FINALIZADA' : 'EN_CURSO',
+    answerFormat: formatBySession.get(sessionId) ?? 'TEXTO',
+    interviewFinished: finished,
+    progress: {
+      currentQuestion: finished ? MOCK_QUESTIONS.length : pending + 1,
+      totalQuestions: MOCK_QUESTIONS.length,
+    },
+    pendingQuestion: finished ? null : questionDto(sessionId, pending),
+    history: [],
   };
 }
 
@@ -120,13 +139,19 @@ export const interviewSessionsHandlers = [
 
   http.post('*/api/v1/interviews/sessions/:sessionId/start', ({ params }) => {
     const sessionId = String(params.sessionId);
-    pendingBySession.set(sessionId, 0);
-    return HttpResponse.json({
-      status: 'EN_CURSO',
-      answerFormat: formatBySession.get(sessionId) ?? 'TEXTO',
-      question: questionDto(sessionId, 0),
-      progress: { currentQuestion: 1, totalQuestions: MOCK_QUESTIONS.length },
-    });
+    if (!pendingBySession.has(sessionId)) pendingBySession.set(sessionId, 0);
+    return HttpResponse.json(sessionState(sessionId));
+  }),
+
+  http.get('*/api/v1/interviews/sessions/:sessionId/state', ({ params }) => {
+    const sessionId = String(params.sessionId);
+    if (!pendingBySession.has(sessionId)) {
+      return HttpResponse.json(
+        { title: 'Not Found', detail: 'x', status: 404, code: 'SESSION_NOT_FOUND' },
+        { status: 404 },
+      );
+    }
+    return HttpResponse.json(sessionState(sessionId));
   }),
 
   http.delete('*/api/v1/interviews/sessions/:sessionId', ({ params }) => {

@@ -15,26 +15,32 @@
 import { useTranslation } from 'react-i18next';
 import { Navigate, useLocation } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
-import { Button } from '@/design-system/atoms/Button';
+import { Button, ButtonLink } from '@/design-system/atoms/Button';
 import { Spinner } from '@/design-system/atoms/Spinner';
 import { AlertInline } from '@/design-system/molecules/AlertInline';
 import { BrandReveal } from '@/design-system/molecules/BrandReveal';
 import { SessionLayout } from '@/layouts/SessionLayout';
 import { useStartInterview, type StartError } from '../hooks/useStartInterview';
 
-function readSessionId(state: unknown): string | null {
+interface StartingState {
+  sessionId: string;
+  previousSessionId?: string;
+}
+
+function readStartingState(state: unknown): StartingState | null {
   if (typeof state !== 'object' || state === null) return null;
-  const { sessionId } = state as { sessionId?: unknown };
-  return typeof sessionId === 'string' ? sessionId : null;
+  const { sessionId, previousSessionId } = state as Record<string, unknown>;
+  if (typeof sessionId !== 'string') return null;
+  return typeof previousSessionId === 'string' ? { sessionId, previousSessionId } : { sessionId };
 }
 
 export function StartingSessionPage() {
   const location = useLocation();
-  const sessionId = readSessionId(location.state);
-  if (!sessionId) return <Navigate to={ROUTES.entrenarNueva} replace />;
+  const starting = readStartingState(location.state);
+  if (!starting) return <Navigate to={ROUTES.entrenarNueva} replace />;
   return (
     <SessionLayout>
-      <StartingSessionView sessionId={sessionId} />
+      <StartingSessionView {...starting} />
     </SessionLayout>
   );
 }
@@ -44,12 +50,13 @@ const ERROR_KEYS: Record<StartError, string> = {
   red: 'errors:red',
   noEncontrada: 'errors:codigos.NOT_FOUND',
   noAdmitida: 'interview:inicio.accionNoAdmitida',
+  perfilInservible: 'interview:inicio.perfilInservible',
   agotados: 'interview:inicio.reintentosAgotados',
 };
 
-function StartingSessionView({ sessionId }: { sessionId: string }) {
-  const { t } = useTranslation(['interview', 'common', 'errors']);
-  const start = useStartInterview(sessionId);
+function StartingSessionView({ sessionId, previousSessionId }: StartingState) {
+  const { t } = useTranslation(['interview', 'common', 'errors', 'home']);
+  const start = useStartInterview(sessionId, previousSessionId);
 
   return (
     <div className="bg-brand-dawn px-space-4 gap-space-7 flex min-h-dvh flex-col items-center justify-center text-center">
@@ -70,6 +77,11 @@ function StartingSessionView({ sessionId }: { sessionId: string }) {
               {t(ERROR_KEYS[start.error])}
             </AlertInline>
             <div className="gap-space-3 flex flex-wrap justify-center">
+              {start.error === 'perfilInservible' ? (
+                <ButtonLink variant="primary" to={ROUTES.perfilNuevo}>
+                  {t('home:miPerfil')}
+                </ButtonLink>
+              ) : null}
               {start.canRetry ? (
                 <Button variant="primary" onClick={start.retry}>
                   {t('common:acciones.reintentar')}

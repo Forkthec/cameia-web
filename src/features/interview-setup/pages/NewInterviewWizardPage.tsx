@@ -179,7 +179,12 @@ export function NewInterviewWizardPage() {
 
   const handleStartNewFromWarning = useCallback(() => {
     if (!warningData) return;
-    void navigate(ROUTES.entrenarIniciando, { state: { sessionId: warningData.sessionId } });
+    void navigate(ROUTES.entrenarIniciando, {
+      state: {
+        sessionId: warningData.sessionId,
+        previousSessionId: warningData.ongoingSession?.sessionId,
+      },
+    });
     setWarningData(null);
   }, [warningData, navigate]);
 

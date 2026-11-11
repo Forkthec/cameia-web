@@ -29,13 +29,17 @@ export interface CreateSessionResponseDto {
 }
 
 /**
- * Respuesta de `POST …/sessions/{session_id}/start` (HU-4.5): la sesión pasa
- * a EN_CURSO con la pregunta 1. Contrato previsto de Backend (respuesta del
- * 20-10-2026, §6.3); el endpoint aún no está publicado.
+ * Objeto de estado de la sesión: respuesta 200 de `POST …/{id}/start` y de
+ * `GET …/{id}/state` (aviso de Backend del 7-11-2026, §6.1; propuesto hasta
+ * que Backend apruebe la especificación de CM-212). `pendingQuestion` solo
+ * viene en EN_CURSO. Nunca trae retroalimentación (CA-5.5.2).
  */
-export interface StartSessionResponseDto {
+export interface SessionStateDto {
+  sessionId: string;
   status: string;
   answerFormat: string;
-  question: { turnId: string; number: number; text: string };
+  interviewFinished: boolean;
   progress: { currentQuestion: number; totalQuestions: number };
+  pendingQuestion: { turnId: string; number: number; text: string } | null;
+  history: { number: number; text: string; answerText: string }[];
 }
