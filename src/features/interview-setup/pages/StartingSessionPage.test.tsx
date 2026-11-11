@@ -4,7 +4,9 @@
  * fallo con «Reintentar» y «Cancelar» (CA-4.5.14), reintentos agotados
  * solo con «Cancelar» (CA-4.5.19), cancelar vuelve a «Nueva entrevista»
  * (CA-4.5.17), entrevista ajena (CA-4.5.10) y el código
- * `PLANNING_RETRIES_EXHAUSTED` de Backend (respuesta del 20-10-2026).
+ * `PLANNING_RETRIES_EXHAUSTED` de Backend (respuesta del 20-10-2026), y
+ * volver a la entrevista anterior al cancelar (CA-4.5.16) con el objeto de
+ * estado del aviso de Backend del 7-11-2026.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
@@ -186,5 +188,100 @@ describe('StartingSessionPage', () => {
     renderPage();
     expect(await screen.findByText('Esta entrevista ya no admite esa acción.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument();
+  });
+
+  it('«Cancelar» con una entrevista anterior en curso abre su chat en la pregunta pendiente (CA-4.5.16)', async () => {
+    let deleted = false;
+    useHandlers(
+      http.post('*/api/v1/interviews/sessions/:id/start', llmUnavailable),
+      http.delete('*/api/v1/interviews/sessions/:id', () => {
+        deleted = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
+      http.get('*/api/v1/interviews/sessions/prev/state', () =>
+        HttpResponse.json({
+          sessionId: 'prev',
+          status: 'EN_CURSO',
+          answerFormat: 'TEXTO',
+          interviewFinished: false,
+          progress: { currentQuestion: 3, totalQuestions: 5 },
+          pendingQuestion: { turnId: 'prev-t3', number: 3, text: 'Pregunta pendiente anterior' },
+          history: [],
+        }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage({ sessionId: 's1', previousSessionId: 'prev' });
+    await user.click(await screen.findByRole('button', { name: 'Cancelar' }));
+    expect(await screen.findByText('Chat: Pregunta pendiente anterior')).toBeInTheDocument();
+    expect(deleted).toBe(true);
+  });
+
+  it('si la entrevista anterior ya no se puede abrir, «Cancelar» vuelve a «Nueva entrevista»', async () => {
+    useHandlers(
+      http.post('*/api/v1/interviews/sessions/:id/start', llmUnavailable),
+      http.get('*/api/v1/interviews/sessions/prev/state', () =>
+        HttpResponse.json(
+          { title: 'x', detail: 'x', status: 404, code: 'SESSION_NOT_FOUND' },
+          { status: 404 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage({ sessionId: 's1', previousSessionId: 'prev' });
+    await user.click(await screen.findByRole('button', { name: 'Cancelar' }));
+    expect(await screen.findByText('Nueva entrevista')).toBeInTheDocument();
+  });
+
+  it('con LLM_INVALID_OUTPUT muestra el error con «Reintentar» (CA-4.5.14)', async () => {
+    useHandlers(
+      http.post('*/api/v1/interviews/sessions/:id/start', () =>
+        HttpResponse.json(
+          { title: 'x', detail: 'x', status: 503, code: 'LLM_INVALID_OUTPUT' },
+          { status: 503 },
+        ),
+      ),
+    );
+    renderPage();
+    expect(await screen.findByText('Ocurrió un error. Inténtalo de nuevo.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
+  });
+
+  it('con PROFILE_SNAPSHOT_INVALID ofrece ir al perfil y «Cancelar», sin «Reintentar»', async () => {
+    useHandlers(
+      http.post('*/api/v1/interviews/sessions/:id/start', () =>
+        HttpResponse.json(
+          { title: 'x', detail: 'x', status: 503, code: 'PROFILE_SNAPSHOT_INVALID' },
+          { status: 503 },
+        ),
+      ),
+    );
+    renderPage();
+    expect(
+      await screen.findByText(
+        'No pudimos preparar tu entrevista con tu perfil actual. Revisa tu perfil e inténtalo de nuevo.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Mi Perfil Profesional' })).toHaveAttribute(
+      'href',
+      '/perfiles/nuevo',
+    );
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument();
+  });
+
+  it('con DATABASE_UNAVAILABLE muestra el error con «Reintentar» y «Cancelar»', async () => {
+    useHandlers(
+      http.post('*/api/v1/interviews/sessions/:id/start', () =>
+        HttpResponse.json(
+          { title: 'x', detail: 'x', status: 503, code: 'DATABASE_UNAVAILABLE' },
+          { status: 503 },
+        ),
+      ),
+    );
+    renderPage();
+    expect(await screen.findByText('Ocurrió un error. Inténtalo de nuevo.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeInTheDocument();
   });
 });
