@@ -41,7 +41,13 @@ import { ApiError } from '@/services/http/ApiError';
 import { AnswerResponseShapeError } from '../api/AnswerResponseShapeError';
 import { reprocessTurn, submitAudioAnswer, submitTextAnswer } from '../api/interviewSession.api';
 import { MAX_EVALUATION_RETRIES } from '../model/interviewSession.constants';
-import { LLM_LIMIT_REACHED, LLM_UNAVAILABLE } from '../model/interviewSession.errorCodes';
+import {
+  LLM_LIMIT_REACHED,
+  LLM_UNAVAILABLE,
+  SESSION_ABANDONED,
+  SESSION_ALREADY_CLOSED,
+  SESSION_TRANSITION_NOT_ALLOWED,
+} from '../model/interviewSession.errorCodes';
 import type {
   AnswerResult,
   InterviewProgress,
@@ -52,7 +58,17 @@ import type {
 /** Respuesta a enviar: escrita (HU-5.2) o grabada (HU-5.8). */
 export type TurnAnswer = { kind: 'text'; text: string } | { kind: 'audio'; audio: Blob };
 
-export type TurnPhase = 'answering' | 'evaluationFailed' | 'finished';
+export type TurnPhase = 'answering' | 'evaluationFailed' | 'finished' | 'closed';
+/** Por qué la entrevista ya no admite respuestas; nombra la llave de `interview:sesion`. */
+export type ClosedReason = 'abandonada' | 'noAdmite';
+
+/** `409` de una entrevista que ya no admite respuestas (CA-5.5.4, CA-5.5.5, CA-5.2.6). */
+function toClosedReason(error: unknown): ClosedReason | null {
+  if (!(error instanceof ApiError)) return null;
+  if (error.hasCode(SESSION_ABANDONED)) return 'abandonada';
+  if (error.hasCode(SESSION_ALREADY_CLOSED, SESSION_TRANSITION_NOT_ALLOWED)) return 'noAdmite';
+  return null;
+}
 /** Mensaje de error del envío, como llave de `errors`. */
 export type SubmitErrorKey = 'red' | 'generico' | 'codigos.NOT_FOUND';
 /** Por qué Backend rechazó un audio; nombra la llave de `interview:sesion.voz`. */
@@ -105,6 +121,7 @@ export function useInterviewTurn(entry: SessionEntry) {
   /** Último fallo de `…/reprocess` que no es de evaluación; `null` si fue de la IA o no hubo. */
   const [retryError, setRetryError] = useState<SubmitErrorKey | null>(null);
   const [audioRejection, setAudioRejection] = useState<AudioRejection | null>(null);
+  const [closedReason, setClosedReason] = useState<ClosedReason | null>(null);
   const keysByTurn = useRef(new Map<string, string>());
   const inFlight = useRef(false);
 
@@ -156,6 +173,12 @@ export function useInterviewTurn(entry: SessionEntry) {
         setPhase('evaluationFailed');
         return;
       }
+      const closed = toClosedReason(error);
+      if (closed) {
+        setClosedReason(closed);
+        setPhase('closed');
+        return;
+      }
       const rejection =
         answer.kind === 'audio' && error instanceof ApiError && error.code
           ? AUDIO_REJECTIONS[error.code]
@@ -193,6 +216,7 @@ export function useInterviewTurn(entry: SessionEntry) {
     retryError,
     retriesExhausted: failedRetries >= MAX_EVALUATION_RETRIES,
     audioRejection,
+    closedReason,
     clearAudioRejection: () => setAudioRejection(null),
     /**
      * @param onSettledAudio se llama si el backend registró la respuesta o

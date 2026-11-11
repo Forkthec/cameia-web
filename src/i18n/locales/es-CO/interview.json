@@ -139,6 +139,9 @@
     "reintentosAgotados": "No pudimos evaluar tu respuesta en este momento. Tu respuesta quedó guardada; inténtalo más tarde.",
     "irAlInicio": "Ir al inicio",
     "terminada": "Tu entrevista terminó.",
+    "cierre": "Tu entrevista terminó. Tu Reporte de Evaluación estará disponible en breve.",
+    "abandonada": "Sesión abandonada: no genera evaluación.",
+    "noAdmite": "Esta entrevista ya no admite esa acción.",
     "voz": {
       "grabar": "Grabar",
       "detener": "Detener",

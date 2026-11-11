@@ -30,3 +30,13 @@ export interface AnswerResponseDto {
   nextQuestion: QuestionDto | null;
   interviewFinished: boolean;
 }
+
+/**
+ * Lo que el cierre usa del objeto de estado que responde
+ * `POST …/{id}/consolidation` (aviso de Backend del 7-11-2026, §6.1; propuesto
+ * hasta aprobar la especificación de CM-220). Nunca trae retroalimentación.
+ */
+export interface ConsolidationResponseDto {
+  status: string;
+  interviewFinished: boolean;
+}

@@ -9,6 +9,7 @@
  *   recortar (CA-5.2.8, CA-5.2.9, CA-5.2.10); misma `Idempotency-Key` → mismo
  *   resultado (CA-5.2.11).
  * - POST …/turns/{turnId}/reprocess (provisional, CA-5.2.19).
+ * - POST …/sessions/{id}/consolidation (HU-5.5): la entrevista queda FINALIZADA.
  * - POST …/sessions/{id}/answers/audio (HU-5.8): mismo avance que el texto;
  *   la transcripción la simula el backend real (HU-5.12).
  * - POST …/sessions/{id}/start (HU-4.5): pregunta 1 y la forma de respuesta.
@@ -132,6 +133,17 @@ export const interviewSessionsHandlers = [
     formatBySession.delete(String(params.sessionId));
     return new HttpResponse(null, { status: 204 });
   }),
+
+  http.post('*/api/v1/interviews/sessions/:sessionId/consolidation', ({ params }) =>
+    HttpResponse.json({
+      sessionId: String(params.sessionId),
+      status: 'FINALIZADA',
+      interviewFinished: true,
+      progress: { currentQuestion: 5, totalQuestions: 5 },
+      pendingQuestion: null,
+      history: [],
+    }),
+  ),
 
   http.post('*/api/v1/interviews/sessions/:sessionId/turns/:turnId/reprocess', ({ params }) =>
     HttpResponse.json(advance(String(params.sessionId), String(params.turnId))),

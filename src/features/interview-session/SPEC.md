@@ -1,15 +1,15 @@
 ---
 feature: interview-session
 estado: EN_CURSO
-hu: [HU-5.2, HU-5.8]
+hu: [HU-5.2, HU-5.8, HU-5.5]
 prt: [PRT-05.10, PRT-05.12]
-jira: [CM-217, CM-317]
+jira: [CM-217, CM-317, CM-221]
 rutas: [/entrenar/sesion/:sessionId]
 documentacion: tsdoc-es
 backlog: 23102026_02_v8.5
 decisiones: [23102026_v1_decisiones-spike-cm316-hu-5-8.md]
 figma: Cameia · Mockups MVP
-revisado: 2026-10-24
+revisado: 2026-11-10
 ---
 
 # Feature · Chat de la entrevista (Simulación)
@@ -586,3 +586,30 @@ En orden. Las pruebas se escriben en rojo antes de la implementación, como en C
 | 9 | `pnpm typecheck && pnpm lint && pnpm test`; `vite build`: chunk de Silero aparte y los cuatro archivos en `dist/vad/` | CLAUDE.md §2, ADR 0009 | Hecha (24-10-2026; bitácora CM-317, Tarea 9) |
 | 10 | Verificación manual en Chrome, Edge y Firefox (Windows): 2 s, 1,9 s, silencio, 3:00, permiso negado, sin micrófono, asset bloqueado en DevTools; bitácora `docs/bitacora-ia/CM-317.md` | CA-5.8.2 a 5.8.4, 5.8.7, 5.8.9 a 5.8.11, 5.8.23, 5.8.25 | Hecha (24-10-2026; bitácora CM-317, Tarea 10) |
 | 11 | Cierre del SPEC: archivos nuevos en la tabla de §7 y estados del plan de §6 | CLAUDE.md §16 | Hecha (24-10-2026; bitácora CM-317, Tarea 11) |
+
+## Cierre de la entrevista (CM-221 · HU-5.5, backlog v10.2)
+
+Contratos del aviso de Backend del 7-11-2026 (§6.1), propuestos hasta que Backend apruebe las
+especificaciones de CM-216 y CM-220:
+
+- Tras registrar la pregunta 5, el chat pide `POST …/consolidation` (`useInterviewClosing`, una sola
+  vez; el endpoint es idempotente). Mientras responde: orbe girando, «Procesando tu respuesta…»,
+  sin campo ni «Enviar» (CA-5.5.6).
+- `200` con `status: FINALIZADA`: el título pasa a «Tu entrevista terminó. Tu Reporte de Evaluación
+  estará disponible en breve.», sin resultados ni resumen (CA-5.5.3).
+- `503 SESSION_CONSOLIDATION_FAILED`, red u otra respuesta: «Ocurrió un error. Inténtalo de
+  nuevo.» con «Reintentar», que pide un ciclo nuevo (CA-5.5.11).
+- `409 SESSION_ABANDONED` al responder: «Sesión abandonada: no genera evaluación.», sin campo
+  (CA-5.5.4). `409 SESSION_ALREADY_CLOSED` o `SESSION_TRANSITION_NOT_ALLOWED`: «Esta entrevista ya
+  no admite esa acción.» (CA-5.5.5, CA-5.2.6).
+- `…/answers`, `…/reprocess` y `…/consolidation` esperan hasta 130 s (`INTERVIEW_AI_TIMEOUT_MS`):
+  el Gateway espera 120 s (CM-357).
+
+**Diferencias conscientes:**
+
+- CA-5.5.3 pide la acción «Ver mis entrevistas» (HU-5.10), pero esa pantalla no está en el plan de
+  los Sprints 4 y 5 ni tiene tarjeta en Jira. No se muestra un botón sin destino; queda pendiente de
+  la decisión de la PO (pregunta 4.4 del documento de Frontend del 4-11-2026).
+- El chat pide la consolidación en vez de consultar `GET …/state` en bucle: con un solo pedido se
+  cubren CA-5.5.6, CA-5.5.3 y CA-5.5.11. Se pidió a Backend confirmarlo.
+
