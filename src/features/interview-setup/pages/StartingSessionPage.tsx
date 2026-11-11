@@ -22,19 +22,25 @@ import { BrandReveal } from '@/design-system/molecules/BrandReveal';
 import { SessionLayout } from '@/layouts/SessionLayout';
 import { useStartInterview, type StartError } from '../hooks/useStartInterview';
 
-function readSessionId(state: unknown): string | null {
+interface StartingState {
+  sessionId: string;
+  previousSessionId?: string;
+}
+
+function readStartingState(state: unknown): StartingState | null {
   if (typeof state !== 'object' || state === null) return null;
-  const { sessionId } = state as { sessionId?: unknown };
-  return typeof sessionId === 'string' ? sessionId : null;
+  const { sessionId, previousSessionId } = state as Record<string, unknown>;
+  if (typeof sessionId !== 'string') return null;
+  return typeof previousSessionId === 'string' ? { sessionId, previousSessionId } : { sessionId };
 }
 
 export function StartingSessionPage() {
   const location = useLocation();
-  const sessionId = readSessionId(location.state);
-  if (!sessionId) return <Navigate to={ROUTES.entrenarNueva} replace />;
+  const starting = readStartingState(location.state);
+  if (!starting) return <Navigate to={ROUTES.entrenarNueva} replace />;
   return (
     <SessionLayout>
-      <StartingSessionView sessionId={sessionId} />
+      <StartingSessionView {...starting} />
     </SessionLayout>
   );
 }
@@ -47,9 +53,9 @@ const ERROR_KEYS: Record<StartError, string> = {
   agotados: 'interview:inicio.reintentosAgotados',
 };
 
-function StartingSessionView({ sessionId }: { sessionId: string }) {
+function StartingSessionView({ sessionId, previousSessionId }: StartingState) {
   const { t } = useTranslation(['interview', 'common', 'errors']);
-  const start = useStartInterview(sessionId);
+  const start = useStartInterview(sessionId, previousSessionId);
 
   return (
     <div className="bg-brand-dawn px-space-4 gap-space-7 flex min-h-dvh flex-col items-center justify-center text-center">

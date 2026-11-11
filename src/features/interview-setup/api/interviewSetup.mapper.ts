@@ -18,7 +18,7 @@ import type {
   ProfileSummaryDto,
   ProfessionalRoleCatalogDto,
 } from './interviewSetup.dto';
-import type { StartSessionResponseDto } from './interviewSession.dto';
+import type { SessionStateDto } from './interviewSession.dto';
 
 export function toProfileSummary(dto: ProfileSummaryDto): ProfileSummaryItem {
   return {
@@ -57,25 +57,28 @@ export interface ChatEntry {
 }
 
 /**
- * Convierte la respuesta de `…/start` (HU-4.5) en la entrada del chat. Las
- * features no comparten tipos (CLAUDE.md §3.4): el chat valida esta forma
- * con su propio `readSessionEntry`.
+ * Convierte el objeto de estado (de `…/start` o `…/state`) en la entrada del
+ * chat. Las features no comparten tipos (CLAUDE.md §3.4): el chat valida
+ * esta forma con su propio `readSessionEntry`.
  *
- * @param sessionId sesión iniciada.
- * @param dto respuesta de `…/start`.
- * @param sessionLanguage idioma elegido en el asistente; `…/start` no lo devuelve.
- * @returns la entrada del chat.
+ * @param sessionId sesión en curso.
+ * @param dto objeto de estado.
+ * @param sessionLanguage idioma de la entrevista; el objeto de estado no lo trae.
+ * @returns la entrada del chat, o `null` si la sesión no tiene pregunta pendiente
+ *   (no está EN_CURSO).
  */
 export function toChatEntry(
   sessionId: string,
-  dto: StartSessionResponseDto,
+  dto: SessionStateDto,
   sessionLanguage: string,
-): ChatEntry {
+): ChatEntry | null {
+  const pending = dto.pendingQuestion;
+  if (!pending) return null;
   return {
     sessionId,
     sessionLanguage,
     answerFormat: dto.answerFormat === 'AUDIO' ? 'AUDIO' : 'TEXTO',
-    question: { turnId: dto.question.turnId, number: dto.question.number, text: dto.question.text },
+    question: { turnId: pending.turnId, number: pending.number, text: pending.text },
     progress: { current: dto.progress.currentQuestion, total: dto.progress.totalQuestions },
   };
 }

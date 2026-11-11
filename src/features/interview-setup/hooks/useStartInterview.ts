@@ -15,16 +15,21 @@
  * - `409 SESSION_CONFLICT` (otro pedido de inicio llegó al mismo tiempo): se
  *   reintenta solo, una vez, y se muestra el estado actual (CA-4.5.12; código de cameia-entrevista, docs/errores.md).
  * - `409 SESSION_TRANSITION_NOT_ALLOWED`: «Esta entrevista ya no admite esa acción.».
- * - «Cancelar» elimina la sesión nueva y vuelve a «Nueva entrevista» sin
- *   datos (CA-4.5.17). CA-4.5.16 (volver a la entrevista anterior) necesita
- *   recuperar su estado (HU-5.7), que aún no existe.
+ * - «Cancelar» elimina la sesión nueva. Si se llegó desde el aviso de
+ *   entrevista en curso, consulta el estado de la anterior y abre su chat en
+ *   la pregunta pendiente (CA-4.5.16); si no hay anterior, o no se puede
+ *   abrir, vuelve a «Nueva entrevista» sin datos (CA-4.5.17).
  */
 import { useEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
 import { ApiError } from '@/services/http/ApiError';
-import { deleteInterviewSession, startInterviewSession } from '../api/interviewSession.api';
+import {
+  deleteInterviewSession,
+  getInterviewSessionState,
+  startInterviewSession,
+} from '../api/interviewSession.api';
 import { toChatEntry } from '../api/interviewSetup.mapper';
 import { useInterviewSetupStore } from '../store/interviewSetup.store';
 
@@ -37,9 +42,11 @@ export type StartError = 'generico' | 'agotados' | 'noEncontrada' | 'noAdmitida'
 
 /**
  * @param sessionId sesión CONFIGURADA recién creada.
+ * @param previousSessionId entrevista que seguía en curso cuando se eligió
+ *   «Iniciar la nueva» (CA-4.4.7); a ella vuelve «Cancelar» (CA-4.5.16).
  * @returns el error a mostrar (o `null` mientras prepara) y las acciones.
  */
-export function useStartInterview(sessionId: string) {
+export function useStartInterview(sessionId: string, previousSessionId?: string) {
   const navigate = useNavigate();
   const resetWizard = useInterviewSetupStore((state) => state.reset);
   const sessionLanguage = useInterviewSetupStore((state) => state.sessionLanguage);
@@ -55,12 +62,17 @@ export function useStartInterview(sessionId: string) {
       failureCount < 1 && failure instanceof ApiError && failure.hasCode('SESSION_CONFLICT'),
     retryDelay: 0,
     onSuccess: (dto) => {
+      const entry = toChatEntry(sessionId, dto, sessionLanguage);
+      if (!entry) {
+        setError('generico');
+        return;
+      }
       const wait = Math.max(0, MIN_INTRO_MS - (Date.now() - startedAt.current));
       window.setTimeout(() => {
         resetWizard();
         void navigate(ROUTES.entrenarSesion(sessionId), {
           replace: true,
-          state: toChatEntry(sessionId, dto, sessionLanguage),
+          state: entry,
         });
       }, wait);
     },
@@ -80,10 +92,24 @@ export function useStartInterview(sessionId: string) {
   });
 
   const cancel = useMutation({
-    mutationFn: () => deleteInterviewSession(sessionId),
-    onSettled: () => {
+    mutationFn: async () => {
+      // Si borrar falla, igual se sale de esta pantalla: la sesión sin iniciar
+      // no bloquea nada y el Usuario no debe quedar atrapado aquí.
+      await deleteInterviewSession(sessionId).catch(() => undefined);
+      if (!previousSessionId) return null;
+      const state = await getInterviewSessionState(previousSessionId).catch(() => null);
+      return state ? toChatEntry(previousSessionId, state, sessionLanguage) : null;
+    },
+    onSettled: (previousEntry) => {
       resetWizard();
-      void navigate(ROUTES.entrenarNueva, { replace: true });
+      if (previousEntry && previousSessionId) {
+        void navigate(ROUTES.entrenarSesion(previousSessionId), {
+          replace: true,
+          state: previousEntry,
+        });
+      } else {
+        void navigate(ROUTES.entrenarNueva, { replace: true });
+      }
     },
   });
 
