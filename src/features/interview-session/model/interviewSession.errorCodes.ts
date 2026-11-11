@@ -15,3 +15,12 @@ export const LLM_LIMIT_REACHED = 'LLM_LIMIT_REACHED';
 
 /** `422`: respuesta vacía o de más de 4000 caracteres (`errors[].field = answerText`). */
 export const VALIDATION_FAILED = 'VALIDATION_FAILED';
+
+/** `409`: la entrevista quedó abandonada; no admite respuestas (CA-5.5.4). */
+export const SESSION_ABANDONED = 'SESSION_ABANDONED';
+
+/** `409`: la entrevista está en evaluación o finalizada; no admite respuestas (CA-5.5.5). */
+export const SESSION_ALREADY_CLOSED = 'SESSION_ALREADY_CLOSED';
+
+/** `409`: la entrevista no admite esa acción en su estado actual (CA-5.2.6). */
+export const SESSION_TRANSITION_NOT_ALLOWED = 'SESSION_TRANSITION_NOT_ALLOWED';

@@ -10,8 +10,15 @@
  */
 import { httpClient } from '@/services/http/httpClient';
 import { toAnswerResult } from './interviewSession.mapper';
-import type { AnswerResponseDto, SubmitAnswerRequestDto } from './interviewSession.dto';
-import { AUDIO_REQUEST_TIMEOUT_MS } from '../model/interviewSession.constants';
+import type {
+  AnswerResponseDto,
+  ConsolidationResponseDto,
+  SubmitAnswerRequestDto,
+} from './interviewSession.dto';
+import {
+  AUDIO_REQUEST_TIMEOUT_MS,
+  INTERVIEW_AI_TIMEOUT_MS,
+} from '../model/interviewSession.constants';
 import type { AnswerResult } from '../model/interviewSession.types';
 
 interface SubmitTextAnswerParams {
@@ -36,7 +43,7 @@ export async function submitTextAnswer({
   const dto = await httpClient.post<AnswerResponseDto>(
     `/api/v1/interviews/sessions/${sessionId}/answers`,
     body,
-    { headers: { 'Idempotency-Key': idempotencyKey } },
+    { headers: { 'Idempotency-Key': idempotencyKey }, timeoutMs: INTERVIEW_AI_TIMEOUT_MS },
   );
   return toAnswerResult(dto);
 }
@@ -50,6 +57,8 @@ export async function submitTextAnswer({
 export async function reprocessTurn(sessionId: string, turnId: string): Promise<AnswerResult> {
   const dto = await httpClient.post<AnswerResponseDto>(
     `/api/v1/interviews/sessions/${sessionId}/turns/${turnId}/reprocess`,
+    undefined,
+    { timeoutMs: INTERVIEW_AI_TIMEOUT_MS },
   );
   return toAnswerResult(dto);
 }
@@ -82,4 +91,22 @@ export async function submitAudioAnswer({
     { headers: { 'Idempotency-Key': idempotencyKey }, timeoutMs: AUDIO_REQUEST_TIMEOUT_MS },
   );
   return toAnswerResult(dto);
+}
+
+/**
+ * Pide reunir la evaluación de una entrevista en evaluación y finalizarla
+ * (HU-5.5). Es idempotente: si ya estaba finalizada responde igual.
+ *
+ * @param sessionId sesión que respondió sus 5 preguntas.
+ * @returns `true` si la entrevista quedó finalizada.
+ * @throws ApiError 503 `SESSION_CONSOLIDATION_FAILED` si los 3 intentos de
+ *   Backend fallan (CA-5.5.11); TypeError si no hay red.
+ */
+export async function consolidateSession(sessionId: string): Promise<boolean> {
+  const dto = await httpClient.post<ConsolidationResponseDto>(
+    `/api/v1/interviews/sessions/${sessionId}/consolidation`,
+    undefined,
+    { timeoutMs: INTERVIEW_AI_TIMEOUT_MS },
+  );
+  return dto.status === 'FINALIZADA';
 }

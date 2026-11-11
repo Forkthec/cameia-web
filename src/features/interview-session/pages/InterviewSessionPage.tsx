@@ -31,6 +31,7 @@ import { Navigate, useLocation } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
 import { AlertInline } from '@/design-system/molecules/AlertInline';
 import type { BrandOrbState } from '@/design-system/molecules/BrandOrb';
+import { useInterviewClosing } from '../hooks/useInterviewClosing';
 import { useInterviewTurn } from '../hooks/useInterviewTurn';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
 import {
@@ -59,6 +60,8 @@ interface InterviewSessionViewProps {
 function InterviewSessionView({ entry }: InterviewSessionViewProps) {
   const { t, i18n } = useTranslation(['interview', 'common', 'errors']);
   const turn = useInterviewTurn(entry);
+  const closing = useInterviewClosing(entry.sessionId, turn.phase === 'finished');
+  const isClosingBusy = turn.phase === 'finished' && closing.status === 'processing';
   const recorder = useVoiceRecorder();
   const turnId = turn.question.turnId;
 
@@ -86,10 +89,14 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
   const isBusy = turn.isSubmitting || turn.isRetrying;
   const orbState: BrandOrbState =
     turn.phase === 'finished'
-      ? 'complete'
+      ? closing.status === 'finalized'
+        ? 'complete'
+        : closing.status === 'failed'
+          ? 'error'
+          : 'processing'
       : isBusy
         ? 'processing'
-        : turn.phase === 'evaluationFailed'
+        : turn.phase === 'evaluationFailed' || turn.phase === 'closed'
           ? 'error'
           : recorder.status === 'recording'
             ? 'recording'
@@ -187,9 +194,29 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
         total: turn.progress.total,
       })}
       orbState={orbState}
-      statusText={isBusy ? t('interview:sesion.procesando') : undefined}
-      heading={turn.phase === 'finished' ? t('interview:sesion.terminada') : turn.question.text}
+      statusText={isBusy || isClosingBusy ? t('interview:sesion.procesando') : undefined}
+      // Hasta que la entrevista quede finalizada se mantiene la última pregunta con
+      // «Procesando tu respuesta…», no «Tu entrevista terminó.» (CA-5.5.6, backlog v11).
+      heading={
+        turn.phase === 'finished' && closing.status === 'finalized'
+          ? t('interview:sesion.cierre')
+          : turn.question.text
+      }
     >
+      {turn.phase === 'finished' && closing.status === 'failed' ? (
+        <EvaluationRetryPanel
+          message={t('errors:generico')}
+          retryLabel={t('common:acciones.reintentar')}
+          retryingLabel={t('interview:sesion.procesando')}
+          isRetrying={closing.isRetrying}
+          onRetry={closing.retry}
+        />
+      ) : null}
+
+      {turn.phase === 'closed' && turn.closedReason ? (
+        <AlertInline variant="error">{t(`interview:sesion.${turn.closedReason}`)}</AlertInline>
+      ) : null}
+
       {turn.phase === 'evaluationFailed' ? (
         <EvaluationRetryPanel
           message={retryMessage}

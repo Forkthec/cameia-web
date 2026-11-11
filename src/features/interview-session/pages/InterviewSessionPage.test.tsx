@@ -453,7 +453,7 @@ describe('InterviewSessionPage', () => {
     expect(screen.queryByRole('button', { name: /pausar|repreguntar|reintentar/i })).toBeNull();
   });
 
-  it('tras la pregunta 5 muestra «Tu entrevista terminó.» sin campo ni «Enviar» (CA-5.2.5)', async () => {
+  it('tras la pregunta 5 sigue con el cierre de HU-5.5, sin campo ni «Enviar» (CA-5.2.5, backlog v11)', async () => {
     const user = userEvent.setup();
     renderPage({
       ...ENTRY,
@@ -463,7 +463,8 @@ describe('InterviewSessionPage', () => {
     await user.type(screen.getByLabelText('Respuesta'), 'Fin');
     await user.click(screen.getByRole('button', { name: 'Enviar' }));
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Tu entrevista terminó.' }),
+      // Con HU-5.5 el título pasa al mensaje de cierre de CA-5.5.3.
+      await screen.findByRole('heading', { level: 1, name: /^Tu entrevista terminó\./ }),
     ).toBeInTheDocument();
     expect(screen.queryByLabelText('Respuesta')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Enviar' })).not.toBeInTheDocument();
@@ -476,5 +477,117 @@ describe('InterviewSessionPage', () => {
     await user.type(screen.getByLabelText('Respuesta'), 'Mi respuesta');
     await user.click(screen.getByRole('button', { name: 'Enviar' }));
     expect(await screen.findByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
+  });
+
+  describe('cierre de la entrevista (HU-5.5)', () => {
+    const CLOSING = 'Tu entrevista terminó. Tu Reporte de Evaluación estará disponible en breve.';
+    const CONSOLIDATION_URL = '*/api/v1/interviews/sessions/:id/consolidation';
+    const LAST = {
+      ...ENTRY,
+      question: { turnId: 's1-t5', number: 5, text: 'Última pregunta' },
+      progress: { current: 5, total: 5 },
+    };
+    const FINISHED = {
+      turn: { turnId: 's1-t5', status: 'COMPLETED' },
+      progress: { currentQuestion: 5, totalQuestions: 5 },
+      nextQuestion: null,
+      interviewFinished: true,
+    };
+    const FINALIZED = {
+      sessionId: 's1',
+      status: 'FINALIZADA',
+      interviewFinished: true,
+      progress: { currentQuestion: 5, totalQuestions: 5 },
+      pendingQuestion: null,
+      history: [],
+    };
+
+    async function answerLast() {
+      const user = userEvent.setup();
+      renderPage(LAST);
+      await user.type(screen.getByLabelText('Respuesta'), 'Fin');
+      await user.click(screen.getByRole('button', { name: 'Enviar' }));
+      return user;
+    }
+
+    it('mientras reúne la evaluación muestra «Procesando tu respuesta…», no «Tu entrevista terminó.», sin campo ni «Enviar» (CA-5.5.6)', async () => {
+      useHandlers(
+        http.post(ANSWERS_URL, () => HttpResponse.json(FINISHED)),
+        http.post(CONSOLIDATION_URL, async () => {
+          await delay('infinite');
+          return HttpResponse.json(FINALIZED);
+        }),
+      );
+      await answerLast();
+      expect(await screen.findByText('Procesando tu respuesta…')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Respuesta')).not.toBeInTheDocument();
+      expect(screen.queryByText(/^Tu entrevista terminó/)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Enviar' })).not.toBeInTheDocument();
+    });
+
+    it('al quedar finalizada muestra el mensaje de cierre sin resultados (CA-5.5.3)', async () => {
+      useHandlers(
+        http.post(ANSWERS_URL, () => HttpResponse.json(FINISHED)),
+        http.post(CONSOLIDATION_URL, () => HttpResponse.json(FINALIZED)),
+      );
+      await answerLast();
+      expect(await screen.findByRole('heading', { level: 1, name: CLOSING })).toBeInTheDocument();
+      expect(screen.queryByLabelText('Respuesta')).not.toBeInTheDocument();
+      expect(screen.queryByText('Procesando tu respuesta…')).not.toBeInTheDocument();
+    });
+
+    it('si la evaluación no se reúne muestra el error con «Reintentar», que pide otro ciclo (CA-5.5.11)', async () => {
+      let calls = 0;
+      useHandlers(
+        http.post(ANSWERS_URL, () => HttpResponse.json(FINISHED)),
+        http.post(CONSOLIDATION_URL, () => {
+          calls += 1;
+          if (calls === 1) {
+            return HttpResponse.json(
+              { title: 'x', detail: 'x', status: 503, code: 'SESSION_CONSOLIDATION_FAILED' },
+              { status: 503 },
+            );
+          }
+          return HttpResponse.json(FINALIZED);
+        }),
+      );
+      const user = await answerLast();
+      expect(await screen.findByText(GENERIC)).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Reintentar' }));
+      expect(await screen.findByRole('heading', { level: 1, name: CLOSING })).toBeInTheDocument();
+      expect(calls).toBe(2);
+    });
+
+    it('en una entrevista abandonada rechaza la respuesta con su mensaje y sin campo (CA-5.5.4)', async () => {
+      useHandlers(
+        http.post(ANSWERS_URL, () =>
+          HttpResponse.json(
+            { title: 'x', detail: 'x', status: 409, code: 'SESSION_ABANDONED' },
+            { status: 409 },
+          ),
+        ),
+      );
+      await answerLast();
+      expect(
+        await screen.findByText('Sesión abandonada: no genera evaluación.'),
+      ).toBeInTheDocument();
+      expect(screen.queryByLabelText('Respuesta')).not.toBeInTheDocument();
+    });
+
+    it('en una entrevista ya cerrada avisa que no admite la acción (CA-5.5.5)', async () => {
+      useHandlers(
+        http.post(ANSWERS_URL, () =>
+          HttpResponse.json(
+            { title: 'x', detail: 'x', status: 409, code: 'SESSION_ALREADY_CLOSED' },
+            { status: 409 },
+          ),
+        ),
+      );
+      await answerLast();
+      expect(
+        await screen.findByText('Esta entrevista ya no admite esa acción.'),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Enviar' })).not.toBeInTheDocument();
+    });
   });
 });

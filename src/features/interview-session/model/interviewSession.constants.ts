@@ -21,3 +21,11 @@ export const LONG_WAIT_NOTICE_MS = 20_000;
 
 /** Espera máxima de la pantalla al enviar audio: 130 s (HU-5.8, notas técnicas). */
 export const AUDIO_REQUEST_TIMEOUT_MS = 130_000;
+
+/**
+ * Espera máxima de las llamadas lentas de la entrevista (`…/answers`,
+ * `…/reprocess` y `…/consolidation`): el Gateway espera 120 s y responde
+ * 504; 130 s le deja a él dar la respuesta (aviso de Backend del 7-11-2026,
+ * punto 4.4, CM-357).
+ */
+export const INTERVIEW_AI_TIMEOUT_MS = 130_000;
