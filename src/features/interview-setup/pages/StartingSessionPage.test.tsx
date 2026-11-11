@@ -246,4 +246,42 @@ describe('StartingSessionPage', () => {
     expect(await screen.findByText('Ocurrió un error. Inténtalo de nuevo.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
   });
+
+  it('con PROFILE_SNAPSHOT_INVALID ofrece ir al perfil y «Cancelar», sin «Reintentar»', async () => {
+    useHandlers(
+      http.post('*/api/v1/interviews/sessions/:id/start', () =>
+        HttpResponse.json(
+          { title: 'x', detail: 'x', status: 503, code: 'PROFILE_SNAPSHOT_INVALID' },
+          { status: 503 },
+        ),
+      ),
+    );
+    renderPage();
+    expect(
+      await screen.findByText(
+        'No pudimos preparar tu entrevista con tu perfil actual. Revisa tu perfil e inténtalo de nuevo.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Mi Perfil Profesional' })).toHaveAttribute(
+      'href',
+      '/perfiles/nuevo',
+    );
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument();
+  });
+
+  it('con DATABASE_UNAVAILABLE muestra el error con «Reintentar» y «Cancelar»', async () => {
+    useHandlers(
+      http.post('*/api/v1/interviews/sessions/:id/start', () =>
+        HttpResponse.json(
+          { title: 'x', detail: 'x', status: 503, code: 'DATABASE_UNAVAILABLE' },
+          { status: 503 },
+        ),
+      ),
+    );
+    renderPage();
+    expect(await screen.findByText('Ocurrió un error. Inténtalo de nuevo.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeInTheDocument();
+  });
 });

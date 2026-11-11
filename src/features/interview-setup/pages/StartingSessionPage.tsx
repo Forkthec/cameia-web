@@ -15,7 +15,7 @@
 import { useTranslation } from 'react-i18next';
 import { Navigate, useLocation } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
-import { Button } from '@/design-system/atoms/Button';
+import { Button, ButtonLink } from '@/design-system/atoms/Button';
 import { Spinner } from '@/design-system/atoms/Spinner';
 import { AlertInline } from '@/design-system/molecules/AlertInline';
 import { BrandReveal } from '@/design-system/molecules/BrandReveal';
@@ -50,11 +50,12 @@ const ERROR_KEYS: Record<StartError, string> = {
   red: 'errors:red',
   noEncontrada: 'errors:codigos.NOT_FOUND',
   noAdmitida: 'interview:inicio.accionNoAdmitida',
+  perfilInservible: 'interview:inicio.perfilInservible',
   agotados: 'interview:inicio.reintentosAgotados',
 };
 
 function StartingSessionView({ sessionId, previousSessionId }: StartingState) {
-  const { t } = useTranslation(['interview', 'common', 'errors']);
+  const { t } = useTranslation(['interview', 'common', 'errors', 'home']);
   const start = useStartInterview(sessionId, previousSessionId);
 
   return (
@@ -76,6 +77,11 @@ function StartingSessionView({ sessionId, previousSessionId }: StartingState) {
               {t(ERROR_KEYS[start.error])}
             </AlertInline>
             <div className="gap-space-3 flex flex-wrap justify-center">
+              {start.error === 'perfilInservible' ? (
+                <ButtonLink variant="primary" to={ROUTES.perfilNuevo}>
+                  {t('home:miPerfil')}
+                </ButtonLink>
+              ) : null}
               {start.canRetry ? (
                 <Button variant="primary" onClick={start.retry}>
                   {t('common:acciones.reintentar')}

@@ -12,6 +12,10 @@
  *   CA-4.5.19 solo con «Cancelar». El contador local de 2 es respaldo visual
  *   (respuesta de Backend del 20-10-2026, pregunta 2).
  * - `404`: «No encontramos lo que buscabas.» (CA-4.5.10).
+ * - `503 PROFILE_SNAPSHOT_INVALID`: la copia del perfil no sirve para preparar
+ *   preguntas; reintentar fallaría igual, así que solo «Cancelar» y el enlace
+ *   al perfil (comentario de Backend en CM-213, 10-11-2026). `DATABASE_UNAVAILABLE`
+ *   cae en el error genérico, con «Reintentar» y «Cancelar».
  * - `409 SESSION_CONFLICT` (otro pedido de inicio llegó al mismo tiempo): se
  *   reintenta solo, una vez, y se muestra el estado actual (CA-4.5.12; código de cameia-entrevista, docs/errores.md).
  * - `409 SESSION_TRANSITION_NOT_ALLOWED`: «Esta entrevista ya no admite esa acción.».
@@ -38,7 +42,8 @@ const MIN_INTRO_MS = 1600;
 /** «Reintentar» la preparación: máximo 2 veces por sesión (CA-4.5.15, CA-4.5.19). */
 const MAX_START_RETRIES = 2;
 
-export type StartError = 'generico' | 'agotados' | 'noEncontrada' | 'noAdmitida' | 'red';
+export type StartError =
+  'generico' | 'agotados' | 'noEncontrada' | 'noAdmitida' | 'perfilInservible' | 'red';
 
 /**
  * @param sessionId sesión CONFIGURADA recién creada.
@@ -83,6 +88,8 @@ export function useStartInterview(sessionId: string, previousSessionId?: string)
         setError('noEncontrada');
       } else if (failure.hasCode('SESSION_TRANSITION_NOT_ALLOWED')) {
         setError('noAdmitida');
+      } else if (failure.hasCode('PROFILE_SNAPSHOT_INVALID')) {
+        setError('perfilInservible');
       } else if (failure.hasCode('PLANNING_RETRIES_EXHAUSTED')) {
         setError('agotados');
       } else {

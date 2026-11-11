@@ -276,4 +276,9 @@ Estricto. Si el catálogo de Backend aún lo entrega (CM-352), el mapper lo omit
 - `LLM_INVALID_OUTPUT` se trata como cualquier fallo de preparación («Reintentar» y «Cancelar»).
 - Siguen provisionales hasta que Backend apruebe la especificación de CM-212 (PR #47 de
   cameia-entrevista, cerrado sin fusionar el 10-11-2026).
+- `503 PROFILE_SNAPSHOT_INVALID` (comentario de Backend del 10-11-2026): «No pudimos preparar tu
+  entrevista con tu perfil actual. Revisa tu perfil e inténtalo de nuevo.» con «Mi Perfil Profesional»
+  y «Cancelar», sin «Reintentar». El texto sale del catálogo de errores de cameia-entrevista; el
+  backlog no lo nombra. `503 DATABASE_UNAVAILABLE` usa el error genérico con «Reintentar».
+- Backend devuelve `history` vacío por ahora (`SessionStateResponse.from` usa `List.of()`).
 
