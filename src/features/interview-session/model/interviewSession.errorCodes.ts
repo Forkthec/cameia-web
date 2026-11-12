@@ -13,6 +13,12 @@ export const LLM_UNAVAILABLE = 'LLM_UNAVAILABLE';
 /** `503`: se agotó la cuota del modelo; mismo tratamiento que `LLM_UNAVAILABLE` (D3). */
 export const LLM_LIMIT_REACHED = 'LLM_LIMIT_REACHED';
 
+/**
+ * `503`: la IA devolvió una evaluación con formato inválido; mismo tratamiento que
+ * `LLM_UNAVAILABLE` (CA-5.2.19, CA-5.2.20; «Cambios v10», fila 57, #146).
+ */
+export const LLM_INVALID_OUTPUT = 'LLM_INVALID_OUTPUT';
+
 /** `422`: respuesta vacía o de más de 4000 caracteres (`errors[].field = answerText`). */
 export const VALIDATION_FAILED = 'VALIDATION_FAILED';
 
