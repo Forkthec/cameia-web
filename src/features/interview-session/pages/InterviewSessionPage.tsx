@@ -224,6 +224,7 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
           retryingLabel={t('interview:sesion.procesando')}
           isRetrying={turn.isRetrying}
           onRetry={turn.retryEvaluation}
+          showRetry={turn.canRetry}
           homeLink={
             turn.retriesExhausted
               ? { label: t('interview:sesion.irAlInicio'), to: ROUTES.inicio }

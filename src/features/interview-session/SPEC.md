@@ -9,7 +9,7 @@ documentacion: tsdoc-es
 backlog: 11112026_03_v11.3
 decisiones: [23102026_v1_decisiones-spike-cm316-hu-5-8.md]
 figma: Cameia · Mockups MVP
-revisado: 2026-11-11
+revisado: 2026-11-12
 ---
 
 # Feature · Chat de la entrevista (Simulación)
@@ -190,7 +190,7 @@ el «sin límite» de «Cambios v10», fila 58. Solo suma un fallo de evaluació
 | --- | --- | --- | --- | --- | --- |
 | `503 LLM_UNAVAILABLE` | `…/answers` | evaluación → panel | No (es el primer fallo) | `errors:generico` + «Reintentar» | CA-5.2.19 (fallo de la IA al evaluar) |
 | `503 LLM_LIMIT_REACHED` | `…/answers` | evaluación → panel (D3, hecho en #101) | No (primer fallo) | `errors:generico` + «Reintentar» | CA-5.2.19 |
-| `503 LLM_INVALID_OUTPUT` | `…/answers` | evaluación → panel (v11.3 D1; **pendiente**: hoy cae en «otro» y muestra el genérico con el campo) | No (primer fallo) | `errors:generico` + «Reintentar» | CA-5.2.19 |
+| `503 LLM_INVALID_OUTPUT` | `…/answers` | evaluación → panel (v11.3 D1, hecho en CM-217) | No (primer fallo) | `errors:generico` + «Reintentar» | CA-5.2.19 |
 | `404` (con o sin `code`, p. ej. `SESSION_NOT_FOUND`) | `…/answers` | no encontrada | — | `errors:codigos.NOT_FOUND` | CA-5.2.7 (entrevista ajena o inexistente) |
 | `422 VALIDATION_FAILED` (`errors[].field = answerText`) | `…/answers` | otro | — | `errors:generico` | CA-5.2.9 / 5.2.10 (la interfaz no deja llegar aquí) |
 | `409 SESSION_TRANSITION_NOT_ALLOWED` | `…/answers` | cerrada (fase `closed`, hecho en #126) | — | `interview:sesion.noAdmite` («Esta entrevista ya no admite esa acción.»); sin campo, sin «Enviar» y sin acción de salida (hallazgos de v11.3 D3, §9) | CA-5.2.6 (envío a una entrevista que no está en curso) |
@@ -431,21 +431,21 @@ espera una promesa resuelta a mano).
 
 | Archivo | Estado |
 | --- | --- |
-| `src/features/interview-session/pages/InterviewSessionPage.tsx` | Hecho; contrato previsto y avisos de voz (#101); envía la respuesta sin recortar y el panel muestra el mensaje del último fallo de reprocess (D4). CM-317: temporizador de 20 s, aviso de CA-5.8.24, descarte tras 503 LLM y tras 413, 415 y 422 genéricos, estados vadFailed y unsupported. **Pendiente (CM-217, v11.3 D2):** ocultar «Reintentar» en el panel de CA-5.2.20 al agotar el tramo 2 |
-| `src/features/interview-session/hooks/useInterviewTurn.ts` | Hecho; rechazos del audio (#101); códigos de D2; solo los fallos de la IA de reprocess suman al tope (D3, D4); retryError reemplaza a retryNetworkError; AnswerResponseShapeError da el genérico (D10); sigue devolviendo llaves de i18n (D6 fuera). CM-317: descarta el audio tras 413, 415, 422 y 503 LLM_* (§5). **Pendiente (CM-217, v11.3):** LLM_INVALID_OUTPUT como fallo de la IA (D1); tope del tramo 2 y guarda síncrona en retryEvaluation (D2); TSDoc |
+| `src/features/interview-session/pages/InterviewSessionPage.tsx` | Hecho; contrato previsto y avisos de voz (#101); envía la respuesta sin recortar y el panel muestra el mensaje del último fallo de reprocess (D4). CM-317: temporizador de 20 s, aviso de CA-5.8.24, descarte tras 503 LLM y tras 413, 415 y 422 genéricos, estados vadFailed y unsupported. **Hecho (CM-217, v11.3 D2):** oculta «Reintentar» en el panel de CA-5.2.20 al agotar el tramo 2 (`showRetry` según `canRetry`) |
+| `src/features/interview-session/hooks/useInterviewTurn.ts` | Hecho; rechazos del audio (#101); códigos de D2; solo los fallos de la IA de reprocess suman al tope (D3, D4); retryError reemplaza a retryNetworkError; AnswerResponseShapeError da el genérico (D10); sigue devolviendo llaves de i18n (D6 fuera). CM-317: descarta el audio tras 413, 415, 422 y 503 LLM_* (§5). **Hecho (CM-217, v11.3):** LLM_INVALID_OUTPUT como fallo de la IA en isEvaluationFailure (D1); tope del tramo 2 con canRetry y guarda síncrona en retryEvaluation (D2); TSDoc |
 | `src/features/interview-session/organisms/SessionStage/SessionStage.tsx` | Hecho; región aria-live con el indicador de procesando |
 | `src/features/interview-session/organisms/TextAnswerComposer/TextAnswerComposer.tsx` | Hecho; cuenta puntos de código NFC con unicodeLength (D9); el botón Enviar solo se deshabilita, sin modo de carga, y ya no recibe etiqueta de carga (CA-5.2.4) |
-| `src/features/interview-session/organisms/EvaluationRetryPanel/EvaluationRetryPanel.tsx` | Hecho; conserva el modo de carga (§9). **Pendiente (CM-217, v11.3 D2):** poder mostrarse sin «Reintentar», solo con «Ir al inicio»; el uso del cierre de HU-5.5 no cambia |
-| `src/features/interview-session/api/interviewSession.api.ts` | Hecho con el contrato previsto (#101); TSDoc de reprocessTurn para después (§9) |
+| `src/features/interview-session/organisms/EvaluationRetryPanel/EvaluationRetryPanel.tsx` | Hecho; conserva el modo de carga (§9). **Hecho (CM-217, v11.3 D2):** prop opcional `showRetry` (por defecto `true`) para mostrarse sin «Reintentar», solo con «Ir al inicio»; el uso del cierre de HU-5.5 no cambia |
+| `src/features/interview-session/api/interviewSession.api.ts` | Hecho con el contrato previsto (#101). **Hecho (CM-217, v11.3 D1):** el TSDoc de reprocessTurn nombra LLM_UNAVAILABLE, LLM_LIMIT_REACHED y LLM_INVALID_OUTPUT (§9) |
 | `src/features/interview-session/api/interviewSession.dto.ts` | Hecho con el contrato previsto (#101) |
 | `src/features/interview-session/api/interviewSession.mapper.ts` | Hecho con el contrato previsto (#101); valida la forma de la respuesta 200 (D10) |
 | `src/features/interview-session/api/AnswerResponseShapeError.ts` | Hecho; error propio del mapper (D10) |
 | `src/features/interview-session/api/interviewSession.mapper.test.ts` | Hecha (D1 y D10) |
-| `src/features/interview-session/model/interviewSession.errorCodes.ts` | Hecho; LLM_UNAVAILABLE, LLM_LIMIT_REACHED y VALIDATION_FAILED (D2); los 409 de HU-5.5 (#126). **Pendiente (CM-217, v11.3 D1):** LLM_INVALID_OUTPUT |
+| `src/features/interview-session/model/interviewSession.errorCodes.ts` | Hecho; LLM_UNAVAILABLE, LLM_LIMIT_REACHED y VALIDATION_FAILED (D2); los 409 de HU-5.5 (#126). **Hecho (CM-217, v11.3 D1):** LLM_INVALID_OUTPUT |
 | `src/features/interview-session/model/interviewSession.types.ts` | Hecho; sessionLanguage en #101 |
 | `src/features/interview-session/model/sessionEntry.ts` | Hecho; valida sessionLanguage (#101) |
-| `src/features/interview-session/model/interviewSession.constants.ts` | Hecho; tope de 2. CM-317: encabezado (tarea 8 del Anexo A). **Pendiente (CM-217, v11.3 D2):** constante del tramo 2 con TSDoc que cite CA-5.2.20 y «Cambios v11.2» #290; TSDoc de MAX_EVALUATION_RETRIES («antes de pasar a CA-5.2.20», #292) |
-| `src/features/interview-session/hooks/useInterviewTurn.test.ts` | Pendiente (CM-217, v11.3 D2): R6b |
+| `src/features/interview-session/model/interviewSession.constants.ts` | Hecho; tope de 2. CM-317: encabezado (tarea 8 del Anexo A). **Hecho (CM-217, v11.3 D2):** MAX_LATER_EVALUATION_RETRIES = 2 con TSDoc que cita CA-5.2.20 y «Cambios v11.2» #290; TSDoc de MAX_EVALUATION_RETRIES («antes de pasar a CA-5.2.20», #292) |
+| `src/features/interview-session/hooks/useInterviewTurn.test.ts` | Hecha (CM-217, v11.3 D2): R6b |
 | `src/features/interview-session/hooks/useVoiceRecorder.ts` | Hecho (CM-317): MicVAD y formatos según las notas técnicas de HU-5.8 (O75, backlog v8.4), orden de arranque (CM-316 D4), estados vadFailed y unsupported, cancelación y tope con reloj real (CM-316 D6); sin medición por energía |
 | `src/features/interview-session/hooks/useVoiceRecorder.test.ts` | Hecha (CM-317): filas «Hook» del plan de §6 |
 | `src/features/interview-session/hooks/sileroVad.ts` | Hecho (CM-317): único punto de entrada a MicVAD, con `import()` y los assets del ADR 0009 |
@@ -455,7 +455,7 @@ espera una promesa resuelta a mano).
 | `src/design-system/molecules/BrandOrb/BrandOrb.tsx` | Hecho |
 | `src/design-system/molecules/ProgressArc/ProgressArc.tsx` | Hecho; la etiqueta se muestra sin mayúsculas forzadas (D7) |
 | `src/mocks/handlers/interviewSessions.handlers.ts` | Hecho con el contrato previsto (#101); cuenta puntos de código NFC sin recortar y copia VALIDATION_FAILED con un comentario (D2, D9) |
-| `src/features/interview-session/pages/InterviewSessionPage.test.tsx` | Hecha; cubre el plan de §6 (v8.3). **Pendiente (CM-217, v11.3):** R1 a R7 del plan de §6; R3 reemplaza la prueba de D5 |
+| `src/features/interview-session/pages/InterviewSessionPage.test.tsx` | Hecha; cubre el plan de §6 (v8.3). **Hecha (CM-217, v11.3):** R1 a R7 del plan de §6; R3 reemplaza la prueba de D5 |
 | `src/features/interview-session/pages/InterviewSessionPage.voice.test.tsx` | Hecha; contrato previsto y rechazos del audio en #101. CM-317: pruebas de HU-5.8 de §6 |
 | `src/design-system/molecules/ProgressArc/ProgressArc.test.tsx` | Hecha (D7, prueba débil; completada con la verificación manual del 22-10, bitácora Tarea 8) |
 
@@ -718,8 +718,8 @@ Del inicio (interview-setup): `PLANNING_RETRIES_EXHAUSTED` deja solo «Cancelar�
 - `EvaluationRetryPanel` usa el modo de carga de `Button` (`EvaluationRetryPanel.tsx:39-41`):
   CA-5.2.19 (fallo de la IA al evaluar la respuesta) no exige que «Reintentar» conserve su
   nombre; se deja así.
-- El TSDoc de `reprocessTurn` (`api/interviewSession.api.ts:55`) solo menciona `LLM_UNAVAILABLE`;
-  faltan `LLM_LIMIT_REACHED` y `LLM_INVALID_OUTPUT` (v11.3 D1).
+- *(Hecho en CM-217.)* El TSDoc de `reprocessTurn` (`api/interviewSession.api.ts`) ya nombra
+  `LLM_UNAVAILABLE`, `LLM_LIMIT_REACHED` y `LLM_INVALID_OUTPUT` (v11.3 D1).
 - Botón Atrás del navegador tras «Ir al inicio»: el estado del historial devuelve la pregunta 1
   con claves nuevas (HU-5.7, retomar una entrevista).
 - Sombras de `BrandOrb` con valores arbitrarios en vez de tokens de elevación (CLAUDE.md §6).

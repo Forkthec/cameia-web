@@ -52,7 +52,8 @@ export async function submitTextAnswer({
  * @param sessionId sesión en curso.
  * @param turnId turno cuya evaluación falló.
  * @returns el resultado del turno si la nueva evaluación tiene éxito.
- * @throws ApiError con `LLM_UNAVAILABLE` si vuelve a fallar.
+ * @throws ApiError con `LLM_UNAVAILABLE`, `LLM_LIMIT_REACHED` o `LLM_INVALID_OUTPUT` si la IA
+ *   vuelve a fallar (CA-5.2.19, CA-5.2.20; SPEC v11.3 D1).
  */
 export async function reprocessTurn(sessionId: string, turnId: string): Promise<AnswerResult> {
   const dto = await httpClient.post<AnswerResponseDto>(
