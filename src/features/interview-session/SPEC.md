@@ -6,10 +6,10 @@ prt: [PRT-05.10, PRT-05.12]
 jira: [CM-217, CM-317, CM-221]
 rutas: [/entrenar/sesion/:sessionId]
 documentacion: tsdoc-es
-backlog: 23102026_02_v8.5
+backlog: 11112026_03_v11.3
 decisiones: [23102026_v1_decisiones-spike-cm316-hu-5-8.md]
 figma: Cameia · Mockups MVP
-revisado: 2026-11-10
+revisado: 2026-11-11
 ---
 
 # Feature · Chat de la entrevista (Simulación)
@@ -20,25 +20,40 @@ Pantalla donde el Usuario responde, una por una, las 5 preguntas principales de 
 Simulación en curso, sin ver retroalimentación hasta el final: HU-5.2 (responder por escrito
 cada pregunta principal y avanzar sin ver retroalimentación) y HU-5.8 (grabar y enviar la
 respuesta por voz). La verdad para QA no es este SPEC, sino el archivo de criterios de cada HU:
-HU-5.2, `21102026_01_HU-5_2_criterios_backlog_v8_3.md` (backlog v8.3,
-`20102026_01_Backlog_v8_3.xlsx`, hoja HE-05); HU-5.8, `23102026_02_HU-5_8_criterios_backlog_v8_4.md`
+HU-5.2, `11112026_03_HU-5_2_criterios_backlog_v11_3.md` (backlog v11.3,
+`11112026_03_Backlog_v11_3.xlsx`, hoja HE-05, filas 7 a 26; ver abajo); HU-5.8,
+`23102026_02_HU-5_8_criterios_backlog_v8_4.md`
 (25 CA, backlog v8.4, `23102026_01_Backlog_v8_4.xlsx`, hoja HE-05), verdad de QA de CM-317. Los
 dos viven fuera del repositorio (`cameia-backup/criterios/`).
 El backlog vigente es el v8.5 (`23102026_02_Backlog_v8_5.xlsx`), que solo cambió CA-5.14.1; HU-5.8
 es igual a la v8.4, así que su archivo de criterios v8.4 sigue vigente.
 
+**HU-5.2 contra el backlog v11.3 (CM-217, 11-11-2026).** El backlog vigente para HU-5.2 es el
+v11.3 (`11112026_03_Backlog_v11_3.xlsx`) y su archivo de criterios es
+`11112026_03_HU-5_2_criterios_backlog_v11_3.md`. La v11.3 no toca HU-5.2: los 20 CA son
+idénticos a los de la v11.2 (las diferencias de HE-05 son de HU-5.6).
+
 Las decisiones del spike CM-316 (`docs/decisiones/23102026_v1_decisiones-spike-cm316-hu-5-8.md`)
 se citan «CM-316 D1» a «CM-316 D8», para no confundirlas con las D1 a D10 de CM-217 de este SPEC.
+Las decisiones de CM-217 para el backlog v11.3 se citan «v11.3 D1» a «v11.3 D6» (§9), por la
+misma razón.
 
 ## 2. Alcance
 
 **Ya en `develop` (CM-217, CM-317):** respuesta escrita; «Enviar» bloqueado vacío o doble;
-progreso «Pregunta k de 5»; errores de red, de la IA y de entrevista ajena; «Reintentar» (máx.
-2 usos) e «Ir al inicio»; «Tu entrevista terminó.» tras la pregunta 5; respuesta por voz con
-datos simulados. Desde el PR #101 (`836d8e3`): contrato previsto de Backend en las tres rutas
+progreso «Pregunta k de 5»; errores de red, de la IA y de entrevista ajena; «Reintentar» (2
+usos en el panel de CA-5.2.19) e «Ir al inicio», con «Reintentar» todavía sin tope en el panel
+de CA-5.2.20 (lo corrige v11.3 D2); tras la pregunta 5, el cierre de HU-5.5 (CM-221, #126);
+respuesta por voz con datos simulados. Desde el PR #101 (`836d8e3`): contrato previsto de Backend en las tres rutas
 de respuesta (D1), `LLM_LIMIT_REACHED` en `…/answers` y los rechazos del audio al transcribir.
 
-**Hecho en la rama `CM-217-contrato-y-errores-chat-simulacion` (CM-217):** archivo de códigos
+**En la rama `CM-217-reintentos-y-errores-v11-3` (CM-217, backlog v11.3):** solo HU-5.2.
+`LLM_INVALID_OUTPUT` como fallo de la IA en `…/answers` y `…/reprocess` (CA-5.2.19, v11.3 D1);
+segundo tramo de «Reintentar» en el panel de CA-5.2.20, con 2 usos más y después solo «Ir al
+inicio» (v11.3 D2); la prueba de CA-5.2.6 (v11.3 D3); la lectura escrita de CA-5.2.5 (v11.3 D4).
+Sin textos nuevos (v11.3 D5). Lo que queda fuera está en v11.3 D6. Plan de pruebas en §6.
+
+**Hecho antes, en la rama `CM-217-contrato-y-errores-chat-simulacion` (CM-217):** archivo de códigos
 de la feature (§4, D2); `LLM_LIMIT_REACHED` en `…/reprocess` decidido por `code` (D3); solo los
 fallos de la IA de `…/reprocess` suman al tope (D4); la prueba exacta del tope (D5); una
 respuesta `200` con forma inesperada muestra el genérico (D10); «Pregunta k de 5» sin
@@ -58,7 +73,10 @@ Anexo A. Safari no se prueba (CA-5.14.6).
 **No entra:** transcripción real (HU-5.12, transcripción de la respuesta por voz), retomar tras
 recarga (HU-5.7, retomar una entrevista), cierre y reporte (HU-5.5, cierre de la entrevista),
 preguntas de seguimiento (HU-5.9), reintentos automáticos (HU-5.6), y los tipos de fallo sin
-llaves de i18n en el hook (D6, §9). Lo anotado para después está en §9.
+llaves de i18n en el hook (D6, §9). Tampoco entra en CM-217 lo de v11.3 D6: quién cuenta los
+usos de «Reintentar» al recargar y si `…/state` expone `RETRYING` (Backend, CM-216);
+`SESSION_ABANDONED` y `SESSION_ALREADY_CLOSED` (HU-5.5); el historial vacío (CA-4.5.16). Lo
+anotado para después está en §9.
 
 ## 3. Comportamiento esperado
 
@@ -77,14 +95,17 @@ Diseño «Escenario + orbe» (aprobado por Frontend, CM-217): cielo de madrugada
   (HU-5.7, retomar, aún no existe: el backlog pide iniciar otra entrevista).
 - **Error:** según §4: sin red → «No hay conexión…» y se conserva el texto (CA-5.2.18, envío
   sin conexión); `404` → «No encontramos lo que buscabas.» (CA-5.2.7, envío a una entrevista
-  ajena o inexistente); fallo de la IA → «Ocurrió un error. Inténtalo de nuevo.» +
-  «Reintentar» (CA-5.2.19, fallo de la IA al evaluar la respuesta); tras 2 «Reintentar»
-  fallidos → mensaje de CA-5.2.20 (reintentos de evaluación agotados) + «Reintentar» + «Ir al
-  inicio»; cualquier otro error → genérico.
+  ajena o inexistente); `409 SESSION_TRANSITION_NOT_ALLOWED` → «Esta entrevista ya no admite
+  esa acción.» (CA-5.2.6, envío a una entrevista que no está en curso); fallo de la IA
+  (`LLM_UNAVAILABLE`, `LLM_LIMIT_REACHED` o `LLM_INVALID_OUTPUT`) → «Ocurrió un error.
+  Inténtalo de nuevo.» + «Reintentar» (CA-5.2.19, fallo de la IA al evaluar la respuesta); tras
+  2 «Reintentar» fallidos → mensaje de CA-5.2.20 (reintentos de evaluación agotados) +
+  «Reintentar» + «Ir al inicio»; tras 2 fallidos más (4 en total) → el mismo mensaje sin
+  «Reintentar», solo con «Ir al inicio» (v11.3 D2); cualquier otro error → genérico.
 - **Éxito:** pregunta siguiente con su texto original y «Pregunta k+1 de 5», sin
   retroalimentación (CA-5.2.1, respuesta registrada y avance; CA-5.2.14, siguiente pregunta con
-  su texto original); tras la 5, «Tu entrevista terminó.» sin campo ni botón (CA-5.2.5,
-  respuesta a la última pregunta).
+  su texto original); tras la 5, sin campo ni «Enviar», sigue el cierre de HU-5.5 (CA-5.2.5,
+  respuesta a la última pregunta; v11.3 D4; ver «Cierre de la entrevista»).
 
 En una entrevista con Texto el chat muestra solo el campo «Respuesta» y «Enviar», sin pausar,
 repreguntar ni reintentar una respuesta ya enviada — CA-5.2.15 (chat de Simulación sin pausa,
@@ -119,7 +140,10 @@ expresión con un comentario que apunta a `src/utils/unicodeLength.ts`.
 **Códigos de la feature (D2, ADR-0008, el `code` estable como discriminador).**
 `src/features/interview-session/model/interviewSession.errorCodes.ts`, con `LLM_UNAVAILABLE`,
 `LLM_LIMIT_REACHED` y `VALIDATION_FAILED`, copiados tal cual del contrato y acotados a
-`…/answers` y `…/reprocess`. El hook y las pruebas los **importan** de ese archivo. Los mocks
+`…/answers` y `…/reprocess`. CM-217 (v11.3 D1) agrega `LLM_INVALID_OUTPUT`, el tercer `code`
+de CA-5.2.19 y CA-5.2.20 («Cambios v10», fila 57, #146). Los `409` de HU-5.5
+(`SESSION_ABANDONED`, `SESSION_ALREADY_CLOSED`, `SESSION_TRANSITION_NOT_ALLOWED`) los agregó
+#126. El hook y las pruebas los **importan** de ese archivo. Los mocks
 los **copian como literal**, con un comentario que apunta a ese archivo, igual que hacen los
 mocks de Perfil. Los códigos de transcripción de CM-317 se quedan donde los dejó #101
 (`AUDIO_REJECTIONS` en el hook).
@@ -151,21 +175,31 @@ como red, para después (§9): un `200` cuyo cuerpo no es JSON (`httpClient.ts:1
 `BackendNotConfiguredError` (`httpClient.ts:57`). Se descartó detectar la red en positivo
 (`TypeError` o `AbortError`), porque el `TypeError` del mapper es de la misma clase.
 
-**Errores.** Tope de «Reintentar» (D5): 2 usos después del primer fallo, 3 llamadas a la IA en
-total («Cambios v4», fila 8); `MAX_EVALUATION_RETRIES` (`model/interviewSession.constants.ts`).
-Solo suma un fallo de evaluación (D4).
+**Errores.** Tope de «Reintentar» (D5, cambiado por v11.3 D2), en dos tramos:
+
+- **Tramo 1** (panel de CA-5.2.19): 2 usos fallidos; `MAX_EVALUATION_RETRIES = 2`
+  (`model/interviewSession.constants.ts`). Sin cambios.
+- **Tramo 2** (panel de CA-5.2.20): 2 usos fallidos más; constante nueva en el mismo archivo.
+  Tras el 2.º fallo de este tramo (4.º uso fallido en total), el mismo mensaje sin «Reintentar».
+
+Como máximo, 4 llamadas a `…/reprocess` por respuesta. Fuente: «Cambios v11.2», filas 12 a 14
+(#290 a #292), que reemplazan la lectura de «Cambios v4», fila 8 (2 usos, 3 llamadas a la IA) y
+el «sin límite» de «Cambios v10», fila 58. Solo suma un fallo de evaluación (D4).
 
 | Code o situación | Petición | Clase | ¿Suma al tope? | Llave i18n | CA |
 | --- | --- | --- | --- | --- | --- |
 | `503 LLM_UNAVAILABLE` | `…/answers` | evaluación → panel | No (es el primer fallo) | `errors:generico` + «Reintentar» | CA-5.2.19 (fallo de la IA al evaluar) |
 | `503 LLM_LIMIT_REACHED` | `…/answers` | evaluación → panel (D3, hecho en #101) | No (primer fallo) | `errors:generico` + «Reintentar» | CA-5.2.19 |
+| `503 LLM_INVALID_OUTPUT` | `…/answers` | evaluación → panel (v11.3 D1; **pendiente**: hoy cae en «otro» y muestra el genérico con el campo) | No (primer fallo) | `errors:generico` + «Reintentar» | CA-5.2.19 |
 | `404` (con o sin `code`, p. ej. `SESSION_NOT_FOUND`) | `…/answers` | no encontrada | — | `errors:codigos.NOT_FOUND` | CA-5.2.7 (entrevista ajena o inexistente) |
 | `422 VALIDATION_FAILED` (`errors[].field = answerText`) | `…/answers` | otro | — | `errors:generico` | CA-5.2.9 / 5.2.10 (la interfaz no deja llegar aquí) |
-| `409 TURN_ALREADY_ANSWERED`, `409 TURN_PROCESSING`, `409 IDEMPOTENCY_KEY_CONFLICT`, `409 SESSION_TRANSITION_NOT_ALLOWED`, `409 SESSION_CONFLICT` | `…/answers` | otro | — | `errors:generico` (el backlog no define textos para ellos; ADR-0008 permite el genérico) | CA-5.2.6 (entrevista que no está en curso), CA-5.2.11 (reenvío de la misma respuesta) |
+| `409 SESSION_TRANSITION_NOT_ALLOWED` | `…/answers` | cerrada (fase `closed`, hecho en #126) | — | `interview:sesion.noAdmite` («Esta entrevista ya no admite esa acción.»); sin campo, sin «Enviar» y sin acción de salida (hallazgos de v11.3 D3, §9) | CA-5.2.6 (envío a una entrevista que no está en curso) |
+| `409 SESSION_ABANDONED`, `409 SESSION_ALREADY_CLOSED` | `…/answers` | cerrada (HU-5.5, #126) | — | ver «Cierre de la entrevista» | CA-5.5.4, CA-5.5.5 (fuera de CM-217, v11.3 D6) |
+| `409 TURN_ALREADY_ANSWERED`, `409 TURN_PROCESSING`, `409 IDEMPOTENCY_KEY_CONFLICT`, `409 SESSION_CONFLICT` | `…/answers` | otro | — | `errors:generico` (el backlog no define textos para ellos; ADR-0008 permite el genérico) | CA-5.2.11 (reenvío de la misma respuesta) |
 | `500 INTERNAL_ERROR`, `503 DATABASE_UNAVAILABLE`, sin `code` | `…/answers` | otro | — | `errors:generico` | — |
 | `200` con forma inesperada (D10) | `…/answers` | otro | — | `errors:generico`; se conservan texto, pregunta y progreso | — |
 | Sin respuesta HTTP (`fetch` rechazado o tiempo agotado) | `…/answers` | red | — | `errors:red`; se conservan texto, pregunta y progreso | CA-5.2.18 (envío sin conexión) |
-| `LLM_UNAVAILABLE` o `LLM_LIMIT_REACHED` | `…/reprocess` | evaluación | **Sí** (D3, por `code`) | 1.º: `errors:generico`; 2.º en adelante: `interview:sesion.reintentosAgotados` | CA-5.2.19, CA-5.2.20 (reintentos agotados) |
+| `LLM_UNAVAILABLE`, `LLM_LIMIT_REACHED` o `LLM_INVALID_OUTPUT` | `…/reprocess` | evaluación | **Sí** (D3 y v11.3 D1, por `code`) | 1.º: `errors:generico` + «Reintentar»; 2.º y 3.º: `interview:sesion.reintentosAgotados` + «Reintentar» + «Ir al inicio»; 4.º: `interview:sesion.reintentosAgotados` + solo «Ir al inicio» (v11.3 D2) | CA-5.2.19, CA-5.2.20 (reintentos de evaluación agotados) |
 | Sin respuesta HTTP | `…/reprocess` | red | No | `errors:red`; «Reintentar» sigue | D4 |
 | `404` | `…/reprocess` | no encontrada | No | `errors:codigos.NOT_FOUND`; «Reintentar» sigue | D4 |
 | `409 TURN_TRANSITION_NOT_ALLOWED`, `409 TURN_PROCESSING`, `409 SESSION_CONFLICT` | `…/reprocess` | otro | No | `errors:generico` (sin textos en el backlog; ADR-0008); «Reintentar» sigue | D4 |
@@ -174,17 +208,18 @@ Solo suma un fallo de evaluación (D4).
 
 **Decisión D4 (panel de fallo de evaluación):**
 
-- `…/reprocess` solo suma un fallo de evaluación con `code` `LLM_UNAVAILABLE` o
-  `LLM_LIMIT_REACHED`. Sin respuesta HTTP → «No hay conexión…»; `404` → «No encontramos lo que
-  buscabas.»; cualquier otro error → genérico. Ninguno de esos tres suma. La página muestra en
-  el panel el mensaje del último fallo (`retryError`) y, si fue de la IA, el genérico o el de
-  tope agotado.
+- `…/reprocess` solo suma un fallo de evaluación con `code` `LLM_UNAVAILABLE`,
+  `LLM_LIMIT_REACHED` o `LLM_INVALID_OUTPUT` (este último, v11.3 D1). Sin respuesta HTTP → «No
+  hay conexión…»; `404` → «No encontramos lo que buscabas.»; cualquier otro error, `409`
+  incluido → genérico. Ninguno de esos suma, tampoco en el tramo 2. La página muestra en el
+  panel el mensaje del último fallo (`retryError`) y, si fue de la IA, el genérico o el de
+  CA-5.2.20.
 - Tras cualquier fallo de `…/reprocess`, incluido un `404`, el panel **sigue mostrando
-  «Reintentar»**, que siempre llama a `…/reprocess`, también después de agotar el tope
-  (CA-5.2.20).
-- «Ir al inicio» (`/inicio`, destino de HU-10.4) aparece al agotar el tope y **no desaparece**
-  aunque después llegue un fallo de otro tipo. El contador solo vuelve a cero con una respuesta
-  exitosa.
+  «Reintentar»** mientras queden usos. Tras el 4.º fallo de la IA desaparece y solo queda «Ir al
+  inicio» (CA-5.2.20, v11.3 D2). Antes de v11.3, «Reintentar» seguía siempre.
+- «Ir al inicio» (`/inicio`, destino de HU-10.4) aparece al agotar el tramo 1 y **no
+  desaparece** aunque después llegue un fallo de otro tipo. El contador solo vuelve a cero con
+  una respuesta exitosa.
 
 **Rechazos del audio (CM-317).** Ver §5, «Qué muestra la pantalla al enviar audio».
 
@@ -263,31 +298,40 @@ totalQuestions}`. `DELETE …/sessions/{id}` sigue sin cambios (documento de Fro
 
 ## 6. Criterios de aceptación
 
-Criterios de HU-5.2 por referencia (texto literal en el archivo de criterios v8.3). Etiquetas
-F / F y B / B según la nota del archivo de criterios.
+Los 20 criterios de HU-5.2 por referencia: el texto literal está en
+`11112026_03_HU-5_2_criterios_backlog_v11_3.md` (§1). El nombre
+de cada CA es el literal del backlog. La capa (F / F y B / B) es la de la columna
+«Especificaciones técnicas», según la nota del archivo de criterios; «efecto visible» marca un
+criterio «B» que se ve en la interfaz. «Estado tras CM-217» es lo que queda al cerrar esta rama.
 
-| Criterio | Etiq. | Qué hace el frontend que el criterio no dice |
-| --- | --- | --- |
-| CA-5.2.1 (respuesta registrada y avance a la siguiente pregunta) | F y B | El campo de la pregunta siguiente arranca vacío |
-| CA-5.2.3 (respuesta vacía o de solo espacios) | F | Vacía = `trim()` vacío |
-| CA-5.2.4 (doble selección de «Enviar») | F y B | Guarda síncrona además de `disabled`; «Enviar» conserva su nombre y el indicador «Procesando tu respuesta…» va aparte, en `aria-live`; una `Idempotency-Key` por turno, reutilizada al reenviar |
-| CA-5.2.5 (respuesta a la última pregunta) | B (efecto visible) | «Tu entrevista terminó.» como título, sin campo ni «Enviar» |
-| CA-5.2.7 (entrevista ajena o inexistente) | B (efecto visible) | Se decide por `404` (clase amplia, ADR-0008) |
-| CA-5.2.8 (respuesta de 4000 caracteres) | F y B | Conteo por puntos de código NFC (D9); se envía tal como se escribió, sin recortar |
-| CA-5.2.9 (respuesta de 4001 caracteres) | F y B | No corta lo escrito: sin `maxLength` |
-| CA-5.2.14 (siguiente pregunta con su texto original) | B (efecto visible) | El texto se pinta sin transformar |
-| CA-5.2.15 (sin pausa, repregunta ni reintento) | F | Aplica a entrevistas con Texto |
-| CA-5.2.18 (envío sin conexión) | F | Solo sin respuesta HTTP; un `200` inesperado es genérico (D10) |
-| CA-5.2.19 (fallo de la IA al evaluar la respuesta) | F y B | `LLM_LIMIT_REACHED` = `LLM_UNAVAILABLE` (D3) |
-| CA-5.2.20 (reintentos de evaluación agotados) | F y B | El tope lo cuenta el front (D5); solo suman fallos de evaluación (D4) |
+| Criterio | Capa | Qué hace el frontend que el criterio no dice | Estado tras CM-217 |
+| --- | --- | --- | --- |
+| CA-5.2.1 · Respuesta registrada y avance a la siguiente pregunta | F y B | El campo de la pregunta siguiente arranca vacío | Cubierto, sin cambios |
+| CA-5.2.2 · La confirmación de la respuesta no incluye retroalimentación | B | El DTO no trae retroalimentación; la prueba de CA-5.2.1 afirma que no aparece | Solo Backend |
+| CA-5.2.3 · Respuesta vacía o de solo espacios | F | Vacía = `trim()` vacío | Cubierto, sin cambios |
+| CA-5.2.4 · Doble selección de "Enviar" | F y B | Guarda síncrona además de `disabled`; «Enviar» conserva su nombre y el indicador «Procesando tu respuesta…» va aparte, en `aria-live`; una `Idempotency-Key` por turno, reutilizada al reenviar | Cubierto, sin cambios |
+| CA-5.2.5 · Respuesta a la última pregunta | F y B (antes B) | Sin campo ni «Enviar»; sigue el cierre de HU-5.5, que ya está disponible (v11.3 D4) | Sin cambios de código; se cubre en la pantalla de cierre de CM-221 (#126); de punta a punta, pendiente de CM-216 y CM-220 |
+| CA-5.2.6 · Envío a una entrevista que no está en curso | B (efecto visible) | `409 SESSION_TRANSITION_NOT_ALLOWED` → «Esta entrevista ya no admite esa acción.»; además oculta el campo y «Enviar» y no ofrece salida (hallazgos, §9) | Código ya en #126; **falta la prueba** (v11.3 D3) |
+| CA-5.2.7 · Envío a una entrevista ajena o inexistente | B (efecto visible) | Se decide por `404` (clase amplia, ADR-0008), con o sin `SESSION_NOT_FOUND` | Cubierto, sin cambios |
+| CA-5.2.8 · Respuesta de 4000 caracteres | F y B | Conteo por puntos de código NFC (D9); se envía tal como se escribió, sin recortar | Cubierto, sin cambios |
+| CA-5.2.9 · Respuesta de 4001 caracteres | F y B | No corta lo escrito: sin `maxLength` | Cubierto, sin cambios |
+| CA-5.2.10 · Respuesta vacía enviada sin la interfaz | B | La interfaz no deja llegar; un `422` mostraría el genérico | Solo Backend |
+| CA-5.2.11 · Reenvío de la misma respuesta | B | Reutiliza la `Idempotency-Key` del turno; un `409` con otra clave mostraría el genérico | Solo Backend |
+| CA-5.2.12 · Respuesta guardada antes de evaluarla | B | «Reintentar» no pide texto nuevo | Solo Backend |
+| CA-5.2.13 · Cierre de la respuesta k y paso a la pregunta k+1 | B | — | Solo Backend |
+| CA-5.2.14 · Siguiente pregunta con su texto original | B (efecto visible) | El texto se pinta sin transformar | Cubierto, sin cambios |
+| CA-5.2.15 · Chat de Simulación sin pausa, repregunta ni reintento | F | Aplica a entrevistas con Texto | Cubierto, sin cambios |
+| CA-5.2.16 · Pregunta de seguimiento ignorada sin HU-5.9 | B | La pregunta se muestra tal como llega | Solo Backend |
+| CA-5.2.17 · Retroalimentación STAR solo en preguntas conductuales | B | — | Solo Backend |
+| CA-5.2.18 · Envío sin conexión | F | Solo sin respuesta HTTP; un `200` inesperado es genérico (D10) | Cubierto, sin cambios |
+| CA-5.2.19 · Fallo de la IA al evaluar la respuesta | F y B | `LLM_LIMIT_REACHED` y `LLM_INVALID_OUTPUT` = `LLM_UNAVAILABLE` (D3, v11.3 D1) | **Cambia**: `LLM_INVALID_OUTPUT` (v11.3 D1) |
+| CA-5.2.20 · Reintentos de evaluación agotados | F y B | El tope lo cuenta el front, en memoria (D5, v11.3 D2); solo suman fallos de la IA (D4); guarda síncrona y botón deshabilitado | **Cambia**: tramo 2 de 2 usos y después solo «Ir al inicio» (v11.3 D2) |
 
-Los de solo Backend (CA-5.2.2, 5.2.6, 5.2.10 a 5.2.13, 5.2.16 y 5.2.17) no tienen lógica en el
-front: el DTO no trae retroalimentación y la pregunta se muestra tal como llega.
-
-### Plan de pruebas
+### Plan de pruebas (backlog v8.3, PR #102)
 
 Pruebas de la página en `pages/InterviewSessionPage.test.tsx` salvo que se diga otra cosa.
-Las pruebas se escribieron en rojo en `ce6b98f` y pasan con la implementación de esta rama.
+Las pruebas se escribieron en rojo en `ce6b98f` y pasan con la implementación de esa rama. Lo
+que cambia con el backlog v11.3 está en el plan siguiente.
 «Hecha» = escrita o ampliada en esta rama; «Se mantiene» = ya existía y no se tocó. Todas usan
 el contrato de §5 y los códigos de §4. Ya cubiertas por #101 y fuera de este plan:
 `LLM_LIMIT_REACHED` en `…/answers` y la respuesta propia del audio
@@ -299,7 +343,7 @@ el contrato de §5 y los códigos de §4. Ya cubiertas por #101 y fuera de este 
 | CA-5.2.3 | mantiene «Enviar» deshabilitado con el campo vacío o solo espacios | «Enviar» deshabilitado vacío, con espacios, con tabuladores y saltos de línea, y con espacio no separable; el handler de `…/answers` no recibe ninguna llamada | Hecha |
 | CA-5.2.4 | con doble clic en «Enviar» registra una sola respuesta y muestra «Procesando tu respuesta…» | Handler con demora: doble clic → 1 sola llamada a `…/answers`; durante la espera (a) el botón con nombre accesible «Enviar» está deshabilitado y (b) el texto «Procesando tu respuesta…» está visible en la región `aria-live` | Hecha |
 | CA-5.2.4 y CA-5.2.18 | tras un fallo de red el reenvío del mismo turno usa la misma Idempotency-Key | 1.ª llamada: error de red; 2.ª: 200. Las dos cabeceras `Idempotency-Key` son iguales y no vacías; los dos cuerpos llevan el mismo `turnId` | Hecha |
-| CA-5.2.5 | tras la pregunta 5 muestra «Tu entrevista terminó.» sin campo ni «Enviar» | Título «Tu entrevista terminó.»; sin campo «Respuesta» ni botón «Enviar» | Se mantiene |
+| CA-5.2.5 | tras la pregunta 5 sigue con el cierre de HU-5.5, sin campo ni «Enviar» (CA-5.2.5, backlog v11) | Título que empieza por «Tu entrevista terminó.» (el de CA-5.5.3); sin campo «Respuesta» ni botón «Enviar» | Cambiada en #126 (CM-221); se mantiene (v11.3 D4) |
 | CA-5.2.7 | con una entrevista ajena o inexistente muestra «No encontramos lo que buscabas.» | `404` con `code` `SESSION_NOT_FOUND` y `404` sin `code`: el mismo mensaje en ambos casos | Hecha |
 | CA-5.2.8 | acepta exactamente 4000 caracteres y los envía tal como se escribieron | Texto de 4000 caracteres con espacios al inicio y al final (p. ej. 2 + 3996 + 2): contador «4000 / 4000 caracteres»; sin mensaje de error; «Enviar» habilitado; el `answerText` recibido por el handler es idéntico a lo escrito, espacios incluidos; avanza a «Pregunta 2 de 5» | Hecha |
 | CA-5.2.9 | con 4001 caracteres marca el contador, muestra el mensaje y no envía | «4001 / 4000 caracteres»; «Tu respuesta no puede superar los 4000 caracteres.»; «Enviar» deshabilitado; el campo conserva los 4001; el handler no recibe llamadas | Hecha |
@@ -309,7 +353,7 @@ el contrato de §5 y los códigos de §4. Ya cubiertas por #101 y fuera de este 
 | D10 | una respuesta 200 con forma inesperada muestra el error genérico, no el de conexión | El handler de `…/answers` responde 200 con un cuerpo sin `progress`: aparece «Ocurrió un error. Inténtalo de nuevo.»; **no** aparece «No hay conexión…»; el campo conserva el texto y sigue «Pregunta 1 de 5» | Hecha |
 | CA-5.2.19 | si la IA falla muestra el error genérico con «Reintentar» | «Ocurrió un error. Inténtalo de nuevo.»; botón «Reintentar»; sin campo; **sin** enlace «Ir al inicio»; el `detail` del cuerpo no aparece | Hecha |
 | CA-5.2.19 | «Reintentar» con éxito avanza a la pregunta siguiente | «Pregunta 2 de 5» tras un `…/reprocess` 200 | Se mantiene |
-| CA-5.2.20 (D5) | agota «Reintentar» exactamente tras 2 usos fallidos y el tercero sigue llamando a la evaluación | Tras el 1.º «Reintentar» fallido: mensaje genérico y sin «Ir al inicio»; tras el 2.º: mensaje literal de CA-5.2.20, «Reintentar» y enlace «Ir al inicio» a `/inicio`; un 3.º «Reintentar» → el handler de `…/reprocess` suma 3 llamadas | Hecha |
+| CA-5.2.20 (D5) | agota «Reintentar» exactamente tras 2 usos fallidos y el tercero sigue llamando a la evaluación | Tras el 1.º «Reintentar» fallido: mensaje genérico y sin «Ir al inicio»; tras el 2.º: mensaje literal de CA-5.2.20, «Reintentar» y enlace «Ir al inicio» a `/inicio`; un 3.º «Reintentar» → el handler de `…/reprocess` suma 3 llamadas | **Se reemplaza** (v11.3 D2): la prueba R3 del plan siguiente |
 | D3 | LLM_LIMIT_REACHED al reintentar suma al tope igual que LLM_UNAVAILABLE | `…/answers` responde `LLM_UNAVAILABLE`; `…/reprocess` responde `503 LLM_LIMIT_REACHED` dos veces: tras el 2.º, mensaje literal de CA-5.2.20 y enlace «Ir al inicio» | Hecha |
 | D4 | un fallo de red al reintentar muestra «No hay conexión…» sin sumar al tope | `…/reprocess`: red, luego `LLM_UNAVAILABLE`: tras el de red, «No hay conexión…» y «Reintentar»; tras el siguiente, mensaje genérico y **sin** «Ir al inicio» (solo un fallo contado) | Hecha |
 | D4 | otro error al reintentar muestra el genérico sin sumar al tope | `…/reprocess` responde `500 INTERNAL_ERROR` tres veces: siempre genérico y nunca «Ir al inicio» | Hecha |
@@ -317,6 +361,34 @@ el contrato de §5 y los códigos de §4. Ya cubiertas por #101 y fuera de este 
 | D4 | tras agotar «Reintentar», «Ir al inicio» no desaparece si llega un fallo de otro tipo | Agotar el tope con 2 fallos `LLM_UNAVAILABLE` en `…/reprocess`; el 3.º «Reintentar» recibe un error de red: aparece «No hay conexión…», «Reintentar» sigue y el enlace «Ir al inicio» sigue visible | Hecha |
 | D1 y D10 | `api/interviewSession.mapper.test.ts`: convierte la respuesta 200 del contrato previsto y rechaza una forma inesperada | `progress`, `nextQuestion` e `interviewFinished` al modelo; `nextQuestion = null` → terminada; un cuerpo sin `progress` lanza el error propio de la feature, no un `TypeError` | Hecha |
 | D7 | `ProgressArc.test.tsx`: la etiqueta no fuerza mayúsculas | La etiqueta no lleva la clase `uppercase`. Es una prueba débil (jsdom no aplica Tailwind): se completó con **verificación manual el 22-10** (bitácora, Tarea 8): «Pregunta 1 de 5» se ve sin mayúsculas y el espaciado es correcto | Hecha |
+
+### Plan de pruebas de CM-217 · backlog v11.3 (paso de ROJO)
+
+Todas en `src/features/interview-session/pages/InterviewSessionPage.test.tsx`, contra MSW (§9,
+riesgos). Usan los ayudantes que ya hay en el archivo (`reprocessSequence`, `retryAndSettle`,
+`problem`) y los `code` importados de `model/interviewSession.errorCodes` (D2). Los topes se
+escriben como números literales del CA (2 y 2), no con las constantes, para que un cambio de
+constante rompa la prueba. «Assert que falla hoy» es el que debe estar en rojo en `944cea3`;
+«Ninguno» marca una prueba que pasa desde el principio porque protege algo que ya funciona.
+
+| # | CA o decisión | Prueba (`it`) | Dado / Cuando / Entonces | Assert que falla hoy |
+| --- | --- | --- | --- | --- |
+| R1 | CA-5.2.19, v11.3 D1 | si la IA entrega una evaluación con formato inválido muestra el error genérico con «Reintentar» | **Dado** `…/answers` responde `503 LLM_INVALID_OUTPUT` con un `detail`. **Cuando** escribe y pulsa «Enviar». **Entonces** «Ocurrió un error. Inténtalo de nuevo.», botón «Reintentar», sin campo «Respuesta», sin «Ir al inicio» y sin el `detail` | `findByRole('button', { name: 'Reintentar' })` y campo ausente: hoy el `code` cae en «otro» (`useInterviewTurn.ts:85-87, 190`) y sale el genérico con el campo y «Enviar», sin «Reintentar». El genérico solo no sirve: también aparece hoy |
+| R2 | CA-5.2.19, CA-5.2.20, v11.3 D1 | LLM_INVALID_OUTPUT al reintentar suma al tope igual que LLM_UNAVAILABLE | **Dado** `…/answers` responde `LLM_UNAVAILABLE` y `…/reprocess`, siempre `503 LLM_INVALID_OUTPUT`. **Cuando** pulsa «Reintentar» 2 veces. **Entonces** tras el 2.º, mensaje literal de CA-5.2.20, «Reintentar» y enlace «Ir al inicio» | `findByText(EXHAUSTED)`: hoy cuenta como «otro» (`useInterviewTurn.ts:201-205`), muestra el genérico y no suma |
+| R3 | CA-5.2.20, v11.3 D2 (reemplaza la prueba de D5) | tras 2 usos fallidos muestra el mensaje de CA-5.2.20, permite 2 usos más y después deja solo «Ir al inicio» | **Dado** `…/answers` y `…/reprocess` responden siempre `LLM_UNAVAILABLE`. **Cuando** pulsa «Reintentar» 4 veces. **Entonces** tras el 1.º, genérico y sin «Ir al inicio»; tras el 2.º y el 3.º, mensaje de CA-5.2.20, «Reintentar» e «Ir al inicio» a `/inicio`; tras el 4.º, el mismo mensaje, **sin** «Reintentar» y con «Ir al inicio»; exactamente 4 llamadas a `…/reprocess` | `queryByRole('button', { name: 'Reintentar' })` es `null` tras el 4.º: hoy «Reintentar» sigue siempre (`EvaluationRetryPanel.tsx:37-45`). `retryAndSettle` espera a que «Reintentar» vuelva: en el 4.º uso se espera a `state.count === 4` y a que el botón no esté |
+| R4 | CA-5.2.20, v11.3 D2 | en el tramo 2 un «Reintentar» con éxito avanza a la pregunta siguiente y el contador vuelve a cero | **Dado** `…/answers` responde siempre `LLM_UNAVAILABLE`; `…/reprocess`, 2 veces `LLM_UNAVAILABLE` y luego `200` con la pregunta 2. **Cuando** pulsa «Reintentar» 3 veces y después responde la pregunta 2. **Entonces** tras el 3.º, «Pregunta 2 de 5», campo vacío y sin panel; al fallar la pregunta 2, genérico con «Reintentar» y **sin** «Ir al inicio» | Ninguno: pasa hoy. Protege que el tramo 2 no rompa el éxito ni el reinicio del contador (`applyResult`, `useInterviewTurn.ts:128-139`) |
+| R5 | CA-5.2.20, D4, v11.3 D2 | en el tramo 2 sin red o un 404 al reintentar no gastan un uso | **Dado** `…/reprocess` responde, en orden: `LLM_UNAVAILABLE`, `LLM_UNAVAILABLE`, sin red, `404 SESSION_NOT_FOUND`, `LLM_UNAVAILABLE`, `LLM_UNAVAILABLE`. **Cuando** pulsa «Reintentar» 6 veces. **Entonces** tras el 3.º, «No hay conexión…», «Reintentar» e «Ir al inicio»; tras el 4.º, «No encontramos lo que buscabas.», «Reintentar» e «Ir al inicio»; tras el 5.º, mensaje de CA-5.2.20 con «Reintentar»; tras el 6.º, sin «Reintentar» y con «Ir al inicio»; 6 llamadas | `queryByRole('button', { name: 'Reintentar' })` es `null` tras el 6.º: hoy sigue |
+| R6 | CA-5.2.20, v11.3 D2 (DF-004) | con doble clic en «Reintentar» del mensaje de CA-5.2.20 pide una sola evaluación y deshabilita el botón mientras espera | **Dado** el tramo 1 agotado (2 `LLM_UNAVAILABLE` en `…/reprocess`) y la 3.ª llamada retenida hasta que la prueba la suelte. **Cuando** hace doble clic en «Reintentar». **Entonces** mientras espera, 3 llamadas en total, no 4, y el botón está deshabilitado; al soltarla con `LLM_UNAVAILABLE`, «Reintentar» vuelve y siguen siendo 3. El botón se toma antes del clic: con `loading` su nombre accesible pasa a «Procesando tu respuesta…» (`Button.tsx:124-133`) | `expect(state.count).toBe(3)`: `retryEvaluation` no tiene guarda síncrona (`useInterviewTurn.ts:240`). **No comprobado** que hoy falle: depende de que el 2.º clic llegue antes del re-render (el caso de DF-004); si pasa en verde, se queda como protección y se anota. `toBeDisabled()` seguramente pasa hoy (`Button.tsx:117` suma `loading` a `disabled`), pero ninguna prueba lo afirmaba: esta lo exige |
+| R7 | CA-5.2.6, v11.3 D3 | si la entrevista no está en curso rechaza la respuesta con «Esta entrevista ya no admite esa acción.» (CA-5.2.6) | **Dado** la pregunta 1 y `…/answers` responde `409 SESSION_TRANSITION_NOT_ALLOWED` con un `detail`. **Cuando** escribe y pulsa «Enviar». **Entonces** «Esta entrevista ya no admite esa acción.», sin «Reintentar», sin llamadas a `…/reprocess` y sin el `detail`. Va en el `describe` principal, no en el de HU-5.5 | Ninguno: el código ya existe (#126) y la prueba pasa hoy; cubre un CA que no tenía prueba. No afirma nada del campo, de «Enviar» ni de una salida: se dejan como están (decisión del 12-11-2026, §9) |
+
+**La prueba de D5 se reemplaza, no se corrige.** `agota «Reintentar» exactamente tras 2 usos
+fallidos y el tercero sigue llamando a la evaluación` (`InterviewSessionPage.test.tsx:333-351`)
+exige en las líneas 349-351 un 3.er uso sin límite. Cambió el criterio: v10 «sin límite»
+(«Cambios v10», fila 58, #147) → v11.2 «2 + 2» («Cambios v11.2», filas 12 a 14, #290 a #292).
+R3 la reemplaza y conserva sus comprobaciones del tramo 1. Las demás pruebas de D3 y D4 se
+mantienen, también `tras agotar «Reintentar», «Ir al inicio» no desaparece si llega un fallo de
+otro tipo`, porque su 3.er uso es de red y no suma. En el paso de código, el TSDoc del archivo
+de prueba pasa de «backlog v8.3» a v11.3.
 
 ### HU-5.8 (CM-317): criterios y plan de pruebas
 
@@ -358,20 +430,20 @@ espera una promesa resuelta a mano).
 
 | Archivo | Estado |
 | --- | --- |
-| `src/features/interview-session/pages/InterviewSessionPage.tsx` | Hecho; contrato previsto y avisos de voz (#101); envía la respuesta sin recortar y el panel muestra el mensaje del último fallo de reprocess (D4). CM-317: temporizador de 20 s, aviso de CA-5.8.24, descarte tras 503 LLM y tras 413, 415 y 422 genéricos, estados vadFailed y unsupported |
-| `src/features/interview-session/hooks/useInterviewTurn.ts` | Hecho; rechazos del audio (#101); códigos de D2; solo los fallos de la IA de reprocess suman al tope (D3, D4); retryError reemplaza a retryNetworkError; AnswerResponseShapeError da el genérico (D10); sigue devolviendo llaves de i18n (D6 fuera). CM-317: descarta el audio tras 413, 415, 422 y 503 LLM_* (§5) |
+| `src/features/interview-session/pages/InterviewSessionPage.tsx` | Hecho; contrato previsto y avisos de voz (#101); envía la respuesta sin recortar y el panel muestra el mensaje del último fallo de reprocess (D4). CM-317: temporizador de 20 s, aviso de CA-5.8.24, descarte tras 503 LLM y tras 413, 415 y 422 genéricos, estados vadFailed y unsupported. **Pendiente (CM-217, v11.3 D2):** ocultar «Reintentar» en el panel de CA-5.2.20 al agotar el tramo 2 |
+| `src/features/interview-session/hooks/useInterviewTurn.ts` | Hecho; rechazos del audio (#101); códigos de D2; solo los fallos de la IA de reprocess suman al tope (D3, D4); retryError reemplaza a retryNetworkError; AnswerResponseShapeError da el genérico (D10); sigue devolviendo llaves de i18n (D6 fuera). CM-317: descarta el audio tras 413, 415, 422 y 503 LLM_* (§5). **Pendiente (CM-217, v11.3):** LLM_INVALID_OUTPUT como fallo de la IA (D1); tope del tramo 2 y guarda síncrona en retryEvaluation (D2); TSDoc |
 | `src/features/interview-session/organisms/SessionStage/SessionStage.tsx` | Hecho; región aria-live con el indicador de procesando |
 | `src/features/interview-session/organisms/TextAnswerComposer/TextAnswerComposer.tsx` | Hecho; cuenta puntos de código NFC con unicodeLength (D9); el botón Enviar solo se deshabilita, sin modo de carga, y ya no recibe etiqueta de carga (CA-5.2.4) |
-| `src/features/interview-session/organisms/EvaluationRetryPanel/EvaluationRetryPanel.tsx` | Hecho; conserva el modo de carga (§9) |
+| `src/features/interview-session/organisms/EvaluationRetryPanel/EvaluationRetryPanel.tsx` | Hecho; conserva el modo de carga (§9). **Pendiente (CM-217, v11.3 D2):** poder mostrarse sin «Reintentar», solo con «Ir al inicio»; el uso del cierre de HU-5.5 no cambia |
 | `src/features/interview-session/api/interviewSession.api.ts` | Hecho con el contrato previsto (#101); TSDoc de reprocessTurn para después (§9) |
 | `src/features/interview-session/api/interviewSession.dto.ts` | Hecho con el contrato previsto (#101) |
 | `src/features/interview-session/api/interviewSession.mapper.ts` | Hecho con el contrato previsto (#101); valida la forma de la respuesta 200 (D10) |
 | `src/features/interview-session/api/AnswerResponseShapeError.ts` | Hecho; error propio del mapper (D10) |
 | `src/features/interview-session/api/interviewSession.mapper.test.ts` | Hecha (D1 y D10) |
-| `src/features/interview-session/model/interviewSession.errorCodes.ts` | Hecho; LLM_UNAVAILABLE, LLM_LIMIT_REACHED y VALIDATION_FAILED (D2) |
+| `src/features/interview-session/model/interviewSession.errorCodes.ts` | Hecho; LLM_UNAVAILABLE, LLM_LIMIT_REACHED y VALIDATION_FAILED (D2); los 409 de HU-5.5 (#126). **Pendiente (CM-217, v11.3 D1):** LLM_INVALID_OUTPUT |
 | `src/features/interview-session/model/interviewSession.types.ts` | Hecho; sessionLanguage en #101 |
 | `src/features/interview-session/model/sessionEntry.ts` | Hecho; valida sessionLanguage (#101) |
-| `src/features/interview-session/model/interviewSession.constants.ts` | Hecho; tope de 2. CM-317: encabezado (tarea 8 del Anexo A) |
+| `src/features/interview-session/model/interviewSession.constants.ts` | Hecho; tope de 2. CM-317: encabezado (tarea 8 del Anexo A). **Pendiente (CM-217, v11.3 D2):** constante del tramo 2 con TSDoc que cite CA-5.2.20 y «Cambios v11.2» #290; TSDoc de MAX_EVALUATION_RETRIES («antes de pasar a CA-5.2.20», #292) |
 | `src/features/interview-session/hooks/useVoiceRecorder.ts` | Hecho (CM-317): MicVAD y formatos según las notas técnicas de HU-5.8 (O75, backlog v8.4), orden de arranque (CM-316 D4), estados vadFailed y unsupported, cancelación y tope con reloj real (CM-316 D6); sin medición por energía |
 | `src/features/interview-session/hooks/useVoiceRecorder.test.ts` | Hecha (CM-317): filas «Hook» del plan de §6 |
 | `src/features/interview-session/hooks/sileroVad.ts` | Hecho (CM-317): único punto de entrada a MicVAD, con `import()` y los assets del ADR 0009 |
@@ -381,7 +453,7 @@ espera una promesa resuelta a mano).
 | `src/design-system/molecules/BrandOrb/BrandOrb.tsx` | Hecho |
 | `src/design-system/molecules/ProgressArc/ProgressArc.tsx` | Hecho; la etiqueta se muestra sin mayúsculas forzadas (D7) |
 | `src/mocks/handlers/interviewSessions.handlers.ts` | Hecho con el contrato previsto (#101); cuenta puntos de código NFC sin recortar y copia VALIDATION_FAILED con un comentario (D2, D9) |
-| `src/features/interview-session/pages/InterviewSessionPage.test.tsx` | Hecha; cubre el plan de §6 |
+| `src/features/interview-session/pages/InterviewSessionPage.test.tsx` | Hecha; cubre el plan de §6 (v8.3). **Pendiente (CM-217, v11.3):** R1 a R7 del plan de §6; R3 reemplaza la prueba de D5 |
 | `src/features/interview-session/pages/InterviewSessionPage.voice.test.tsx` | Hecha; contrato previsto y rechazos del audio en #101. CM-317: pruebas de HU-5.8 de §6 |
 | `src/design-system/molecules/ProgressArc/ProgressArc.test.tsx` | Hecha (D7, prueba débil; completada con la verificación manual del 22-10, bitácora Tarea 8) |
 
@@ -483,6 +555,95 @@ Los rechazos de Backend al transcribir y los demás errores del envío están en
   PRT-05.10 es solo referencia y cambió mucho; manda el diseño aprobado por Ana Sofía,
   «Escenario + orbe» (§3).
 
+**Decisiones de CM-217 para el backlog v11.3 (v11.3 D1 a D6, 11-11-2026)**
+
+El alcance de CM-217 está decidido y no se amplía. Solo toca HU-5.2.
+
+- **v11.3 D1 · `LLM_INVALID_OUTPUT` es un fallo de la IA (CA-5.2.19).** Se agrega a
+  `model/interviewSession.errorCodes.ts` y se trata igual que `LLM_UNAVAILABLE` y
+  `LLM_LIMIT_REACHED`: en `…/answers` abre el panel con «Ocurrió un error. Inténtalo de nuevo.»
+  y «Reintentar»; en `…/reprocess` cuenta como fallo de la IA. **Motivo:** CA-5.2.19 y CA-5.2.20
+  nombran los tres `code` para la misma situación («Cambios v10», fila 57, #146) y no piden un
+  trato distinto para ninguno. Hoy el `code` cae en «otro» y muestra el genérico con el campo,
+  sin «Reintentar».
+- **v11.3 D2 · Dos tramos de «Reintentar» (CA-5.2.20).**
+  - Tramo 1, sin cambios: hasta 2 usos fallidos en el panel de CA-5.2.19
+    (`MAX_EVALUATION_RETRIES = 2`). Tras el 2.º fallo: el mensaje de CA-5.2.20 con «Reintentar»
+    e «Ir al inicio».
+  - Tramo 2: «Reintentar» se puede usar como máximo 2 veces más. Constante nueva en
+    `model/interviewSession.constants.ts` (nombre propuesto: `MAX_LATER_EVALUATION_RETRIES`),
+    con TSDoc que cite CA-5.2.20 y «Cambios v11.2» #290. Tras el 2.º fallo del tramo 2 (4.º uso
+    fallido en total): el mismo mensaje **sin** «Reintentar», solo con «Ir al inicio».
+  - Solo cuentan los fallos de la IA, decididos por `code`: `LLM_UNAVAILABLE`,
+    `LLM_LIMIT_REACHED` y `LLM_INVALID_OUTPUT`. Sin red, `404`, `409` u otros errores no cuentan
+    (D4, PR #102).
+  - Si un uso tiene éxito, se avanza como hoy y el contador vuelve a cero.
+  - Una sola evaluación por uso y botón deshabilitado mientras espera: guarda síncrona
+    (`useRef`) **más** `disabled`, como en «Enviar» (lección DF-004). Que `Button` con `loading`
+    deshabilite se lee en el código (`Button.tsx:117`) pero ninguna prueba lo comprueba: R6 lo
+    exige.
+  - El contador vive en memoria y se pierde al recargar: **PENDIENTE de Backend** (CM-216;
+    «Cambios v11.2», fila 5, «Por confirmar»). No es una divergencia aceptada.
+  - **Interpretación:** «al volver más tarde» no impone una espera. El botón se puede pulsar
+    cuando la persona quiera. El mensaje conserva «inténtalo más tarde» a propósito, aunque al
+    final ya no haya «Reintentar» (nota de «Cambios v11.2», fila 12).
+  - **Motivo:** «Cambios v11.2», filas 12 a 14 (#290 a #292), validadas por Frontend el 11-11,
+    reemplazan el «sin límite» de «Cambios v10», fila 58.
+- **v11.3 D3 · CA-5.2.6 solo necesita una prueba.** El código ya existe (#126): un `409
+  SESSION_TRANSITION_NOT_ALLOWED` en `…/answers` pasa a la fase `closed` con «Esta entrevista ya
+  no admite esa acción.». Falta una prueba en interview-session (R7, §6). **Motivo:** el CA no
+  tenía prueba; la de CA-5.5.5 usa `SESSION_ALREADY_CLOSED`. Lo que no coincide con el texto
+  literal quedó como hallazgo y se deja como está (decisión del 12-11-2026, §9).
+- **v11.3 D4 · CA-5.2.5 sin cambios de código.** **Interpretación:** HU-5.5 se considera
+  disponible desde la pantalla de cierre de CM-221 (PR #126); CA-5.2.5 se cubre allí y se
+  probará de punta a punta cuando CM-216 y CM-220 estén en preproducción. **Motivo:** CA-5.2.5
+  manda «continuar con el cierre de HU-5.5» y deja «Tu entrevista terminó.» solo «mientras
+  HU-5.5 no esté disponible», sin decir cómo sabe la pantalla que lo está.
+- **v11.3 D5 · Sin textos nuevos de i18n.** Se usan `errors:generico`,
+  `interview:sesion.reintentosAgotados` e `interview:sesion.irAlInicio`, y para CA-5.2.6 la ya
+  existente `interview:sesion.noAdmite`. Comprobado el 11-11 que las cuatro existen en `es-CO` y
+  en `en` (`errors.json` línea 2; `interview.json` líneas 139, 140 y 143) y que los textos en
+  `es-CO` son los literales de los CA. **Motivo:** el tramo 2 reutiliza el mensaje de CA-5.2.20.
+- **v11.3 D6 · Fuera de CM-217.** Quién cuenta los usos al recargar y si `…/state` expone
+  `RETRYING` (Backend, CM-216); `SESSION_ABANDONED` y `SESSION_ALREADY_CLOSED` (HU-5.5, de Ana
+  Sofía); el historial vacío (CA-4.5.16). **Motivo:** no son de HU-5.2 o dependen de otro equipo.
+
+**Hallazgos de v11.3 D3 (CA-5.2.6 frente al código, decidido el 12-11-2026).** CA-5.2.6, literal: «rechazarla
+con el mensaje "Esta entrevista ya no admite esa acción.", no debe guardar la respuesta ni usar
+la IA y la entrevista debe conservar su estado». Lo que hace la pantalla
+(`useInterviewTurn.ts:66-71, 176-181`; `InterviewSessionPage.tsx:216-218, 235`):
+
+- **Mensaje:** coincide con el literal (`AlertInline` de error con `interview:sesion.noAdmite`).
+- **Campo y «Enviar»:** el CA no pide ocultarlos; la pantalla los oculta (fase `closed`). El
+  texto escrito deja de verse.
+- **Salida:** el CA no define ninguna acción, y la pantalla no ofrece ninguna (ni «Reintentar»
+  ni «Ir al inicio»).
+- **Pregunta y progreso:** se mantienen la pregunta k y «Pregunta k de 5».
+- La fase `closed` es la misma de CA-5.5.5 (`SESSION_ALREADY_CLOSED`, HU-5.5): cambiar el campo
+  o la salida tocaría código de #126.
+- **Decisión (Juan José Arias, 12-11-2026):** se deja como está. El mensaje cumple el literal de
+  CA-5.2.6; ocultar el campo y «Enviar» y no ofrecer salida no lo contradice, y la fase `closed`
+  es del cierre de HU-5.5 (#126), que no es de CM-217.
+
+**Riesgos y pendientes de CM-217 (v11.3)**
+
+- **El contador se pierde al recargar.** Vive en `useState` (`useInterviewTurn.ts:119`). Además,
+  hoy una recarga vuelve a `/entrenar/nueva` (HU-5.7). Pendiente de Backend (v11.3 D2).
+- **Contrato sin confirmar.** El cuerpo y la respuesta de `…/answers` y `…/reprocess` siguen
+  siendo los previstos (§5). Backend los da como «Por hacer; sin código» (CM-216), la ruta de
+  `…/reprocess` sigue provisional y las notas técnicas de HU-5.2 (O7) aún dicen
+  `{turno_id, respuesta_texto}`.
+- **Solo MSW (lección 6).** Las pruebas corren contra MSW: en verde no prueban que Backend mande
+  `LLM_INVALID_OUTPUT`, ni el `code` en `…/reprocess`, ni que el tope cuadre con el suyo.
+- **v11.3 D1 también toca la voz.** `isEvaluationFailure` lo usa `discardsAudio`
+  (`useInterviewTurn.ts:97-101`): un `503 LLM_INVALID_OUTPUT` en `…/answers/audio` abrirá el
+  panel y descartará la grabación. Es coherente con CA-5.2.19 («Aplica igual a una respuesta por
+  voz ya transcrita»), pero la fila de §5 (HU-5.8) solo nombra `LLM_UNAVAILABLE` y
+  `LLM_LIMIT_REACHED`, y no se cambió.
+- **`EvaluationRetryPanel` es compartido.** También lo usa el cierre de HU-5.5
+  (`InterviewSessionPage.tsx:207-213`): ocultar «Reintentar» debe ser opcional y no cambiar ese
+  uso.
+
 **Contrato acordado con Backend (22-10-2026), sección de #101.** Se repartió así, sin perder
 nada: los nombres en camelCase y la respuesta común están en §5; `…/start` está en §5 («Las
 demás rutas»); `sessionLanguage` está en §4 («Entrada»); `LLM_LIMIT_REACHED` está en la tabla de
@@ -555,19 +716,34 @@ Del inicio (interview-setup): `PLANNING_RETRIES_EXHAUSTED` deja solo «Cancelar�
 - `EvaluationRetryPanel` usa el modo de carga de `Button` (`EvaluationRetryPanel.tsx:39-41`):
   CA-5.2.19 (fallo de la IA al evaluar la respuesta) no exige que «Reintentar» conserve su
   nombre; se deja así.
-- El TSDoc de `reprocessTurn` (`api/interviewSession.api.ts:48`) solo menciona `LLM_UNAVAILABLE`;
-  falta `LLM_LIMIT_REACHED`.
+- El TSDoc de `reprocessTurn` (`api/interviewSession.api.ts:55`) solo menciona `LLM_UNAVAILABLE`;
+  faltan `LLM_LIMIT_REACHED` y `LLM_INVALID_OUTPUT` (v11.3 D1).
 - Botón Atrás del navegador tras «Ir al inicio»: el estado del historial devuelve la pregunta 1
   con claves nuevas (HU-5.7, retomar una entrevista).
 - Sombras de `BrandOrb` con valores arbitrarios en vez de tokens de elevación (CLAUDE.md §6).
 - Caracteres de ancho cero (U+200B, U+200C, U+200D, U+2060): `trim()` no los quita, así que una
   respuesta formada solo por ellos no cuenta como vacía en CA-5.2.3 (respuesta vacía o de solo
   espacios).
-- Las constantes 4000 y 2 viven en el front (`model/interviewSession.constants.ts`), en
-  tensión con CLAUDE.md §3.7 (ninguna constante de negocio hardcodeada).
+- Las constantes 4000 y 2 (y la del tramo 2, v11.3 D2) viven en el front
+  (`model/interviewSession.constants.ts`), en tensión con CLAUDE.md §3.7 (ninguna constante de
+  negocio hardcodeada).
 - El ejemplo del TSDoc de `src/utils/unicodeLength.ts` es incorrecto (línea 4): 👩‍💻 mide 5 con
   `String.length`, no 1, y son 3 puntos de código. Es una utilidad compartida; se corrige
   fuera de CM-217.
+
+**Referencias de otras HU desactualizadas frente al backlog v11.3.** No son de CM-217; se
+revisan cuando se vuelva a tocar esa HU.
+
+- HU-5.8 (§1): dice que el backlog vigente es el v8.5 y cita los criterios v8.4; el backlog v11
+  cambió HU-5.8 («Cambios v11»).
+- HU-5.5 (§2, «No entra»): dice que el cierre y reporte no entra, pero el PR #126 ya lo
+  implementó en esta feature.
+- HU-5.8 (§5, tabla del audio): el `503` solo nombra `LLM_UNAVAILABLE` y `LLM_LIMIT_REACHED`;
+  desde CM-217 también `LLM_INVALID_OUTPUT`.
+- HU-5.8 y HU-5.5 (§5, tabla del audio): el `409` lleva a `errors:generico`, pero desde #126 los
+  `409 SESSION_*` pasan a la fase `closed`.
+- General (§8, punto 4.1): sigue diciendo 30 s; desde #126 la espera es de 130 s (CM-357).
+- HU-5.8 (tabla de §6, §7 voz y Anexo A): siguen citando el backlog v8.4.
 
 ## Anexo A · Tareas de CM-317
 
