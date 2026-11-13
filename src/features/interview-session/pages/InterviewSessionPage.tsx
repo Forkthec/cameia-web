@@ -18,7 +18,7 @@
  * y «Grabar» (CA-5.8.25). Tras elegir texto, la pregunta siguiente vuelve a
  * ofrecer la voz; con el micrófono denegado o ausente se sigue por texto.
  * El aviso del audio se ve hasta que la grabación empieza de verdad
- * (CA-5.8.24, CM-316 D8), y el de 20 s se programa por cada envío (CA-5.8.5).
+ * (CA-5.8.24, CM-316 D8), y el de 20 s se programa por cada envío (CA-5.8.26).
  *
  * El texto escrito se guarda por turno: sobrevive a un error de red
  * (CA-5.2.18) y la pregunta siguiente arranca vacía. La grabación detenida

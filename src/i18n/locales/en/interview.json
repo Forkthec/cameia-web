@@ -145,7 +145,7 @@
       "grabar": "Record",
       "detener": "Stop",
       "responderPorTexto": "Answer by text",
-      "privacidad": "Your audio is only used to transcribe your answer and isn't stored.",
+      "privacidad": "Your audio is only used to transcribe your answer. It's processed by an external service that deletes it after 2 days; CAMEIA doesn't store it.",
       "sinVoz": "We didn't detect your voice, try again.",
       "micDenegado": "We couldn't access your microphone. You can answer by text.",
       "sinMicrofono": "We couldn't find a microphone. You can answer by text.",

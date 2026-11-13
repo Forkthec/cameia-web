@@ -30,7 +30,8 @@
  * - «Enviar» y «Reintentar» tienen guarda síncrona: dos llamadas en el mismo
  *   instante hacen una sola petición (CA-5.2.4, CA-5.2.20; lección DF-004).
  * - Audio rechazado al transcribir (sin registrar respuesta ni gastar
- *   intento): `422 TRANSCRIPTION_EMPTY` (CA-5.12.7), `TRANSCRIPTION_TOO_LONG`
+ *   intento): `422 AUDIO_TOO_SHORT` (CA-5.8.10, CM-346 D2; mismo mensaje que
+ *   la voz insuficiente) y `422 TRANSCRIPTION_EMPTY` (CA-5.12.7), `TRANSCRIPTION_TOO_LONG`
  *   (CA-5.12.9), `TRANSCRIPTION_LANGUAGE_MISMATCH` (CA-5.12.10) y
  *   `503 TRANSCRIPTION_UNAVAILABLE` (CA-5.12.8). Se descarta la grabación y
  *   se puede grabar de nuevo o responder por texto en la misma pregunta.
@@ -93,6 +94,7 @@ export type SubmitErrorKey = 'red' | 'generico' | 'codigos.NOT_FOUND';
 export type AudioRejection = 'sinVoz' | 'demasiadoLarga' | 'idiomaDistinto' | 'noTranscrita';
 
 const AUDIO_REJECTIONS: Record<string, AudioRejection> = {
+  AUDIO_TOO_SHORT: 'sinVoz',
   TRANSCRIPTION_EMPTY: 'sinVoz',
   TRANSCRIPTION_TOO_LONG: 'demasiadoLarga',
   TRANSCRIPTION_LANGUAGE_MISMATCH: 'idiomaDistinto',

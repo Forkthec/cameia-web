@@ -2,7 +2,7 @@
  * Respuesta por voz del chat de Simulación (HU-5.8): «Grabar», «Detener»,
  * «Enviar» y «Responder por texto», con el aviso de tratamiento del audio
  * antes de la primera grabación (CA-5.8.24) y, si el envío pasa de 20 s,
- * el aviso de que puede tardar hasta 2 minutos (CA-5.8.5).
+ * el aviso de que puede tardar hasta 2 minutos (CA-5.8.26).
  *
  * Mientras se envía, «Enviar» queda deshabilitado con un spinner visible y
  * conserva su nombre accesible (CA-5.8.6, CM-316 D7): no usa el modo de
@@ -28,7 +28,7 @@ interface VoiceAnswerComposerProps {
   /** Tiempo grabado sobre el máximo, ya formateado (p. ej. «0:42 / 3:00»). */
   elapsedLabel: string;
   isSubmitting: boolean;
-  /** `true` cuando el envío ya pasó de 20 s (CA-5.8.5). */
+  /** `true` cuando el envío ya pasó de 20 s (CA-5.8.26). */
   showLongWait: boolean;
   /** `true` hasta que la primera grabación empieza de verdad (CA-5.8.24, CM-316 D8). */
   showPrivacyNotice: boolean;
