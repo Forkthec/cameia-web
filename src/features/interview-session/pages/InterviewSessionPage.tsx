@@ -107,11 +107,13 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
 
   // El panel muestra el último fallo de «Reintentar»: red, 404 u otro error
   // con su mensaje; un fallo de la IA, el genérico o el de tope agotado (D4).
-  const retryMessage = turn.retryError
-    ? t(`errors:${turn.retryError}`)
-    : turn.retriesExhausted
-      ? t('interview:sesion.reintentosAgotados')
-      : t('errors:generico');
+  const retryMessage = turn.turnNotRetryable
+    ? t('interview:sesion.noEsperaReintento')
+    : turn.retryError
+      ? t(`errors:${turn.retryError}`)
+      : turn.retriesExhausted
+        ? t('interview:sesion.reintentosAgotados')
+        : t('errors:generico');
 
   const voiceStep: VoiceComposerStep =
     recorder.status === 'recording'

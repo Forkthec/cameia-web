@@ -768,14 +768,14 @@ describe('InterviewSessionPage', () => {
     expect(state.count).toBe(1);
   });
 
-  it('si el turno ya no espera reintento muestra el genérico con «Ir al inicio» y sin «Reintentar»', async () => {
+  it('si el turno ya no espera reintento lo dice, con «Ir al inicio» y sin «Reintentar»', async () => {
     const { state, handler } = reprocessSequence(turnNotRetryable);
     useHandlers(http.post(ANSWERS_URL, llmUnavailable), handler);
     const user = userEvent.setup();
     renderPage();
     await submitText(user);
     await lastRetryAndSettle(user, state, 1);
-    expect(screen.getByText(GENERIC)).toBeInTheDocument();
+    expect(screen.getByText('Tu respuesta no está esperando un reintento.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Ir al inicio' })).toHaveAttribute('href', '/inicio');
     expect(screen.queryByText('detalle técnico')).not.toBeInTheDocument();
     expect(state.count).toBe(1);
