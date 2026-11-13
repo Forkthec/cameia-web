@@ -3,7 +3,7 @@ feature: interview-session
 estado: EN_CURSO
 hu: [HU-5.2, HU-5.8, HU-5.5]
 prt: [PRT-05.10, PRT-05.12]
-jira: [CM-217, CM-317, CM-221]
+jira: [CM-217, CM-317, CM-221, CM-346]
 rutas: [/entrenar/sesion/:sessionId]
 documentacion: tsdoc-es
 backlog: 11112026_03_v11.3
@@ -22,11 +22,17 @@ cada pregunta principal y avanzar sin ver retroalimentación) y HU-5.8 (grabar y
 respuesta por voz). La verdad para QA no es este SPEC, sino el archivo de criterios de cada HU:
 HU-5.2, `11112026_03_HU-5_2_criterios_backlog_v11_3.md` (backlog v11.3,
 `11112026_03_Backlog_v11_3.xlsx`, hoja HE-05, filas 7 a 26; ver abajo); HU-5.8,
-`23102026_02_HU-5_8_criterios_backlog_v8_4.md`
-(25 CA, backlog v8.4, `23102026_01_Backlog_v8_4.xlsx`, hoja HE-05), verdad de QA de CM-317. Los
-dos viven fuera del repositorio (`cameia-backup/criterios/`).
-El backlog vigente es el v8.5 (`23102026_02_Backlog_v8_5.xlsx`), que solo cambió CA-5.14.1; HU-5.8
-es igual a la v8.4, así que su archivo de criterios v8.4 sigue vigente.
+`13112026_02_HU-5_8_criterios_backlog_v11_3.md` (backlog v11.3, `11112026_03_Backlog_v11_3.xlsx`,
+hoja HE-05, filas 77 a 104), verdad de QA de CM-346. Los dos viven fuera del repositorio
+(`cameia-backup/criterios/`).
+
+**HU-5.8 contra el backlog v11.3 (CM-346, 13-11-2026).** El archivo de criterios v11.3 reemplaza al
+v8.4 (`23102026_02_HU-5_8_criterios_backlog_v8_4.md`, verdad de QA de CM-317). Tiene 28 CA, de
+CA-5.8.1 a CA-5.8.29, sin CA-5.8.11 (eliminado en v11, «Cambios v11», fila 31, #270; su código
+queda libre). Las filas de «Cambios v11» que tocan HU-5.8 están «sin validar». CM-346 («HU-5.8 –
+Frontend: chat de voz al backlog v11.3») cubre todos los CA de HU-5.8 con parte de Frontend; la
+lógica de Backend es de CM-345. El contrato real de `…/answers/audio` es el de `cameia-entrevista`
+`origin/develop` `ebce618` (CM-349, PR #53, 13-11-2026; §5).
 
 **HU-5.2 contra el backlog v11.3 (CM-217, 11-11-2026).** El backlog vigente para HU-5.2 es el
 v11.3 (`11112026_03_Backlog_v11_3.xlsx`) y su archivo de criterios es
@@ -37,6 +43,7 @@ Las decisiones del spike CM-316 (`docs/decisiones/23102026_v1_decisiones-spike-c
 se citan «CM-316 D1» a «CM-316 D8», para no confundirlas con las D1 a D10 de CM-217 de este SPEC.
 Las decisiones de CM-217 para el backlog v11.3 se citan «v11.3 D1» a «v11.3 D11» (§9), por la
 misma razón; D7 a D11 alinean el chat con el contrato real de `cameia-entrevista` (13-11-2026).
+Las de CM-346 se citan «CM-346 D1» a «CM-346 D6» (§9).
 
 ## 2. Alcance
 
@@ -65,8 +72,15 @@ mayúsculas (§9, D7); conteo de caracteres por puntos de código NFC, también 
 envío sin recortar, también en el mock (§4); «Enviar» conserva su nombre mientras se procesa
 (CA-5.2.4); y las pruebas del plan (§6).
 
+**En la rama `CM-346-chat-voz-v11-3` (CM-346, backlog v11.3, alcance «a+»):** solo HU-5.8.
+Texto nuevo del aviso de CA-5.8.24 en `es-CO` y `en` (CM-346 D6); `AUDIO_TOO_SHORT` → «No
+detectamos tu voz, intenta de nuevo.» (CA-5.8.10, CM-346 D2); pruebas de protección de CA-5.8.27
+(caso a), CA-5.8.21 y CA-5.8.28 por voz; limpieza de TSDoc y de este SPEC. Sin textos nuevos fuera
+del aviso, sin tocar el mock compartido (CM-346 D5). Plan de pruebas en §6 («Plan de pruebas de
+CM-346»).
+
 **En la rama `CM-317-deteccion-voz-silero` (CM-317):** detección de la voz mínima con MicVAD v5
-en lugar de la energía de la señal, según las notas técnicas de HU-5.8 (O75, backlog v8.4), con
+en lugar de la energía de la señal, según las notas técnicas de HU-5.8 (O75 en v8.4; O77 en v11.3, sin cambios), con
 el orden de arranque de CM-316 D4; fallo de carga de MicVAD (CA-5.8.25, CM-316 D3); formatos y
 `mimeType` real, según las mismas notas técnicas; tope de 3 min con reloj real (CM-316 D6);
 «Enviar» conserva su nombre accesible al procesar (CM-316 D7); aviso de CA-5.8.24 hasta que la
@@ -81,7 +95,9 @@ llaves de i18n en el hook (D6, §9). Tampoco entra en CM-217 lo de v11.3 D6: qui
 usos de «Reintentar» al recargar y si `…/state` expone `RETRYING` (Backend, CM-216; respondido
 el 13-11, ver v11.3 D7); `SESSION_ABANDONED` y `SESSION_ALREADY_CLOSED` en `…/answers` (HU-5.5;
 en `…/reprocess`, v11.3 D8); el historial vacío (CA-4.5.16). Lo anotado para después está en
-§9.
+§9. Tampoco entra en CM-346: recordar «ya grabó» por `sessionId` (CM-346 D6); textos propios
+para `TURN_CONFLICT`, `ANSWER_ALREADY_EXISTS` o los codes de la opción B (CM-346 D1 y D3); el
+caso (c) de CA-5.8.27, que es de Backend (CM-346 D4); y cambiar el mock compartido (CM-346 D5).
 
 ## 3. Comportamiento esperado
 
@@ -158,7 +174,8 @@ códigos nuevos del contrato real que cambian lo que se ve. Los demás (`ANSWER_
 genérico (ADR-0008) y no entran al archivo. El hook y las pruebas los **importan** de ese archivo. Los mocks
 los **copian como literal**, con un comentario que apunta a ese archivo, igual que hacen los
 mocks de Perfil. Los códigos de transcripción de CM-317 se quedan donde los dejó #101
-(`AUDIO_REJECTIONS` en el hook).
+(`AUDIO_REJECTIONS` en el hook). CM-346 agrega ahí `AUDIO_TOO_SHORT` → `sinVoz` (CM-346 D2); no
+entra en `interviewSession.errorCodes.ts`, igual que los `TRANSCRIPTION_*`.
 
 **Mensajes.** Siguiendo el patrón actual, el hook devuelve la llave de `errors` que muestra la
 página (`SubmitErrorKey`): `submitError` para `…/answers` y `retryError` para el último fallo de
@@ -259,7 +276,9 @@ CM-217) y anunciado a Backend en `22102026_v1_respuesta-frontend-a-backend-contr
 (Ana Sofía, 22-10-2026), §3. **`…/answers` y `…/reprocess` existen** en `cameia-entrevista`
 `origin/develop` `48773cb` (13-11-2026): contrato publicado, con su OpenAPI en
 `InterviewSessionController` (`InterviewSessionController.java:405-505`), con la ruta, el cuerpo
-y la respuesta 200 de esta tabla (v11.3 D7 a D11, §9). Las pruebas del front siguen contra MSW
+y la respuesta 200 de esta tabla (v11.3 D7 a D11, §9). **`…/answers/audio` existe** en
+`cameia-entrevista` `origin/develop` `ebce618` (CM-349, PR #53, 13-11-2026), con el mismo 200
+(`AnswerResultResponse.java:34-40`). Las pruebas del front siguen contra MSW
 (`src/mocks/handlers/interviewSessions.handlers.ts`, v11.3 D10). Los
 nombres de campo van en inglés y camelCase; los **valores** quedan como los manda el backend
 (`EN_CURSO`, `TEXTO`, `COMPLETED`…). Las llaves de i18n no cambian.
@@ -268,7 +287,7 @@ nombres de campo van en inglés y camelCase; los **valores** quedan como los man
 | --- | --- | --- | --- |
 | Registrar respuesta | `POST /api/v1/interviews/sessions/{sessionId}/answers` | `{turnId, answerText}` + cabecera `Idempotency-Key` (una por turno y forma de respuesta; se reutiliza al reenviar el mismo turno) | 200 común |
 | Reintentar evaluación | `POST /api/v1/interviews/sessions/{sessionId}/turns/{turnId}/reprocess` | sin cuerpo | 200 común |
-| Respuesta por voz (CM-317) | `POST …/sessions/{sessionId}/answers/audio` | multipart `{turnId, audio}` + la `Idempotency-Key` del turno; espera 130 s | 200 común |
+| Respuesta por voz (CM-317, CM-346) | `POST …/sessions/{sessionId}/answers/audio` | multipart `{turnId, audio}` + la `Idempotency-Key` del turno; espera 130 s | 200 común |
 
 **Respuesta 200 común** (nunca trae retroalimentación):
 `turn {turnId, status}` · `progress {currentQuestion, totalQuestions}` ·
@@ -277,45 +296,83 @@ nombres de campo van en inglés y camelCase; los **valores** quedan como los man
 `interviewSession.mapper.ts` la convierte al modelo: `progress` → `{current, total}`;
 `nextQuestion` → `InterviewQuestion` o `null`; `interviewFinished` o `nextQuestion = null` →
 fase `finished`. `turn.status` no se usa en la interfaz. Repetir la misma `Idempotency-Key`
-devuelve la misma respuesta; otra clave para el mismo turno → `409`. El mapper además valida la
-forma y, si no calza, lanza `AnswerResponseShapeError` (D10, §4).
+con la misma petición devuelve la misma respuesta, una vez guardada; con otra petición →
+`409 IDEMPOTENCY_KEY_CONFLICT`. Un segundo envío del mismo turno mientras el primero se procesa →
+`409 TURN_CONFLICT` (en `…/answers/audio`, también con la misma clave: ver «Repetición con la misma
+clave»). El mapper además valida la forma y, si no calza, lanza `AnswerResponseShapeError` (D10,
+§4).
 
-**`…/answers/audio`: contrato provisional (CM-317).** El backlog solo dice «multipart» (notas
-técnicas de HU-5.8) y no nombra los campos. Estos son los que eligió Frontend en #97 y #101
-(`api/interviewSession.api.ts`); **no comprobado** que Backend los acepte: ninguna rama de
-`cameia-entrevista` tiene `…/answers/audio` (23-10-2026; nota del archivo de criterios). Es un
-bloqueo (§8).
+**`…/answers/audio`: contrato publicado (`cameia-entrevista` `ebce618`).** El backlog solo dice
+«multipart» (notas técnicas de HU-5.8, O77) y no nombra los campos. Los que eligió Frontend en
+#97 y #101 (`api/interviewSession.api.ts:92-99`) son los mismos que lee Backend:
+`AudioAnswerController.answerByVoice` (`AudioAnswerController.java:139-153`). La marca
+`// PROVISIONAL — pendiente de OpenAPI` de los DTO sigue (v11.3 D11).
 
-| Parte | Tipo | Valor |
-| --- | --- | --- |
-| `turnId` | texto | turno pendiente |
-| `audio` | archivo | el `Blob` grabado, con el `mimeType` real del grabador como tipo; nombre fijo `respuesta.webm` o `respuesta.mp4`, que Backend ignora (CA-5.8.16) |
-| Cabecera `Idempotency-Key` | — | una por turno para el audio; se reutiliza al reenviar tras perder la conexión (CA-5.8.22) |
-
-Espera de la pantalla: 130 s (`AUDIO_REQUEST_TIMEOUT_MS`); el corte del Gateway está en §8. Respuesta: la 200 común. Orden de validación del backlog: 404 → 409 → 413 → 415
-→ 422; luego 503. El mock (`interviewSessions.handlers.ts:107`) lee el multipart, pero en Node 24
-`request.formData()` rechaza el `Blob` de jsdom: las pruebas usan handlers propios que no leen
-el cuerpo.
-
-**Qué muestra la pantalla al enviar audio.** «Se descarta» deja «Grabar» (o «Grabar de nuevo»)
-y «Responder por texto» en la misma pregunta.
-
-| Respuesta | Mensaje | ¿Grabación? | CA |
+| Parte | Tipo | Valor en el front | Backend real (`ebce618`) |
 | --- | --- | --- | --- |
-| `200` | pregunta k+1 y «Pregunta k+1 de 5» | se descarta | 5.8.5, 5.8.7, 5.8.9 |
-| `404` (con o sin `code`) | `errors:codigos.NOT_FOUND` | se conserva | 5.8.21 |
-| `409` (cualquier `code`; no está confirmado que el audio use los de `…/answers`) | `errors:generico` | se conserva (con la misma clave puede llegar el resultado ya calculado) | 5.8.6, 5.8.21 |
-| `413` | `errors:generico` | se descarta | 5.8.13 |
-| `415` | `errors:generico` | se descarta | 5.8.14, 5.8.15 |
-| `422 TRANSCRIPTION_EMPTY` | «No detectamos tu voz, intenta de nuevo.» | se descarta | 5.8.11, 5.12.7 |
+| `turnId` | texto | turno pendiente | `@RequestParam("turnId")`; falta o no es UUID → `422 VALIDATION_FAILED` (`AudioAnswerController.java:147`; `SubmitAudioAnswerService.java:293-318`) |
+| `audio` | archivo | el `Blob` grabado, con el `mimeType` real del grabador como tipo; nombre fijo `respuesta.webm` o `respuesta.mp4` | `@RequestPart("audio")`; decide el formato por los bytes, no por el nombre ni por el `Content-Type` de la parte (`AudioAnswerController.java:148-149`); falta o vacío → `422 VALIDATION_FAILED` |
+| Cabecera `Idempotency-Key` | — | una por turno para el audio (`crypto.randomUUID()`); se reutiliza al reenviar tras perder la conexión (CA-5.8.22, CA-5.8.27) | Opcional; formato `[A-Za-z0-9._-]{1,64}` (`SubmitAudioAnswerService.java:102`), que el UUID cumple; operación `RESPONDER_AUDIO` (`:82`) |
+
+Espera de la pantalla: 130 s (`AUDIO_REQUEST_TIMEOUT_MS`); el corte del Gateway está en §8.
+Respuesta: la 200 común. **Orden de validación real** (`SubmitAudioAnswerService.java:186-211`),
+distinto del de las notas técnicas del backlog (404 → 409 → 413 → 415 → 422 → 503): sesión
+(`404`) → campos (`422 VALIDATION_FAILED`) → repetición por clave → estado de la sesión (`409
+SESSION_*`) → forma de respuesta (`422 AUDIO_NOT_ALLOWED`) → turno (`404 TURN_NOT_FOUND`, `409
+ANSWER_ALREADY_EXISTS` o `TURN_CONFLICT`) → tamaño (`413`) → contenido y duración (`415`, `422
+AUDIO_TOO_LONG` o `AUDIO_TOO_SHORT`) → transcripción (`422 TRANSCRIPTION_*`, `503`). Al front no
+le cambia nada: decide por `code` o por la clase de estado, no por el orden.
+
+El mock (`interviewSessions.handlers.ts:223-235`) lee solo `turnId`, siempre responde `200` y
+repite por la clave sin huella; en Node 24 `request.formData()` rechaza el `Blob` de jsdom, así
+que las pruebas usan handlers propios que no leen el cuerpo. No cambia en CM-346 (CM-346 D5).
+
+**Qué muestra la pantalla al enviar audio** (`useInterviewTurn.ts:84-130`, `:198-218`).
+«Se descarta» deja «Grabar» (o «Grabar de nuevo») y «Responder por texto» en la misma pregunta;
+«se conserva» deja «Enviar» con la misma grabación y la misma clave. Codes y estados de
+`ErrorCode.java` y `BusinessExceptionHandler.java:121-162` (`ebce618`); nunca se muestra el
+`detail` (ADR-0008).
+
+| Respuesta (`ebce618`) | Mensaje | ¿Grabación? | CA |
+| --- | --- | --- | --- |
+| `200` | pregunta k+1 y «Pregunta k+1 de 5»; con k = 5, el cierre de HU-5.5 (CA-5.2.5) | se descarta | 5.8.5, 5.8.7, 5.8.9, 5.8.27 (caso a) |
+| `404 SESSION_NOT_FOUND`, `404 TURN_NOT_FOUND` (o `404` sin `code`) | `errors:codigos.NOT_FOUND` (por `httpStatus`) | se conserva | 5.8.21 |
+| `409 SESSION_ABANDONED` | `interview:sesion.abandonada`; fase `closed`, sin controles | — | 5.8.28 (CA-5.5.4) |
+| `409 SESSION_ALREADY_CLOSED`, `409 SESSION_TRANSITION_NOT_ALLOWED` | `interview:sesion.noAdmite`; fase `closed`, sin controles | — | 5.8.28 (CA-5.5.5, CA-5.2.6) |
+| `409 TURN_CONFLICT` (otro envío del turno en curso) | `errors:generico` (CM-346 D3) | se conserva | 5.8.6 (B), 5.8.27 (caso b) |
+| `409 ANSWER_ALREADY_EXISTS` (turno `COMPLETED` o `RETRYING`) | `errors:generico` (CM-346 D3) | se conserva | 5.8.27 (caso c, hueco de Backend: CM-346 D4) |
+| `409 IDEMPOTENCY_KEY_CONFLICT` (misma clave, otro turno u otro audio) | `errors:generico` | se conserva | — |
+| `413 AUDIO_TOO_LARGE`, `413 REQUEST_PAYLOAD_TOO_LARGE` | `errors:generico` (opción B, CM-346 D1) | se descarta | 5.8.13 |
+| `415 AUDIO_INVALID_FORMAT` (también `MEDIA_TYPE_NOT_ALLOWED`, `REQUEST_MULTIPART_INVALID_FORMAT`) | `errors:generico` (opción B) | se descarta | 5.8.14, 5.8.15 |
+| `422 AUDIO_NOT_ALLOWED` | `errors:generico` (opción B) | se descarta | 5.8.20 (B; su parte F es 5.8.29) |
+| `422 AUDIO_TOO_LONG` | `errors:generico` (opción B) | se descarta | 5.8.8 |
+| `422 AUDIO_TOO_SHORT` | `interview:sesion.voz.sinVoz` («No detectamos tu voz, intenta de nuevo.», CM-346 D2). **Hoy:** `errors:generico` | se descarta | 5.8.10 (B) |
+| `422 VALIDATION_FAILED` | `errors:generico` | se descarta | — (la interfaz no deja llegar aquí) |
+| `422 TRANSCRIPTION_EMPTY` | `interview:sesion.voz.sinVoz` | se descarta | 5.12.7 (antes 5.8.11, eliminado) |
 | `422 TRANSCRIPTION_TOO_LONG` | `interview:sesion.voz.demasiadoLarga` | se descarta | 5.12.9 |
-| `422 TRANSCRIPTION_LANGUAGE_MISMATCH` | aviso según `sessionLanguage` | se descarta | 5.12.10 |
-| `422` sin `code` de transcripción (forma Texto, más de 181 s, menos de 1,5 s de voz, `VALIDATION_FAILED`) | `errors:generico` | se descarta | 5.8.8, 5.8.10 (B), 5.8.20 (B) |
+| `422 TRANSCRIPTION_LANGUAGE_MISMATCH` | `interview:sesion.voz.idiomaDistinto.{en,es-CO}`, según `sessionLanguage` | se descarta | 5.12.10 |
 | `503 TRANSCRIPTION_UNAVAILABLE` | `interview:sesion.voz.noTranscrita`, con «Grabar de nuevo» | se descarta | 5.12.8 |
-| `503 LLM_UNAVAILABLE` / `LLM_LIMIT_REACHED` | panel con «Reintentar» (el audio ya quedó registrado) | se descarta (hoy no: defecto de §9) | 5.2.19 |
-| Otro `5xx` o sin `code` | `errors:generico` | se conserva | — |
-| Sin respuesta HTTP o tiempo agotado | `errors:red` («No hay conexión…») | se conserva, con la misma clave | 5.8.22 |
+| `503 LLM_UNAVAILABLE`, `LLM_LIMIT_REACHED` o `LLM_INVALID_OUTPUT` | panel con «Reintentar» (el audio ya quedó registrado) | se descarta (`useInterviewTurn.ts:120`) | 5.2.19 |
+| Otro `5xx` (`DATABASE_UNAVAILABLE`, `INTERNAL_ERROR`) o sin `code` | `errors:generico` | se conserva | — |
+| Sin respuesta HTTP o tiempo agotado | `errors:red` («No hay conexión…») | se conserva, con la misma clave | 5.8.22, 5.8.27 |
 | `401` | cierre de sesión (`httpClient`) | — | — |
+
+**Repetición con la misma clave (CA-5.8.27), según el código real (`ebce618`).** La clave se
+busca antes de mirar el estado de la sesión y del turno (`SubmitAudioAnswerService.java:192-200`),
+con una huella de sesión, turno y bytes del audio (`:331-341`); el front reenvía el mismo `Blob`
+con la misma clave (`useInterviewTurn.ts:119`, `:191`), así que la huella coincide. La clave solo
+se guarda tras una evaluación exitosa (`TurnEvaluator.java:260`;
+`SubmitAudioAnswerService.java:242-244`); si la evaluación falla, no se guarda (`:248-250`) y el
+turno pasa a `RETRYING` (`TurnEvaluator.java:290`).
+
+- **Caso (a):** el primer envío terminó y se evaluó → `200` con el resultado guardado; la
+  pantalla avanza como con el primer `200`. Es CA-5.8.27.
+- **Caso (b):** el primer envío sigue transcribiendo o evaluando → `409 TURN_CONFLICT`
+  (`AnswerRegistrar.java:168-172`); genérico y se conserva la grabación; el siguiente «Enviar» cae
+  en (a) o en (c).
+- **Caso (c):** el primer envío terminó, pero falló la evaluación de la IA → `409
+  ANSWER_ALREADY_EXISTS` (`AnswerRegistrar.java:174`); el genérico se repite en cada «Enviar» y el
+  panel de «Reintentar» no aparece. Hueco conocido, no cubierto (CM-346 D4).
 
 **Las demás rutas de la entrevista (interview-setup, no las toca esta rama):** `POST
 /api/v1/interviews/sessions` (crear la sesión, HU-4.4) se migró en el PR #100 (`5bc70b2`,
@@ -490,48 +547,95 @@ contador del front. (3) Ya hay pruebas de handlers junto a sus handlers
 - En el paso de código se corre `pnpm test` completo, no solo `interview-session`: el módulo de
   mocks se carga en todas las pruebas.
 
-### HU-5.8 (CM-317): criterios y plan de pruebas
+### HU-5.8 (CM-317, CM-346): criterios y plan de pruebas
 
-Los 25 CA de HU-5.8 por referencia (texto literal en el archivo de criterios v8.4). «Hook» =
-`hooks/useVoiceRecorder.test.ts` (nuevo, `describe('useVoiceRecorder')`; simula `./sileroVad`,
-`getUserMedia` y `MediaRecorder`). «Página» = `pages/InterviewSessionPage.voice.test.tsx`.
-Las filas «Hecha» tienen su prueba en verde (CM-317, tareas 3 a 9); «Se mantiene» son pruebas
-que ya existían.
+Los 28 CA de HU-5.8 por referencia (texto literal en el archivo de criterios v11.3,
+`13112026_02_HU-5_8_criterios_backlog_v11_3.md`; CA-5.8.11 eliminado). La etiqueta (F / F y B /
+B) es la de la nota «reparto F / B» de ese archivo. «Hook» = `hooks/useVoiceRecorder.test.ts`
+(`describe('useVoiceRecorder')`; simula `./sileroVad`, `getUserMedia` y `MediaRecorder`).
+«Página» = `pages/InterviewSessionPage.voice.test.tsx`. Las filas «Hecha» tienen su prueba en
+verde (CM-317, tareas 3 a 9); «Se mantiene» son pruebas que ya existían; «CM-346» remite al plan
+de abajo. Ninguna prueba corre contra el servicio real: el `200` simulado tiene la forma del real
+(`AnswerResultResponse.java:34-40`), y los errores se simulan dentro de cada prueba (CM-346 D5).
 **No comprobado:** que las fake timers de Vitest 4 controlen `performance.now` sin configurarlas,
 y que el `delay` de MSW funcione con fake timers (si no, la prueba de 20 s usa un handler que
 espera una promesa resuelta a mano).
 
 | CA | Etiq. | Qué hace el front que el CA no dice | Prueba (`it`) | Estado |
 | --- | --- | --- | --- | --- |
-| CA-5.8.1 | F y B | La parte F está en `interview-setup` (HU-4.3); nada en el chat | `LanguageAndFormatForm.test.tsx` «muestra Audio y Texto con descripciones (CA-4.3.3)» (**no comprobado** que afirme la preselección) | Fuera de CM-317 |
+| CA-5.8.1 | F (antes F y B) | Reescrito en v11 (#266): al abrir el chat de una entrevista por voz se muestran «Grabar» y «Responder por texto» | Página «muestra «Grabar», «Responder por texto» y el aviso del audio antes de grabar (CA-5.8.24)» (afirma los dos controles) | Se mantiene |
 | CA-5.8.2 | F | «Grabando» solo cuando MicVAD y el grabador ya arrancaron (CM-316 D4) | Página «al grabar muestra «Detener» y el tiempo sobre 3:00 (CA-5.8.2)» · Hook «arranca MicVAD con el mismo stream antes que el grabador y queda grabando» | Se mantiene · Hecha |
 | CA-5.8.3 | F | Todo error de `getUserMedia` salvo `NotFoundError` → `denied`, sin cargar MicVAD | Página «con el micrófono denegado ofrece el texto en la misma pregunta (CA-5.8.3)» · Hook «con el permiso negado queda en denied sin cargar MicVAD» | Se mantiene · Hecha |
 | CA-5.8.4 | F | «Detener» desde que empieza la grabación (lectura de §9); `Blob` con el `mimeType` real | Hook «al detener con voz suficiente conserva el audio con el tipo real del grabador» | Hecha |
-| CA-5.8.5 | F y B | Aviso de 20 s programado por envío y limpiado al terminar o desmontar | Página «con una grabación lista, «Enviar» avanza a «Pregunta 2 de 5» y suelta el audio (CA-5.8.5)» · «a los 20 s de espera agrega «Esto puede tardar hasta 2 minutos. No cierres esta página.»» · «tras un reenvío el aviso de 20 s no aparece antes de tiempo» | Se mantiene · Hecha · Hecha |
-| CA-5.8.6 | F y B | Guarda síncrona `inFlight`; «Enviar» conserva su nombre accesible, deshabilitado y con spinner visible; el estado se anuncia solo en `aria-live` (CM-316 D7) | Página «con doble clic en «Enviar» envía un solo audio»: 1 sola llamada a `…/answers/audio`; durante la espera el botón con nombre accesible «Enviar» está deshabilitado y muestra el spinner; «Procesando tu respuesta…» aparece una sola vez, en la región `aria-live`, y no como nombre del botón | Hecha |
+| CA-5.8.5 | F y B | Solo la pregunta principal k (k < 5) sin seguimiento pendiente (v11, #267); el aviso de 20 s pasó a CA-5.8.26 | Página «con una grabación lista, «Enviar» avanza a «Pregunta 2 de 5» y suelta el audio (CA-5.8.5)» | Se mantiene |
+| CA-5.8.6 | F y B | Guarda síncrona `inFlight`; «Enviar» conserva su nombre accesible, deshabilitado y con spinner visible; el estado se anuncia solo en `aria-live` (CM-316 D7). Backend real: un 2.º envío del turno en curso, con la misma clave o con otra, recibe `409 TURN_CONFLICT`, no el `200` que pide la columna técnica con la misma clave (§5, caso b; §9, choque C3) | Página «con doble clic en «Enviar» envía un solo audio»: 1 sola llamada a `…/answers/audio`; durante la espera el botón con nombre accesible «Enviar» está deshabilitado y muestra el spinner; «Procesando tu respuesta…» aparece una sola vez, en la región `aria-live`, y no como nombre del botón | Hecha |
 | CA-5.8.7 | F y B | Tope medido con `performance.now` (CM-316 D6) | Hook «a los 3:00 medidos con el reloj se detiene sola y habilita «Enviar»» | Hecha |
-| CA-5.8.8, 5.8.13, 5.8.14, 5.8.15 | B | Efecto visible: genérico y se descarta la grabación (§5) | Página «413, 415 y 422 sin code de transcripción muestran el genérico y descartan la grabación» | Hecha |
-| CA-5.8.9 | F y B | ≥ 62 tramos de 32 ms con `isSpeech` ≥ 0,3, según las notas técnicas de HU-5.8 (O75, backlog v8.4) | Hook «con 62 tramos de voz (1,984 s) habilita «Enviar»» | Hecha |
-| CA-5.8.10 | F y B | 59 tramos → `noVoice`, sin enviar | Página «con menos de 2 s de voz muestra el aviso y deja grabar otra vez (CA-5.8.10)» · Hook «con 59 tramos de voz (1,9 s) queda en noVoice sin audio» | Se mantiene · Hecha |
-| CA-5.8.11 | F y B | 0 tramos → `noVoice`; `TRANSCRIPTION_EMPTY` → mismo mensaje | Hook «sin voz queda en noVoice» · Página «si Backend responde TRANSCRIPTION_EMPTY avisa «No detectamos tu voz, intenta de nuevo.» y descarta la grabación» | Hecha · Hecha |
+| CA-5.8.8, 5.8.13, 5.8.14, 5.8.15 | B | Opción B (CM-346 D1): el mensaje del CA es el de la API; la pantalla muestra el genérico y descarta la grabación (§5). Codes reales: `AUDIO_TOO_LONG`, `AUDIO_TOO_LARGE` y `AUDIO_INVALID_FORMAT` (14 y 15), no `AUDIO_FORMAT_NOT_SUPPORTED` ni `AUDIO_CONTENT_INVALID` (§9, choque C2) | Página «con %s, sin code de transcripción, muestra el genérico y descarta la grabación» (413, 415, 422 sin code, 422 `VALIDATION_FAILED`; ninguna con el code real) | Hecha |
+| CA-5.8.9 | F y B | ≥ 62 tramos de 32 ms con `isSpeech` ≥ 0,3, según las notas técnicas de HU-5.8 (O77, backlog v11.3) | Hook «con 62 tramos de voz (1,984 s) habilita «Enviar»» | Hecha |
+| CA-5.8.10 | F y B | 59 tramos → `noVoice`, sin enviar. Si llega `422 AUDIO_TOO_SHORT`, «No detectamos tu voz, intenta de nuevo.» (CM-346 D2) | Página «con menos de 2 s de voz muestra el aviso y deja grabar otra vez (CA-5.8.10)» · Hook «con 59 tramos de voz (1,9 s) queda en noVoice sin audio» · Página V2 (CM-346) | Se mantiene · Hecha · CM-346 (rojo) |
+| ~~CA-5.8.11~~ | — | **Eliminado en v11** (#270; su código queda libre). La transcripción vacía la cubre CA-5.12.7 | Hook «sin voz queda en noVoice (CA-5.8.11)» y Página «si Backend responde TRANSCRIPTION_EMPTY…» siguen en verde; su rótulo cita un CA que ya no existe (ver «Limpieza prevista» en el plan de CM-346) | — |
 | CA-5.8.12, 5.8.16, 5.8.17, 5.8.18 | B | Nombre de archivo fijo; el `Blob` solo vive en el estado de React | — | Sin prueba de front |
 | CA-5.8.19 | F y B | Otra `Idempotency-Key` para el texto; se registra en `…/answers` | Página ««Responder por texto» descarta la grabación y muestra el campo (CA-5.8.19)», ampliada: el envío llega a `…/answers`, no a `…/answers/audio` | Hecha (ampliada) |
-| CA-5.8.20 | F y B | Sin «Grabar» en una entrevista con Texto | Página «una entrevista de texto no muestra «Grabar» (CA-5.8.20)» | Se mantiene |
-| CA-5.8.21 | B | Efecto visible: `404` → `NOT_FOUND`; `409` → genérico | Página «al enviar audio a una entrevista ajena muestra «No encontramos lo que buscabas.»» | Hecha |
-| CA-5.8.22 | F y B | Conserva el `Blob` y reutiliza la clave `:audio` | Página «sin conexión conserva la grabación y el reenvío usa la misma Idempotency-Key» | Hecha |
+| CA-5.8.20 | F y B | Lo del botón pasó a CA-5.8.29 (#276/#277); su parte F se lee como CA-5.8.29. El mensaje es de la API (opción B, CM-346 D1): `422 AUDIO_NOT_ALLOWED` → genérico. Code real `AUDIO_NOT_ALLOWED`, no `ANSWER_MODE_MISMATCH` (§9, choque C2) | Ver CA-5.8.29 | — |
+| CA-5.8.21 | B | Efecto visible: `404` (`SESSION_NOT_FOUND`, `TURN_NOT_FOUND` o sin `code`) → `NOT_FOUND`, se conserva la grabación. Lo de «no está en curso» pasó a CA-5.8.28 | Página «al enviar audio a una entrevista ajena (404 %s) muestra «No encontramos lo que buscabas.» (CA-5.8.21)», con `SESSION_NOT_FOUND` y sin `code` | Hecha (ya cubre la prueba de protección V4 de CM-346) |
+| CA-5.8.22 | F (antes F y B, #280) | Conserva el `Blob` y reutiliza la clave `:audio`; el reintento es CA-5.8.27 | Página «sin conexión conserva la grabación y el reenvío usa la misma Idempotency-Key» | Hecha |
 | CA-5.8.23 | F | `NotFoundError` → `noMicrophone` | Página «sin micrófono avisa y ofrece el texto (CA-5.8.23)» · Hook «sin micrófono queda en noMicrophone» | Se mantiene · Hecha |
-| CA-5.8.24 | F | Se oculta cuando la grabación empieza de verdad (CM-316 D8) | Página «muestra «Grabar», «Responder por texto» y el aviso del audio antes de grabar (CA-5.8.24)» · «el aviso sigue visible mientras se prepara la grabación y si MicVAD falla» (en `denied` no hay controles de grabación, así que el aviso no aplica) | Se mantiene · Hecha |
+| CA-5.8.24 | F | Texto de la decisión D6 del 28/10 (CM-346 D6). Se oculta cuando la grabación empieza de verdad (CM-316 D8); «ya grabó» se recuerda solo mientras la pantalla está montada, no por `sessionId` (CM-346 D6) | Página «muestra «Grabar», «Responder por texto» y el aviso del audio antes de grabar (CA-5.8.24)» · «el aviso sigue visible mientras se prepara la grabación y si después queda en %s (CA-5.8.24)» · «oculta el aviso del audio cuando la grabación empieza de verdad (CM-316 D8)» (en `denied` no hay controles de grabación, así que el aviso no aplica) | CM-346 (rojo V1) · CM-346 (rojo V1) · Se mantiene |
 | CA-5.8.25 | F | Fallo de carga de MicVAD (CM-316 D3) | Hook «si MicVAD no carga queda en vadFailed y libera el micrófono» · Página «si no se puede preparar la grabación muestra el aviso, el campo de texto y «Grabar»» | Hecha · Hecha |
-| Notas técnicas HU-5.8 (formatos) | F | Formatos y `mimeType` real, según las notas técnicas de HU-5.8 (O75, backlog v8.4); sin «Grabar» (lectura del front, §9) | Hook «sin un tipo admitido queda en unsupported sin pedir el micrófono» · «con un mimeType real no admitido descarta y queda en unsupported» · Página «con formato no admitido muestra «Tu navegador no permite grabar. Responderás por texto.» y el campo» | Hecha |
+| CA-5.8.26 | F | Nuevo en v11 (#268, sale de CA-5.8.5). Aviso de 20 s programado por envío y limpiado al terminar o desmontar | Página «a los 20 s de espera agrega «Esto puede tardar hasta 2 minutos. No cierres esta página.» (CA-5.8.5)» · «tras un reenvío el aviso de 20 s no aparece antes de tiempo (CA-5.8.5)» (el rótulo cita CA-5.8.5: ver «Limpieza prevista») | Se mantiene · Se mantiene |
+| CA-5.8.27 | F y B | Nuevo en v11 (#281, sale de CA-5.8.22). Reenvía el mismo `Blob` con la misma clave; caso (a) cubierto, (b) da el genérico, (c) es un hueco de Backend (§5; CM-346 D3 y D4) | Página V3 (CM-346) | CM-346 (protección) |
+| CA-5.8.28 | B (efecto visible) | Nuevo en v11 (#279, sale de CA-5.8.21). `409 SESSION_ABANDONED` → «Sesión abandonada: no genera evaluación.»; `409 SESSION_ALREADY_CLOSED` o `SESSION_TRANSITION_NOT_ALLOWED` → «Esta entrevista ya no admite esa acción.»; fase `closed` sin controles (`useInterviewTurn.ts:84-89`, `:203-207`) | Página V5 y V6 (CM-346); por texto ya existen `InterviewSessionPage.test.tsx:863` y `:879` | CM-346 (protección) |
+| CA-5.8.29 | F | Nuevo en v11 (#277, sale de CA-5.8.20). Con Texto, sin «Grabar» y con el campo y «Enviar» | Página «una entrevista de texto no muestra «Grabar» (CA-5.8.20)» (el rótulo pasa a CA-5.8.29 en CM-346) | Se mantiene |
+| Notas técnicas HU-5.8 (formatos) | F | Formatos y `mimeType` real, según las notas técnicas de HU-5.8 (O77, backlog v11.3); sin «Grabar» (lectura del front, §9) | Hook «sin un tipo admitido queda en unsupported sin pedir el micrófono» · «con un mimeType real no admitido descarta y queda en unsupported» · Página «con formato no admitido muestra «Tu navegador no permite grabar. Responderás por texto.» y el campo» | Hecha |
 | Defecto: audio de la pregunta anterior (§9) | — | Un `503 LLM_*` al enviar audio descarta la grabación | Página «tras un fallo de la IA con audio y un "Reintentar" exitoso, la pregunta siguiente queda en idle sin grabación previa» | Hecha |
 | Defecto: cancelación en `requesting` (§9) | — | Descartar o desmontar mientras se prepara libera todo | Hook «descartar mientras se prepara libera el micrófono y no graba» · «desmontar mientras se prepara libera el micrófono» | Hecha |
+
+### Plan de pruebas de CM-346 · HU-5.8, backlog v11.3
+
+Todas en «Página» (`pages/InterviewSessionPage.voice.test.tsx`), en el `describe` existente.
+Cada error se simula dentro de su prueba con `useHandlers` sobre `…/answers/audio`; el mock
+compartido no cambia (CM-346 D5). Las de protección cubren comportamiento que ya existe: se
+espera que pasen desde el inicio, y si alguna sale en rojo es un hallazgo, no un paso del ciclo.
+
+| # | CA | Prueba (`it`) | Dado · Cuando · Entonces | Tipo | Resultado esperado hoy |
+| --- | --- | --- | --- | --- | --- |
+| V1 | CA-5.8.24 | «muestra «Grabar», «Responder por texto» y el aviso del audio antes de grabar (CA-5.8.24)» (existente, `:143-151`) | **Dado** una entrevista por voz sin grabaciones. **Cuando** se abre el chat. **Entonces** se ve «Tu audio se usa solo para transcribir tu respuesta. Lo procesa un servicio externo, que lo elimina a los 2 días; CAMEIA no lo guarda.». Se cambia la constante `PRIVACY` (`:67`) y el literal de `:148` al texto D6 | **Rojo** | Falla `getByText`: `es-CO/interview.json:148` tiene el texto de v8.4. También fallan las dos aserciones de `:441-458`, que usan `PRIVACY`. La de `:460-467` (`queryByText(PRIVACY)…not`) seguiría en verde aunque el texto fuera el viejo: no sirve como rojo |
+| V2 | CA-5.8.10 | «si Backend responde AUDIO_TOO_SHORT avisa «No detectamos tu voz, intenta de nuevo.» y descarta la grabación (CA-5.8.10)» (nueva) | **Dado** una grabación lista y `…/answers/audio` responde `422` con `code` `AUDIO_TOO_SHORT` y un `detail`. **Cuando** pulsa «Enviar». **Entonces** «No detectamos tu voz, intenta de nuevo.», la grabación se descarta, sigue «Pregunta 1 de 5» y está «Responder por texto»; no aparece el `detail` | **Rojo** | Falla `findByText(NO_VOICE)`: hoy `AUDIO_TOO_SHORT` no está en `AUDIO_REJECTIONS` (`useInterviewTurn.ts:95-100`) y sale el genérico (`:217`) |
+| V3 | CA-5.8.27 (caso a) | «si la respuesta se perdió y el servidor ya la procesó, el reenvío con la misma clave muestra el mismo resultado (CA-5.8.27)» (nueva) | **Dado** un handler que simula al servidor: guarda el resultado por `Idempotency-Key` y cuenta los registros; en la 1.ª llamada registra y responde `HttpResponse.error()`; con una clave ya guardada devuelve el resultado guardado sin registrar. **Cuando** pulsa «Enviar», ve «No hay conexión…» y vuelve a pulsar «Enviar». **Entonces** «Pregunta 2 de 5», las dos llamadas con la misma clave y 1 solo registro | Protección | Verde: el `Blob` y la clave se conservan sin red (`useInterviewTurn.ts:119`, `:191`) |
+| V4 | CA-5.8.21 | «al enviar audio a una entrevista ajena (404 %s) muestra «No encontramos lo que buscabas.» (CA-5.8.21)» (**ya existe**, `:399-415`, con `SESSION_NOT_FOUND` y sin `code`) | — | Protección | Verde. No hace falta una prueba nueva (§9, choque C1) |
+| V5 | CA-5.8.28 | «en una entrevista abandonada rechaza el audio con «Sesión abandonada: no genera evaluación.» y sin controles (CA-5.8.28)» (nueva) | **Dado** una grabación lista y `…/answers/audio` responde `409 SESSION_ABANDONED` con un `detail`. **Cuando** pulsa «Enviar». **Entonces** «Sesión abandonada: no genera evaluación.», sin «Grabar», «Enviar» ni «Responder por texto», y sin el `detail` | Protección | Verde: `toClosedReason` (`useInterviewTurn.ts:84-89`) no distingue la ruta |
+| V6 | CA-5.8.28 | «en una entrevista en evaluación o finalizada rechaza el audio con «Esta entrevista ya no admite esa acción.» y sin controles (CA-5.8.28)» (nueva) | Igual que V5 con `409 SESSION_ALREADY_CLOSED`. **Entonces** «Esta entrevista ya no admite esa acción.» | Protección | Verde, por la misma razón |
+
+**Inglés.** El texto en inglés de CA-5.8.24 (`en/interview.json:148`, CM-346 D6) no tiene prueba
+propia. **No existe** una prueba que compare que `es-CO` y `en` tienen las mismas llaves:
+`src/i18n/index.test.tsx` (sus dos pruebas, `:33` y `:39`) solo comprueba que se resuelve una
+llave de `common`.
+
+**Limpieza prevista (sin cambio de comportamiento):**
+
+- TSDoc de `pages/InterviewSessionPage.voice.test.tsx:1-20`: backlog v11.3 en vez de v8.4;
+  CA-5.8.11 → CA-5.12.7; el aviso de 20 s es CA-5.8.26; «sin «Grabar» en una entrevista de texto»
+  es CA-5.8.29; la entrevista no en curso es CA-5.8.28; el reintento con la misma clave es
+  CA-5.8.27.
+- TSDoc de `organisms/VoiceAnswerComposer/VoiceAnswerComposer.tsx:5`: el aviso de 20 s es
+  CA-5.8.26, no CA-5.8.5.
+- Rótulo de `pages/InterviewSessionPage.voice.test.tsx:238`: CA-5.8.20 → CA-5.8.29.
+- TSDoc de la prop `showLongWait` en `organisms/VoiceAnswerComposer/VoiceAnswerComposer.tsx:31`:
+  «(CA-5.8.5)» → CA-5.8.26.
+- Rótulos de `pages/InterviewSessionPage.voice.test.tsx:288` y `:307` (aviso de 20 s, «CA-5.8.5» →
+  CA-5.8.26) y `:387` («CA-5.8.11» → CA-5.12.7); `hooks/useVoiceRecorder.test.ts:289` («sin voz
+  queda en noVoice (CA-5.8.11)» → CA-5.12.7).
+
+Esta limpieza quedó aprobada por Juan José el 13-11-2026 y es toda la de CM-346: ocho sitios, sin
+cambio de comportamiento. No incluye el TSDoc de `pages/InterviewSessionPage.tsx:21` (cita
+«CA-5.8.5» para el aviso de 20 s), que se deja como está.
 
 ## 7. Estado de implementación
 
 | Archivo | Estado |
 | --- | --- |
-| `src/features/interview-session/pages/InterviewSessionPage.tsx` | Hecho; contrato previsto y avisos de voz (#101); envía la respuesta sin recortar y el panel muestra el mensaje del último fallo de reprocess (D4). CM-317: temporizador de 20 s, aviso de CA-5.8.24, descarte tras 503 LLM y tras 413, 415 y 422 genéricos, estados vadFailed y unsupported. **Hecho (CM-217, v11.3 D2):** oculta «Reintentar» en el panel de CA-5.2.20 al agotar el tramo 2 (`showRetry` según `canRetry`). **Hecho (CM-217, v11.3 D9):** «Ir al inicio» también cuando el turno ya no admite reintento (`turnNotRetryable`), aunque no se haya agotado el tramo 1; «Reintentar» oculto según `canRetry` del hook |
-| `src/features/interview-session/hooks/useInterviewTurn.ts` | Hecho; rechazos del audio (#101); códigos de D2; solo los fallos de la IA de reprocess suman al tope (D3, D4); retryError reemplaza a retryNetworkError; AnswerResponseShapeError da el genérico (D10); sigue devolviendo llaves de i18n (D6 fuera). CM-317: descarta el audio tras 413, 415, 422 y 503 LLM_* (§5). **Hecho (CM-217, v11.3):** LLM_INVALID_OUTPUT como fallo de la IA en isEvaluationFailure (D1); tope del tramo 2 con canRetry y guarda síncrona en retryEvaluation (D2); TSDoc. **Hecho (CM-217, v11.3 D7 a D9):** en el onError de reprocess, TURN_RETRY_LIMIT_REACHED lleva el contador al tope y sin retryError (D7); SESSION_* pasa a la fase closed con toClosedReason, sin modificarlo (D8); TURN_NOT_RETRYABLE deja el genérico sin «Reintentar» y con «Ir al inicio», sin sumar, y expone `turnNotRetryable` (D9); TSDoc |
+| `src/features/interview-session/pages/InterviewSessionPage.tsx` | Hecho; contrato previsto y avisos de voz (#101); envía la respuesta sin recortar y el panel muestra el mensaje del último fallo de reprocess (D4). CM-317: temporizador de 20 s, aviso de CA-5.8.24, descarte tras 503 LLM y tras 413, 415 y 422 genéricos, estados vadFailed y unsupported. **Hecho (CM-217, v11.3 D2):** oculta «Reintentar» en el panel de CA-5.2.20 al agotar el tramo 2 (`showRetry` según `canRetry`). **Hecho (CM-217, v11.3 D9):** «Ir al inicio» también cuando el turno ya no admite reintento (`turnNotRetryable`), aunque no se haya agotado el tramo 1; «Reintentar» oculto según `canRetry` del hook. **CM-346:** sin cambios de código previstos (ver «Limpieza prevista», §6) |
+| `src/features/interview-session/hooks/useInterviewTurn.ts` | Hecho; rechazos del audio (#101); códigos de D2; solo los fallos de la IA de reprocess suman al tope (D3, D4); retryError reemplaza a retryNetworkError; AnswerResponseShapeError da el genérico (D10); sigue devolviendo llaves de i18n (D6 fuera). CM-317: descarta el audio tras 413, 415, 422 y 503 LLM_* (§5). **Hecho (CM-217, v11.3):** LLM_INVALID_OUTPUT como fallo de la IA en isEvaluationFailure (D1); tope del tramo 2 con canRetry y guarda síncrona en retryEvaluation (D2); TSDoc. **Hecho (CM-217, v11.3 D7 a D9):** en el onError de reprocess, TURN_RETRY_LIMIT_REACHED lleva el contador al tope y sin retryError (D7); SESSION_* pasa a la fase closed con toClosedReason, sin modificarlo (D8); TURN_NOT_RETRYABLE deja el genérico sin «Reintentar» y con «Ir al inicio», sin sumar, y expone `turnNotRetryable` (D9); TSDoc. **Pendiente (CM-346 D2):** `AUDIO_TOO_SHORT` → `sinVoz` en `AUDIO_REJECTIONS` (V2 de §6) |
 | `src/features/interview-session/organisms/SessionStage/SessionStage.tsx` | Hecho; región aria-live con el indicador de procesando |
 | `src/features/interview-session/organisms/TextAnswerComposer/TextAnswerComposer.tsx` | Hecho; cuenta puntos de código NFC con unicodeLength (D9); el botón Enviar solo se deshabilita, sin modo de carga, y ya no recibe etiqueta de carga (CA-5.2.4) |
 | `src/features/interview-session/organisms/EvaluationRetryPanel/EvaluationRetryPanel.tsx` | Hecho; conserva el modo de carga (§9). **Hecho (CM-217, v11.3 D2):** prop opcional `showRetry` (por defecto `true`) para mostrarse sin «Reintentar», solo con «Ir al inicio»; el uso del cierre de HU-5.5 no cambia |
@@ -545,38 +649,40 @@ espera una promesa resuelta a mano).
 | `src/features/interview-session/model/sessionEntry.ts` | Hecho; valida sessionLanguage (#101) |
 | `src/features/interview-session/model/interviewSession.constants.ts` | Hecho; tope de 2. CM-317: encabezado (tarea 8 del Anexo A). **Hecho (CM-217, v11.3 D2):** MAX_LATER_EVALUATION_RETRIES = 2 con TSDoc que cita CA-5.2.20 y «Cambios v11.2» #290; TSDoc de MAX_EVALUATION_RETRIES («antes de pasar a CA-5.2.20», #292) |
 | `src/features/interview-session/hooks/useInterviewTurn.test.ts` | Hecha (CM-217, v11.3 D2): R6b |
-| `src/features/interview-session/hooks/useVoiceRecorder.ts` | Hecho (CM-317): MicVAD y formatos según las notas técnicas de HU-5.8 (O75, backlog v8.4), orden de arranque (CM-316 D4), estados vadFailed y unsupported, cancelación y tope con reloj real (CM-316 D6); sin medición por energía |
+| `src/features/interview-session/hooks/useVoiceRecorder.ts` | Hecho (CM-317): MicVAD y formatos según las notas técnicas de HU-5.8 (O75 en v8.4; O77 en v11.3, sin cambios), orden de arranque (CM-316 D4), estados vadFailed y unsupported, cancelación y tope con reloj real (CM-316 D6); sin medición por energía |
 | `src/features/interview-session/hooks/useVoiceRecorder.test.ts` | Hecha (CM-317): filas «Hook» del plan de §6 |
 | `src/features/interview-session/hooks/sileroVad.ts` | Hecho (CM-317): único punto de entrada a MicVAD, con `import()` y los assets del ADR 0009 |
 | `src/features/interview-session/hooks/sileroVad.test.ts` | Hecha (CM-317): opciones de `MicVAD.new`, umbral de 0,3 y error de carga |
 | `vite.config.ts` | Hecho (CM-317): los cuatro assets de Silero sin hash en la carpeta `vad` del build (ADR 0009) |
-| `src/features/interview-session/organisms/VoiceAnswerComposer/VoiceAnswerComposer.tsx` | Hecho. CM-317: Enviar conserva su nombre accesible con spinner visible (CM-316 D7), aviso de CA-5.8.24 (CM-316 D8) y sin «Responder por texto» cuando el campo ya se muestra (vadFailed) |
+| `src/features/interview-session/organisms/VoiceAnswerComposer/VoiceAnswerComposer.tsx` | Hecho. CM-317: Enviar conserva su nombre accesible con spinner visible (CM-316 D7), aviso de CA-5.8.24 (CM-316 D8) y sin «Responder por texto» cuando el campo ya se muestra (vadFailed). **Pendiente (CM-346, limpieza):** TSDoc de la línea 5 (aviso de 20 s = CA-5.8.26) |
+| `src/i18n/locales/es-CO/interview.json` | **Pendiente (CM-346 D6):** `sesion.voz.privacidad` (línea 148) con el texto D6 de CA-5.8.24 |
+| `src/i18n/locales/en/interview.json` | **Pendiente (CM-346 D6):** `sesion.voz.privacidad` (línea 148) con «Your audio is only used to transcribe your answer. It's processed by an external service that deletes it after 2 days; CAMEIA doesn't store it.» |
 | `src/design-system/molecules/BrandOrb/BrandOrb.tsx` | Hecho |
 | `src/design-system/molecules/ProgressArc/ProgressArc.tsx` | Hecho; la etiqueta se muestra sin mayúsculas forzadas (D7) |
 | `src/mocks/handlers/interviewSessions.handlers.ts` | Hecho con el contrato previsto (#101); cuenta puntos de código NFC sin recortar y copia VALIDATION_FAILED con un comentario (D2, D9). **Hecho (CM-217, v11.3 D10):** solo los handlers de answers y reprocess y la cabecera: validar antes de la caché, caché propia con huella (409 IDEMPOTENCY_KEY_CONFLICT), 422 con los code y la forma reales, contador por turno en reprocess (409 TURN_RETRY_LIMIT_REACHED al 5.º uso, 409 TURN_NOT_RETRYABLE), interruptor failInterviewEvaluations (aprobado el 13-11) y resetInterviewSessions que lo limpia todo. Sin cambiar turnId, start, state, creación, borrado, audio ni consolidation |
 | `src/mocks/handlers/interviewSessions.handlers.test.ts` | Hecha (CM-217, v11.3 D10): R14 a R19, en verde |
 | `src/features/interview-session/pages/InterviewSessionPage.test.tsx` | Hecha; cubre el plan de §6 (v8.3). **Hecha (CM-217, v11.3):** R1 a R7 del plan de §6; R3 reemplaza la prueba de D5. **Hecho (CM-217, contrato real):** R8 a R13, en verde. **Hecho (CM-217, contrato real):** «"Reintentar" con éxito avanza a la pregunta siguiente» con su propio handler de reprocess (lección 6, §6), en verde; TSDoc |
-| `src/features/interview-session/pages/InterviewSessionPage.voice.test.tsx` | Hecha; contrato previsto y rechazos del audio en #101. CM-317: pruebas de HU-5.8 de §6 |
+| `src/features/interview-session/pages/InterviewSessionPage.voice.test.tsx` | Hecha; contrato previsto y rechazos del audio en #101. CM-317: pruebas de HU-5.8 de §6. **Pendiente (CM-346):** V1 y V2 en rojo, V3, V5 y V6 de protección (§6); TSDoc de las líneas 1-20 y rótulo de la línea 238 (CA-5.8.29) |
 | `src/design-system/molecules/ProgressArc/ProgressArc.test.tsx` | Hecha (D7, prueba débil; completada con la verificación manual del 22-10, bitácora Tarea 8) |
 
 
-### Respuesta por voz (CM-317 · HU-5.8)
+### Respuesta por voz (CM-317, CM-346 · HU-5.8)
 
 | Estado de la grabación | Cuándo | Qué muestra |
 | --- | --- | --- |
-| **idle** | al entrar, tras descartar o tras un rechazo | «Grabar», «Responder por texto» y el aviso de CA-5.8.24 mientras no haya grabado de verdad (CM-316 D8) |
-| **requesting** | tras «Grabar», en orden: 1) tipo admitido, según las notas técnicas de HU-5.8 (O75, backlog v8.4); 2) getUserMedia; 3) import() del módulo de Silero, MicVAD.new y start; 4) MediaRecorder.start (CM-316 D4) | «Grabar» deshabilitado; el aviso sigue visible; «Responder por texto» cancela. Descartar o desmontar en cualquier paso libera todo y no graba |
+| **idle** | al entrar, tras descartar o tras un rechazo | «Grabar», «Responder por texto» y el aviso de CA-5.8.24 mientras no haya grabado de verdad en este montaje de la pantalla (CM-316 D8, CM-346 D6) |
+| **requesting** | tras «Grabar», en orden: 1) tipo admitido, según las notas técnicas de HU-5.8 (O77, backlog v11.3); 2) getUserMedia; 3) import() del módulo de Silero, MicVAD.new y start; 4) MediaRecorder.start (CM-316 D4) | «Grabar» deshabilitado; el aviso sigue visible; «Responder por texto» cancela. Descartar o desmontar en cualquier paso libera todo y no graba |
 | **recording** | MicVAD y el grabador arrancaron | orbe en rojo, «m:ss / 3:00», «Detener» (desde el inicio) y «Responder por texto»; a los 3:00 de reloj se detiene sola (CA-5.8.2, CA-5.8.7) |
 | **stopped** | se detuvo con 62 tramos de voz o más y un mimeType real admitido | «Enviar» y el tiempo grabado (CA-5.8.4, CA-5.8.9) |
-| **noVoice** | se detuvo con menos de 62 tramos | «No detectamos tu voz, intenta de nuevo.» y «Grabar» (CA-5.8.10, CA-5.8.11) |
+| **noVoice** | se detuvo con menos de 62 tramos | «No detectamos tu voz, intenta de nuevo.» y «Grabar» (CA-5.8.10; antes también CA-5.8.11, eliminado) |
 | **denied** / **noMicrophone** | error de getUserMedia | mensaje del backlog y el campo de texto; el resto de la entrevista sigue por texto (CA-5.8.3, CA-5.8.23) |
 | **vadFailed** | import(), MicVAD.new o start lanzan; un asset ausente llega como 200 con index.html por el rewrite y falla al analizarse (ADR 0009, **no comprobado**) | «No pudimos preparar la grabación. Puedes responder por texto.» (llave nueva) y el campo de texto en la misma pregunta; «Grabar» sigue disponible y vuelve a requesting (CA-5.8.25, CM-316 D3) |
-| **unsupported** | no hay tipo admitido, o el mimeType real no es WebM/Opus ni MP4/AAC | «Tu navegador no permite grabar. Responderás por texto.» (llave existente, interview.json línea 89, texto de CA-4.3.7) y el campo de texto, según las notas técnicas de HU-5.8 (O75, backlog v8.4); se oculta «Grabar» (lectura del front, §9) |
-| enviando (isSubmitting del turno) | tras «Enviar» | «Enviar» deshabilitado, con spinner visible y su nombre accesible «Enviar»; «Procesando tu respuesta…» se anuncia solo en la región aria-live existente, una vez (CM-316 D7; mismo principio que el composer de texto, CA-5.2.4, RT-06); a los 20 s, «Esto puede tardar hasta 2 minutos. No cierres esta página.» (CA-5.8.5) |
+| **unsupported** | no hay tipo admitido, o el mimeType real no es WebM/Opus ni MP4/AAC | «Tu navegador no permite grabar. Responderás por texto.» (llave existente, interview.json línea 89, texto de CA-4.3.7) y el campo de texto, según las notas técnicas de HU-5.8 (O77, backlog v11.3); se oculta «Grabar» (lectura del front, §9) |
+| enviando (isSubmitting del turno) | tras «Enviar» | «Enviar» deshabilitado, con spinner visible y su nombre accesible «Enviar»; «Procesando tu respuesta…» se anuncia solo en la región aria-live existente, una vez (CM-316 D7; mismo principio que el composer de texto, CA-5.2.4, RT-06); a los 20 s, «Esto puede tardar hasta 2 minutos. No cierres esta página.» (CA-5.8.26) |
 
 Los rechazos de Backend al transcribir y los demás errores del envío están en §5.
 
-### Detección de voz · notas técnicas de HU-5.8 (O75, backlog v8.4), CM-316 D4 y ADR 0009
+### Detección de voz · notas técnicas de HU-5.8 (O77, backlog v11.3), CM-316 D4 y ADR 0009
 
 - **Carga diferida.** `@ricky0123/vad-web` 0.0.31 y `onnxruntime-web` 1.22.0 se cargan solo en
   `requesting`, con `import()` de un único módulo de la feature (`hooks/sileroVad.ts`, nombre
@@ -598,7 +704,7 @@ Los rechazos de Backend al transcribir y los demás errores del envío están en
   `real-time-vad.js:188`): solo se llama tras un `start` exitoso. MicVAD crea su propio
   `AudioContext`; el hook ya no crea uno. Cada intento lleva un identificador: tras cada `await`,
   si el intento ya no es el vigente (se descartó o se desmontó), se liberan el stream y MicVAD.
-- **Formatos (notas técnicas de HU-5.8, O75, backlog v8.4).** En orden: `audio/webm;codecs=opus`, `audio/webm`,
+- **Formatos (notas técnicas de HU-5.8, O77, backlog v11.3).** En orden: `audio/webm;codecs=opus`, `audio/webm`,
   `audio/mp4;codecs=aac`; se quita `audio/mp4` sin códec (Chrome y Edge lo aceptan pero graban
   Opus). El `mimeType` real se revisa al arrancar el grabador. **No comprobado:** que ya sea el
   definitivo en `onstart` en Chrome, Edge y Firefox, ni qué cadena reporta un MP4/AAC.
@@ -610,9 +716,10 @@ Los rechazos de Backend al transcribir y los demás errores del envío están en
 - Backend: `…/answers` y `…/reprocess` ya existen en cameia-entrevista `origin/develop`
   `48773cb` (13-11-2026; contrato publicado, con su OpenAPI en el controlador): dejan de ser un
   bloqueo; probarlos contra el servicio real queda para preproducción (hipótesis H1 y H2, §9).
-  `…/answers/audio` no existe en cameia-entrevista. Sin él no se puede probar contra el backend
-  real; el Sprint 3 cierra la subtarea de Frontend con datos simulados (planeación del 15/10).
-- **Campos del multipart de `…/answers/audio` sin confirmar por Backend:** ver §5.
+  `…/answers/audio` ya existe en cameia-entrevista `origin/develop` `ebce618` (CM-349, PR #53,
+  13-11-2026), con los campos del multipart que usa el front (§5): deja de ser un bloqueo.
+  Probarlo contra el servicio real (AssemblyAI incluido) queda para preproducción; las pruebas
+  del front siguen contra MSW.
 - **Solicitudes a Backend del 21-10 (Juan José), respondidas el 22-10** en
   `22102026_v1_respuesta-a-frontend-tiempos-y-confirmaciones.md` (Paula, Backend). No son la
   solicitud 4.1 del documento de Backend del 20-10 (la `Idempotency-Key` al crear la sesión,
@@ -640,6 +747,61 @@ Los rechazos de Backend al transcribir y los demás errores del envío están en
 - La pregunta 1 llega desde la pantalla de inicio (HU-4.5, CM-213).
 
 ## 9. Notas
+
+**Decisiones de CM-346 (Juan José, 13-11-2026)** (HU-5.8 contra el backlog v11.3 y el contrato
+real de `cameia-entrevista` `ebce618`)
+
+- **CM-346 D1 · Opción B.** Los mensajes de CA-5.8.8, 5.8.13, 5.8.14, 5.8.15 y 5.8.20 son de la
+  respuesta de la API: la pantalla no traduce `AUDIO_TOO_LARGE`, `AUDIO_INVALID_FORMAT`,
+  `AUDIO_NOT_ALLOWED` ni `AUDIO_TOO_LONG` y muestra el genérico (ADR-0008: nunca el `detail`).
+  Motivo (YAGNI): los cuatro primeros llegan «sin pasar por la interfaz», y en una entrevista por
+  texto la pantalla no ofrece «Grabar» (CA-5.8.29).
+- **CM-346 D2 · `AUDIO_TOO_SHORT` → `interview:sesion.voz.sinVoz`** («No detectamos tu voz,
+  intenta de nuevo.», CA-5.8.10), en `AUDIO_REJECTIONS`; descarta la grabación, como los demás
+  `422`.
+- **CM-346 D3 · `TURN_CONFLICT` y `ANSWER_ALREADY_EXISTS` → `errors:generico`** (ADR-0008: el
+  backlog no les da texto). Se conserva la grabación.
+- **CM-346 D4 · Hueco conocido, no cubierto:** el caso (c) de CA-5.8.27 (§5, «Repetición con la
+  misma clave»): si la evaluación del primer envío falló y la respuesta no llegó, el reenvío
+  recibe `409 ANSWER_ALREADY_EXISTS` en cada intento y la pantalla no ofrece «Reintentar». Es de
+  Backend (CM-345): la clave no se guarda cuando la evaluación falla
+  (`SubmitAudioAnswerService.java:248-250`).
+- **CM-346 D5 · El mock compartido no cambia.** Cada error de `…/answers/audio` se simula dentro
+  de su prueba con `useHandlers`; `interviewSessions.handlers.ts:223-235` sigue respondiendo `200`.
+- **CM-346 D6 · Aviso de CA-5.8.24.** Texto de la decisión D6 del equipo (28/10, «Cambios v9»,
+  fila 24): `es-CO` «Tu audio se usa solo para transcribir tu respuesta. Lo procesa un servicio
+  externo, que lo elimina a los 2 días; CAMEIA no lo guarda.»; `en` «Your audio is only used to
+  transcribe your answer. It's processed by an external service that deletes it after 2 days;
+  CAMEIA doesn't store it.» (traducción de trabajo, con el estilo de `sesion.voz`). Se oculta al
+  empezar a grabar (decisión de CM-317, CM-316 D8; el backlog no lo pide). «Ya grabó» se
+  recuerda solo mientras la pantalla está montada (`useState` en `InterviewSessionPage.tsx:70`,
+  `:78`), no por `sessionId` (YAGNI: mostrarlo de más no incumple el CA). Consecuencia
+  (hipótesis, sin ejecutar): `createBrowserRouter` conserva `location.state` al recargar, así que
+  tras una recarga o al volver con «Atrás» el aviso reaparece aunque ya se grabó. Lo mismo pasa
+  con la rama CM-369 (Sofi, «Volver a mi entrevista», aún no está en `develop`): volver al chat
+  desde el asistente monta de nuevo la pantalla y el aviso reaparece aunque ya se haya grabado.
+  Se acepta, porque mostrarlo de más no incumple CA-5.8.24. Decisión de Juan José como PO del
+  corte (13-11-2026).
+
+**Choques detectados al escribir CM-346 (no se cambió ninguna decisión; se anotan)**
+
+- **C1 · La prueba de protección de CA-5.8.21 ya existe.**
+  `InterviewSessionPage.voice.test.tsx:399-415` ya prueba `404 SESSION_NOT_FOUND` (y `404` sin
+  `code`) por voz. V4 no agrega una prueba nueva.
+- **C2 · Codes del backlog frente al contrato real.** Las columnas técnicas de CA-5.8.14, 5.8.15
+  y 5.8.20 nombran `AUDIO_FORMAT_NOT_SUPPORTED`, `AUDIO_CONTENT_INVALID` y `ANSWER_MODE_MISMATCH`
+  («Cambios v11», #272, #273, #276, sin validar), que no existen en `ErrorCode.java` (`ebce618`):
+  Backend responde `415 AUDIO_INVALID_FORMAT` en los dos primeros y `422 AUDIO_NOT_ALLOWED` en el
+  tercero. Los mensajes sí coinciden. Con CM-346 D1 al front no le cambia nada; es de CM-345 o
+  del backlog.
+- **C3 · CA-5.8.6, columna técnica.** Pide que la misma `Idempotency-Key` mientras el primer envío
+  se procesa devuelva `200` con el mismo resultado; el servidor real responde `409 TURN_CONFLICT`
+  porque la clave se guarda solo al terminar (§5, caso b). La pantalla nunca manda ese 2.º envío
+  (guarda `inFlight`, `useInterviewTurn.ts:276-277`), así que la parte F se cumple. Es de CM-345.
+- **C4 · CA-5.8.10 en Backend.** El backlog mide la voz con la suma de la duración de las palabras
+  de AssemblyAI; según `docs/errores.md:78` de `cameia-entrevista` (documento, no código),
+  `AUDIO_TOO_SHORT` sale cuando el **audio** dura menos de 1,5 s, sin transcribir. CM-346 D2
+  muestra el mismo mensaje en los dos casos; la diferencia es de CM-345.
 
 **Decisiones del equipo**
 
@@ -872,8 +1034,7 @@ la IA y la entrevista debe conservar su estado». Lo que hace la pantalla
 - **v11.3 D1 también toca la voz.** `isEvaluationFailure` lo usa `discardsAudio`
   (`useInterviewTurn.ts:109-113`): un `503 LLM_INVALID_OUTPUT` en `…/answers/audio` abrirá el
   panel y descartará la grabación. Es coherente con CA-5.2.19 («Aplica igual a una respuesta por
-  voz ya transcrita»), pero la fila de §5 (HU-5.8) solo nombra `LLM_UNAVAILABLE` y
-  `LLM_LIMIT_REACHED`, y no se cambió.
+  voz ya transcrita»). La fila de §5 (HU-5.8) ya nombra los tres `code` (CM-346).
 - **`EvaluationRetryPanel` es compartido.** También lo usa el cierre de HU-5.5
   (`InterviewSessionPage.tsx:207-213`): ocultar «Reintentar» debe ser opcional y no cambiar ese
   uso.
@@ -894,19 +1055,20 @@ Del inicio (interview-setup): `PLANNING_RETRIES_EXHAUSTED` deja solo «Cancelar�
 - Hay una `Idempotency-Key` por turno y forma de respuesta (`idempotencyKeyFor` en el hook): el
   reenvío tras perder la conexión reutiliza la del audio (CA-5.8.22); pasar a texto en la misma
   pregunta usa otra, porque la respuesta se registra como escrita en `…/answers` (CA-5.8.19).
-- **Lectura de CA-5.8.4 frente a 5.8.10 y 5.8.11.** CA-5.8.4 parte de que «ya se detectó la voz
-  mínima», pero 5.8.10 y 5.8.11 hacen seleccionar «Detener» con 1,9 s de voz o en silencio. Se
+- **Lectura de CA-5.8.4 frente a 5.8.10** (y CA-5.8.11, eliminado en v11). CA-5.8.4 parte de que
+  «ya se detectó la voz mínima», pero 5.8.10 hace seleccionar «Detener» con 1,9 s de voz (y el
+  silencio sigue dando `noVoice`). Se
   lee que «Detener» está disponible desde que empieza la grabación y que la voz mínima decide si
   se habilita «Enviar» o se muestra «No detectamos tu voz, intenta de nuevo.» (nota añadida del
   archivo de criterios).
 - **130 s y el Gateway:** ver §8 (4.1).
 - **Formato no admitido: se oculta «Grabar» (lectura del front).** Las notas técnicas de HU-5.8
-  (O75, backlog v8.4) piden no enviar el audio y mostrar «Tu navegador no permite grabar.
+  (O77, backlog v11.3; O75 en v8.4) piden no enviar el audio y mostrar «Tu navegador no permite grabar.
   Responderás por texto.» con el campo de texto, pero no dicen qué pasa con «Grabar». Se oculta:
   en el mismo navegador, grabar otra vez daría el mismo resultado, y es coherente con CA-4.3.7,
   que en el asistente deja Audio deshabilitado y Texto preseleccionado.
 - `useCanRecordAudio.ts` (`interview-setup`, CA-4.3.7) aún acepta `audio/mp4` sin códec; se
-  alinea con las notas técnicas de HU-5.8 (O75, backlog v8.4) en otro PR de `interview-setup`.
+  alinea con las notas técnicas de HU-5.8 (O77, backlog v11.3) en otro PR de `interview-setup`.
 - Safari (macOS e iOS) no se prueba por ahora (CA-5.14.6, decisión del PO del 23-10).
 - **MP4/AAC sin prueba en el hook.** `useVoiceRecorder.test.ts` no prueba un `mimeType` real de
   MP4/AAC: no está comprobada la cadena que reporta el navegador al grabar MP4/AAC (§7,
@@ -974,9 +1136,11 @@ Del inicio (interview-setup): `PLANNING_RETRIES_EXHAUSTED` deja solo «Cancelar�
   genérico (§4). Cambiar de clave al editar el texto no basta: si el primer envío ya se
   registró, Backend responde `409 ANSWER_ALREADY_EXISTS`. La salida correcta necesita `…/state`
   (punto anterior).
-- **`…/answers/audio`.** No existe en `cameia-entrevista` `origin/develop` `48773cb`; la ruta la
-  fija CM-345 (Vela, en curso). El front sigue usando la prevista (§5) y sus comentarios no
-  cambian con v11.3 D11.
+- **`…/answers/audio`.** *(Resuelto para CM-346.)* Ya existe en `cameia-entrevista`
+  `origin/develop` `ebce618` (CM-349, PR #53) y coincide con la que usa el front (§5). Los
+  comentarios de `api/interviewSession.api.ts` y del DTO sobre el audio no se tocan en CM-346.
+- **Recuperar el caso (c) de CA-5.8.27** (CM-346 D4) necesita que Backend guarde la clave también
+  cuando la evaluación falla, o leer `…/state` (HU-5.7).
 - **Hipótesis H1 y H2 del informe, por verificar en preproducción:** el Gateway entrega la `200`
   sin reescribirla (sin quitar `nextQuestion: null`) y propaga los `ProblemDetail` con el
   `code` intacto en `409` y `503`. Si no, el chat mostraría el genérico incluso para `LLM_*` y
@@ -985,19 +1149,20 @@ Del inicio (interview-setup): `PLANNING_RETRIES_EXHAUSTED` deja solo «Cancelar�
 **Referencias de otras HU desactualizadas frente al backlog v11.3.** No son de CM-217; se
 revisan cuando se vuelva a tocar esa HU.
 
-- HU-5.8 (§1): dice que el backlog vigente es el v8.5 y cita los criterios v8.4; el backlog v11
-  cambió HU-5.8 («Cambios v11»).
+- *(Resuelto en CM-346.)* HU-5.8 (§1): citaba el backlog v8.5 y los criterios v8.4.
 - HU-5.5 (§2, «No entra»): dice que el cierre y reporte no entra, pero el PR #126 ya lo
   implementó en esta feature.
-- HU-5.8 (§5, tabla del audio): el `503` solo nombra `LLM_UNAVAILABLE` y `LLM_LIMIT_REACHED`;
-  desde CM-217 también `LLM_INVALID_OUTPUT`.
-- HU-5.8 y HU-5.5 (§5, tabla del audio): el `409` lleva a `errors:generico`, pero desde #126 los
-  `409 SESSION_*` pasan a la fase `closed`.
+- *(Resuelto en CM-346.)* HU-5.8 (§5, tabla del audio): el `503` ya nombra `LLM_INVALID_OUTPUT`.
+- *(Resuelto en CM-346.)* HU-5.8 y HU-5.5 (§5, tabla del audio): los `409 SESSION_*` ya figuran
+  con la fase `closed`.
 - General (§8, punto 4.1): sigue diciendo 30 s; desde #126 la espera es de 130 s (CM-357).
-- HU-5.8 (tabla de §6, §7 voz y Anexo A): siguen citando el backlog v8.4.
+- *(Resuelto en CM-346 en §6 y §7.)* HU-5.8: el Anexo A conserva las citas al backlog v8.4
+  porque registra las tareas de CM-317 tal como se hicieron.
 ## Anexo A · Tareas de CM-317
 
-En orden. Las pruebas se escriben en rojo antes de la implementación, como en CM-217.
+En orden. Las pruebas se escriben en rojo antes de la implementación, como en CM-217. Registro
+histórico: las citas «O75, backlog v8.4» y los CA de este anexo son los de entonces (v8.4); la
+correspondencia con v11.3 está en §6.
 
 | # | Tarea | CA o decisión | Estado |
 | --- | --- | --- | --- |
