@@ -3,7 +3,7 @@ feature: interview-setup
 estado: EN_CURSO
 hu: [HU-4.2, HU-4.5]
 prt: [PRT-04.02, PRT-04.03, PRT-04.11]
-jira: [CM-202, CM-213, CM-208, CM-205, CM-353]
+jira: [CM-202, CM-213, CM-208, CM-205, CM-353, CM-369]
 rutas: [/entrenar/nueva]
 documentacion: tsdoc-es
 backlog: 16102026_01_v8.2
@@ -261,6 +261,13 @@ cameia-entrevista; documento del 23-10-2026):
 
 Un doble clic real llegaba antes de que el botón pasara a carga y enviaba 2 peticiones
 (CA-4.4.17). La página lleva un candado síncrono: solo sale una petición hasta que esa termina.
+
+### «Volver a mi entrevista» (CM-369, testeo del 13-11-2026)
+
+El botón del aviso de entrevista en curso abría la ruta del chat sin la pregunta pendiente, y el
+chat rebotaba a «Nueva entrevista». Ahora consulta `GET …/{id}/state` de la anterior y abre su chat
+en la pregunta pendiente (CA-4.4.8), igual que «Cancelar» de la pantalla de inicio (CA-4.5.16). Si
+la consulta falla, el aviso se cierra y se queda en el asistente.
 
 ### Sin tono Motivador (CM-353 · HT-09, backlog v10)
 
