@@ -3,7 +3,7 @@ feature: interview-session
 estado: EN_CURSO
 hu: [HU-5.2, HU-5.8, HU-5.5]
 prt: [PRT-05.10, PRT-05.12]
-jira: [CM-217, CM-317, CM-221]
+jira: [CM-217, CM-317, CM-221, CM-226]
 rutas: [/entrenar/sesion/:sessionId]
 documentacion: tsdoc-es
 backlog: 11112026_03_v11.3
@@ -224,7 +224,7 @@ TURN_RETRY_LIMIT_REACHED` lleva al estado final de CA-5.2.20.
 | `409 TURN_RETRY_LIMIT_REACHED` (Backend ya contó 4 usos del turno) | `…/reprocess` | tope de Backend (v11.3 D7) | Lleva el contador al tope, vaya donde vaya el del front | `interview:sesion.reintentosAgotados`, **sin** «Reintentar» y con «Ir al inicio»: el estado final de CA-5.2.20 | CA-5.2.20 |
 | `409 SESSION_TRANSITION_NOT_ALLOWED`, `409 SESSION_ALREADY_CLOSED` | `…/reprocess` | cerrada (fase `closed`, v11.3 D8, con `toClosedReason` sin cambios) | No | `interview:sesion.noAdmite` («Esta entrevista ya no admite esa acción.»); sin panel, sin «Reintentar» y sin «Ir al inicio», como en `…/answers` | CA-5.2.6, CA-5.5.5 |
 | `409 SESSION_ABANDONED` | `…/reprocess` | cerrada (fase `closed`, v11.3 D8) | No | `interview:sesion.abandonada` («Sesión abandonada: no genera evaluación.»); sin panel ni acciones | CA-5.5.4 |
-| `409 TURN_NOT_RETRYABLE` (el turno ya no espera reintento, p. ej. una `200` de `…/reprocess` perdida) | `…/reprocess` | sin reintento posible (v11.3 D9) | No | `errors:generico`, **sin** «Reintentar» y con «Ir al inicio», aunque no se haya agotado el tramo 1 | CA-5.2.19 (indirecto) |
+| `409 TURN_NOT_RETRYABLE` (el turno ya no espera reintento, p. ej. una `200` de `…/reprocess` perdida) | `…/reprocess` | sin reintento posible (v11.3 D9) | No | `interview:sesion.noEsperaReintento` («Tu respuesta no está esperando un reintento.», CM-226), **sin** «Reintentar» y con «Ir al inicio», aunque no se haya agotado el tramo 1 | HU-5.6 |
 | Cualquier otro error, incluidos `503 DATABASE_UNAVAILABLE` (que Backend sí cuenta, v11.3 D7), `500` y un `200` con forma inesperada | `…/reprocess` | otro | No | `errors:generico`; «Reintentar» sigue | D4 |
 | `401` | cualquiera | (lo atiende `httpClient`) | — | cierre de sesión | — |
 
