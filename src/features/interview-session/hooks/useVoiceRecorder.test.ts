@@ -286,7 +286,7 @@ describe('useVoiceRecorder', () => {
     expect(result.current.audio).toBeNull();
   });
 
-  it('sin voz queda en noVoice (CA-5.8.11)', async () => {
+  it('sin voz queda en noVoice (CA-5.12.7)', async () => {
     const { result } = renderRecorder();
 
     await startRecording(result);
