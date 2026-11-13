@@ -79,6 +79,15 @@ function advance(sessionId: string, turnId: string) {
 /** Forma de respuesta elegida al crear la sesión (HU-4.3). */
 const formatBySession = new Map<string, string>();
 
+/**
+ * Hace que la evaluación del mock falle con `503 LLM_UNAVAILABLE` en `…/answers` y
+ * `…/reprocess`, para llegar al tope de «Reintentar» sin `useHandlers` (SPEC §9, v11.3 D10;
+ * prueba R14). `resetInterviewSessions` lo apagará.
+ *
+ * Pendiente (CM-217, v11.3 D10): aún no hace nada.
+ */
+export function failInterviewEvaluations() {}
+
 /** Reinicia el estado en memoria entre pruebas. */
 export function resetInterviewSessions() {
   pendingBySession.clear();

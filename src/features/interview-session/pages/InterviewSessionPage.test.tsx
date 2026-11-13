@@ -12,7 +12,11 @@
  * reintentos agotados en dos tramos de 2 usos, el segundo terminado solo con
  * «Ir al inicio» (CA-5.2.20, D3, D4, v11.3 D2, que sustituye a D5), respuesta
  * 200 con forma inesperada (D10), cierre tras la pregunta 5 (CA-5.2.5) y la
- * vuelta a «Nueva entrevista» sin entrada (HU-5.7 aún no existe). Los códigos
+ * vuelta a «Nueva entrevista» sin entrada (HU-5.7 aún no existe). Frente al
+ * contrato real de `cameia-entrevista` (`origin/develop` `48773cb`), los `409`
+ * de `…/reprocess`: el tope de Backend (`TURN_RETRY_LIMIT_REACHED`, v11.3 D7),
+ * la entrevista que ya no admite la acción (`SESSION_*`, v11.3 D8) y el turno
+ * que ya no espera reintento (`TURN_NOT_RETRYABLE`, v11.3 D9). Los códigos
  * de error se importan de `model/interviewSession.errorCodes` (D2); los topes
  * van como números literales del CA para que un cambio de constante rompa la
  * prueba (SPEC §6, plan de CM-217).
@@ -30,7 +34,11 @@ import {
   LLM_INVALID_OUTPUT,
   LLM_LIMIT_REACHED,
   LLM_UNAVAILABLE,
+  SESSION_ABANDONED,
+  SESSION_ALREADY_CLOSED,
   SESSION_TRANSITION_NOT_ALLOWED,
+  TURN_NOT_RETRYABLE,
+  TURN_RETRY_LIMIT_REACHED,
 } from '../model/interviewSession.errorCodes';
 import { InterviewSessionPage } from './InterviewSessionPage';
 
@@ -105,6 +113,10 @@ const llmInvalidOutput = () => problem(503, LLM_INVALID_OUTPUT);
 const internalError = () => problem(500, 'INTERNAL_ERROR');
 const notFound = () => problem(404, 'SESSION_NOT_FOUND');
 const networkError = () => HttpResponse.error();
+/** `503` que Backend cuenta como uso de «Reintentar» (suma en la reserva) y el front no (v11.3 D7). */
+const databaseUnavailable = () => problem(503, 'DATABASE_UNAVAILABLE');
+const retryLimitReached = () => problem(409, TURN_RETRY_LIMIT_REACHED);
+const turnNotRetryable = () => problem(409, TURN_NOT_RETRYABLE);
 
 /** Handler de `…/reprocess` que responde en orden y repite la última respuesta. */
 function reprocessSequence(...responses: Array<() => Response>) {
@@ -148,6 +160,22 @@ async function lastRetryAndSettle(
     expect(state.count).toBe(expectedCalls);
     expect(screen.queryByRole('button', { name: RETRYING })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument();
+  });
+}
+
+/**
+ * Pulsa «Reintentar» y espera a que `…/reprocess` haya respondido y el panel ya no esté en carga,
+ * sin suponer qué queda en pantalla: lo afirma cada prueba.
+ */
+async function retryOnce(
+  user: ReturnType<typeof userEvent.setup>,
+  state: { count: number },
+  expectedCalls: number,
+) {
+  await user.click(await screen.findByRole('button', { name: 'Reintentar' }));
+  await waitFor(() => {
+    expect(state.count).toBe(expectedCalls);
+    expect(screen.queryByRole('button', { name: RETRYING })).not.toBeInTheDocument();
   });
 }
 
@@ -578,7 +606,12 @@ describe('InterviewSessionPage', () => {
   });
 
   it('«Reintentar» con éxito avanza a la pregunta siguiente', async () => {
-    useHandlers(http.post(ANSWERS_URL, llmUnavailable));
+    // Su propio `…/reprocess`: el mock por defecto no vio el fallo de `…/answers` forzado aquí y,
+    // con el orden real, respondería `TURN_NOT_RETRYABLE` (SPEC §6, lección 6; v11.3 D10).
+    useHandlers(
+      http.post(ANSWERS_URL, llmUnavailable),
+      http.post(REPROCESS_URL, () => HttpResponse.json(OK_NEXT)),
+    );
     const user = userEvent.setup();
     renderPage();
     await user.type(screen.getByLabelText('Respuesta'), 'Mi respuesta');
@@ -649,6 +682,103 @@ describe('InterviewSessionPage', () => {
     expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument();
     expect(screen.queryByText('detalle técnico')).not.toBeInTheDocument();
     expect(state.count).toBe(0);
+  });
+
+  it('si Backend agota el tope antes que la pantalla, el 5.º «Reintentar» deja el mensaje de CA-5.2.20 solo con «Ir al inicio»', async () => {
+    const { state, handler } = reprocessSequence(
+      llmUnavailable,
+      llmUnavailable,
+      databaseUnavailable,
+      llmUnavailable,
+      retryLimitReached,
+    );
+    useHandlers(http.post(ANSWERS_URL, llmUnavailable), handler);
+    const user = userEvent.setup();
+    renderPage();
+    await submitText(user);
+    await retryAndSettle(user, state, 1);
+    await retryAndSettle(user, state, 2);
+
+    await retryAndSettle(user, state, 3);
+    expect(screen.getByText(GENERIC)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ir al inicio' })).toBeInTheDocument();
+
+    // Al front le queda 1 uso; Backend ya contó 4 (v11.3 D7).
+    await retryAndSettle(user, state, 4);
+    expect(screen.getByText(EXHAUSTED)).toBeInTheDocument();
+
+    await lastRetryAndSettle(user, state, 5);
+    expect(await screen.findByText(EXHAUSTED)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ir al inicio' })).toHaveAttribute('href', '/inicio');
+    expect(screen.queryByText('detalle técnico')).not.toBeInTheDocument();
+    expect(state.count).toBe(5);
+  });
+
+  it('con TURN_RETRY_LIMIT_REACHED en el primer «Reintentar» pasa directo al estado final de CA-5.2.20', async () => {
+    const { state, handler } = reprocessSequence(retryLimitReached);
+    useHandlers(http.post(ANSWERS_URL, llmUnavailable), handler);
+    const user = userEvent.setup();
+    renderPage();
+    await submitText(user);
+    await retryOnce(user, state, 1);
+    expect(await screen.findByText(EXHAUSTED)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ir al inicio' })).toHaveAttribute('href', '/inicio');
+    expect(state.count).toBe(1);
+  });
+
+  /** R10 y R11: un `409 SESSION_*` en `…/reprocess` cierra igual que en `…/answers` (v11.3 D8). */
+  async function expectNotAllowedOnRetry(state: { count: number }) {
+    const user = userEvent.setup();
+    renderPage();
+    await submitText(user);
+    await retryOnce(user, state, 1);
+    expect(await screen.findByText(NOT_ALLOWED)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Ir al inicio' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Respuesta')).not.toBeInTheDocument();
+    expect(screen.queryByText('detalle técnico')).not.toBeInTheDocument();
+    expect(state.count).toBe(1);
+  }
+
+  it('si al reintentar la entrevista no admite la acción muestra «Esta entrevista ya no admite esa acción.» sin «Reintentar»', async () => {
+    const { state, handler } = reprocessSequence(() =>
+      problem(409, SESSION_TRANSITION_NOT_ALLOWED),
+    );
+    useHandlers(http.post(ANSWERS_URL, llmUnavailable), handler);
+    await expectNotAllowedOnRetry(state);
+  });
+
+  it('si al reintentar la entrevista ya está cerrada muestra «Esta entrevista ya no admite esa acción.» sin «Reintentar»', async () => {
+    const { state, handler } = reprocessSequence(() => problem(409, SESSION_ALREADY_CLOSED));
+    useHandlers(http.post(ANSWERS_URL, llmUnavailable), handler);
+    await expectNotAllowedOnRetry(state);
+  });
+
+  it('si al reintentar la entrevista se abandonó muestra su mensaje sin «Reintentar»', async () => {
+    const { state, handler } = reprocessSequence(() => problem(409, SESSION_ABANDONED));
+    useHandlers(http.post(ANSWERS_URL, llmUnavailable), handler);
+    const user = userEvent.setup();
+    renderPage();
+    await submitText(user);
+    await retryOnce(user, state, 1);
+    expect(await screen.findByText('Sesión abandonada: no genera evaluación.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Ir al inicio' })).not.toBeInTheDocument();
+    expect(state.count).toBe(1);
+  });
+
+  it('si el turno ya no espera reintento muestra el genérico con «Ir al inicio» y sin «Reintentar»', async () => {
+    const { state, handler } = reprocessSequence(turnNotRetryable);
+    useHandlers(http.post(ANSWERS_URL, llmUnavailable), handler);
+    const user = userEvent.setup();
+    renderPage();
+    await submitText(user);
+    await lastRetryAndSettle(user, state, 1);
+    expect(screen.getByText(GENERIC)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ir al inicio' })).toHaveAttribute('href', '/inicio');
+    expect(screen.queryByText('detalle técnico')).not.toBeInTheDocument();
+    expect(state.count).toBe(1);
   });
 
   describe('cierre de la entrevista (HU-5.5)', () => {
