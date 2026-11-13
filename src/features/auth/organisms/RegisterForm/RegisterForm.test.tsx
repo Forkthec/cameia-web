@@ -72,6 +72,17 @@ const baseProps = {
     { value: 'THEY', label: 'Elle' },
   ],
   pronombresErrorRequired: 'Selecciona una opción.',
+  aceptaPoliticaLabel: 'Acepto la política de tratamiento de datos',
+  aceptaPoliticaErrorRequired: 'Acepta la política de tratamiento de datos para continuar.',
+  policyLinksLabel: 'Políticas de CAMEIA',
+  policyLinks: [
+    {
+      label: 'Política de tratamiento de datos personales',
+      to: '/politica-de-tratamiento-de-datos',
+    },
+    { label: 'Aviso de privacidad', to: '/aviso-de-privacidad' },
+    { label: 'Términos y condiciones', to: '/terminos-y-condiciones' },
+  ],
   submitLabel: 'Registrarse',
   submitLoadingLabel: 'Registrando…',
   footerQuestion: '¿Ya tienes cuenta?',
@@ -98,6 +109,7 @@ async function fillValidFormExceptSubmit(user: ReturnType<typeof userEvent.setup
   await user.type(screen.getByLabelText('Contraseña'), VALID_PASSWORD);
   await user.type(screen.getByLabelText('Confirmar contraseña'), VALID_PASSWORD);
   await user.selectOptions(screen.getByLabelText('Pronombres'), 'SHE');
+  await user.click(screen.getByLabelText('Acepto la política de tratamiento de datos'));
 }
 
 describe('RegisterForm', () => {
@@ -363,5 +375,44 @@ describe('RegisterForm', () => {
     renderRegisterForm({ isSubmitting: true });
 
     expect(screen.getByRole('button', { name: 'Registrando…' })).toBeDisabled();
+  });
+
+  describe('autorización del tratamiento de datos (CA-1.1.44, CM-365)', () => {
+    it('la casilla empieza sin marcar y enlaza las tres políticas en otra pestaña', () => {
+      renderRegisterForm();
+      expect(screen.getByLabelText('Acepto la política de tratamiento de datos')).not.toBeChecked();
+      for (const name of [
+        'Política de tratamiento de datos personales',
+        'Aviso de privacidad',
+        'Términos y condiciones',
+      ]) {
+        const link = screen.getByRole('link', { name });
+        expect(link).toHaveAttribute('target', '_blank');
+        expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+      }
+    });
+
+    it('sin marcar la casilla muestra el mensaje bajo ella y no envía', async () => {
+      const user = userEvent.setup();
+      const onSubmit = vi.fn();
+      renderRegisterForm({ onSubmit });
+      await fillValidFormExceptSubmit(user);
+      await user.click(screen.getByLabelText('Acepto la política de tratamiento de datos'));
+      await user.click(screen.getByRole('button', { name: 'Registrarse' }));
+      expect(
+        await screen.findByText('Acepta la política de tratamiento de datos para continuar.'),
+      ).toBeInTheDocument();
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('muestra el rechazo de Cuentas sobre la política bajo la casilla', () => {
+      renderRegisterForm({
+        aceptaPoliticaServerErrorMessage:
+          'La política cambió. Recarga la página y vuelve a aceptarla.',
+      });
+      expect(
+        screen.getByText('La política cambió. Recarga la página y vuelve a aceptarla.'),
+      ).toBeInTheDocument();
+    });
   });
 });

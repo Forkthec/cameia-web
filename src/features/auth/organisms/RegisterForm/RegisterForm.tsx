@@ -67,6 +67,8 @@ import { cn } from '@/utils/cn';
 import { calculatePasswordStrength } from '@/utils/passwordStrength';
 import { filterToDigits, filterToLettersAndSpaces } from '@/utils/textFilters';
 import { Button } from '@/design-system/atoms/Button';
+import { Checkbox } from '@/design-system/atoms/Checkbox';
+import { ErrorText } from '@/design-system/atoms/ErrorText';
 import { Divider } from '@/design-system/atoms/Divider';
 import { Icon } from '@/design-system/icons/Icon';
 import { Select, type SelectOption } from '@/design-system/atoms/Select';
@@ -178,6 +180,17 @@ interface RegisterFormProps {
   pronombresOptions: SelectOption[];
   pronombresErrorRequired: string;
 
+  /** Casilla «Acepto la política de tratamiento de datos» (CA-1.1.44, CM-365). */
+  aceptaPoliticaLabel: string;
+  /** Mensaje bajo la casilla si se envía sin marcarla. */
+  aceptaPoliticaErrorRequired: string;
+  /** Rechazo de Cuentas sobre la política (p. ej. versión desactualizada), bajo la casilla. */
+  aceptaPoliticaServerErrorMessage?: string;
+  /** Enlaces a las tres políticas; se abren en otra pestaña. */
+  policyLinks: { label: string; to: string }[];
+  /** Nombre accesible del grupo de enlaces a las políticas. */
+  policyLinksLabel: string;
+
   /** Cualquier otro `4xx`/fallo de red no cubierto por los casos específicos de arriba. */
   genericErrorMessage?: string;
 
@@ -245,6 +258,11 @@ export function RegisterForm({
   pronombresPlaceholder,
   pronombresOptions,
   pronombresErrorRequired,
+  aceptaPoliticaLabel,
+  aceptaPoliticaErrorRequired,
+  aceptaPoliticaServerErrorMessage,
+  policyLinks,
+  policyLinksLabel,
   genericErrorMessage,
   submitLabel,
   submitLoadingLabel,
@@ -270,6 +288,7 @@ export function RegisterForm({
       contrasena: '',
       confirmarContrasena: '',
       pronombres: '',
+      aceptaPolitica: false,
     },
   });
 
@@ -613,6 +632,46 @@ export function RegisterForm({
           />
         </div>
       </FormSection>
+
+      <Controller
+        control={control}
+        name="aceptaPolitica"
+        render={({ field, fieldState }) => {
+          const errorMessage =
+            aceptaPoliticaServerErrorMessage ??
+            (fieldState.error ? aceptaPoliticaErrorRequired : undefined);
+          return (
+            <div className="gap-space-2 flex flex-col">
+              <Checkbox
+                id="acepta-politica"
+                name={field.name}
+                checked={field.value}
+                onChange={(event) => field.onChange(event.target.checked)}
+                disabled={isSubmitting}
+              >
+                {aceptaPoliticaLabel}
+              </Checkbox>
+              <nav aria-label={policyLinksLabel}>
+                <ul className="gap-x-space-3 gap-y-space-1 text-small flex flex-wrap">
+                  {policyLinks.map((link) => (
+                    <li key={link.to}>
+                      <a
+                        href={link.to}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-action-primary underline underline-offset-2"
+                      >
+                        {link.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+              {errorMessage ? <ErrorText>{errorMessage}</ErrorText> : null}
+            </div>
+          );
+        }}
+      />
 
       <AuthFormActions
         isSubmitting={isSubmitting}

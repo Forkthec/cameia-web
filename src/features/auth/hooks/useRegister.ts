@@ -26,8 +26,8 @@
  * el flujo normal; si no, se muestra el error de red.
  *
  * `errorInfo` (`ADR-0007`, ya no hay `code` propio del backend): expone
- * `httpStatus` + el primer `field` que `BusinessExceptionHandler.java` haya
- * etiquetado (`birthDate`/`password` — `phoneNumber` nunca llega etiquetado,
+ * `httpStatus` + todos los `field` que `BusinessExceptionHandler.java` haya
+ * etiquetado, para mostrar todos los errores a la vez (CM-368) (`birthDate`/`password` — `phoneNumber` nunca llega etiquetado,
  * `valorInvalido()` no llama `campo()`). `httpStatus: 0` marca un fallo que
  * ni siquiera llegó a responder (red). `RegisterPage` traduce cada
  * combinación a su propia llave de `auth:registro.errores.*`.
@@ -45,7 +45,8 @@ export const SIGN_IN_AFTER_REGISTER_FAILED = 'SIGN_IN_AFTER_REGISTER_FAILED';
 
 export interface RegisterErrorInfo {
   httpStatus: number;
-  field?: string;
+  /** Campos rechazados por Cuentas, en el orden de `errors[]`; se omite si no hay. */
+  fields?: string[];
 }
 
 /** Resultado de la etapa de verificación tras el registro exitoso. */
@@ -96,7 +97,12 @@ export function useRegister(): UseRegisterResult {
       await registerUser(values);
     } catch (error) {
       if (error instanceof ApiError) {
-        setErrorInfo({ httpStatus: error.httpStatus, field: error.errors[0]?.field });
+        const fields = error.errors.map((item) => item.field).filter(Boolean);
+        setErrorInfo(
+          fields.length > 0
+            ? { httpStatus: error.httpStatus, fields }
+            : { httpStatus: error.httpStatus },
+        );
         setIsSubmitting(false);
         return;
       }

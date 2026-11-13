@@ -20,8 +20,11 @@ import userEvent from '@testing-library/user-event';
 import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { http, HttpResponse } from 'msw';
+import { POLICY_VERSION } from '@/config/policy';
 import i18n from '@/i18n';
 import { httpClient } from '@/services/http/httpClient';
+import { useHandlers } from '@/test/msw';
 import { useAuthStore } from '@/stores/auth.store';
 import { RegisterPage } from './RegisterPage';
 
@@ -68,6 +71,7 @@ async function fillValidForm(user: ReturnType<typeof userEvent.setup>, email: st
   await user.type(screen.getByLabelText('Contraseña'), 'ClaveSegura2026');
   await user.type(screen.getByLabelText('Confirmar contraseña'), 'ClaveSegura2026');
   await user.selectOptions(screen.getByLabelText('Pronombres'), 'SHE');
+  await user.click(screen.getByLabelText('Acepto la política de tratamiento de datos'));
 }
 
 describe('RegisterPage', () => {
@@ -130,6 +134,8 @@ describe('RegisterPage', () => {
       email: 'ya-existe@cameia.com',
       password: 'ClaveSegura2026',
       pronoun: 'SHE',
+      dataAuthorization: true,
+      policyVersion: POLICY_VERSION,
     });
     const user = userEvent.setup();
     renderRegisterPage();
@@ -141,5 +147,38 @@ describe('RegisterPage', () => {
     expect(screen.getByRole('link', { name: 'Iniciar sesión' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Recuperar contraseña' })).toBeDisabled();
     expect(signInMock).not.toHaveBeenCalled();
+  });
+
+  it('si Cuentas rechaza varios campos, muestra todos los errores a la vez (CM-368)', async () => {
+    await waitUntilReady();
+    useHandlers(
+      http.post('*/api/v1/users', () =>
+        HttpResponse.json(
+          {
+            title: 'Datos no válidos',
+            detail: 'Revisa los campos marcados.',
+            status: 422,
+            code: 'VALIDATION_FAILED',
+            errors: [
+              { field: 'password', code: 'PASSWORD_WEAK', message: 'x' },
+              { field: 'policyVersion', code: 'POLICY_VERSION_OUTDATED', message: 'x' },
+            ],
+          },
+          { status: 422 },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    renderRegisterPage();
+
+    await fillValidForm(user, 'varios@cameia.com');
+    await user.click(screen.getByRole('button', { name: 'Registrarse' }));
+
+    expect(
+      await screen.findByText('Tu contraseña no cumple los requisitos de seguridad.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('La política cambió. Recarga la página y vuelve a aceptarla.'),
+    ).toBeInTheDocument();
   });
 });

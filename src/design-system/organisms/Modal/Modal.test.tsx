@@ -187,4 +187,21 @@ describe('Modal', () => {
 
     expect(trigger).toHaveFocus();
   });
+
+  it('con dismissible={false} no tiene X y no cierra con Esc (CM-368)', async () => {
+    const user = userEvent.setup();
+    render(
+      <Modal
+        dismissible={false}
+        title="Política nueva"
+        primaryActionLabel="Continuar"
+        onPrimaryAction={() => {}}
+      >
+        contenido
+      </Modal>,
+    );
+    expect(screen.queryByRole('button', { name: 'Cerrar' })).not.toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
 });

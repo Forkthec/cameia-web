@@ -25,6 +25,9 @@
  */
 import { http, HttpResponse, type HttpHandler } from 'msw';
 
+/** Igual a `CAMEIA_POLICY_VERSION` de Cuentas y `POLICY_VERSION` de la web (los mocks no importan `config`). */
+const CURRENT_POLICY_VERSION = '2026-11-v1';
+
 export const MOCK_USER_ID = 'mock-user-01';
 
 export const MOCK_AUTHENTICATED_USER = {
@@ -47,10 +50,13 @@ interface RegisterRequestBody {
   password?: string;
   pronoun?: string;
   phoneNumber?: string;
+  dataAuthorization?: unknown;
+  policyVersion?: string;
 }
 
 interface MockErrorField {
   field: string;
+  code?: string;
   message: string;
 }
 
@@ -145,12 +151,77 @@ export function resetRegisteredUsers(): void {
 }
 
 export const authHandlers: HttpHandler[] = [
+  // CM-367: la cuenta de los mocks ya aceptó la versión vigente.
+  http.get('*/api/v1/users/me', () =>
+    HttpResponse.json({
+      status: 'ACTIVE',
+      plan: 'FREE',
+      policyAcceptance: {
+        acceptedVersion: CURRENT_POLICY_VERSION,
+        acceptedAt: '2026-11-12T15:00:00Z',
+        currentVersion: CURRENT_POLICY_VERSION,
+      },
+    }),
+  ),
+
+  http.post('*/api/v1/users/me/policy-acceptance', async ({ request }) => {
+    const body = (await request.json()) as { policyVersion?: string };
+    if (body.policyVersion !== CURRENT_POLICY_VERSION) {
+      return HttpResponse.json(
+        {
+          ...errorBody(422, 'Datos no válidos', 'Revisa los campos marcados.', [
+            {
+              field: 'policyVersion',
+              code: 'POLICY_VERSION_OUTDATED',
+              message: 'La política cambió. Recarga la página y vuelve a aceptarla.',
+            },
+          ]),
+          code: 'POLICY_VERSION_OUTDATED',
+        },
+        { status: 422 },
+      );
+    }
+    return HttpResponse.json({
+      acceptedVersion: body.policyVersion,
+      acceptedAt: '2026-11-12T15:00:00Z',
+      currentVersion: CURRENT_POLICY_VERSION,
+    });
+  }),
+
   http.post('*/api/v1/auth/logout-all', () => {
     return new HttpResponse(null, { status: 204 });
   }),
 
   http.post('*/api/v1/users', async ({ request }) => {
     const body = (await request.json()) as RegisterRequestBody;
+
+    // CM-367: la autorización y la versión vigente se validan antes que el resto.
+    const policyErrors = [
+      ...(body.dataAuthorization === true
+        ? []
+        : [
+            {
+              field: 'dataAuthorization',
+              code: 'DATA_AUTHORIZATION_REQUIRED',
+              message: 'Acepta la política de tratamiento de datos para continuar.',
+            },
+          ]),
+      ...(body.policyVersion === CURRENT_POLICY_VERSION
+        ? []
+        : [
+            {
+              field: 'policyVersion',
+              code: body.policyVersion ? 'POLICY_VERSION_OUTDATED' : 'POLICY_VERSION_REQUIRED',
+              message: 'La política cambió. Recarga la página y vuelve a aceptarla.',
+            },
+          ]),
+    ];
+    if (policyErrors.length > 0) {
+      return HttpResponse.json(
+        errorBody(422, 'Datos no válidos', 'Revisa los campos marcados.', policyErrors),
+        { status: 422 },
+      );
+    }
 
     // Orden real de RegisterUserService.register(): edad → contraseña →
     // correo duplicado (Firebase) → celular (Account.register). Una
