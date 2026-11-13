@@ -173,7 +173,7 @@ describe('useRegister', () => {
     await result.current.register(formValues);
 
     await waitFor(() =>
-      expect(result.current.errorInfo).toEqual({ httpStatus: 422, field: 'birthDate' }),
+      expect(result.current.errorInfo).toEqual({ httpStatus: 422, fields: ['birthDate'] }),
     );
   });
 
