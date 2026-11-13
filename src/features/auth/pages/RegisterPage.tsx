@@ -20,6 +20,7 @@
  * sesión».
  */
 import { useTranslation } from 'react-i18next';
+import { ROUTES } from '@/app/router/routes';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { Modal } from '@/design-system/organisms/Modal';
 import { PRONOUNS } from '../model/pronouns';
@@ -28,12 +29,16 @@ import { BrandHighlights } from '../organisms/BrandHighlights';
 import { RegisterForm } from '../organisms/RegisterForm';
 
 export function RegisterPage() {
-  const { t } = useTranslation(['auth', 'errors', 'common']);
+  const { t } = useTranslation(['auth', 'errors', 'common', 'legal']);
   const { isSubmitting, verificationResult, errorInfo, register, goToLogin } = useRegister();
 
   const isDuplicateEmail = errorInfo?.httpStatus === 409;
   const isBirthDateRejected = errorInfo?.httpStatus === 422 && errorInfo.field === 'birthDate';
   const isPasswordRejected = errorInfo?.httpStatus === 422 && errorInfo.field === 'password';
+  // CA-1.1.44 (CM-365): Cuentas rechaza la autorización o la versión de la política.
+  const isPolicyRejected =
+    errorInfo?.httpStatus === 422 &&
+    (errorInfo.field === 'dataAuthorization' || errorInfo.field === 'policyVersion');
 
   const duplicateEmailErrorMessage = isDuplicateEmail
     ? t('registro.correoDuplicado.mensaje')
@@ -41,8 +46,17 @@ export function RegisterPage() {
   const contrasenaServerErrorMessage = isPasswordRejected
     ? t('registro.errores.contrasenaGenerica')
     : undefined;
+  const aceptaPoliticaServerErrorMessage = isPolicyRejected
+    ? errorInfo.field === 'policyVersion'
+      ? t('registro.politica.cambio')
+      : t('registro.politica.requerida')
+    : undefined;
   const genericErrorMessage =
-    errorInfo && !isDuplicateEmail && !isBirthDateRejected && !isPasswordRejected
+    errorInfo &&
+    !isDuplicateEmail &&
+    !isBirthDateRejected &&
+    !isPasswordRejected &&
+    !isPolicyRejected
       ? errorInfo.httpStatus === 0
         ? t('errors:red')
         : t('errors:generico')
@@ -139,6 +153,15 @@ export function RegisterPage() {
         pronombresPlaceholder={t('registro.placeholders.pronombres')}
         pronombresOptions={pronombresOptions}
         pronombresErrorRequired={t('registro.errores.pronombresRequerido')}
+        aceptaPoliticaLabel={t('registro.politica.acepto')}
+        aceptaPoliticaErrorRequired={t('registro.politica.requerida')}
+        aceptaPoliticaServerErrorMessage={aceptaPoliticaServerErrorMessage}
+        policyLinksLabel={t('registro.politica.enlaces')}
+        policyLinks={[
+          { label: t('legal:documentos.politicaDatos.titulo'), to: ROUTES.politicaDatos },
+          { label: t('legal:documentos.avisoPrivacidad.titulo'), to: ROUTES.avisoPrivacidad },
+          { label: t('legal:documentos.terminos.titulo'), to: ROUTES.terminos },
+        ]}
         genericErrorMessage={genericErrorMessage}
         submitLabel={t('registro.cta')}
         submitLoadingLabel={t('registro.cargando')}

@@ -17,6 +17,10 @@ export interface RegisterUserRequestDto {
   /** Opcional del lado del backend (sin `@NotNull`); obligatorio solo como regla de cliente. */
   pronoun?: string;
   phoneNumber?: string;
+  /** Autorización expresa del tratamiento de datos; solo `true` es válido (CA-1.1.44, CM-365). */
+  dataAuthorization: boolean;
+  /** Versión aceptada de las políticas, `AAAA-MM-vN`; debe ser la vigente en Cuentas. */
+  policyVersion: string;
 }
 
 /** Forma exacta de `RegisteredUserResponse.java`. `status` es siempre `PENDING_VERIFICATION` al registrarse; `plan` siempre `FREE`. */

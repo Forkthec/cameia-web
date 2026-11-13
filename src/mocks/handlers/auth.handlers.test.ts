@@ -25,6 +25,8 @@ const validBody = {
   email: 'ada@cameia.com',
   password: 'contrasena-larga-1',
   pronoun: 'SHE',
+  dataAuthorization: true,
+  policyVersion: '2026-11-v1',
 };
 
 describe('authHandlers · POST /api/v1/users', () => {
@@ -106,5 +108,19 @@ describe('authHandlers · POST /api/v1/users', () => {
     });
 
     expect(account.status).toBe('PENDING_VERIFICATION');
+  });
+
+  it('sin autorización ni versión vigente responde 422 con los dos campos a la vez (CM-367)', async () => {
+    const response = await fetch('http://localhost/api/v1/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...validBody, dataAuthorization: false, policyVersion: '2020-01-v1' }),
+    });
+    const body = (await response.json()) as { errors: { field: string; code: string }[] };
+    expect(response.status).toBe(422);
+    expect(body.errors.map((error) => error.code)).toEqual([
+      'DATA_AUTHORIZATION_REQUIRED',
+      'POLICY_VERSION_OUTDATED',
+    ]);
   });
 });

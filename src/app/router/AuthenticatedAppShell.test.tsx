@@ -13,6 +13,9 @@ const { useLogoutMock } = vi.hoisted(() => ({ useLogoutMock: vi.fn() }));
 vi.mock('@/features/auth/hooks/useLogout', () => ({ useLogout: useLogoutMock }));
 
 const { appShellPropsSpy } = vi.hoisted(() => ({ appShellPropsSpy: vi.fn() }));
+vi.mock('@/features/auth/organisms/PolicyAcceptanceGate', () => ({
+  PolicyAcceptanceGate: () => null,
+}));
 vi.mock('@/layouts/AppShell', () => ({
   AppShell: (props: Record<string, unknown>) => {
     appShellPropsSpy(props);

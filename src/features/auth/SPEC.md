@@ -3,7 +3,7 @@ feature: auth
 estado: EN_CURSO
 hu: [HU-1.3, HU-1.1, HU-1.8, HU-1.2]
 prt: [PRT-01.03, PRT-01.01, PRT-01.08]
-jira: [CM-40, CM-34, CM-194, CM-195, CM-243, CM-267, CM-180, CM-15, CM-329, CM-337]
+jira: [CM-40, CM-34, CM-194, CM-195, CM-243, CM-267, CM-180, CM-15, CM-329, CM-337, CM-368]
 rutas: [/ingresar, /registro, /verificar-correo]
 documentacion: tsdoc-es
 backlog: 16092026_01
@@ -963,6 +963,8 @@ Notas:
 | `CA-1.2.5`  | `auth/too-many-requests` en reenvío: muestra "Espera unos minutos antes de volver a intentarlo." |
 | `CA-1.3.7`  | Login con correo no verificado: `signOut` inmediato, modal con opciones de reenviar o usar otra cuenta. |
 | `CA-1.8.1`  | Además de "ejecuta `signOut` y redirige a Login" (lo único que pide el criterio), agrega: confirmación previa (`Modal`/`BottomSheet` `destructive`); advertencia adicional cuando hay cambios sin guardar; ícono en el ítem del menú (desviación consciente de Figma); limpieza explícita del store antes de navegar, sin depender únicamente del listener asíncrono de `AuthProvider`; y construye el menú de usuario completo (`Mi cuenta`/`Planes`/idioma), no solo el ítem de logout, porque así lo define el único componente real de Figma para esta zona (`menu-usuario`). |
+| `CA-1.1.44` (CM-365) | Casilla «Acepto la política de tratamiento de datos», sin marcar por defecto, con enlaces a las tres políticas en otra pestaña. Sin marcar no envía y muestra «Acepta la política de tratamiento de datos para continuar.». Envía `dataAuthorization` y `policyVersion` (`src/config/policy.ts`); el `422` sobre `dataAuthorization`/`policyVersion` se muestra bajo la casilla. |
+| CM-365 criterio 5 | Con sesión, si `GET /api/v1/users/me` dice que `policyAcceptance.acceptedVersion` no es la vigente, aparece un `Modal` no cerrable (`dismissible={false}`) con los enlaces y la casilla; «Continuar» llama `POST /api/v1/users/me/policy-acceptance`. `POLICY_VERSION_OUTDATED` (en `code` o en `errors[].code`) muestra «La política cambió. Recarga la página y vuelve a aceptarla.». Si la consulta falla no se bloquea la app. |
 
 ## 7. Estado de implementación
 
@@ -1012,6 +1014,12 @@ Notas:
 | `src/app/router/index.tsx` | Cambia una línea: usa `AuthenticatedAppShell` en vez de `AppShell` directo (`CM-194`) | `src/app/router/index.test.tsx` |
 | `src/features/auth/pages/LoginPage.tsx` | **Modificado, no anticipado por la redacción original de esta SPEC** (que pedía un `Toast`, sin infraestructura en la app): lee `location.state.logoutError` y muestra `AlertInline variant="error"`, mismo mecanismo que ya usaba para `registerInfo` (`CM-194`) | `LoginPage.test.tsx` |
 | `src/i18n/locales/es-CO/auth.json` | Llaves nuevas de `menu.*` (Mi cuenta, Planes, Cerrar sesión, confirmación) (`CM-194`) | — |
+| `src/config/policy.ts` | **Nuevo (`CM-368`).** `POLICY_VERSION`, versión vigente de las políticas | — |
+| `src/features/auth/api/policyAcceptance.dto.ts`, `policyAcceptance.api.ts` | **Nuevos (`CM-368`).** GET a /api/v1/users/me (solo `policyAcceptance`) y POST a /api/v1/users/me/policy-acceptance | `src/features/auth/organisms/PolicyAcceptanceGate/PolicyAcceptanceGate.test.tsx` |
+| `src/features/auth/hooks/usePolicyAcceptance.ts` | **Nuevo (`CM-368`).** Query de si falta aceptar + mutación de aceptar | `src/features/auth/organisms/PolicyAcceptanceGate/PolicyAcceptanceGate.test.tsx` |
+| `src/features/auth/organisms/PolicyUpdateDialog/PolicyUpdateDialog.tsx` | **Nuevo (`CM-368`).** Aviso no cerrable con casilla y enlaces | `src/features/auth/organisms/PolicyAcceptanceGate/PolicyAcceptanceGate.test.tsx` |
+| `src/features/auth/organisms/PolicyAcceptanceGate/PolicyAcceptanceGate.tsx` | **Nuevo (`CM-368`).** Une hook y diálogo; lo monta `src/app/router/AuthenticatedAppShell.tsx` | `src/features/auth/organisms/PolicyAcceptanceGate/PolicyAcceptanceGate.test.tsx` |
+| `src/design-system/organisms/Modal/Modal.tsx` | **`CM-368`:** `dismissible={false}` (sin `X`, sin Esc ni velo) | `src/design-system/organisms/Modal/Modal.test.tsx` |
 
 ## 8. Bloqueos
 

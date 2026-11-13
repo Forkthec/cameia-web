@@ -15,6 +15,7 @@
  * su cuenta (ver su TSDoc de cabecera).
  */
 import { useLogout } from '@/features/auth/hooks/useLogout';
+import { PolicyAcceptanceGate } from '@/features/auth/organisms/PolicyAcceptanceGate';
 import { AppShell } from '@/layouts/AppShell';
 
 interface AuthenticatedAppShellProps {
@@ -25,10 +26,14 @@ export function AuthenticatedAppShell({ progressEnabled }: AuthenticatedAppShell
   const { logout, isLoggingOut } = useLogout();
 
   return (
-    <AppShell
-      progressEnabled={progressEnabled}
-      onLogout={() => void logout()}
-      isLoggingOut={isLoggingOut}
-    />
+    <>
+      <AppShell
+        progressEnabled={progressEnabled}
+        onLogout={() => void logout()}
+        isLoggingOut={isLoggingOut}
+      />
+      {/* CM-365: la política nueva se acepta antes de seguir usando la app. */}
+      <PolicyAcceptanceGate />
+    </>
   );
 }

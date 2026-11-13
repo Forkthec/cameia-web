@@ -21,6 +21,7 @@ import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import i18n from '@/i18n';
+import { POLICY_VERSION } from '@/config/policy';
 import { httpClient } from '@/services/http/httpClient';
 import { useAuthStore } from '@/stores/auth.store';
 import { RegisterPage } from './RegisterPage';
@@ -68,6 +69,7 @@ async function fillValidForm(user: ReturnType<typeof userEvent.setup>, email: st
   await user.type(screen.getByLabelText('Contraseña'), 'ClaveSegura2026');
   await user.type(screen.getByLabelText('Confirmar contraseña'), 'ClaveSegura2026');
   await user.selectOptions(screen.getByLabelText('Pronombres'), 'SHE');
+  await user.click(screen.getByLabelText('Acepto la política de tratamiento de datos'));
 }
 
 describe('RegisterPage', () => {
@@ -130,6 +132,8 @@ describe('RegisterPage', () => {
       email: 'ya-existe@cameia.com',
       password: 'ClaveSegura2026',
       pronoun: 'SHE',
+      dataAuthorization: true,
+      policyVersion: POLICY_VERSION,
     });
     const user = userEvent.setup();
     renderRegisterPage();

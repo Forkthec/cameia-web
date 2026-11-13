@@ -57,6 +57,7 @@ const CONTRASENA_MUY_LARGA = 'CONTRASENA_MUY_LARGA';
 const CONTRASENA_COMUN = 'CONTRASENA_COMUN';
 const CONFIRMAR_CONTRASENA_NO_COINCIDE = 'CONFIRMAR_CONTRASENA_NO_COINCIDE';
 const CELULAR_INVALIDO = 'CELULAR_INVALIDO';
+const POLITICA_NO_ACEPTADA = 'POLITICA_NO_ACEPTADA';
 
 const PASSWORD_MIN_LENGTH = 12;
 const PASSWORD_MAX_LENGTH = 64;
@@ -86,6 +87,8 @@ export const registerSchema = z
     contrasena: z.string(),
     confirmarContrasena: z.string().min(1),
     pronombres: z.string().min(1),
+    // CA-1.1.44 (CM-365): sin marcar no se envía el formulario.
+    aceptaPolitica: z.boolean().refine((value) => value, { message: POLITICA_NO_ACEPTADA }),
   })
   .superRefine((values, ctx) => {
     const birthDate = parseBirthDate(values.fechaNacimiento);
@@ -158,4 +161,5 @@ export const registerSchemaErrorCodes = {
   CONTRASENA_COMUN,
   CONFIRMAR_CONTRASENA_NO_COINCIDE,
   CELULAR_INVALIDO,
+  POLITICA_NO_ACEPTADA,
 } as const;

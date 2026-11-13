@@ -1,0 +1,19 @@
+{
+  "version": "Versión {{version}}",
+  "vigencia": "Vigente desde el {{fecha}}",
+  "fechaVigencia": "",
+  "documentos": {
+    "politicaDatos": {
+      "titulo": "Política de tratamiento de datos personales",
+      "secciones": []
+    },
+    "avisoPrivacidad": {
+      "titulo": "Aviso de privacidad",
+      "secciones": []
+    },
+    "terminos": {
+      "titulo": "Términos y condiciones",
+      "secciones": []
+    }
+  }
+}

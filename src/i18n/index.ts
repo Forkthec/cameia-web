@@ -20,6 +20,7 @@ import interviewEsCO from './locales/es-CO/interview.json';
 import errorsEsCO from './locales/es-CO/errors.json';
 import landingEsCO from './locales/es-CO/landing.json';
 import homeEsCO from './locales/es-CO/home.json';
+import legalEsCO from './locales/es-CO/legal.json';
 
 // "en" (CM-186): primer borrador traducido por Claude Code, pendiente de
 // aprobación de Frontend antes de darse por definitivo (SPEC.md §3.3 de
@@ -32,6 +33,7 @@ import interviewEn from './locales/en/interview.json';
 import errorsEn from './locales/en/errors.json';
 import landingEn from './locales/en/landing.json';
 import homeEn from './locales/en/home.json';
+import legalEn from './locales/en/legal.json';
 
 // El resultado de "init" no se usa: los recursos son inline (no hay backend
 // remoto), así que la instancia queda lista de forma efectivamente síncrona.
@@ -49,6 +51,7 @@ void i18next
         errors: errorsEsCO,
         landing: landingEsCO,
         home: homeEsCO,
+        legal: legalEsCO,
       },
       en: {
         common: commonEn,
@@ -58,6 +61,7 @@ void i18next
         errors: errorsEn,
         landing: landingEn,
         home: homeEn,
+        legal: legalEn,
       },
     },
   });

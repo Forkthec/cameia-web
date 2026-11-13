@@ -54,6 +54,7 @@ const formValues = {
   contrasena: 'secreta123',
   confirmarContrasena: 'secreta123',
   pronombres: 'SHE',
+  aceptaPolitica: true,
 };
 
 describe('useRegister', () => {

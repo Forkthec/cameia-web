@@ -19,6 +19,7 @@ import { homeRoutes } from '@/features/home';
 import { interviewSessionRoutes } from '@/features/interview-session';
 import { interviewSetupRoutes, interviewSetupShellRoutes } from '@/features/interview-setup';
 import { landingRoutes } from '@/features/landing';
+import { legalRoutes } from '@/features/legal';
 import { professionalProfileShellRoutes } from '@/features/professional-profile';
 import { AuthenticatedAppShell } from './AuthenticatedAppShell';
 import { NotFoundPage } from './NotFoundPage';
@@ -52,6 +53,7 @@ export const routeConfig: RouteObject[] = [
         ],
       },
       ...verifyEmailRoutes,
+      ...legalRoutes,
       { path: '*', element: <NotFoundPage /> },
     ],
   },
