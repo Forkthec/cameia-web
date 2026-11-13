@@ -7,8 +7,17 @@
 /** Respuesta escrita: 1 a 4000 caracteres (CA-5.2.8, CA-5.2.9). */
 export const ANSWER_MAX_LENGTH = 4000;
 
-/** «Reintentar» ante un fallo de la IA: máximo 2 veces por respuesta (CA-5.2.19, CA-5.2.20). */
+/**
+ * «Reintentar» del panel de CA-5.2.19 ante un fallo de la IA: como máximo 2 veces antes de pasar a
+ * CA-5.2.20 («Cambios v11.2», #292).
+ */
 export const MAX_EVALUATION_RETRIES = 2;
+
+/**
+ * «Reintentar» del mensaje de CA-5.2.20: 2 usos más tras agotar los de CA-5.2.19; después solo
+ * queda «Ir al inicio» («Cambios v11.2», #290; SPEC §9, v11.3 D2).
+ */
+export const MAX_LATER_EVALUATION_RETRIES = 2;
 
 /** Grabación de voz: máximo 3 minutos (CA-5.8.7). */
 export const MAX_RECORDING_SECONDS = 180;
