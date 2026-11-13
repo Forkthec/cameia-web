@@ -148,9 +148,7 @@ describe('InterviewSessionPage (voz)', () => {
     renderPage();
     expect(screen.getByRole('button', { name: 'Grabar' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Responder por texto' })).toBeInTheDocument();
-    expect(
-      screen.getByText('Tu audio se usa solo para transcribir tu respuesta y no se guarda.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText(PRIVACY)).toBeInTheDocument();
     expect(screen.queryByLabelText('Respuesta')).not.toBeInTheDocument();
   });
 
