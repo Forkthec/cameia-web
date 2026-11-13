@@ -20,6 +20,13 @@
  *   `code` como fallo de la IA (D3, D4 del SPEC). Sin red, `404` o cualquier
  *   otro error muestran su mensaje (`retryError`) sin sumar; una vez agotado
  *   el tramo 1, «Ir al inicio» no desaparece.
+ * - `409` de `…/reprocess` (contrato real, SPEC v11.3 D7 a D9; ninguno suma):
+ *   `TURN_RETRY_LIMIT_REACHED` lleva el contador al tope total (Backend manda:
+ *   `retriesExhausted` y sin `canRetry`, sin `retryError`) para el estado final
+ *   de CA-5.2.20; `SESSION_ABANDONED`, `SESSION_ALREADY_CLOSED` y
+ *   `SESSION_TRANSITION_NOT_ALLOWED` pasan a la fase `closed` con
+ *   `toClosedReason`, igual que en `…/answers`; `TURN_NOT_RETRYABLE` deja el
+ *   genérico en `retryError`, sin «Reintentar» (`turnNotRetryable`).
  * - «Enviar» y «Reintentar» tienen guarda síncrona: dos llamadas en el mismo
  *   instante hacen una sola petición (CA-5.2.4, CA-5.2.20; lección DF-004).
  * - Audio rechazado al transcribir (sin registrar respuesta ni gastar
@@ -56,6 +63,8 @@ import {
   SESSION_ABANDONED,
   SESSION_ALREADY_CLOSED,
   SESSION_TRANSITION_NOT_ALLOWED,
+  TURN_NOT_RETRYABLE,
+  TURN_RETRY_LIMIT_REACHED,
 } from '../model/interviewSession.errorCodes';
 import type {
   AnswerResult,
@@ -134,14 +143,18 @@ export function useInterviewTurn(entry: SessionEntry) {
   const [retryError, setRetryError] = useState<SubmitErrorKey | null>(null);
   const [audioRejection, setAudioRejection] = useState<AudioRejection | null>(null);
   const [closedReason, setClosedReason] = useState<ClosedReason | null>(null);
+  /** `409 TURN_NOT_RETRYABLE`: el turno ya no espera reintento (v11.3 D9). */
+  const [turnNotRetryable, setTurnNotRetryable] = useState(false);
   const keysByTurn = useRef(new Map<string, string>());
   const inFlight = useRef(false);
   const retryInFlight = useRef(false);
-  const canRetry = failedRetries < MAX_EVALUATION_RETRIES + MAX_LATER_EVALUATION_RETRIES;
+  const totalRetries = MAX_EVALUATION_RETRIES + MAX_LATER_EVALUATION_RETRIES;
+  const canRetry = failedRetries < totalRetries && !turnNotRetryable;
 
   function applyResult(result: AnswerResult) {
     setProgress(result.progress);
     setFailedRetries(0);
+    setTurnNotRetryable(false);
     setRetryError(null);
     setSubmitError(null);
     if (result.finished || !result.nextQuestion) {
@@ -216,6 +229,22 @@ export function useInterviewTurn(entry: SessionEntry) {
         setFailedRetries((count) => count + 1);
         return;
       }
+      // `409` del contrato real (v11.3 D7 a D9): ninguno suma de a uno.
+      if (error instanceof ApiError && error.hasCode(TURN_RETRY_LIMIT_REACHED)) {
+        setFailedRetries(totalRetries);
+        return;
+      }
+      const closed = toClosedReason(error);
+      if (closed) {
+        setClosedReason(closed);
+        setPhase('closed');
+        return;
+      }
+      if (error instanceof ApiError && error.hasCode(TURN_NOT_RETRYABLE)) {
+        setTurnNotRetryable(true);
+        setRetryError('generico');
+        return;
+      }
       setRetryError(toSubmitErrorKey(error));
     },
   });
@@ -232,6 +261,8 @@ export function useInterviewTurn(entry: SessionEntry) {
     retriesExhausted: failedRetries >= MAX_EVALUATION_RETRIES,
     /** `false` tras el 2.º fallo de la IA del tramo 2: ya no se ofrece «Reintentar» (v11.3 D2). */
     canRetry,
+    /** `409 TURN_NOT_RETRYABLE`: genérico sin «Reintentar» y con «Ir al inicio» (v11.3 D9). */
+    turnNotRetryable,
     audioRejection,
     closedReason,
     clearAudioRejection: () => setAudioRejection(null),

@@ -1,10 +1,10 @@
 // PROVISIONAL — pendiente de OpenAPI
 /**
- * Contrato crudo del registro de respuestas (HU-5.2, HU-5.8) según el
- * contrato previsto de Backend (respuesta de Paula del 20-10-2026, §6.5):
- * nombres en inglés y camelCase; los valores (`COMPLETED`…) siguen el
- * backlog. `…/answers`, `…/reprocess` y `…/answers/audio` responden lo mismo.
- * Queda definitivo cuando Backend publique la OpenAPI; se ajusta solo en
+ * Contrato crudo del registro de respuestas (HU-5.2, HU-5.8). `…/answers` y
+ * `…/reprocess` siguen el contrato publicado (`InterviewSessionController` y
+ * su OpenAPI, `cameia-entrevista` `origin/develop` `48773cb`): nombres en
+ * inglés y camelCase; los valores (`COMPLETED`…) siguen el backlog.
+ * `…/answers/audio` responde lo mismo. Se ajusta solo en
  * `interviewSession.mapper.ts`.
  */
 

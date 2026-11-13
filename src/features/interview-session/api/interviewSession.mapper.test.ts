@@ -1,6 +1,7 @@
 /**
- * Protege el cortafuegos del contrato de la respuesta (D1, contrato previsto
- * de Backend del 20-10-2026, §6.5; CLAUDE.md §8): convierte el `200` común de
+ * Protege el cortafuegos del contrato de la respuesta (D1, contrato publicado:
+ * `InterviewSessionController` y su OpenAPI, `cameia-entrevista`
+ * `origin/develop` `48773cb`; CLAUDE.md §8): convierte el `200` común de
  * `…/answers`, `…/reprocess` y `…/answers/audio` al modelo del chat, y
  * rechaza una forma inesperada con un error propio de la feature (D10), no
  * con un `TypeError`, para que el chat no la muestre como «No hay conexión…».

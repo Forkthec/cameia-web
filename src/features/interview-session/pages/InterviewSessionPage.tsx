@@ -226,7 +226,7 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
           onRetry={turn.retryEvaluation}
           showRetry={turn.canRetry}
           homeLink={
-            turn.retriesExhausted
+            turn.retriesExhausted || turn.turnNotRetryable
               ? { label: t('interview:sesion.irAlInicio'), to: ROUTES.inicio }
               : undefined
           }

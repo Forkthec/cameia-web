@@ -2,8 +2,12 @@
  * Funciones de red del chat de Simulación (HU-5.2):
  * - `POST /api/v1/interviews/sessions/{session_id}/answers` registra la
  *   respuesta escrita con `Idempotency-Key` (CA-5.2.4, CA-5.2.11).
- * - `POST …/turns/{turnId}/reprocess` (provisional) vuelve a evaluar la
- *   respuesta guardada tras un fallo de la IA (CA-5.2.19).
+ * - `POST …/turns/{turnId}/reprocess` vuelve a evaluar la respuesta guardada
+ *   tras un fallo de la IA (CA-5.2.19).
+ *
+ * `…/answers` y `…/reprocess` siguen el contrato publicado
+ * (`InterviewSessionController` y su OpenAPI, `cameia-entrevista`
+ * `origin/develop` `48773cb`).
  * - `POST …/answers/audio` (HU-5.8) envía la grabación como multipart, con
  *   la misma `Idempotency-Key` del turno (CA-5.8.6, CA-5.8.22), y espera
  *   hasta 130 s porque transcribe y evalúa en la misma petición.
@@ -53,7 +57,10 @@ export async function submitTextAnswer({
  * @param turnId turno cuya evaluación falló.
  * @returns el resultado del turno si la nueva evaluación tiene éxito.
  * @throws ApiError con `LLM_UNAVAILABLE`, `LLM_LIMIT_REACHED` o `LLM_INVALID_OUTPUT` si la IA
- *   vuelve a fallar (CA-5.2.19, CA-5.2.20; SPEC v11.3 D1).
+ *   vuelve a fallar (CA-5.2.19, CA-5.2.20; SPEC v11.3 D1); con `409 TURN_RETRY_LIMIT_REACHED`
+ *   si Backend ya contó los 4 usos del turno (v11.3 D7); con `409 TURN_NOT_RETRYABLE` si el
+ *   turno ya no espera reintento (v11.3 D9); y con `409 SESSION_*` si la entrevista ya no
+ *   admite la acción (v11.3 D8).
  */
 export async function reprocessTurn(sessionId: string, turnId: string): Promise<AnswerResult> {
   const dto = await httpClient.post<AnswerResponseDto>(
