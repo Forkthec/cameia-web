@@ -42,7 +42,9 @@ import type {
   AnswerFormat,
   SessionLanguage,
 } from '../model/interviewSetup.types';
+import { getInterviewSessionState } from '../api/interviewSession.api';
 import type { CreateSessionResponseDto } from '../api/interviewSession.dto';
+import { toChatEntry } from '../api/interviewSetup.mapper';
 import type { StepStatus } from '@/design-system/molecules/Stepper';
 
 function stepStatus(index: number, current: number): StepStatus {
@@ -188,11 +190,20 @@ export function NewInterviewWizardPage() {
     setWarningData(null);
   }, [warningData, navigate]);
 
-  const handleBackToInterview = useCallback(() => {
-    if (!warningData?.ongoingSession) return;
-    void navigate(ROUTES.entrenarSesion(warningData.ongoingSession.sessionId));
+  // El chat solo abre con la pregunta pendiente en el estado de la navegación;
+  // sin ella vuelve a «Nueva entrevista» (CM-369). Se consulta igual que
+  // «Cancelar» de la pantalla de inicio (CA-4.4.8, CA-4.5.16).
+  const handleBackToInterview = useCallback(async () => {
+    const previousId = warningData?.ongoingSession?.sessionId;
+    if (!previousId) return;
+    const state = await getInterviewSessionState(previousId).catch(() => null);
+    const entry = state ? toChatEntry(previousId, state, store.sessionLanguage) : null;
     setWarningData(null);
-  }, [warningData, navigate]);
+    if (entry) {
+      store.reset();
+      void navigate(ROUTES.entrenarSesion(previousId), { state: entry });
+    }
+  }, [warningData, navigate, store]);
 
   const handleCancelWarning = useCallback(() => {
     setWarningData(null);
@@ -458,7 +469,7 @@ export function NewInterviewWizardPage() {
           backToInterviewLabel={t('interview:confirmar.avisoEnCurso.volverEntrevista')}
           cancelLabel={t('interview:confirmar.avisoEnCurso.cancelar')}
           onStartNew={handleStartNewFromWarning}
-          onBackToInterview={handleBackToInterview}
+          onBackToInterview={() => void handleBackToInterview()}
           onCancel={handleCancelWarning}
         />
       ) : null}
