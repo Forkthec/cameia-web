@@ -1,15 +1,15 @@
 ---
 feature: interview-session
 estado: EN_CURSO
-hu: [HU-5.2, HU-5.8, HU-5.5]
+hu: [HU-5.2, HU-5.8, HU-5.5, HU-5.13]
 prt: [PRT-05.10, PRT-05.12]
-jira: [CM-217, CM-317, CM-221, CM-226, CM-346, CM-376, CM-373]
+jira: [CM-217, CM-317, CM-221, CM-226, CM-346, CM-376, CM-373, CM-363]
 rutas: [/entrenar/sesion/:sessionId]
 documentacion: tsdoc-es
-backlog: 11112026_03_v11.3
+backlog: 14112026_03_v11.6
 decisiones: [23102026_v1_decisiones-spike-cm316-hu-5-8.md]
 figma: Cameia · Mockups MVP
-revisado: 2026-11-13
+revisado: 2026-11-14
 ---
 
 # Feature · Chat de la entrevista (Simulación)
@@ -34,6 +34,15 @@ Frontend: chat de voz al backlog v11.3») cubre todos los CA de HU-5.8 con parte
 lógica de Backend es de CM-345. El contrato real de `…/answers/audio` es el de `cameia-entrevista`
 `origin/develop` `ebce618` (CM-349, PR #53, 13-11-2026; §5).
 
+**HU-5.13 contra el backlog v11.6 (CM-363, 14-11-2026).** Verdad de QA de CM-363 («HU-5.13 –
+Frontend: «Grabar de nuevo» y «Responder por texto» tras el fallo de transcripción»):
+`14112026_01_HU-5_13_criterios_backlog_v11_6.md` (backlog v11.6, hoja HE-05, filas 143 a 150;
+fuera del repositorio, en `cameia-backup/criterios/`). Tiene 8 CA, de CA-5.13.1 a CA-5.13.8; los
+de Frontend son CA-5.13.3 (B y F), 5.13.5, 5.13.6 y 5.13.8 (F y B). Los reintentos de la
+transcripción son de Backend (CM-362): la pantalla solo ve el `503 TRANSCRIPTION_UNAVAILABLE`
+final, el mismo de CA-5.12.8. El contrato es el de `cameia-entrevista` `origin/develop`
+`0808604` (14-11-2026). Plan en §6 («HU-5.13 (CM-363)») y decisiones en §9.
+
 **HU-5.2 contra el backlog v11.3 (CM-217, 11-11-2026).** El backlog vigente para HU-5.2 es el
 v11.3 (`11112026_03_Backlog_v11_3.xlsx`) y su archivo de criterios es
 `11112026_03_HU-5_2_criterios_backlog_v11_3.md`. La v11.3 no toca HU-5.2: los 20 CA son
@@ -43,7 +52,8 @@ Las decisiones del spike CM-316 (`docs/decisiones/23102026_v1_decisiones-spike-c
 se citan «CM-316 D1» a «CM-316 D8», para no confundirlas con las D1 a D10 de CM-217 de este SPEC.
 Las decisiones de CM-217 para el backlog v11.3 se citan «v11.3 D1» a «v11.3 D11» (§9), por la
 misma razón; D7 a D11 alinean el chat con el contrato real de `cameia-entrevista` (13-11-2026).
-Las de CM-346 se citan «CM-346 D1» a «CM-346 D6» (§9).
+Las de CM-346 se citan «CM-346 D1» a «CM-346 D6» (§9), y las de CM-363, «CM-363 D1» a «CM-363 D5»
+(§9).
 
 ## 2. Alcance
 
@@ -79,6 +89,13 @@ detectamos tu voz, intenta de nuevo.» (CA-5.8.10, CM-346 D2); pruebas de protec
 del aviso, sin tocar el mock compartido (CM-346 D5). Plan de pruebas en §6 («Plan de pruebas de
 CM-346»).
 
+**En la rama `CM-363-fallo-transcripcion` (CM-363, HU-5.13, backlog v11.6):** solo la pantalla de
+voz. Mientras se envía el audio, «Grabar», «Enviar» y «Responder por texto» se ven deshabilitados
+(CA-5.13.8, CM-363 D1); hasta ahora «Grabar» no se pintaba y «Responder por texto» se ocultaba.
+Pruebas de protección de CA-5.13.3, 5.13.5 y 5.13.6, que el código ya cumple (CM-363 D3). Sin
+textos nuevos, sin código nuevo de error (CM-363 D2) y sin tocar el mock compartido (CM-363 D5).
+Plan de pruebas en §6 («HU-5.13 (CM-363)»).
+
 **En la rama `CM-317-deteccion-voz-silero` (CM-317):** detección de la voz mínima con MicVAD v5
 en lugar de la energía de la señal, según las notas técnicas de HU-5.8 (O75 en v8.4; O77 en v11.3, sin cambios), con
 el orden de arranque de CM-316 D4; fallo de carga de MicVAD (CA-5.8.25, CM-316 D3); formatos y
@@ -98,6 +115,10 @@ en `…/reprocess`, v11.3 D8); el historial vacío (CA-4.5.16). Lo anotado para 
 §9. Tampoco entra en CM-346: recordar «ya grabó» por `sessionId` (CM-346 D6); textos propios
 para `TURN_CONFLICT`, `ANSWER_ALREADY_EXISTS` o los codes de la opción B (CM-346 D1 y D3); el
 caso (c) de CA-5.8.27, que es de Backend (CM-346 D4); y cambiar el mock compartido (CM-346 D5).
+Tampoco entra en CM-363: un texto propio para `409 TURN_CONFLICT` (CM-363 D2); los reintentos
+de la transcripción, que son de Backend (CM-362); detener «Escuchar» (HU-5.15, #136) al grabar; y
+las diferencias de Backend con el backlog (presupuesto de 100 s frente a 110 s, OpenAPI de
+`…/answers/audio`; §9, «Fuera de alcance de CM-363»).
 
 ## 3. Comportamiento esperado
 
@@ -124,8 +145,9 @@ Diseño «Escenario + orbe» (aprobado por Frontend, CM-217): cielo de madrugada
   «Reintentar» + «Ir al inicio»; tras 2 fallidos más (4 en total) → el mismo mensaje sin
   «Reintentar», solo con «Ir al inicio» (v11.3 D2). Al reintentar, `409
   TURN_RETRY_LIMIT_REACHED` → ese mismo estado final (v11.3 D7); `409 SESSION_*` → el mismo
-  cierre que al enviar (v11.3 D8); `409 TURN_NOT_RETRYABLE` → genérico sin «Reintentar», con
-  «Ir al inicio» (v11.3 D9). Cualquier otro error → genérico.
+  cierre que al enviar (v11.3 D8); `409 TURN_NOT_RETRYABLE` → «Tu respuesta no está esperando
+  un reintento.» (CM-226) sin «Reintentar», con «Ir al inicio» (v11.3 D9). Cualquier otro error →
+  genérico.
 - **Éxito:** pregunta siguiente con su texto original y «Pregunta k+1 de 5», sin
   retroalimentación (CA-5.2.1, respuesta registrada y avance; CA-5.2.14, siguiente pregunta con
   su texto original); tras la 5, sin campo ni «Enviar», sigue el cierre de HU-5.5 (CA-5.2.5,
@@ -252,9 +274,10 @@ TURN_RETRY_LIMIT_REACHED` lleva al estado final de CA-5.2.20.
   hay conexión…»; `404` → «No encontramos lo que buscabas.»; cualquier otro error, `409`
   incluido → genérico. Ninguno de esos suma, tampoco en el tramo 2. **Excepciones del contrato
   real (13-11-2026):** `409 TURN_RETRY_LIMIT_REACHED` lleva el contador al tope (v11.3 D7);
-  `409 SESSION_*` pasa a la fase `closed` (v11.3 D8); `409 TURN_NOT_RETRYABLE` deja el genérico
-  sin «Reintentar» (v11.3 D9). La página muestra en el panel el mensaje del último fallo
-  (`retryError`) y, si fue de la IA, el genérico o el de CA-5.2.20.
+  `409 SESSION_*` pasa a la fase `closed` (v11.3 D8); `409 TURN_NOT_RETRYABLE` deja
+  «Tu respuesta no está esperando un reintento.» sin «Reintentar» (v11.3 D9, texto de CM-226).
+  La página muestra en el panel el mensaje del último fallo (`retryError`) y, si fue de la IA,
+  el genérico o el de CA-5.2.20.
 - Tras cualquier fallo de `…/reprocess`, incluido un `404`, el panel **sigue mostrando
   «Reintentar»** mientras queden usos, salvo tras los `409` de v11.3 D7 a D9. Tras el 4.º fallo
   de la IA desaparece y solo queda «Ir al inicio» (CA-5.2.20, v11.3 D2). Antes de v11.3,
@@ -339,7 +362,7 @@ que las pruebas usan handlers propios que no leen el cuerpo. No cambia en CM-346
 | `404 SESSION_NOT_FOUND`, `404 TURN_NOT_FOUND` (o `404` sin `code`) | `errors:codigos.NOT_FOUND` (por `httpStatus`) | se conserva | 5.8.21 |
 | `409 SESSION_ABANDONED` | `interview:sesion.abandonada`; fase `closed`, sin controles | — | 5.8.28 (CA-5.5.4) |
 | `409 SESSION_ALREADY_CLOSED`, `409 SESSION_TRANSITION_NOT_ALLOWED` | `interview:sesion.noAdmite`; fase `closed`, sin controles | — | 5.8.28 (CA-5.5.5, CA-5.2.6) |
-| `409 TURN_CONFLICT` (otro envío del turno en curso) | `errors:generico` (CM-346 D3) | se conserva | 5.8.6 (B), 5.8.27 (caso b) |
+| `409 TURN_CONFLICT` (otro envío del turno en curso, también mientras Backend transcribe o reintenta) | `errors:generico` (CM-346 D3, CM-363 D2) | se conserva | 5.8.6 (B), 5.8.27 (caso b), 5.13.8 (B) |
 | `409 ANSWER_ALREADY_EXISTS` (turno `COMPLETED` o `RETRYING`) | `errors:generico` (CM-346 D3) | se conserva | 5.8.27 (caso c, hueco de Backend: CM-346 D4) |
 | `409 IDEMPOTENCY_KEY_CONFLICT` (misma clave, otro turno u otro audio) | `errors:generico` | se conserva | — |
 | `413 AUDIO_TOO_LARGE`, `413 REQUEST_PAYLOAD_TOO_LARGE` | `errors:generico` (opción B, CM-346 D1) | se descarta | 5.8.13 |
@@ -351,7 +374,7 @@ que las pruebas usan handlers propios que no leen el cuerpo. No cambia en CM-346
 | `422 TRANSCRIPTION_EMPTY` | `interview:sesion.voz.sinVoz` | se descarta | 5.12.7 (antes 5.8.11, eliminado) |
 | `422 TRANSCRIPTION_TOO_LONG` | `interview:sesion.voz.demasiadoLarga` | se descarta | 5.12.9 |
 | `422 TRANSCRIPTION_LANGUAGE_MISMATCH` | `interview:sesion.voz.idiomaDistinto.{en,es-CO}`, según `sessionLanguage` | se descarta | 5.12.10 |
-| `503 TRANSCRIPTION_UNAVAILABLE` | `interview:sesion.voz.noTranscrita`, con «Grabar de nuevo» | se descarta | 5.12.8 |
+| `503 TRANSCRIPTION_UNAVAILABLE` (con HU-5.13, tras los intentos de Backend) | `interview:sesion.voz.noTranscrita`, con «Grabar de nuevo» y «Responder por texto» en la misma pregunta | se descarta | 5.12.8, 5.13.3, 5.13.5, 5.13.6 |
 | `503 LLM_UNAVAILABLE`, `LLM_LIMIT_REACHED` o `LLM_INVALID_OUTPUT` | panel con «Reintentar» (el audio ya quedó registrado) | se descarta (`useInterviewTurn.ts:120`) | 5.2.19 |
 | Otro `5xx` (`DATABASE_UNAVAILABLE`, `INTERNAL_ERROR`) o sin `code` | `errors:generico` | se conserva | — |
 | Sin respuesta HTTP o tiempo agotado | `errors:red` («No hay conexión…») | se conserva, con la misma clave | 5.8.22, 5.8.27 |
@@ -498,7 +521,7 @@ genérico con «Reintentar».
 | R10 | CA-5.2.6, v11.3 D8 | si al reintentar la entrevista no admite la acción muestra «Esta entrevista ya no admite esa acción.» sin «Reintentar» | **Dado** `…/answers` responde `503 LLM_UNAVAILABLE` y `…/reprocess`, `409 SESSION_TRANSITION_NOT_ALLOWED` con un `detail`. **Cuando** pulsa «Reintentar». **Entonces** «Esta entrevista ya no admite esa acción.», sin «Reintentar», sin «Ir al inicio», sin campo «Respuesta» y sin el `detail`; 1 llamada | Página | `findByText(NOT_ALLOWED)`: hoy `reprocess.onError` no llama a `toClosedReason` (`useInterviewTurn.ts:212-220`) y sale el genérico con «Reintentar» |
 | R11 | CA-5.2.6, CA-5.5.5, v11.3 D8 | si al reintentar la entrevista ya está cerrada muestra «Esta entrevista ya no admite esa acción.» sin «Reintentar» | Igual que R10 con `409 SESSION_ALREADY_CLOSED` (sesión en evaluación o finalizada) | Página | `findByText(NOT_ALLOWED)`, por la misma razón que R10 |
 | R12 | CA-5.5.4, v11.3 D8 | si al reintentar la entrevista se abandonó muestra su mensaje sin «Reintentar» | Igual que R10 con `409 SESSION_ABANDONED`. **Entonces** «Sesión abandonada: no genera evaluación.», sin «Reintentar» ni «Ir al inicio» | Página | `findByText('Sesión abandonada: no genera evaluación.')`, por la misma razón que R10 |
-| R13 | CA-5.2.19, v11.3 D9 | si el turno ya no espera reintento muestra el genérico con «Ir al inicio» y sin «Reintentar» | **Dado** `…/answers` responde `503 LLM_UNAVAILABLE` y `…/reprocess`, `409 TURN_NOT_RETRYABLE` con un `detail`. **Cuando** pulsa «Reintentar» una vez (tramo 1 sin agotar). **Entonces** «Ocurrió un error. Inténtalo de nuevo.», **sin** «Reintentar», con «Ir al inicio» a `/inicio` y sin el `detail`; 1 llamada | Página | `lastRetryAndSettle(user, state, 1)`: hoy «Reintentar» sigue; y `getByRole('link', { name: 'Ir al inicio' })`: hoy no aparece, porque solo sale al agotar el tramo 1 (`InterviewSessionPage.tsx:228-232`) |
+| R13 | CA-5.2.19, v11.3 D9 | si el turno ya no espera reintento lo dice, con «Ir al inicio» y sin «Reintentar» (rótulo actual; en CM-217 decía «muestra el genérico») | **Dado** `…/answers` responde `503 LLM_UNAVAILABLE` y `…/reprocess`, `409 TURN_NOT_RETRYABLE` con un `detail`. **Cuando** pulsa «Reintentar» una vez (tramo 1 sin agotar). **Entonces** «Tu respuesta no está esperando un reintento.» (desde CM-226; en CM-217 era «Ocurrió un error. Inténtalo de nuevo.»), **sin** «Reintentar», con «Ir al inicio» a `/inicio` y sin el `detail`; 1 llamada | Página | `lastRetryAndSettle(user, state, 1)`: hoy «Reintentar» sigue; y `getByRole('link', { name: 'Ir al inicio' })`: hoy no aparece, porque solo sale al agotar el tramo 1 (`InterviewSessionPage.tsx:228-232`) |
 | R14 | CA-5.2.20, v11.3 D7 y D10 | el 5.º «Reintentar» del mismo turno recibe 409 TURN_RETRY_LIMIT_REACHED | **Dado** una sesión iniciada con `POST …/start` (el `turnId` sale del mock) y la evaluación del mock en modo fallo (`failInterviewEvaluations`, aprobado en v11.3 D10, sin `useHandlers`); `POST …/answers` con clave responde `503 LLM_UNAVAILABLE`. **Cuando** hace 5 `POST …/turns/{turnId}/reprocess` del mismo turno. **Entonces** del 1.º al 4.º, `503 LLM_UNAVAILABLE`; el 5.º, `409` con `code` `TURN_RETRY_LIMIT_REACHED` | Mock | Status y `code` del 5.º: hoy `…/reprocess` responde siempre `200` y avanza (`interviewSessions.handlers.ts:173-175`). Hoy el archivo falla antes, porque el interruptor no existe: el rojo que importa es el del 5.º |
 | R15 | CA-5.2.4, v11.3 D10 | sin Idempotency-Key responde 422 IDEMPOTENCY_KEY_REQUIRED | **Dado** una sesión iniciada. **Cuando** `POST …/answers` válido sin la cabecera. **Entonces** `422`, `code` `VALIDATION_FAILED` y un elemento de `errors[]` con `field` `Idempotency-Key` y `code` `IDEMPOTENCY_KEY_REQUIRED` | Mock | Status `422`: hoy guarda bajo `''` y responde `200` (`:92`) |
 | R16 | CA-5.2.9, CA-5.2.10, v11.3 D10 | responde 422 con los code y la forma de Backend | **Cuando** `POST …/answers` con clave y `answerText` de solo espacios; y luego con otra clave y 4001 caracteres. **Entonces** `422`, `title` «Datos no válidos», `detail` «Revisa los campos marcados.», `code` `VALIDATION_FAILED`; `errors[0]` con `field` `answerText` y `code` `ANSWER_TEXT_REQUIRED` en el primero y `ANSWER_TEXT_TOO_LONG` en el segundo | Mock | `errors[0].code`: hoy `REQUIRED` y `TOO_LONG` (`:113`) |
@@ -630,6 +653,41 @@ Esta limpieza quedó aprobada por Juan José el 13-11-2026 y es toda la de CM-34
 cambio de comportamiento. No incluye el TSDoc de `pages/InterviewSessionPage.tsx:21` (cita
 «CA-5.8.5» para el aviso de 20 s), incluido (CM-346).
 
+### HU-5.13 (CM-363): criterios y plan de pruebas
+
+Los CA con parte de Frontend, por referencia (texto literal en
+`14112026_01_HU-5_13_criterios_backlog_v11_6.md`). CA-5.13.1, 5.13.2, 5.13.4 y 5.13.7 son solo de
+Backend (CM-362) y no tienen prueba de front. «Página» = `pages/InterviewSessionPage.voice.test.tsx`.
+
+| CA | Etiq. | Qué hace el front que el CA no dice | Prueba (`it`) | Estado |
+| --- | --- | --- | --- | --- |
+| CA-5.13.3 | B y F | Mismo `503 TRANSCRIPTION_UNAVAILABLE` que CA-5.12.8 (`useInterviewTurn.ts:96-102`); descarta la grabación (`:120-125`, `:283`); la pregunta y el progreso no cambian | P1 | Hecha, CM-363 (protección) |
+| CA-5.13.5 | F y B | «Grabar de nuevo» es el mismo botón de grabar con otra etiqueta (`InterviewSessionPage.tsx:316-319`): borra el mensaje y llama a `recorder.start()`, que pide el micrófono y graba (`:326-329`); reutiliza la `Idempotency-Key` `:audio` del turno (CM-363 D4) | P2 | Hecha, CM-363 (protección) |
+| CA-5.13.6 | F y B | `switchToText` (`InterviewSessionPage.tsx:195-199`) descarta la grabación y muestra el campo con «Enviar»; envía con la clave `:text`, distinta de la del audio (`useInterviewTurn.ts:187`) | P3 | Hecha, CM-363 (protección) |
+| CA-5.13.8 | F y B | Mientras se envía, «Grabar», «Enviar» y «Responder por texto» se ven deshabilitados (CM-363 D1); «Procesando tu respuesta…» y el spinner de «Enviar» siguen (CA-5.8.6). Un `409 TURN_CONFLICT` muestra el genérico y conserva la grabación (CM-363 D2) | R1, R2; «con doble clic en «Enviar» envía un solo audio (CA-5.8.6)» (existente) | Hecha, CM-363 (rojo → verde) |
+
+**Plan de pruebas de CM-363.** Todas en «Página», en el `describe` existente. Cada error se simula
+dentro de su prueba con `useHandlers` sobre `…/answers/audio` (CM-363 D5). R1 y R2 son el paso de
+rojo; P1 a P3 son de protección: se espera que pasen desde el inicio, y si alguna sale en rojo es
+un hallazgo, no un paso del ciclo.
+
+| # | CA | Prueba (`it`) | Dado · Cuando · Entonces | Tipo | Resultado esperado hoy |
+| --- | --- | --- | --- | --- | --- |
+| R1 | CA-5.13.8 | «mientras se envía el audio, «Responder por texto» se ve deshabilitado (CA-5.13.8)» | **Dado** una grabación lista (`withRecording`) y `…/answers/audio` que espera una promesa resuelta a mano. **Cuando** pulsa «Enviar». **Entonces** «Procesando tu respuesta…» en la región `aria-live`, y el botón «Responder por texto» está en la pantalla y deshabilitado. Al resolver con `200`, «Pregunta 2 de 5» | **Hecha** (rojo → verde, CM-363) | Falla `getByRole('button', { name: 'Responder por texto' })`: durante el envío no se pinta (`VoiceAnswerComposer.tsx:116`) |
+| R2 | CA-5.13.8 | «mientras se envía el audio, «Grabar» se ve deshabilitado (CA-5.13.8)» | Igual que R1. **Entonces** el botón «Grabar» está en la pantalla y deshabilitado, junto a «Enviar» deshabilitado con su spinner | **Hecha** (rojo → verde, CM-363) | Falla `getByRole('button', { name: 'Grabar' })`: con la grabación detenida solo se pinta «Enviar» (`VoiceAnswerComposer.tsx:89-114`) |
+| P1 | CA-5.13.3 | «tras agotar los intentos de transcripción muestra el mensaje, «Grabar de nuevo» y «Responder por texto» en la misma pregunta (CA-5.13.3)» | **Dado** una grabación lista, un `discard` simulado que vuelve a `idle` sin audio (como en `:403-406`) y `…/answers/audio` que responde `503` con `code` `TRANSCRIPTION_UNAVAILABLE` y un `detail`. **Cuando** pulsa «Enviar». **Entonces** «No pudimos transcribir tu respuesta. Graba de nuevo o responde por texto.», los botones «Grabar de nuevo» y «Responder por texto», «Pregunta 1 de 5», `discard` llamado y sin el `detail` | **Hecha** (protección, CM-363) | Verde (`InterviewSessionPage.tsx:165-166`, `:316-319`) |
+| P2 | CA-5.13.5 | «tras el fallo, «Grabar de nuevo» graba otra vez y el nuevo audio usa la misma Idempotency-Key (CA-5.13.5)» | **Dado** lo de P1, con un handler que guarda la `Idempotency-Key` de cada llamada y responde `503 TRANSCRIPTION_UNAVAILABLE` la 1.ª vez y `200` la 2.ª. **Cuando** pulsa «Grabar de nuevo». **Entonces** se llama a `recorder.start` y el mensaje desaparece. **Cuando** después hay una grabación lista (`withRecording` y `refresh`) y pulsa «Enviar». **Entonces** «Pregunta 2 de 5», dos llamadas y `keys[1]` igual a `keys[0]` | **Hecha** (protección, CM-363) | Verde (`InterviewSessionPage.tsx:326-329`; `useInterviewTurn.ts:171-178`, `:193`) |
+| P3 | CA-5.13.6 | «tras el fallo, «Responder por texto» muestra el campo con «Enviar» en la misma pregunta y registra por texto (CA-5.13.6)» | **Dado** lo de P1, y `…/answers` que guarda su `Idempotency-Key` y responde `200`. **Cuando** pulsa «Responder por texto». **Entonces** el campo «Respuesta» y «Enviar» en «Pregunta 1 de 5». **Cuando** escribe y pulsa «Enviar». **Entonces** «Pregunta 2 de 5», las llamadas son `['answers/audio', 'answers']` y la clave de `…/answers` existe y es distinta de la del audio | **Hecha** (protección, CM-363) | Verde (`InterviewSessionPage.tsx:195-199`; `useInterviewTurn.ts:187`) |
+
+**Pruebas existentes frente a CM-363 D1 (lección 15).** Ninguna prueba actual afirma que «Grabar»
+o «Responder por texto» falten **durante el envío**. Las que afirman que faltan son de otros
+estados y siguen valiendo: `pages/InterviewSessionPage.voice.test.tsx:230` (tras pasar a texto),
+`:242` (entrevista de texto), `:500` y `:512` (fase `closed`) y `:563` (formato no admitido). La
+prueba de CA-5.8.6 (`:340-367`) busca «Enviar» por nombre: con D1 sigue siendo el único botón con
+ese nombre durante el envío.
+
+**Figma revisado (14-11-2026; «Cameia · Mockups MVP (Copy)», página «06 · Entrenar»).** PRT-05.10 «Modo Simulación · voz» (nodos 276:2387 y 276:2409) solo dibuja el estado de grabación («Te escucho»): no tiene «Grabar», «Enviar» ni «Responder por texto», ni el estado de envío. PRT-05.12 (279:7895 y variantes) es el error del motor de IA, con texto de relleno y controles de Modo Entreno; no dibuja el fallo de transcripción. El boceto no contempla CM-363 D1: prevalece CA-5.13.8 (backlog v11.6) y se usa el estilo deshabilitado existente del design system.
+
 ## 7. Estado de implementación
 
 | Archivo | Estado |
@@ -644,7 +702,7 @@ cambio de comportamiento. No incluye el TSDoc de `pages/InterviewSessionPage.tsx
 | `src/features/interview-session/api/interviewSession.mapper.ts` | Hecho con el contrato previsto (#101); valida la forma de la respuesta 200 (D10). **Hecho (CM-217, v11.3 D11):** comentarios con el contrato publicado |
 | `src/features/interview-session/api/AnswerResponseShapeError.ts` | Hecho; error propio del mapper (D10). **Hecho (CM-217, v11.3 D11):** TSDoc con el contrato publicado |
 | `src/features/interview-session/api/interviewSession.mapper.test.ts` | Hecha (D1 y D10). **Hecho (CM-217, v11.3 D11):** solo el TSDoc de cabecera, con el contrato publicado |
-| `src/features/interview-session/model/interviewSession.errorCodes.ts` | Hecho; LLM_UNAVAILABLE, LLM_LIMIT_REACHED y VALIDATION_FAILED (D2); los 409 de HU-5.5 (#126). **Hecho (CM-217, v11.3 D1):** LLM_INVALID_OUTPUT. **Hecho (CM-217, rojo):** TURN_RETRY_LIMIT_REACHED y TURN_NOT_RETRYABLE, copiados de ErrorCode.java, ahora usados también por el hook (D7, D9). **Hecho (CM-217, v11.3 D11):** cabecera con el contrato publicado |
+| `src/features/interview-session/model/interviewSession.errorCodes.ts` | **Hecho (CM-363):** el comentario de `TURN_NOT_RETRYABLE` nombra `interview:sesion.noEsperaReintento` (CM-226), no el genérico. Hecho; LLM_UNAVAILABLE, LLM_LIMIT_REACHED y VALIDATION_FAILED (D2); los 409 de HU-5.5 (#126). **Hecho (CM-217, v11.3 D1):** LLM_INVALID_OUTPUT. **Hecho (CM-217, rojo):** TURN_RETRY_LIMIT_REACHED y TURN_NOT_RETRYABLE, copiados de ErrorCode.java, ahora usados también por el hook (D7, D9). **Hecho (CM-217, v11.3 D11):** cabecera con el contrato publicado |
 | `src/features/interview-session/model/interviewSession.types.ts` | Hecho; sessionLanguage en #101 |
 | `src/features/interview-session/model/sessionEntry.ts` | Hecho; valida sessionLanguage (#101) |
 | `src/features/interview-session/model/interviewSession.constants.ts` | Hecho; tope de 2. CM-317: encabezado (tarea 8 del Anexo A). **Hecho (CM-217, v11.3 D2):** MAX_LATER_EVALUATION_RETRIES = 2 con TSDoc que cita CA-5.2.20 y «Cambios v11.2» #290; TSDoc de MAX_EVALUATION_RETRIES («antes de pasar a CA-5.2.20», #292) |
@@ -654,7 +712,7 @@ cambio de comportamiento. No incluye el TSDoc de `pages/InterviewSessionPage.tsx
 | `src/features/interview-session/hooks/sileroVad.ts` | Hecho (CM-317): único punto de entrada a MicVAD, con `import()` y los assets del ADR 0009 |
 | `src/features/interview-session/hooks/sileroVad.test.ts` | Hecha (CM-317): opciones de `MicVAD.new`, umbral de 0,3 y error de carga |
 | `vite.config.ts` | Hecho (CM-317): los cuatro assets de Silero sin hash en la carpeta `vad` del build (ADR 0009) |
-| `src/features/interview-session/organisms/VoiceAnswerComposer/VoiceAnswerComposer.tsx` | Hecho. CM-317: Enviar conserva su nombre accesible con spinner visible (CM-316 D7), aviso de CA-5.8.24 (CM-316 D8) y sin «Responder por texto» cuando el campo ya se muestra (vadFailed). **Hecho (CM-346):** TSDoc de las líneas 5 y 31 (aviso de 20 s = CA-5.8.26) |
+| `src/features/interview-session/organisms/VoiceAnswerComposer/VoiceAnswerComposer.tsx` | Hecho. CM-317: Enviar conserva su nombre accesible con spinner visible (CM-316 D7), aviso de CA-5.8.24 (CM-316 D8) y sin «Responder por texto» cuando el campo ya se muestra (vadFailed). **Hecho (CM-346):** TSDoc de las líneas 5 y 31 (aviso de 20 s = CA-5.8.26). **Hecho (CM-363 D1):** durante el envío, «Grabar» y «Responder por texto» visibles y deshabilitados (CA-5.13.8); «Grabar» solo durante el envío |
 | `src/i18n/locales/es-CO/interview.json` | **Hecho (CM-346 D6):** `sesion.voz.privacidad` (línea 148) con el texto D6 de CA-5.8.24 |
 | `src/i18n/locales/en/interview.json` | **Hecho (CM-346 D6):** `sesion.voz.privacidad` (línea 148) con «Your audio is only used to transcribe your answer. It's processed by an external service that deletes it after 2 days; CAMEIA doesn't store it.» |
 | `src/design-system/molecules/BrandOrb/BrandOrb.tsx` | Hecho |
@@ -662,7 +720,7 @@ cambio de comportamiento. No incluye el TSDoc de `pages/InterviewSessionPage.tsx
 | `src/mocks/handlers/interviewSessions.handlers.ts` | Hecho con el contrato previsto (#101); cuenta puntos de código NFC sin recortar y copia VALIDATION_FAILED con un comentario (D2, D9). **Hecho (CM-217, v11.3 D10):** solo los handlers de answers y reprocess y la cabecera: validar antes de la caché, caché propia con huella (409 IDEMPOTENCY_KEY_CONFLICT), 422 con los code y la forma reales, contador por turno en reprocess (409 TURN_RETRY_LIMIT_REACHED al 5.º uso, 409 TURN_NOT_RETRYABLE), interruptor failInterviewEvaluations (aprobado el 13-11) y resetInterviewSessions que lo limpia todo. Sin cambiar turnId, start, state, creación, borrado, audio ni consolidation |
 | `src/mocks/handlers/interviewSessions.handlers.test.ts` | Hecha (CM-217, v11.3 D10): R14 a R19, en verde |
 | `src/features/interview-session/pages/InterviewSessionPage.test.tsx` | Hecha; cubre el plan de §6 (v8.3). **Hecha (CM-217, v11.3):** R1 a R7 del plan de §6; R3 reemplaza la prueba de D5. **Hecho (CM-217, contrato real):** R8 a R13, en verde. **Hecho (CM-217, contrato real):** «"Reintentar" con éxito avanza a la pregunta siguiente» con su propio handler de reprocess (lección 6, §6), en verde; TSDoc |
-| `src/features/interview-session/pages/InterviewSessionPage.voice.test.tsx` | Hecha; contrato previsto y rechazos del audio en #101. CM-317: pruebas de HU-5.8 de §6. **Hecho (CM-346):** V1 y V2 (rojo → verde), V3, V5 y V6 de protección (§6); TSDoc de las líneas 1-20 y rótulos de limpieza |
+| `src/features/interview-session/pages/InterviewSessionPage.voice.test.tsx` | Hecha; contrato previsto y rechazos del audio en #101. CM-317: pruebas de HU-5.8 de §6. **Hecho (CM-346):** V1 y V2 (rojo → verde), V3, V5 y V6 de protección (§6); TSDoc de las líneas 1-20 y rótulos de limpieza. **Hecho (CM-363):** R1 y R2 (rojo → verde) y P1 a P3 (protección) de §6 |
 | `src/design-system/molecules/ProgressArc/ProgressArc.test.tsx` | Hecha (D7, prueba débil; completada con la verificación manual del 22-10, bitácora Tarea 8) |
 
 
@@ -678,7 +736,8 @@ cambio de comportamiento. No incluye el TSDoc de `pages/InterviewSessionPage.tsx
 | **denied** / **noMicrophone** | error de getUserMedia | mensaje del backlog y el campo de texto; el resto de la entrevista sigue por texto (CA-5.8.3, CA-5.8.23) |
 | **vadFailed** | import(), MicVAD.new o start lanzan; un asset ausente llega como 200 con index.html por el rewrite y falla al analizarse (ADR 0009, **no comprobado**) | «No pudimos preparar la grabación. Puedes responder por texto.» (llave nueva) y el campo de texto en la misma pregunta; «Grabar» sigue disponible y vuelve a requesting (CA-5.8.25, CM-316 D3) |
 | **unsupported** | no hay tipo admitido, o el mimeType real no es WebM/Opus ni MP4/AAC | «Tu navegador no permite grabar. Responderás por texto.» (llave existente, interview.json línea 89, texto de CA-4.3.7) y el campo de texto, según las notas técnicas de HU-5.8 (O77, backlog v11.3); se oculta «Grabar» (lectura del front, §9) |
-| enviando (isSubmitting del turno) | tras «Enviar» | «Enviar» deshabilitado, con spinner visible y su nombre accesible «Enviar»; «Procesando tu respuesta…» se anuncia solo en la región aria-live existente, una vez (CM-316 D7; mismo principio que el composer de texto, CA-5.2.4, RT-06); a los 20 s, «Esto puede tardar hasta 2 minutos. No cierres esta página.» (CA-5.8.26) |
+| enviando (isSubmitting del turno) | tras «Enviar» | «Enviar» deshabilitado, con spinner visible y su nombre accesible «Enviar»; «Procesando tu respuesta…» se anuncia solo en la región aria-live existente, una vez (CM-316 D7; mismo principio que el composer de texto, CA-5.2.4, RT-06); a los 20 s, «Esto puede tardar hasta 2 minutos. No cierres esta página.» (CA-5.8.26). **CM-363 D1:** además, «Grabar» y «Responder por texto» se ven deshabilitados (CA-5.13.8) |
+| tras `503 TRANSCRIPTION_UNAVAILABLE` | Backend agotó sus intentos (HU-5.13) | «No pudimos transcribir tu respuesta. Graba de nuevo o responde por texto.», «Grabar de nuevo» (graba otra vez con la misma clave del turno, CM-363 D4) y «Responder por texto», en la misma pregunta y con la grabación descartada (CA-5.13.3, 5.13.5, 5.13.6) |
 
 Los rechazos de Backend al transcribir y los demás errores del envío están en §5.
 
@@ -803,6 +862,49 @@ real de `cameia-entrevista` `ebce618`)
   `AUDIO_TOO_SHORT` sale cuando el **audio** dura menos de 1,5 s, sin transcribir. CM-346 D2
   muestra el mismo mensaje en los dos casos; la diferencia es de CM-345.
 
+**Decisiones de CM-363 (Juan José, 14-11-2026)** (HU-5.13 contra el backlog v11.6 y el contrato
+real de `cameia-entrevista` `0808604`; opción B del análisis)
+
+- **CM-363 D1 · CA-5.13.8: los tres controles se ven deshabilitados mientras se envía el audio.**
+  «Grabar», «Enviar» y «Responder por texto» se ven y están deshabilitados. «Enviar» conserva su
+  spinner y su nombre accesible, y sigue «Procesando tu respuesta…» (CA-5.8.6, CM-316 D7).
+  «Grabar» deshabilitado solo aparece durante el envío: con una grabación detenida y sin enviar se
+  sigue viendo solo «Enviar», porque volver a grabar antes de enviar no forma parte de HU-5.8
+  (B77). Motivo: el CA dice que «permanecen deshabilitados», no que se oculten, y «Cambios v8»,
+  fila 55 (#42), lo decidió a propósito («Responder por texto» también queda deshabilitado
+  mientras se procesa). Ningún otro CA pide ocultarlos (revisados por Juan José: CA-5.6.1,
+  CA-5.7.6, CA-5.5.6, CA-5.2.4 y CA-5.8.6). Antes de CM-363 «Grabar» no se pintaba y «Responder por
+  texto» se ocultaba (`VoiceAnswerComposer.tsx:89-124`).
+- **CM-363 D2 · `409 TURN_CONFLICT` sigue en el genérico** y conserva la grabación (CM-346 D3).
+  El backlog no le da texto (ADR-0008). Con D1 y la guarda `inFlight` la pantalla no manda ese
+  2.º envío; llega solo desde otra pestaña u otro dispositivo, o tras perder la respuesta.
+- **CM-363 D3 · CA-5.13.3, 5.13.5 y 5.13.6 ya los cumple el código.** Solo se añaden pruebas de
+  protección (P1 a P3 de §6). La prueba de CA-5.12.8 (`InterviewSessionPage.voice.test.tsx:267-288`)
+  no afirmaba «Grabar de nuevo» ni «Pregunta 1 de 5»: su `discard` simulado no vuelve a `idle`.
+- **CM-363 D4 · «Grabar de nuevo» reutiliza la `Idempotency-Key` del turno** (`idempotencyKeyFor`,
+  `useInterviewTurn.ts:171-178`). Según `cameia-entrevista` `0808604`, tras el `503` no queda nada
+  guardado bajo la clave: la clave se guarda solo con un `200` (`SubmitAudioAnswerService.java:243-244`),
+  la réplica solo ocurre si la clave existe (`:192-195`) y la transcripción fallida libera el turno a
+  `PENDING` sin guardarla (`:209-215`). Así, el audio nuevo con la misma clave se procesa como una
+  petición nueva. **Riesgo conocido:** ninguna prueba de Backend cubre la misma clave con **otro**
+  audio tras el `503`; la que existe (`AudioAnswerEndToEndTest.java:764-768`) reenvía el mismo
+  audio. Si Backend empezara a guardar el `503` bajo la clave, el nuevo audio recibiría el error
+  guardado o un `409 IDEMPOTENCY_KEY_CONFLICT`.
+- **CM-363 D5 · El mock compartido de `…/answers/audio` no cambia** (como CM-346 D5). Cada error se
+  simula dentro de su prueba con `useHandlers`.
+
+**Fuera de alcance de CM-363 (se anotan)**
+
+- «Escuchar» (HU-5.15, #136) no se detiene al pulsar «Grabar» o «Grabar de nuevo»
+  (`InterviewSessionPage.tsx:326-329`) y sigue habilitado mientras se procesa el audio
+  (`QuestionAudioControl.tsx:63-70`). Si el micrófono capta ese sonido es **no comprobado**. Es de
+  HU-5.15.
+- Diferencias de Backend con el backlog de HU-5.13 (`cameia-entrevista` `0808604`): presupuesto
+  de 100 s (`application.properties:107`) frente a los 110 s de las Observaciones; el OpenAPI de
+  `…/answers/audio` dice `SESSION_CONFLICT` y «90 s por defecto», pero el código responde
+  `409 TURN_CONFLICT` y usa 60 s por intento (`AudioAnswerController.java:100`, `:116-117`). No
+  cambian la pantalla: espera 130 s (`interviewSession.constants.ts:32`) y decide por `code`.
+
 **Decisiones del equipo**
 
 - **D7 · «Pregunta k de 5» literal, sin mayúsculas.** El backlog fija el texto «Pregunta k de
@@ -917,13 +1019,15 @@ títulos y mensajes de `TURN_NOT_RETRYABLE`, `TURN_RETRY_LIMIT_REACHED` e
   (hipótesis H9 del informe, comprobada contra esa sección). Precisa v11.3 D6: en `…/answers`,
   `SESSION_ABANDONED` y `SESSION_ALREADY_CLOSED` siguen siendo de HU-5.5; en `…/reprocess` los
   atiende CM-217 porque llegan al «Reintentar» de CA-5.2.19.
-- **v11.3 D9 · `409 TURN_NOT_RETRYABLE` en `…/reprocess` → genérico sin «Reintentar», con «Ir al
-  inicio».** El panel muestra `errors:generico`, oculta «Reintentar» y ofrece «Ir al inicio»
-  aunque el tramo 1 no se haya agotado. No suma al tope. **Motivo:** el turno ya no espera un
-  reintento (`PENDING`, `COMPLETED` o `PROCESSING` vivo) o perdió la carrera con otro
-  `reprocess` (`InterviewTurn.java:109-113`; `ReprocessTurnService.java:115-119`;
-  `ReprocessEndToEndTest.java:106`). El caso práctico es una `200` de `reprocess` perdida por un
-  corte: el turno ya quedó completo y cada «Reintentar» devuelve el mismo `409` (informe §1.5 y
+- **v11.3 D9 · `409 TURN_NOT_RETRYABLE` en `…/reprocess` → mensaje propio sin «Reintentar», con
+  «Ir al inicio».** El panel muestra `interview:sesion.noEsperaReintento` («Tu respuesta no está
+  esperando un reintento.»; en CM-217 era `errors:generico`, CM-226 le dio texto propio), oculta
+  «Reintentar» y ofrece «Ir al inicio» aunque el tramo 1 no se haya agotado. No suma al tope.
+  **Motivo:** el turno ya no espera un reintento (`PENDING`, `COMPLETED` o `PROCESSING` vivo) o
+  perdió la carrera con otro `reprocess` (`InterviewTurn.java:109-113`;
+  `ReprocessTurnService.java:115-119`; `ReprocessEndToEndTest.java:106`). El caso práctico es
+  una `200` de `reprocess` perdida por un corte: el turno ya quedó completo y cada «Reintentar»
+  devuelve el mismo `409` (informe §1.5 y
   §3, fila 13). Volver a pulsar no sirve y ningún CA fija texto: es la salida mínima de UX, con
   textos que ya existen (v11.3 D5). **Nota:** el retomar real (leer `…/state` y mostrar la
   pregunta siguiente) queda fuera (HU-5.7).

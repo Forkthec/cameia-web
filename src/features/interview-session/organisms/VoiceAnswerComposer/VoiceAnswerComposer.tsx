@@ -10,6 +10,10 @@
  * anuncia solo la región `aria-live` de `SessionStage`, como en el texto
  * (CA-5.2.4).
  *
+ * Mientras se envía, «Grabar» y «Responder por texto» también se ven, deshabilitados
+ * (CA-5.13.8, CM-363 D1): no se ocultan. «Grabar» deshabilitado solo aparece durante el
+ * envío; con la grabación detenida y sin enviar se ve solo «Enviar».
+ *
  * Solo pinta: el estado de la grabación y el envío vienen de
  * `useVoiceRecorder` y `useInterviewTurn` a través de la página. Mismo
  * vidrio que `TextAnswerComposer`; usa los átomos `Button` e `Icon` y la
@@ -91,16 +95,23 @@ export function VoiceAnswerComposer({
             {labels.stop}
           </Button>
         ) : step === 'stopped' ? (
-          <Button
-            variant="primary"
-            size="lg"
-            icon={isSubmitting ? <Icon name="loading-arc" className="animate-spin" /> : undefined}
-            disabled={isSubmitting}
-            aria-busy={isSubmitting || undefined}
-            onClick={onSend}
-          >
-            {labels.send}
-          </Button>
+          <>
+            {isSubmitting ? (
+              <Button variant="primary" size="lg" icon={<Icon name="microphone" />} disabled>
+                {labels.record}
+              </Button>
+            ) : null}
+            <Button
+              variant="primary"
+              size="lg"
+              icon={isSubmitting ? <Icon name="loading-arc" className="animate-spin" /> : undefined}
+              disabled={isSubmitting}
+              aria-busy={isSubmitting || undefined}
+              onClick={onSend}
+            >
+              {labels.send}
+            </Button>
+          </>
         ) : (
           <Button
             variant="primary"
@@ -113,15 +124,16 @@ export function VoiceAnswerComposer({
           </Button>
         )}
 
-        {isSubmitting || !showSwitchToText ? null : (
+        {showSwitchToText ? (
           <button
             type="button"
+            disabled={isSubmitting}
             onClick={onSwitchToText}
-            className="text-body text-text-on-inverse min-h-touch-target px-space-2 focus-visible:shadow-focus-ring cursor-pointer rounded-md font-semibold underline underline-offset-4 focus-visible:outline-none"
+            className="text-body text-text-on-inverse min-h-touch-target px-space-2 focus-visible:shadow-focus-ring disabled:text-text-disabled cursor-pointer rounded-md font-semibold underline underline-offset-4 focus-visible:outline-none disabled:cursor-not-allowed"
           >
             {labels.switchToText}
           </button>
-        )}
+        ) : null}
       </div>
 
       {isSubmitting && showLongWait ? (

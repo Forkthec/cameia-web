@@ -21,6 +21,14 @@
  * pregunta siguiente no conserva el audio anterior. Los textos son los
  * literales del archivo de criterios de HU-5.8 (backlog v11.3). Plan de
  * CM-346 en SPEC §6 (V1 a V6).
+ *
+ * HU-5.13 (CM-363, backlog v11.6): tras agotar Backend los intentos de
+ * transcripción (`503 TRANSCRIPTION_UNAVAILABLE`), el mensaje con «Grabar de
+ * nuevo» y «Responder por texto» en la misma pregunta (CA-5.13.3), grabar de
+ * nuevo con la misma `Idempotency-Key` del turno (CA-5.13.5), responder por
+ * texto con otra clave (CA-5.13.6) y, mientras se envía el audio, «Grabar» y
+ * «Responder por texto» visibles y deshabilitados (CA-5.13.8, CM-363 D1).
+ * Plan de CM-363 en SPEC §6 (R1, R2 y P1 a P3).
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor } from '@testing-library/react';
@@ -69,6 +77,7 @@ const LONG_WAIT = 'Esto puede tardar hasta 2 minutos. No cierres esta página.';
 const NO_VOICE = 'No detectamos tu voz, intenta de nuevo.';
 const PRIVACY =
   'Tu audio se usa solo para transcribir tu respuesta. Lo procesa un servicio externo, que lo elimina a los 2 días; CAMEIA no lo guarda.';
+const NOT_TRANSCRIBED = 'No pudimos transcribir tu respuesta. Graba de nuevo o responde por texto.';
 const VAD_FAILED = 'No pudimos preparar la grabación. Puedes responder por texto.';
 const UNSUPPORTED = 'Tu navegador no permite grabar. Responderás por texto.';
 
@@ -586,4 +595,133 @@ describe('InterviewSessionPage (voz)', () => {
       expect(screen.queryByRole('button', { name: 'Enviar' })).not.toBeInTheDocument();
     },
   );
+
+  describe('HU-5.13 (CM-363)', () => {
+    /** Deja la grabación detenida y hace que `discard` vuelva a `idle`, como el hook real. */
+    function withDiscardingRecording() {
+      withRecording();
+      recorder.discard.mockImplementation(() => {
+        recorder.status = 'idle';
+        recorder.audio = null;
+      });
+    }
+
+    it('mientras se envía el audio, «Responder por texto» se ve deshabilitado (CA-5.13.8)', async () => {
+      withRecording();
+      const response = createDeferred<Response>();
+      useHandlers(http.post(AUDIO_URL, () => response.promise));
+      const user = userEvent.setup();
+      const { container } = renderPage();
+      await user.click(screen.getByRole('button', { name: 'Enviar' }));
+
+      const live = container.querySelector('[aria-live]');
+      await waitFor(() => expect(live).toHaveTextContent(PROCESSING));
+      expect(screen.getByRole('button', { name: 'Responder por texto' })).toBeDisabled();
+
+      response.resolve(HttpResponse.json(OK_NEXT));
+      expect(
+        await screen.findByRole('progressbar', { name: 'Pregunta 2 de 5' }),
+      ).toBeInTheDocument();
+    });
+
+    it('mientras se envía el audio, «Grabar» se ve deshabilitado (CA-5.13.8)', async () => {
+      withRecording();
+      const response = createDeferred<Response>();
+      useHandlers(http.post(AUDIO_URL, () => response.promise));
+      const user = userEvent.setup();
+      const { container } = renderPage();
+      await user.click(screen.getByRole('button', { name: 'Enviar' }));
+
+      const live = container.querySelector('[aria-live]');
+      await waitFor(() => expect(live).toHaveTextContent(PROCESSING));
+      expect(screen.getByRole('button', { name: 'Enviar' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Grabar' })).toBeDisabled();
+
+      response.resolve(HttpResponse.json(OK_NEXT));
+      expect(
+        await screen.findByRole('progressbar', { name: 'Pregunta 2 de 5' }),
+      ).toBeInTheDocument();
+    });
+
+    it('tras agotar los intentos de transcripción muestra el mensaje, «Grabar de nuevo» y «Responder por texto» en la misma pregunta (CA-5.13.3)', async () => {
+      withDiscardingRecording();
+      useHandlers(http.post(AUDIO_URL, () => problem(503, 'TRANSCRIPTION_UNAVAILABLE')));
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(screen.getByRole('button', { name: 'Enviar' }));
+
+      expect(await screen.findByText(NOT_TRANSCRIBED)).toBeInTheDocument();
+      expect(recorder.discard).toHaveBeenCalled();
+      expect(await screen.findByRole('button', { name: 'Grabar de nuevo' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Responder por texto' })).toBeInTheDocument();
+      expect(screen.getByRole('progressbar', { name: 'Pregunta 1 de 5' })).toBeInTheDocument();
+      expect(screen.queryByText('detalle técnico')).not.toBeInTheDocument();
+    });
+
+    it('tras el fallo, «Grabar de nuevo» graba otra vez y el nuevo audio usa la misma Idempotency-Key (CA-5.13.5)', async () => {
+      withDiscardingRecording();
+      const keys: Array<string | null> = [];
+      useHandlers(
+        http.post(AUDIO_URL, ({ request }) => {
+          keys.push(request.headers.get('Idempotency-Key'));
+          return keys.length === 1
+            ? problem(503, 'TRANSCRIPTION_UNAVAILABLE')
+            : HttpResponse.json(OK_NEXT);
+        }),
+      );
+      const user = userEvent.setup();
+      const { refresh } = renderPage();
+      await user.click(screen.getByRole('button', { name: 'Enviar' }));
+      await user.click(await screen.findByRole('button', { name: 'Grabar de nuevo' }));
+
+      expect(recorder.start).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText(NOT_TRANSCRIBED)).not.toBeInTheDocument();
+
+      withRecording();
+      refresh();
+      await user.click(screen.getByRole('button', { name: 'Enviar' }));
+      expect(
+        await screen.findByRole('progressbar', { name: 'Pregunta 2 de 5' }),
+      ).toBeInTheDocument();
+      expect(keys).toHaveLength(2);
+      expect(keys[0]).toBeTruthy();
+      expect(keys[1]).toBe(keys[0]);
+    });
+
+    it('tras el fallo, «Responder por texto» muestra el campo con «Enviar» en la misma pregunta y registra por texto (CA-5.13.6)', async () => {
+      withDiscardingRecording();
+      const calls: string[] = [];
+      let audioKey: string | null = null;
+      let textKey: string | null = null;
+      useHandlers(
+        http.post(AUDIO_URL, ({ request }) => {
+          calls.push('answers/audio');
+          audioKey = request.headers.get('Idempotency-Key');
+          return problem(503, 'TRANSCRIPTION_UNAVAILABLE');
+        }),
+        http.post(ANSWERS_URL, ({ request }) => {
+          calls.push('answers');
+          textKey = request.headers.get('Idempotency-Key');
+          return HttpResponse.json(OK_NEXT);
+        }),
+      );
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(screen.getByRole('button', { name: 'Enviar' }));
+      await user.click(await screen.findByRole('button', { name: 'Responder por texto' }));
+
+      expect(screen.getByLabelText('Respuesta')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Enviar' })).toBeInTheDocument();
+      expect(screen.getByRole('progressbar', { name: 'Pregunta 1 de 5' })).toBeInTheDocument();
+
+      await user.type(screen.getByLabelText('Respuesta'), 'Mi respuesta escrita');
+      await user.click(screen.getByRole('button', { name: 'Enviar' }));
+      expect(
+        await screen.findByRole('progressbar', { name: 'Pregunta 2 de 5' }),
+      ).toBeInTheDocument();
+      expect(calls).toEqual(['answers/audio', 'answers']);
+      expect(textKey).toBeTruthy();
+      expect(textKey).not.toBe(audioKey);
+    });
+  });
 });
