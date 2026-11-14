@@ -127,6 +127,8 @@
     "en": "English"
   },
   "sesion": {
+    "verMisEntrevistas": "View my interviews",
+    "proximamente": "Coming soon",
     "noEsperaReintento": "Your answer is not waiting for a retry.",
     "progreso": "Question {{actual}} of {{total}}",
     "modoYForma": "{{modo}} · {{forma}}",
@@ -139,7 +141,7 @@
     "procesando": "Processing your answer…",
     "reintentosAgotados": "We couldn't evaluate your answer right now. Your answer was saved; try again later.",
     "irAlInicio": "Go to home",
-    "cierre": "Your interview is over. Your Evaluation Report will be available shortly.",
+    "cierre": "Your interview is over. Your full report will be available soon.",
     "abandonada": "Abandoned session: it will not be evaluated.",
     "noAdmite": "This interview no longer allows that action.",
     "voz": {
