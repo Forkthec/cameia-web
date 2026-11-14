@@ -129,7 +129,7 @@ export function VoiceAnswerComposer({
             type="button"
             disabled={isSubmitting}
             onClick={onSwitchToText}
-            className="text-body text-text-on-inverse min-h-touch-target px-space-2 focus-visible:shadow-focus-ring disabled:text-text-on-inverse/50 cursor-pointer rounded-md font-semibold underline underline-offset-4 focus-visible:outline-none disabled:cursor-not-allowed"
+            className="text-body text-text-on-inverse min-h-touch-target px-space-2 focus-visible:shadow-focus-ring disabled:text-text-disabled cursor-pointer rounded-md font-semibold underline underline-offset-4 focus-visible:outline-none disabled:cursor-not-allowed"
           >
             {labels.switchToText}
           </button>
