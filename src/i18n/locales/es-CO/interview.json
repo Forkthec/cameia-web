@@ -146,7 +146,7 @@
       "grabar": "Grabar",
       "detener": "Detener",
       "responderPorTexto": "Responder por texto",
-      "privacidad": "Tu audio se usa solo para transcribir tu respuesta y no se guarda.",
+      "privacidad": "Tu audio se usa solo para transcribir tu respuesta. Lo procesa un servicio externo, que lo elimina a los 2 días; CAMEIA no lo guarda.",
       "sinVoz": "No detectamos tu voz, intenta de nuevo.",
       "micDenegado": "No pudimos acceder a tu micrófono. Puedes responder por texto.",
       "sinMicrofono": "No encontramos un micrófono. Puedes responder por texto.",

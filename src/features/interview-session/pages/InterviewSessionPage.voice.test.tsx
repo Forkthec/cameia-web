@@ -1,23 +1,26 @@
 /**
- * Protege la respuesta por voz del chat (HU-5.8, backlog v8.4) con la
+ * Protege la respuesta por voz del chat (HU-5.8, backlog v11.3) con la
  * grabación simulada (`useVoiceRecorder` se reemplaza; el navegador no
  * graba en jsdom): controles y aviso de privacidad, que sigue visible hasta
  * que la grabación empieza de verdad (CA-5.8.24, CM-316 D8), grabando con
- * el tiempo (CA-5.8.2), envío y avance con el aviso de los 20 s ligado a
- * cada envío (CA-5.8.5), doble envío con «Enviar» que conserva su nombre
- * accesible (CA-5.8.6, CM-316 D7), voz insuficiente (CA-5.8.10, CA-5.8.11),
+ * el tiempo (CA-5.8.2), envío y avance (CA-5.8.5), aviso de los 20 s ligado
+ * a cada envío (CA-5.8.26), doble envío con «Enviar» que conserva su nombre
+ * accesible (CA-5.8.6, CM-316 D7), voz insuficiente (CA-5.8.10),
  * micrófono denegado (CA-5.8.3) o ausente (CA-5.8.23), «Responder por
  * texto» registrado en `…/answers` (CA-5.8.19), sin «Grabar» en una
- * entrevista de texto (CA-5.8.20), entrevista ajena (CA-5.8.21), sin
- * conexión con la misma `Idempotency-Key` (CA-5.8.22), MicVAD que no carga
- * (CA-5.8.25) y formato no admitido (notas técnicas de HU-5.8, O75, con el
- * texto de CA-4.3.7). Del lado de Backend, el efecto visible de la tabla de
- * SPEC §5 «Qué muestra la pantalla al enviar audio»: `413`, `415` y `422`
- * sin `code` de transcripción (CA-5.8.8, CA-5.8.13 a 5.8.15), los rechazos
- * al transcribir (CA-5.12.8, CA-5.12.10) y el defecto de SPEC §9: tras un
- * `503 LLM_*` con audio y un «Reintentar» exitoso, la pregunta siguiente no
- * conserva el audio anterior. Los textos son los literales del archivo de
- * criterios de HU-5.8 (backlog v8.4).
+ * entrevista de texto (CA-5.8.29), entrevista ajena (CA-5.8.21), entrevista
+ * que no está en curso (CA-5.8.28), sin conexión con la misma
+ * `Idempotency-Key` (CA-5.8.22) y reenvío de un audio que el servidor ya
+ * procesó (CA-5.8.27), MicVAD que no carga (CA-5.8.25) y formato no admitido
+ * (notas técnicas de HU-5.8, O77, con el texto de CA-4.3.7). Del lado de
+ * Backend, el efecto visible de la tabla de SPEC §5 «Qué muestra la pantalla
+ * al enviar audio»: `413`, `415` y `422` sin `code` de transcripción
+ * (CA-5.8.8, CA-5.8.13 a 5.8.15), `AUDIO_TOO_SHORT` (CA-5.8.10), los
+ * rechazos al transcribir (CA-5.12.7, CA-5.12.8, CA-5.12.10) y el defecto
+ * de SPEC §9: tras un `503 LLM_*` con audio y un «Reintentar» exitoso, la
+ * pregunta siguiente no conserva el audio anterior. Los textos son los
+ * literales del archivo de criterios de HU-5.8 (backlog v11.3). Plan de
+ * CM-346 en SPEC §6 (V1 a V6).
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor } from '@testing-library/react';
@@ -64,7 +67,8 @@ const NOT_FOUND = 'No encontramos lo que buscabas.';
 const PROCESSING = 'Procesando tu respuesta…';
 const LONG_WAIT = 'Esto puede tardar hasta 2 minutos. No cierres esta página.';
 const NO_VOICE = 'No detectamos tu voz, intenta de nuevo.';
-const PRIVACY = 'Tu audio se usa solo para transcribir tu respuesta y no se guarda.';
+const PRIVACY =
+  'Tu audio se usa solo para transcribir tu respuesta. Lo procesa un servicio externo, que lo elimina a los 2 días; CAMEIA no lo guarda.';
 const VAD_FAILED = 'No pudimos preparar la grabación. Puedes responder por texto.';
 const UNSUPPORTED = 'Tu navegador no permite grabar. Responderás por texto.';
 
@@ -144,9 +148,7 @@ describe('InterviewSessionPage (voz)', () => {
     renderPage();
     expect(screen.getByRole('button', { name: 'Grabar' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Responder por texto' })).toBeInTheDocument();
-    expect(
-      screen.getByText('Tu audio se usa solo para transcribir tu respuesta y no se guarda.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText(PRIVACY)).toBeInTheDocument();
     expect(screen.queryByLabelText('Respuesta')).not.toBeInTheDocument();
   });
 
@@ -235,7 +237,7 @@ describe('InterviewSessionPage (voz)', () => {
     expect(bodies[0]).toEqual({ turnId: 's1-t1', answerText: 'Mi respuesta escrita' });
   });
 
-  it('una entrevista de texto no muestra «Grabar» (CA-5.8.20)', () => {
+  it('una entrevista de texto no muestra «Grabar» (CA-5.8.29)', () => {
     renderPage({ ...AUDIO_ENTRY, answerFormat: 'TEXTO' });
     expect(screen.queryByRole('button', { name: 'Grabar' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Respuesta')).toBeInTheDocument();
@@ -285,7 +287,7 @@ describe('InterviewSessionPage (voz)', () => {
     expect(screen.getByRole('button', { name: 'Responder por texto' })).toBeInTheDocument();
   });
 
-  it('a los 20 s de espera agrega «Esto puede tardar hasta 2 minutos. No cierres esta página.» (CA-5.8.5)', async () => {
+  it('a los 20 s de espera agrega «Esto puede tardar hasta 2 minutos. No cierres esta página.» (CA-5.8.26)', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     withRecording();
     const response = createDeferred<Response>();
@@ -304,7 +306,7 @@ describe('InterviewSessionPage (voz)', () => {
     expect(screen.queryByText(LONG_WAIT)).not.toBeInTheDocument();
   });
 
-  it('tras un reenvío el aviso de 20 s no aparece antes de tiempo (CA-5.8.5)', async () => {
+  it('tras un reenvío el aviso de 20 s no aparece antes de tiempo (CA-5.8.26)', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     withRecording();
     const responses = [createDeferred<Response>(), createDeferred<Response>()];
@@ -384,7 +386,7 @@ describe('InterviewSessionPage (voz)', () => {
     },
   );
 
-  it('si Backend responde TRANSCRIPTION_EMPTY avisa «No detectamos tu voz, intenta de nuevo.» y descarta la grabación (CA-5.8.11)', async () => {
+  it('si Backend responde TRANSCRIPTION_EMPTY avisa «No detectamos tu voz, intenta de nuevo.» y descarta la grabación (CA-5.12.7)', async () => {
     withRecording();
     useHandlers(http.post(AUDIO_URL, () => problem(422, 'TRANSCRIPTION_EMPTY')));
     const user = userEvent.setup();
@@ -394,6 +396,25 @@ describe('InterviewSessionPage (voz)', () => {
     expect(recorder.discard).toHaveBeenCalled();
     expect(screen.getByRole('progressbar', { name: 'Pregunta 1 de 5' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Responder por texto' })).toBeInTheDocument();
+  });
+
+  it('si Backend responde AUDIO_TOO_SHORT avisa «No detectamos tu voz, intenta de nuevo.» y descarta la grabación (CA-5.8.10)', async () => {
+    withRecording();
+    recorder.discard.mockImplementation(() => {
+      recorder.status = 'idle';
+      recorder.audio = null;
+    });
+    useHandlers(http.post(AUDIO_URL, () => problem(422, 'AUDIO_TOO_SHORT')));
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole('button', { name: 'Enviar' }));
+    expect(await screen.findByText(NO_VOICE)).toBeInTheDocument();
+    expect(screen.queryByText(GENERIC)).not.toBeInTheDocument();
+    expect(screen.queryByText('detalle técnico')).not.toBeInTheDocument();
+    expect(recorder.discard).toHaveBeenCalled();
+    expect(await screen.findByRole('button', { name: 'Grabar' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Responder por texto' })).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: 'Pregunta 1 de 5' })).toBeInTheDocument();
   });
 
   it.each([
@@ -435,6 +456,61 @@ describe('InterviewSessionPage (voz)', () => {
     expect(keys).toHaveLength(2);
     expect(keys[0]).toBeTruthy();
     expect(keys[1]).toBe(keys[0]);
+  });
+
+  it('si el servidor ya procesó el audio y la respuesta se perdió, el reenvío con la misma clave muestra el mismo resultado (CA-5.8.27)', async () => {
+    withRecording();
+    // Simula al servidor: guarda el resultado por clave y no vuelve a registrar con una clave conocida.
+    const saved = new Map<string, unknown>();
+    const keys: Array<string | null> = [];
+    let registrations = 0;
+    useHandlers(
+      http.post(AUDIO_URL, ({ request }) => {
+        const key = request.headers.get('Idempotency-Key');
+        keys.push(key);
+        const known = key ? saved.get(key) : undefined;
+        if (known) return HttpResponse.json(known);
+        registrations += 1;
+        if (key) saved.set(key, OK_NEXT);
+        return HttpResponse.error();
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole('button', { name: 'Enviar' }));
+    expect(await screen.findByText(NO_CONNECTION)).toBeInTheDocument();
+    expect(recorder.discard).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Enviar' }));
+    expect(await screen.findByRole('progressbar', { name: 'Pregunta 2 de 5' })).toBeInTheDocument();
+    expect(keys).toHaveLength(2);
+    expect(keys[0]).toBeTruthy();
+    expect(keys[1]).toBe(keys[0]);
+    expect(registrations).toBe(1);
+  });
+
+  it('en una entrevista abandonada rechaza el audio con su mensaje y sin controles (CA-5.8.28)', async () => {
+    withRecording();
+    useHandlers(http.post(AUDIO_URL, () => problem(409, 'SESSION_ABANDONED')));
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole('button', { name: 'Enviar' }));
+    expect(await screen.findByText('Sesión abandonada: no genera evaluación.')).toBeInTheDocument();
+    expect(screen.queryByText('detalle técnico')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Grabar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Enviar' })).not.toBeInTheDocument();
+  });
+
+  it('en una entrevista en evaluación o finalizada rechaza el audio con su mensaje y sin controles (CA-5.8.28)', async () => {
+    withRecording();
+    useHandlers(http.post(AUDIO_URL, () => problem(409, 'SESSION_ALREADY_CLOSED')));
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole('button', { name: 'Enviar' }));
+    expect(await screen.findByText('Esta entrevista ya no admite esa acción.')).toBeInTheDocument();
+    expect(screen.queryByText('detalle técnico')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Grabar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Enviar' })).not.toBeInTheDocument();
   });
 
   // En `denied` no hay controles de grabación, así que el aviso no aplica (SPEC §6, CA-5.8.24).
