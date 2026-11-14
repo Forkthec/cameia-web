@@ -1,24 +1,36 @@
 /**
  * Aviso de política nueva (CM-365, criterio 5): aparece solo si la versión
  * aceptada no es la vigente, no se cierra sin aceptar, exige la casilla, guarda
- * la aceptación y muestra el rechazo `POLICY_VERSION_OUTDATED`.
+ * la aceptación y muestra el rechazo `POLICY_VERSION_OUTDATED`. «Cerrar sesión»
+ * deja salir sin aceptar (aviso de Backend del 14-11-2026, 4.1).
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { MemoryRouter, Route, Routes } from 'react-router';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { POLICY_VERSION } from '@/config/policy';
 import i18n from '@/i18n';
 import { useAuthStore } from '@/stores/auth.store';
 import { useHandlers } from '@/test/msw';
 import { PolicyAcceptanceGate } from './PolicyAcceptanceGate';
 
+vi.mock('@/services/firebase/auth.service', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/services/firebase/auth.service')>()),
+  signOut: vi.fn(() => Promise.resolve()),
+}));
+
 function renderGate() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <PolicyAcceptanceGate />
+      <MemoryRouter initialEntries={['/inicio']}>
+        <Routes>
+          <Route path="/inicio" element={<PolicyAcceptanceGate />} />
+          <Route path="/ingresar" element={<p>Pantalla de ingreso</p>} />
+        </Routes>
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -31,7 +43,8 @@ function meWith(acceptedVersion: string) {
   );
 }
 
-const CHECKBOX = 'Acepto la política de tratamiento de datos';
+const CHECKBOX =
+  'Acepto los términos y condiciones y la política de tratamiento de datos, incluido el envío de mis datos a proveedores fuera de Colombia';
 
 describe('PolicyAcceptanceGate', () => {
   beforeEach(async () => {
@@ -49,7 +62,7 @@ describe('PolicyAcceptanceGate', () => {
     const user = userEvent.setup();
     renderGate();
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /cerrar/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^cerrar$/i })).not.toBeInTheDocument();
     await user.keyboard('{Escape}');
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(
@@ -123,5 +136,25 @@ describe('PolicyAcceptanceGate', () => {
     renderGate();
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('«Cerrar sesión» sale sin aceptar y lleva al ingreso', async () => {
+    useHandlers(meWith('sin-aceptar'));
+    const user = userEvent.setup();
+    renderGate();
+    await user.click(await screen.findByRole('button', { name: 'Cerrar sesión' }));
+    expect(await screen.findByText('Pantalla de ingreso')).toBeInTheDocument();
+  });
+
+  it('la casilla enlaza los términos y la política en otra pestaña', async () => {
+    useHandlers(meWith('sin-aceptar'));
+    renderGate();
+    const dialog = await screen.findByRole('dialog');
+    const terms = Array.from(dialog.querySelectorAll('label a'));
+    expect(terms.map((a) => a.getAttribute('href'))).toEqual([
+      '/terminos-y-condiciones',
+      '/politica-de-tratamiento-de-datos',
+    ]);
+    expect(terms.every((a) => a.getAttribute('target') === '_blank')).toBe(true);
   });
 });

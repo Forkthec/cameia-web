@@ -5,7 +5,7 @@
  * anillo de foco reacciona al foco del input real vía `peer-focus-visible`,
  * porque eso sí depende del navegador y no del estado que ya tenemos en JS.
  */
-import { useId, type ChangeEvent } from 'react';
+import { useId, type ChangeEvent, type ReactNode } from 'react';
 import { cn } from '@/utils/cn';
 import { Icon } from '../../icons/Icon';
 
@@ -16,8 +16,8 @@ interface CheckboxProps {
   id?: string;
   name?: string;
   className?: string;
-  /** Texto visible junto a la casilla. Sin texto por defecto. */
-  children: string;
+  /** Texto visible junto a la casilla; puede llevar enlaces. Sin texto por defecto. */
+  children: ReactNode;
 }
 
 export function Checkbox({
