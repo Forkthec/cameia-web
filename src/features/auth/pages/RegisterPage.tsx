@@ -27,6 +27,7 @@ import { PRONOUNS } from '../model/pronouns';
 import { useRegister } from '../hooks/useRegister';
 import { BrandHighlights } from '../organisms/BrandHighlights';
 import { RegisterForm } from '../organisms/RegisterForm';
+import { PolicyConsentLabel } from '../organisms/PolicyConsentLabel';
 
 export function RegisterPage() {
   const { t } = useTranslation(['auth', 'errors', 'common', 'legal']);
@@ -155,7 +156,7 @@ export function RegisterPage() {
         pronombresPlaceholder={t('registro.placeholders.pronombres')}
         pronombresOptions={pronombresOptions}
         pronombresErrorRequired={t('registro.errores.pronombresRequerido')}
-        aceptaPoliticaLabel={t('registro.politica.acepto')}
+        aceptaPoliticaLabel={<PolicyConsentLabel />}
         aceptaPoliticaErrorRequired={t('registro.politica.requerida')}
         aceptaPoliticaServerErrorMessage={aceptaPoliticaServerErrorMessage}
         policyLinksLabel={t('registro.politica.enlaces')}

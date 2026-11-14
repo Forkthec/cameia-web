@@ -1,19 +1,15 @@
 {
   "version": "Version {{version}}",
   "vigencia": "Effective from {{fecha}}",
-  "fechaVigencia": "",
   "documentos": {
     "politicaDatos": {
-      "titulo": "Personal data processing policy",
-      "secciones": []
+      "titulo": "Personal data processing policy"
     },
     "avisoPrivacidad": {
-      "titulo": "Privacy notice",
-      "secciones": []
+      "titulo": "Privacy notice"
     },
     "terminos": {
-      "titulo": "Terms and conditions",
-      "secciones": []
+      "titulo": "Terms and conditions"
     }
   }
 }

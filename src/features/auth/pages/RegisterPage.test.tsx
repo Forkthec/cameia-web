@@ -71,7 +71,11 @@ async function fillValidForm(user: ReturnType<typeof userEvent.setup>, email: st
   await user.type(screen.getByLabelText('Contraseña'), 'ClaveSegura2026');
   await user.type(screen.getByLabelText('Confirmar contraseña'), 'ClaveSegura2026');
   await user.selectOptions(screen.getByLabelText('Pronombres'), 'SHE');
-  await user.click(screen.getByLabelText('Acepto la política de tratamiento de datos'));
+  await user.click(
+    screen.getByLabelText(
+      'Acepto los términos y condiciones y la política de tratamiento de datos, incluido el envío de mis datos a proveedores fuera de Colombia',
+    ),
+  );
 }
 
 describe('RegisterPage', () => {

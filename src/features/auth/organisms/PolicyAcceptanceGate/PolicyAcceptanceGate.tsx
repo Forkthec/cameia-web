@@ -6,13 +6,16 @@
 import { useTranslation } from 'react-i18next';
 import { ROUTES } from '@/app/router/routes';
 import { useAuthStore } from '@/stores/auth.store';
+import { useLogout } from '../../hooks/useLogout';
 import { usePolicyAcceptance } from '../../hooks/usePolicyAcceptance';
+import { PolicyConsentLabel } from '../PolicyConsentLabel';
 import { PolicyUpdateDialog } from '../PolicyUpdateDialog';
 
 export function PolicyAcceptanceGate() {
   const { t } = useTranslation(['auth', 'legal', 'errors', 'common']);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const policy = usePolicyAcceptance(isAuthenticated);
+  const { logout, isLoggingOut } = useLogout();
 
   if (!policy.needsAcceptance) return null;
 
@@ -26,7 +29,7 @@ export function PolicyAcceptanceGate() {
   return (
     <PolicyUpdateDialog
       title={t('legal:documentos.politicaDatos.titulo')}
-      acceptLabel={t('auth:registro.politica.acepto')}
+      acceptLabel={<PolicyConsentLabel />}
       requiredMessage={t('auth:registro.politica.requerida')}
       confirmLabel={t('auth:politicaNueva.aceptar')}
       confirmingLabel={t('common:estados.cargando')}
@@ -39,6 +42,10 @@ export function PolicyAcceptanceGate() {
       isAccepting={policy.isAccepting}
       errorMessage={errorMessage}
       onAccept={policy.accept}
+      logoutLabel={
+        isLoggingOut ? t('auth:politicaNueva.cerrandoSesion') : t('auth:politicaNueva.cerrarSesion')
+      }
+      onLogout={() => void logout()}
     />
   );
 }

@@ -1,19 +1,297 @@
 {
   "version": "Versión {{version}}",
   "vigencia": "Vigente desde el {{fecha}}",
-  "fechaVigencia": "",
+  "fechaVigencia": "18 de noviembre de 2026",
   "documentos": {
     "politicaDatos": {
       "titulo": "Política de tratamiento de datos personales",
-      "secciones": []
+      "secciones": [
+        {
+          "titulo": "1. Responsable del tratamiento",
+          "parrafos": [
+            "El responsable del tratamiento de los datos personales es el equipo Forktech, que desarrolla CAMEIA, una aplicación web de práctica y simulación de entrevistas de trabajo, como proyecto académico. El equipo no constituye una sociedad. Lo integran Paula Andrea Muñoz Delgado, Juan Diego Gómez Garcés, Ana Sofía Arango Yanza, Juan José Arias Chacua y Juan David Vela Coronado.",
+            "Persona de contacto y encargada de atender las consultas y los reclamos: Paula Andrea Muñoz Delgado. Domicilio: Colombia. La atención se presta únicamente por correo electrónico, a la dirección forktech.team@gmail.com. El responsable no dispone de línea telefónica. Sitio web: https://cameia.app.",
+            "Esta política se expide en cumplimiento del artículo 15 de la Constitución Política, la Ley 1581 de 2012, el Decreto 1074 de 2015 (que compiló el Decreto 1377 de 2013) y las demás normas que los modifiquen o complementen."
+          ]
+        },
+        {
+          "titulo": "2. Definiciones",
+          "parrafos": [
+            "Dato personal: información vinculada o que pueda asociarse a una persona natural determinada o determinable.",
+            "Dato sensible: aquel que afecta la intimidad del titular o cuyo uso indebido puede generar discriminación, como el origen racial o étnico, la orientación política, las convicciones religiosas o filosóficas, la pertenencia a sindicatos, la salud, la vida sexual y los datos biométricos.",
+            "Titular: la persona natural cuyos datos son objeto de tratamiento; en esta política, «usted».",
+            "Responsable del tratamiento: quien decide sobre la base de datos y el tratamiento de los datos (sección 1). Encargado del tratamiento: quien trata datos por cuenta del responsable (sección 8). Tratamiento: cualquier operación sobre los datos, como su recolección, almacenamiento, uso, circulación o supresión.",
+            "Transmisión: entrega de datos a un encargado para que los trate por cuenta y bajo las instrucciones del responsable. Transferencia: entrega de datos a otro responsable, que los trata para sus propios fines."
+          ]
+        },
+        {
+          "titulo": "3. Alcance y autorización",
+          "parrafos": [
+            "Esta política se aplica a los datos que CAMEIA recoge cuando usted se registra, completa su perfil profesional, configura y responde una sesión de entrevista y utiliza las funciones de su cuenta.",
+            "Al marcar la casilla «Acepto los términos y condiciones y la política de tratamiento de datos, incluido el envío de mis datos a proveedores fuera de Colombia» en el registro, usted otorga su autorización previa, expresa e informada para el tratamiento descrito en este documento, incluido el envío de datos a proveedores ubicados fuera de Colombia (secciones 8 y 9). El silencio no constituye autorización: únicamente la otorga el acto de marcar la casilla.",
+            "CAMEIA conserva la versión de la política que usted aceptó y la fecha de aceptación como prueba de su autorización. No es posible crear una cuenta sin aceptarla."
+          ]
+        },
+        {
+          "titulo": "4. Datos recolectados y finalidades",
+          "parrafos": [
+            "Al registrarse, CAMEIA recolecta su nombre y apellido, para identificarlo y crear su cuenta; su correo electrónico, para el inicio de sesión, la verificación de la cuenta, la recuperación de la contraseña y el envío de avisos del servicio; su contraseña, que custodia Firebase Authentication y que CAMEIA no almacena ni puede leer; su fecha de nacimiento, para comprobar la mayoría de edad; y sus pronombres (él, ella o elle), para guardar en su cuenta el trato con el que prefiere ser nombrado. Los pronombres no se envían a los modelos de inteligencia artificial ni se usan para identificarlo, evaluarlo o perfilarlo. Estos datos son obligatorios.",
+            "De forma opcional, usted puede suministrar su número de celular, que se usa solo para asuntos de seguridad y soporte de su cuenta y nunca para publicidad. Si lo deja vacío, su cuenta funciona igual.",
+            "En su perfil profesional, usted puede registrar un resumen, experiencias, formaciones, habilidades y roles, así como cargar su hoja de vida. Del archivo solo se guarda el texto extraído, nunca el archivo. Estos datos se usan para personalizar las preguntas y la evaluación de sus entrevistas, y no son obligatorios.",
+            "Para cada sesión de entrevista, CAMEIA recolecta la modalidad, el tono, la forma de respuesta, el idioma, la vacante y el contexto en texto libre, con el fin de generar sus cinco preguntas y adaptar la entrevista; sus respuestas por escrito, para registrarlas, evaluarlas con inteligencia artificial y producir su resultado; y, si usted lo decide, sus respuestas por voz, que se transcriben a texto y se tratan como una respuesta escrita (sección 5). También se genera la evaluación y los resultados de cada sesión, para mostrarle su desempeño.",
+            "CAMEIA conserva la versión de esta política y la fecha en que usted la aceptó, para probar su autorización, y registra datos técnicos mínimos (identificador de la petición, fecha y hora, y códigos de error) para fines de seguridad, diagnóstico y prevención de abusos, sin guardar sus contenidos en los registros técnicos.",
+            "CAMEIA no usa sus datos para publicidad, no los vende ni los cede a terceros con fines comerciales, y no toma decisiones sobre usted con efectos jurídicos basadas únicamente en tratamiento automatizado. La evaluación de sus respuestas es orientativa y busca ayudarle a practicar. Los únicos datos que no son obligatorios para usar el servicio son el número de celular, el perfil profesional, las respuestas por voz y la escucha de las preguntas."
+          ]
+        },
+        {
+          "titulo": "5. Voz y datos sensibles",
+          "parrafos": [
+            "El uso de la voz es opcional. Usted puede responder siempre por escrito y no se le negará ninguna función por no usar la voz.",
+            "Respuestas por voz: si usted responde por voz, su grabación se envía a AssemblyAI, proveedor de transcripción, y se convierte en texto. CAMEIA no guarda el audio. El proveedor lo conserva por un tiempo limitado (sección 8).",
+            "Voz del entrevistador: las preguntas de la entrevista pueden escucharse con una voz generada por inteligencia artificial. Para ello, CAMEIA envía el texto de cada pregunta, de hasta 500 caracteres, a Google Cloud Text-to-Speech, que lo convierte en audio y lo devuelve. CAMEIA no guarda ese audio. Esta función no recibe su voz ni su nombre; el texto de la pregunta se genera a partir de su perfil y su vacante y puede mencionar datos que usted escribió en ellos. Google informa que no registra el texto ni el audio que recibe este servicio; sin embargo, CAMEIA no dispone de una garantía por escrito de que Google no utilice ese texto para entrenar sus modelos. El procesamiento ocurre fuera de Colombia, en cualquier país donde Google o sus subencargados tengan instalaciones, pues este servicio no permite elegir la región (sección 9). Esta función es opcional: usted puede leer las preguntas sin escucharlas.",
+            "Dado que la voz puede considerarse un dato biométrico y, por tanto, sensible, CAMEIA la trata con especial cautela: solo para transcribir su respuesta y nunca para identificarlo o perfilarlo. Usted no está obligado a autorizar el tratamiento de datos sensibles. Al marcar la casilla del registro, usted autoriza de forma expresa el tratamiento de su voz, únicamente si decide usarla.",
+            "Su respuesta escrita, la vacante y el contexto son texto libre. Se le solicita no incluir datos sensibles (salud, orientación sexual, creencias, origen étnico, afiliación política o sindical, datos de menores) ni datos de terceros. Usted no está obligado a suministrarlos y, si los escribe por su cuenta, el tratamiento se limita a la misma finalidad de su práctica.",
+            "Ninguna autorización sobre datos sensibles es condición para registrarse ni para usar el servicio."
+          ]
+        },
+        {
+          "titulo": "6. Inteligencia artificial",
+          "parrafos": [
+            "Para planificar las preguntas y evaluar las respuestas, CAMEIA envía a modelos de lenguaje de terceros el texto necesario: su contexto profesional, la vacante y su respuesta. No se envían su contraseña, su correo, su fecha de nacimiento ni su celular. El modelo principal es de Google (Gemini). Cuando este no responde o alcanza su límite de uso, CAMEIA utiliza un modelo de respaldo operado por Groq.",
+            "Groq (respaldo): CAMEIA activó la retención cero, de modo que Groq no conserva las entradas ni las salidas y no tiene permiso para entrenar modelos con sus datos.",
+            "Google (Gemini, principal): CAMEIA utiliza Gemini en su nivel gratuito y no puede garantizar la retención cero ni que Google no conserve o use el texto enviado. Según los términos de Google para ese nivel, Google puede usar el contenido para mejorar sus productos y personas revisoras pueden leer las entradas y salidas, previa desvinculación de la cuenta de CAMEIA; además, Google solicita no enviar información sensible, confidencial o personal a ese nivel. CAMEIA no controla esos términos y trata a Google, en este uso, como un destinatario que puede tratar el texto para fines propios (sección 9). Por ello se le solicita no incluir en sus respuestas, vacante o contexto información que no desee que un tercero pueda leer.",
+            "Voz del entrevistador: Google Cloud Text-to-Speech recibe el texto de las preguntas para convertirlas en audio (sección 5)."
+          ]
+        },
+        {
+          "titulo": "7. Principios",
+          "parrafos": [
+            "CAMEIA trata los datos conforme a los principios de legalidad, finalidad, libertad, veracidad o calidad, transparencia, acceso y circulación restringida, seguridad y confidencialidad (Ley 1581 de 2012, artículo 4). Solo recolecta lo que necesita, lo usa para las finalidades de la sección 4 y lo comparte únicamente en los casos de las secciones 8 y 9."
+          ]
+        },
+        {
+          "titulo": "8. Encargados y destinatarios de los datos",
+          "parrafos": [
+            "CAMEIA se apoya en proveedores que, salvo lo indicado sobre Google (Gemini) en la sección 6, tratan los datos por su cuenta y bajo sus instrucciones. CAMEIA no los autoriza a usar sus datos para publicidad.",
+            "Google Firebase Authentication presta el registro, el inicio de sesión y la verificación del correo; recibe el correo, la contraseña (cifrada por Firebase) y el nombre, y trata los datos en Estados Unidos y otros países.",
+            "Google Cloud Platform aloja la aplicación y sus bases de datos; recibe todos los datos descritos en las secciones anteriores y los trata en Estados Unidos (región us-east1, Carolina del Sur).",
+            "Google (Gemini) opera el modelo de inteligencia artificial principal; recibe el texto descrito en la sección 6, que puede conservar y usar para fines propios, en Estados Unidos y otros países.",
+            "Google Cloud Text-to-Speech (voz Chirp 3 HD) convierte en audio las preguntas de la entrevista; recibe únicamente el texto de la pregunta, devuelve el audio y CAMEIA no lo guarda. El tratamiento se realiza fuera de Colombia, en cualquier país donde Google o sus subencargados tengan instalaciones.",
+            "Groq opera el modelo de respaldo, con retención cero; recibe el texto descrito en la sección 6 y lo trata en Estados Unidos y otros países, sin posibilidad de elegir la región.",
+            "AssemblyAI transcribe las respuestas por voz; recibe el audio de la respuesta y el texto transcrito, y los trata en Estados Unidos. Según su documentación, conserva el audio 2 días y la transcripción 30 días; CAMEIA no solicita el borrado anticipado.",
+            "CloudAMQP presta la mensajería interna entre los servicios de CAMEIA y trata los datos fuera de Colombia. Por ella circulan los eventos de cuenta creada (identificador, correo, fecha de nacimiento y fecha de creación), cuenta eliminada (identificador y fecha), perfil profesional actualizado (perfil completo) y catálogo de roles.",
+            "Además, CAMEIA podrá entregar datos a una autoridad que los solicite en ejercicio de sus funciones legales o por orden judicial."
+          ]
+        },
+        {
+          "titulo": "9. Transferencias y transmisiones internacionales",
+          "parrafos": [
+            "Los proveedores de la sección 8 tratan datos fuera de Colombia, principalmente en Estados Unidos.",
+            "Transmisiones: Firebase, Google Cloud, Google Cloud Text-to-Speech, Groq, AssemblyAI y CloudAMQP tratan datos por cuenta de CAMEIA. La ley exige un contrato de transmisión que obligue al encargado a proteger la seguridad de los datos y a guardar confidencialidad (Decreto 1074 de 2015, artículo 2.2.2.25.5.2). Google Cloud, Firebase, Groq y CloudAMQP publican anexos de tratamiento de datos que forman parte de sus términos de servicio, los cuales aplican a CAMEIA; con AssemblyAI rigen sus términos de servicio.",
+            "Transferencia: como Google puede usar el texto enviado a Gemini para fines propios, esa entrega se trata como una transferencia internacional. Al marcar la casilla del registro, usted autoriza de forma expresa e inequívoca esta transferencia (Ley 1581 de 2012, artículo 26, excepción de autorización del titular)."
+          ]
+        },
+        {
+          "titulo": "10. Menores de edad",
+          "parrafos": [
+            "CAMEIA es un servicio para personas mayores de 18 años. El registro exige una fecha de nacimiento que acredite la mayoría de edad y no se crea la cuenta si no se cumple este requisito.",
+            "La ley prohíbe el tratamiento de datos de niños, niñas y adolescentes, salvo los de naturaleza pública o cuando se respete su interés superior (Ley 1581 de 2012, artículo 7). CAMEIA no recolecta intencionalmente datos de menores; si llega a conocer que lo hizo, los eliminará. Si usted considera que un menor se registró, puede escribir a forktech.team@gmail.com."
+          ]
+        },
+        {
+          "titulo": "11. Derechos del titular",
+          "parrafos": [
+            "De conformidad con el artículo 8 de la Ley 1581 de 2012, usted tiene derecho a: (1) conocer, actualizar y rectificar sus datos; (2) solicitar prueba de la autorización otorgada; (3) ser informado del uso que se ha dado a sus datos; (4) presentar quejas ante la Superintendencia de Industria y Comercio (SIC) por infracciones a la ley, una vez agotado el trámite ante CAMEIA; (5) revocar la autorización y solicitar la supresión de sus datos, cuando no se respeten los principios o no exista un deber legal o contractual de conservarlos; y (6) acceder de forma gratuita a sus datos personales.",
+            "Si usted revoca la autorización de los datos necesarios para el servicio, su cuenta se cierra, pues sin ellos CAMEIA no puede funcionar. Algunos datos puede verlos y editarlos usted mismo en «Mi cuenta» y en su perfil; los demás se gestionan por solicitud."
+          ]
+        },
+        {
+          "titulo": "12. Consultas y reclamos",
+          "parrafos": [
+            "Para ejercer sus derechos, escriba a forktech.team@gmail.com desde el correo de su cuenta, con el asunto «Datos personales». Indique su nombre, lo que solicita (consulta, rectificación, supresión o revocación), una dirección o medio para responderle y, si es del caso, los datos que desea corregir. Por seguridad, CAMEIA podrá solicitarle que confirme su identidad antes de entregar o modificar información. Todo trámite es gratuito.",
+            "Consultas (ver sus datos o la autorización): se responden en un máximo de 10 días hábiles desde su recibo. Si no es posible, se le informará el motivo y la nueva fecha, que no superará 5 días hábiles adicionales (Ley 1581 de 2012, artículo 14).",
+            "Reclamos (corregir, actualizar, suprimir, revocar o denunciar un presunto incumplimiento): se responden en un máximo de 15 días hábiles contados desde el día siguiente al recibo. Si no es posible, se le informará el motivo y la nueva fecha, que no superará 8 días hábiles adicionales (Ley 1581 de 2012, artículo 15).",
+            "Si el reclamo está incompleto, se le requerirá dentro de los 5 días siguientes al recibo para que subsane la falta; si transcurren 2 meses sin que entregue la información solicitada, se entenderá que desistió. Cuando el reclamo esté completo, en un máximo de 2 días hábiles se incluirá en el registro la leyenda «reclamo en trámite» hasta que se resuelva.",
+            "La revocación o la supresión no proceden mientras exista un deber legal o contractual de permanecer en la base de datos. Antes de acudir a la SIC, usted debe haber agotado este trámite ante CAMEIA."
+          ]
+        },
+        {
+          "titulo": "13. Conservación de los datos",
+          "parrafos": [
+            "La base de datos de CAMEIA existe mientras el servicio esté activo y su cuenta exista. Los datos de su cuenta y su perfil, así como sus sesiones de entrevista, respuestas y resultados, se conservan mientras su cuenta esté activa.",
+            "La cuenta que no verifica su correo se elimina automáticamente cuando transcurren más de 7 días (168 horas) desde su creación. CAMEIA no guarda el audio de sus respuestas por voz ni el de la voz del entrevistador; el proveedor de transcripción conserva el audio 2 días y el texto transcrito 30 días.",
+            "Los registros técnicos se conservan 30 días, plazo por defecto de los registros de Google Cloud; los registros de auditoría de la plataforma, que no incluyen sus contenidos, se conservan hasta 400 días.",
+            "La prueba de su autorización (versión y fecha) se conserva mientras su cuenta esté activa y durante 3 años después de eliminarla, para poder demostrar su autorización si una autoridad o usted la solicitan.",
+            "Para solicitar la supresión de su cuenta, escriba a forktech.team@gmail.com (sección 12). CAMEIA atiende el reclamo en 15 días hábiles: el equipo suprime o anonimiza sus datos en su cuenta, su perfil, sus entrevistas y el servicio de inicio de sesión, de forma manual, salvo los que la ley obligue a conservar. Actualmente la aplicación no dispone de un botón «Eliminar mi cuenta».",
+            "Al terminar el plazo o la finalidad, los datos se eliminan o se anonimizan de modo que no puedan asociarse a usted."
+          ]
+        },
+        {
+          "titulo": "14. Seguridad",
+          "parrafos": [
+            "CAMEIA aplica medidas técnicas y organizativas razonables: comunicación cifrada (HTTPS), autenticación delegada en Firebase, acceso a los servicios internos solo a través de la pasarela de CAMEIA, contraseñas que nunca se almacenan en CAMEIA, aislamiento de las bases de datos por servicio, registros técnicos sin sus contenidos personales y gestión de secretos fuera del código.",
+            "Ninguna medida es infalible. Si ocurre un incidente que afecte sus datos, CAMEIA lo gestionará conforme a la ley y, cuando corresponda, lo informará a la SIC y a los afectados."
+          ]
+        },
+        {
+          "titulo": "15. Cookies y almacenamiento local",
+          "parrafos": [
+            "La aplicación usa el almacenamiento local y de sesión de su navegador solo para lo estrictamente necesario: mantener su sesión iniciada y guardar temporalmente lo que usted configura. No usa cookies de publicidad ni herramientas de analítica o seguimiento de terceros. Usted puede borrar ese almacenamiento desde su navegador; si lo hace, deberá iniciar sesión de nuevo."
+          ]
+        },
+        {
+          "titulo": "16. Cambios en esta política",
+          "parrafos": [
+            "Si CAMEIA modifica esta política de forma sustancial, por ejemplo en lo relativo al responsable o a las finalidades, se lo comunicará antes de aplicarla o, a más tardar, cuando la aplique, y publicará la nueva versión en la aplicación. Si cambia la finalidad del tratamiento, solicitará una nueva autorización. Cada versión lleva un identificador, por ejemplo «2026-11-v1»."
+          ]
+        },
+        {
+          "titulo": "17. Autoridad de control y ley aplicable",
+          "parrafos": [
+            "La Superintendencia de Industria y Comercio (https://www.sic.gov.co) es la autoridad de protección de datos personales en Colombia. Esta política se rige por las leyes de la República de Colombia."
+          ]
+        },
+        {
+          "titulo": "18. Aviso sobre este texto",
+          "parrafos": [
+            "CAMEIA es un proyecto académico del equipo Forktech y no una empresa constituida. Este texto no ha sido revisado por un asesor legal. Se elaboró con apoyo de herramientas de inteligencia artificial y el equipo Forktech es responsable de su contenido."
+          ]
+        }
+      ]
     },
     "avisoPrivacidad": {
       "titulo": "Aviso de privacidad",
-      "secciones": []
+      "secciones": [
+        {
+          "titulo": "1. Responsable del tratamiento",
+          "parrafos": [
+            "El responsable del tratamiento de sus datos personales es el equipo Forktech, que desarrolla CAMEIA, una aplicación web de práctica de entrevistas de trabajo, como proyecto académico. Los integrantes se identifican en la política de tratamiento de datos personales. Persona de contacto: Paula Andrea Muñoz Delgado. Correo electrónico: forktech.team@gmail.com. La atención se presta únicamente por correo.",
+            "Este texto no ha sido revisado por un asesor legal."
+          ]
+        },
+        {
+          "titulo": "2. Tratamiento y finalidades",
+          "parrafos": [
+            "CAMEIA recolecta su nombre, apellido, correo electrónico, fecha de nacimiento y pronombres; de forma opcional, su número de celular, para asuntos de seguridad y soporte de su cuenta; los datos de su perfil profesional; y el contenido de sus entrevistas (vacante, contexto y respuestas, escritas o transcritas desde su voz).",
+            "Los usa para crear y proteger su cuenta, personalizar las preguntas, evaluar sus respuestas con inteligencia artificial y mostrarle su desempeño. No los usa para publicidad ni los vende.",
+            "Los textos de sus sesiones se envían a proveedores de inteligencia artificial; si usted responde por voz, su audio se envía a un proveedor de transcripción; y el texto de las preguntas se envía a Google para convertirlo en la voz del entrevistador. Todos operan fuera de Colombia, principalmente en Estados Unidos. CAMEIA no guarda el audio de su voz ni el de la voz del entrevistador.",
+            "Con Google (Gemini), modelo principal, CAMEIA no puede garantizar que no conserve ni use lo que se le envía; con Groq, modelo de respaldo, está activa la retención cero."
+          ]
+        },
+        {
+          "titulo": "3. Datos sensibles y voz",
+          "parrafos": [
+            "Su voz puede considerarse un dato sensible. Su uso es opcional: usted puede responder siempre por escrito. Usted no está obligado a suministrar datos sensibles ni debe escribirlos en sus respuestas. Responder cualquier pregunta sobre datos sensibles es facultativo."
+          ]
+        },
+        {
+          "titulo": "4. Derechos del titular",
+          "parrafos": [
+            "Usted puede conocer, actualizar y rectificar sus datos, solicitar prueba de su autorización, ser informado del uso dado a sus datos, revocar su autorización, solicitar su supresión, acceder a ellos gratuitamente y presentar quejas ante la Superintendencia de Industria y Comercio.",
+            "Para ejercer sus derechos, escriba a forktech.team@gmail.com. Las consultas se responden en 10 días hábiles y los reclamos en 15 días hábiles, con las prórrogas que explica la política."
+          ]
+        },
+        {
+          "titulo": "5. Política completa",
+          "parrafos": [
+            "La política de tratamiento de datos personales, con todos los detalles (proveedores, conservación, menores, transferencias y procedimiento de consultas y reclamos), se encuentra en https://cameia.app/politica-de-tratamiento-de-datos.",
+            "Si la política cambia de forma sustancial, CAMEIA se lo comunicará antes de aplicarla o, a más tardar, cuando la aplique, y solicitará una nueva autorización si cambia la finalidad."
+          ]
+        }
+      ]
     },
     "terminos": {
       "titulo": "Términos y condiciones",
-      "secciones": []
+      "secciones": [
+        {
+          "titulo": "1. Identificación y aceptación",
+          "parrafos": [
+            "CAMEIA es una aplicación web de práctica y simulación de entrevistas de trabajo, desarrollada por el equipo Forktech como proyecto académico, sin sociedad constituida. Contacto: forktech.team@gmail.com.",
+            "Al crear su cuenta, usted marca la casilla «Acepto los términos y condiciones y la política de tratamiento de datos, incluido el envío de mis datos a proveedores fuera de Colombia». Con ello acepta estos términos y autoriza el tratamiento de sus datos conforme a la política y al aviso de privacidad, que están disponibles en la aplicación antes de que usted se registre. Si no está de acuerdo, no debe utilizar el servicio."
+          ]
+        },
+        {
+          "titulo": "2. Usuarios",
+          "parrafos": [
+            "Para usar CAMEIA, usted debe ser mayor de 18 años y tener capacidad legal para aceptar estos términos. Debe suministrar información veraz y mantenerla actualizada. La cuenta es personal: no puede compartirla ni cederla.",
+            "Usted es responsable de la confidencialidad de su contraseña y de lo que ocurra con su sesión, y debe informar de inmediato cualquier sospecha de uso no autorizado."
+          ]
+        },
+        {
+          "titulo": "3. Descripción del servicio",
+          "parrafos": [
+            "CAMEIA permite configurar una sesión de práctica (modalidad, tono, idioma y vacante), recibir cinco preguntas, responderlas por escrito o por voz y obtener una evaluación. Las preguntas y evaluaciones las genera inteligencia artificial de terceros (Google y, de respaldo, Groq) y pueden contener errores, sesgos o imprecisiones.",
+            "Si usted responde por voz, su voz se transcribe a texto con un proveedor externo (AssemblyAI). Las preguntas pueden escucharse con una voz generada por inteligencia artificial (Google Cloud Text-to-Speech), que no corresponde a una persona real. Ambas funciones son opcionales: usted siempre puede responder y leer por escrito.",
+            "El servicio se ofrece actualmente sin costo, en su plan gratuito, y esta versión no contempla pagos. CAMEIA puede cambiar, limitar o suspender funciones; si introduce cobros, lo informará antes y no cobrará sin su aceptación expresa.",
+            "El servicio se presta en la medida de lo posible, sin garantía de funcionamiento continuo; pueden presentarse interrupciones por mantenimiento o por fallos de proveedores."
+          ]
+        },
+        {
+          "titulo": "4. Alcance de la evaluación",
+          "parrafos": [
+            "La retroalimentación es orientativa y educativa. CAMEIA no garantiza que mejore su resultado en una entrevista real, que usted sea contratado ni que una evaluación coincida con la de un reclutador. CAMEIA no toma decisiones de selección ni comparte sus resultados con empleadores."
+          ]
+        },
+        {
+          "titulo": "5. Uso aceptable",
+          "parrafos": [
+            "Usted se compromete a no suplantar a otra persona ni usar datos de terceros sin su autorización; a no subir contenido ilícito, ofensivo, discriminatorio o que vulnere derechos de terceros, ni introducir datos sensibles o de menores; a no intentar vulnerar, probar sin permiso, sobrecargar o eludir la seguridad del servicio, ni usar medios automatizados (bots, scraping) o ingeniería inversa; a no manipular los modelos de inteligencia artificial para obtener contenidos prohibidos o extraer instrucciones internas; y a no usar el servicio con fines comerciales ni revender sus resultados sin autorización escrita.",
+            "CAMEIA puede limitar, suspender o cerrar una cuenta que incumpla estos términos o ponga en riesgo el servicio, informando el motivo cuando sea posible."
+          ]
+        },
+        {
+          "titulo": "6. Contenido del usuario",
+          "parrafos": [
+            "Usted conserva la propiedad de lo que escribe o dice (respuestas, contexto, vacante, hoja de vida). Nos autoriza, de forma limitada, no exclusiva y mientras tenga cuenta, a tratarlo con los fines descritos en la política de tratamiento de datos: procesarlo, enviarlo a los proveedores de inteligencia artificial y transcripción, y mostrárselo. Usted garantiza que tiene derecho a usarlo.",
+            "CAMEIA no usa su contenido para entrenar modelos propios ni autoriza a Groq a hacerlo, y en Groq está activa la retención cero. No puede garantizar lo mismo respecto de Google (Gemini), que en su nivel gratuito puede usar lo que se le envía para mejorar sus productos y permitir que personas revisoras lo lean, conforme a sus propios términos. Por ello, no incluya en sus respuestas, vacante o contexto nada que no desee que un tercero pueda leer.",
+            "AssemblyAI conserva el audio de su voz 2 días y el texto transcrito 30 días; CAMEIA no guarda el audio."
+          ]
+        },
+        {
+          "titulo": "7. Propiedad intelectual",
+          "parrafos": [
+            "El nombre CAMEIA y su identidad visual pertenecen al equipo Forktech. El código de los servicios y de la aplicación web de CAMEIA está licenciado bajo la licencia MIT, a nombre de los integrantes del equipo, y esa licencia se rige por su propio texto.",
+            "Parte del código, del diseño y de los textos de CAMEIA, incluidos estos términos, se elaboró con apoyo de herramientas de inteligencia artificial; el equipo es responsable de ellos.",
+            "A usted se le concede una licencia personal, limitada, revocable e intransferible para usar el servicio mientras cumpla estos términos. Las preguntas y evaluaciones generadas para usted pueden usarse para su preparación personal."
+          ]
+        },
+        {
+          "titulo": "8. Datos personales",
+          "parrafos": [
+            "El tratamiento de sus datos se rige por la política de tratamiento de datos personales y el aviso de privacidad. Usted puede ejercer sus derechos (consultar, rectificar, suprimir y revocar) escribiendo a forktech.team@gmail.com."
+          ]
+        },
+        {
+          "titulo": "9. Eliminación de la cuenta",
+          "parrafos": [
+            "Usted puede solicitar la eliminación de su cuenta y de sus datos escribiendo a forktech.team@gmail.com; la solicitud se atiende en el plazo de la política de tratamiento de datos. Las cuentas que no verifican su correo se eliminan automáticamente después de 7 días (168 horas). CAMEIA puede cerrar las cuentas que incumplan estos términos (sección 5)."
+          ]
+        },
+        {
+          "titulo": "10. Responsabilidad",
+          "parrafos": [
+            "En lo permitido por la ley, y sin afectar los derechos que la Ley 1480 de 2011 (Estatuto del Consumidor) y las demás normas imperativas le reconocen, CAMEIA no responde por daños indirectos, por la pérdida de oportunidades laborales, por decisiones que usted tome con base en las evaluaciones ni por fallos de proveedores externos o de internet. Esta limitación no aplica cuando exista dolo o culpa grave del equipo, ni excluye ninguna responsabilidad que la ley no permita excluir."
+          ]
+        },
+        {
+          "titulo": "11. Modificaciones",
+          "parrafos": [
+            "CAMEIA puede actualizar estos términos. Si el cambio es sustancial, se lo informará antes de aplicarlo y publicará la nueva versión; seguir usando CAMEIA después del aviso implica su aceptación. Si no la acepta, puede dejar de usar el servicio y solicitar la eliminación de su cuenta."
+          ]
+        },
+        {
+          "titulo": "12. Ley aplicable y reclamaciones",
+          "parrafos": [
+            "Estos términos se rigen por las leyes de Colombia. Se le invita a escribir primero a forktech.team@gmail.com para intentar resolver cualquier diferencia, pero no es obligatorio: usted puede acudir en cualquier momento a la Superintendencia de Industria y Comercio y a la justicia ordinaria. Solo para quejas por el manejo de datos personales la ley exige haber presentado antes la consulta o el reclamo ante CAMEIA (política de tratamiento de datos, sección 12)."
+          ]
+        },
+        {
+          "titulo": "13. Aviso sobre este texto",
+          "parrafos": [
+            "Este texto no ha sido revisado por un asesor legal. CAMEIA es un proyecto académico del equipo Forktech."
+          ]
+        }
+      ]
     }
   }
 }

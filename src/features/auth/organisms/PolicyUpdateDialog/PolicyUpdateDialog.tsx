@@ -1,10 +1,11 @@
 /**
  * Aviso de política nueva (CM-365, criterio 5): no se puede cerrar
  * (`Modal` con `dismissible={false}`) hasta marcar la casilla y aceptar. Enlaza
- * las tres políticas en otra pestaña, como el registro. Recibe los textos ya
+ * las tres políticas en otra pestaña, como el registro. «Cerrar sesión» deja
+ * salir a quien no quiere aceptar (aviso de Backend del 14-11-2026, 4.1). Recibe los textos ya
  * traducidos (CLAUDE.md §14.7).
  */
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Checkbox } from '@/design-system/atoms/Checkbox';
 import { ErrorText } from '@/design-system/atoms/ErrorText';
 import { Modal } from '@/design-system/organisms/Modal';
@@ -12,8 +13,8 @@ import { Modal } from '@/design-system/organisms/Modal';
 interface PolicyUpdateDialogProps {
   /** Título: el nombre de la política de tratamiento de datos. */
   title: string;
-  /** Texto de la casilla. */
-  acceptLabel: string;
+  /** Texto de la casilla; puede llevar enlaces. */
+  acceptLabel: ReactNode;
   /** Mensaje si se pulsa la acción sin marcar la casilla. */
   requiredMessage: string;
   /** Botón que guarda la aceptación. */
@@ -30,6 +31,10 @@ interface PolicyUpdateDialogProps {
   errorMessage?: string;
   /** Guarda la aceptación. */
   onAccept: () => void;
+  /** Botón para salir sin aceptar (aviso de Backend del 14-11-2026, 4.1). */
+  logoutLabel: string;
+  /** Cierra la sesión. */
+  onLogout: () => void;
 }
 
 export function PolicyUpdateDialog({
@@ -43,6 +48,8 @@ export function PolicyUpdateDialog({
   isAccepting,
   errorMessage,
   onAccept,
+  logoutLabel,
+  onLogout,
 }: PolicyUpdateDialogProps) {
   const [checked, setChecked] = useState(false);
   const [attempted, setAttempted] = useState(false);
@@ -63,6 +70,8 @@ export function PolicyUpdateDialog({
       title={title}
       primaryActionLabel={confirmLabel}
       onPrimaryAction={handleConfirm}
+      secondaryActionLabel={logoutLabel}
+      onSecondaryAction={onLogout}
       {...loading}
     >
       <div className="gap-space-3 flex flex-col">

@@ -181,7 +181,7 @@ interface RegisterFormProps {
   pronombresErrorRequired: string;
 
   /** Casilla «Acepto la política de tratamiento de datos» (CA-1.1.44, CM-365). */
-  aceptaPoliticaLabel: string;
+  aceptaPoliticaLabel: ReactNode;
   /** Mensaje bajo la casilla si se envía sin marcarla. */
   aceptaPoliticaErrorRequired: string;
   /** Rechazo de Cuentas sobre la política (p. ej. versión desactualizada), bajo la casilla. */

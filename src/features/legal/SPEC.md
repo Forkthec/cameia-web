@@ -25,15 +25,18 @@ abren desde el registro en otra pestaña y también con sesión iniciada.
 - Tres rutas públicas, fuera de los guardias de sesión.
 - Cada página muestra título, versión vigente (`POLICY_VERSION`), fecha de vigencia y el texto por
   secciones.
-- **Pendiente:** el texto aprobado por la Product Owner y la fecha de vigencia. Mientras no
-  lleguen, `legal.json` tiene `secciones: []` y `fechaVigencia` vacío.
+- Textos y fecha de vigencia (18 de noviembre de 2026) del anexo de Backend del 14-11-2026
+  (`14112026_v1_anexo-textos-legales-para-frontend.json`), pegados tal cual en
+  `es-CO/legal.json`. Siguen en revisión: si cambian, se pega el archivo nuevo sin tocar código.
+- En inglés no hay traducción aprobada: `en/legal.json` no trae secciones ni fecha, así que se
+  muestra el texto en español (`fallbackLng`).
 
 ## 3. Comportamiento esperado
 
 | Estado | Qué se ve |
 | ------ | --------- |
 | Carga | No aplica: el texto viene empaquetado en i18n, sin petición. |
-| Vacío | Título y versión, sin secciones (hoy, hasta tener el texto aprobado). |
+| Vacío | Título y versión, sin secciones (si un documento no trae texto). |
 | Error | No aplica: no hay red. |
 | Éxito | Título, versión, vigencia y secciones con sus párrafos. |
 
@@ -64,7 +67,7 @@ Ninguno.
 
 ## 8. Bloqueos
 
-- Falta el texto aprobado de las tres políticas y su fecha de vigencia (Product Owner).
+- Ninguno. Los textos pueden cambiar tras la revisión del equipo (aviso de Backend, 3.3).
 
 ## 9. Notas
 
