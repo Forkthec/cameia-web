@@ -29,20 +29,24 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useLocation } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
+import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
 import { Button } from '@/design-system/atoms/Button';
 import { AlertInline } from '@/design-system/molecules/AlertInline';
 import type { BrandOrbState } from '@/design-system/molecules/BrandOrb';
 import { StateLocked } from '@/design-system/molecules/StateLocked';
 import { useInterviewClosing } from '../hooks/useInterviewClosing';
 import { useInterviewTurn } from '../hooks/useInterviewTurn';
+import { useQuestionAudio } from '../hooks/useQuestionAudio';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
 import {
   ANSWER_MAX_LENGTH,
+  AUDIO_PLAYS_PER_QUESTION,
   LONG_WAIT_NOTICE_MS,
   MAX_RECORDING_SECONDS,
 } from '../model/interviewSession.constants';
 import { readSessionEntry } from '../model/sessionEntry';
 import { EvaluationRetryPanel } from '../organisms/EvaluationRetryPanel';
+import { QuestionAudioControl } from '../organisms/QuestionAudioControl';
 import { SessionStage } from '../organisms/SessionStage';
 import { TextAnswerComposer } from '../organisms/TextAnswerComposer';
 import { VoiceAnswerComposer, type VoiceComposerStep } from '../organisms/VoiceAnswerComposer';
@@ -65,6 +69,15 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
   const closing = useInterviewClosing(entry.sessionId, turn.phase === 'finished');
   const isClosingBusy = turn.phase === 'finished' && closing.status === 'processing';
   const recorder = useVoiceRecorder();
+  const autoListen = useUiPreferencesStore((state) => state.autoListenQuestions);
+  const setAutoListen = useUiPreferencesStore((state) => state.setAutoListenQuestions);
+  const questionAudio = useQuestionAudio(
+    entry.sessionId,
+    turn.question,
+    entry.audioEnabled && turn.phase === 'answering' && autoListen,
+  );
+  const [hasListened, setHasListened] = useState(false);
+  if (questionAudio.status === 'playing' && !hasListened) setHasListened(true);
   const turnId = turn.question.turnId;
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -244,6 +257,40 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
               ? { label: t('interview:sesion.irAlInicio'), to: ROUTES.inicio }
               : undefined
           }
+        />
+      ) : null}
+
+      {/* «Escuchar» (HU-5.15) solo con la voz disponible y la entrevista en curso (CA-5.15.9). */}
+      {entry.audioEnabled && (turn.phase === 'answering' || turn.phase === 'evaluationFailed') ? (
+        <QuestionAudioControl
+          status={questionAudio.status}
+          canPlay={questionAudio.canPlay}
+          autoListen={autoListen}
+          showNotice={!hasListened}
+          errorMessage={
+            questionAudio.error
+              ? t(`interview:sesion.escuchar.errores.${questionAudio.error}`)
+              : undefined
+          }
+          labels={{
+            listen: t('interview:sesion.escuchar.boton'),
+            listenAria: t('interview:sesion.escuchar.botonAria', { numero: turn.question.number }),
+            preparing: t('interview:sesion.escuchar.preparando'),
+            stop: t('interview:sesion.escuchar.detener'),
+            remaining: t('interview:sesion.escuchar.usos', {
+              restantes: questionAudio.remaining,
+              total: AUDIO_PLAYS_PER_QUESTION,
+            }),
+            notice: t('interview:sesion.escuchar.aviso'),
+            autoListen: t('interview:sesion.escuchar.automatico'),
+          }}
+          onPlay={() => void questionAudio.play()}
+          onStop={questionAudio.stop}
+          onAutoListenChange={(value) => {
+            setAutoListen(value);
+            // Desmarcar detiene el audio en curso (CA-5.15.30).
+            if (!value) questionAudio.stop();
+          }}
         />
       ) : null}
 

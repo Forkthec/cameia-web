@@ -45,3 +45,17 @@ export const TURN_RETRY_LIMIT_REACHED = 'TURN_RETRY_LIMIT_REACHED';
  * `cameia-entrevista`, `origin/develop` `48773cb`).
  */
 export const TURN_NOT_RETRYABLE = 'TURN_NOT_RETRYABLE';
+
+/**
+ * Códigos de `POST …/questions/{number}/audio` (HU-5.15). PROVISIONALES hasta que Backend cierre
+ * la especificación (CM-372; backlog v11.5, «Aviso para Testeo»).
+ */
+export const QUESTION_AUDIO_LIMIT_REACHED = 'QUESTION_AUDIO_LIMIT_REACHED';
+export const QUESTION_NOT_AVAILABLE = 'QUESTION_NOT_AVAILABLE';
+export const SPEECH_TIMEOUT = 'SPEECH_TIMEOUT';
+export const SPEECH_UNAVAILABLE = 'SPEECH_UNAVAILABLE';
+export const SPEECH_DISABLED = 'SPEECH_DISABLED';
+export const SPEECH_MONTHLY_LIMIT_REACHED = 'SPEECH_MONTHLY_LIMIT_REACHED';
+export const SPEECH_BUSY = 'SPEECH_BUSY';
+export const SPEECH_TEXT_EMPTY = 'SPEECH_TEXT_EMPTY';
+export const SPEECH_TEXT_TOO_LONG = 'SPEECH_TEXT_TOO_LONG';

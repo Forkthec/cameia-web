@@ -43,7 +43,14 @@ function isAnswerResponseDto(value: unknown): value is AnswerResponseDto {
  * @returns la pregunta del modelo de UI.
  */
 export function toInterviewQuestion(dto: QuestionDto): InterviewQuestion {
-  return { turnId: dto.turnId, number: dto.number, text: dto.text };
+  return {
+    turnId: dto.turnId,
+    number: dto.number,
+    text: dto.text,
+    ...(typeof dto.audioPlaysRemaining === 'number'
+      ? { audioPlaysRemaining: dto.audioPlaysRemaining }
+      : {}),
+  };
 }
 
 /**

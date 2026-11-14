@@ -45,12 +45,20 @@ const MOCK_QUESTIONS = [
 const pendingBySession = new Map<string, number>();
 /** Resultado ya calculado por `Idempotency-Key`. */
 const resultByKey = new Map<string, unknown>();
+/** Usos de audio gastados por sesión y pregunta (HU-5.15, máximo 3; PROVISIONAL hasta CM-372). */
+const audioPlaysBySession = new Map<string, number>();
+const MOCK_AUDIO_PLAYS = 3;
+
+function audioPlaysRemaining(sessionId: string, number: number) {
+  return MOCK_AUDIO_PLAYS - (audioPlaysBySession.get(`${sessionId}#${number}`) ?? 0);
+}
 
 function questionDto(sessionId: string, index: number) {
   return {
     turnId: `${sessionId}-t${index + 1}`,
     number: index + 1,
     text: MOCK_QUESTIONS[index],
+    audioPlaysRemaining: audioPlaysRemaining(sessionId, index + 1),
   };
 }
 
@@ -69,6 +77,7 @@ function sessionState(sessionId: string) {
     },
     pendingQuestion: finished ? null : questionDto(sessionId, pending),
     history: [],
+    audioEnabled: true,
   };
 }
 
@@ -249,6 +258,38 @@ export const interviewSessionsHandlers = [
       );
     }
     return HttpResponse.json(sessionState(sessionId));
+  }),
+
+  // HU-5.15: audio de una pregunta ya mostrada. Devuelve unos bytes con cabecera ID3 (no suena:
+  // basta para probar el flujo sin Google). PROVISIONAL hasta CM-372.
+  http.post('*/api/v1/interviews/sessions/:sessionId/questions/:number/audio', ({ params }) => {
+    const sessionId = String(params.sessionId);
+    const number = Number(params.number);
+    const pending = pendingBySession.get(sessionId);
+    if (pending === undefined || !Number.isInteger(number) || number < 1 || number > 5) {
+      return HttpResponse.json(
+        { title: 'Not Found', detail: 'x', status: 404, code: 'QUESTION_NOT_FOUND' },
+        { status: 404 },
+      );
+    }
+    if (number > pending + 1) {
+      return HttpResponse.json(
+        { title: 'Conflict', detail: 'x', status: 409, code: 'QUESTION_NOT_AVAILABLE' },
+        { status: 409 },
+      );
+    }
+    const key = `${sessionId}#${number}`;
+    const used = audioPlaysBySession.get(key) ?? 0;
+    if (used >= MOCK_AUDIO_PLAYS) {
+      return HttpResponse.json(
+        { title: 'Conflict', detail: 'x', status: 409, code: 'QUESTION_AUDIO_LIMIT_REACHED' },
+        { status: 409 },
+      );
+    }
+    audioPlaysBySession.set(key, used + 1);
+    return new HttpResponse(new Uint8Array([0x49, 0x44, 0x33, 0x04, 0, 0, 0, 0, 0, 0]), {
+      headers: { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'no-store' },
+    });
   }),
 
   http.delete('*/api/v1/interviews/sessions/:sessionId', ({ params }) => {

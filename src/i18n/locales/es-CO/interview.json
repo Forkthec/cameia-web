@@ -161,6 +161,27 @@
         "en": "Tu entrevista es en inglés. Responde en inglés.",
         "es-CO": "Tu entrevista es en español. Responde en español."
       }
+    },
+    "escuchar": {
+      "boton": "Escuchar",
+      "botonAria": "Escuchar la pregunta {{numero}}",
+      "preparando": "Preparando el audio…",
+      "detener": "Detener",
+      "usos": "{{restantes}} de {{total}}",
+      "aviso": "El texto de la pregunta se envía a un servicio externo para convertirlo en voz. CAMEIA no guarda el audio.",
+      "automatico": "Escuchar las preguntas automáticamente",
+      "errores": {
+        "limite": "Ya escuchaste esta pregunta el máximo de veces. Puedes leerla en pantalla.",
+        "demora": "La voz tardó demasiado. Inténtalo de nuevo o léela en pantalla.",
+        "fallo": "No pudimos reproducir la pregunta. Inténtalo de nuevo o léela en pantalla.",
+        "noDisponible": "La voz no está disponible por ahora. Puedes leer la pregunta.",
+        "ocupado": "Hay muchas personas escuchando. Inténtalo en unos segundos.",
+        "noMostrada": "Esa pregunta todavía no está disponible.",
+        "textoVacio": "No pudimos reproducir esta pregunta. Puedes leerla en pantalla.",
+        "noEncontrada": "No encontramos lo que buscabas.",
+        "abandonada": "Sesión abandonada: no genera evaluación.",
+        "noAdmite": "Esta entrevista ya no admite esa acción."
+      }
     }
   },
   "inicio": {

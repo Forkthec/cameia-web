@@ -14,6 +14,8 @@ export interface InterviewQuestion {
   number: number;
   /** Texto original, sin reformular (CA-5.2.14). */
   text: string;
+  /** Usos de audio que quedan (HU-5.15); sin dato, una pregunta nueva tiene todos (CA-5.15.1). */
+  audioPlaysRemaining?: number;
 }
 
 /** Avance de la entrevista; el total lo manda el backend (CLAUDE.md §3.7). */
@@ -41,4 +43,6 @@ export interface SessionEntry {
   answerFormat: AnswerFormat;
   question: InterviewQuestion;
   progress: InterviewProgress;
+  /** Si se puede escuchar la pregunta (HU-5.15, CA-5.15.9). */
+  audioEnabled: boolean;
 }
