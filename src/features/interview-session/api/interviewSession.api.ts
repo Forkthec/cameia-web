@@ -118,3 +118,21 @@ export async function consolidateSession(sessionId: string): Promise<boolean> {
   );
   return dto.status === 'FINALIZADA';
 }
+
+/**
+ * Pide el audio de una pregunta ya mostrada (HU-5.15, CA-5.15.2). Ruta y códigos PROVISIONALES
+ * hasta CM-372. Se pide con `fetch` y el `Authorization` del cliente: un `<audio src>` directo no
+ * envía encabezados. Cada llamada exitosa gasta un uso de audio en el servidor.
+ *
+ * @param sessionId sesión en curso.
+ * @param questionNumber número de la pregunta (1 a 5).
+ * @returns el audio MP3.
+ * @throws ApiError con los códigos `SPEECH_*` / `QUESTION_*`; TypeError si no hay red.
+ */
+export async function fetchQuestionAudio(sessionId: string, questionNumber: number): Promise<Blob> {
+  return httpClient.post<Blob>(
+    `/api/v1/interviews/sessions/${sessionId}/questions/${questionNumber}/audio`,
+    undefined,
+    { responseType: 'blob', headers: { Accept: 'audio/mpeg' } },
+  );
+}

@@ -40,6 +40,14 @@ export interface SessionStateDto {
   answerFormat: string;
   interviewFinished: boolean;
   progress: { currentQuestion: number; totalQuestions: number };
-  pendingQuestion: { turnId: string; number: number; text: string } | null;
+  pendingQuestion: {
+    turnId: string;
+    number: number;
+    text: string;
+    /** Usos de audio que quedan (0 a 3). PROVISIONAL hasta CM-372 (HU-5.15, CA-5.15.1). */
+    audioPlaysRemaining?: number;
+  } | null;
+  /** `true` si se puede escuchar la pregunta. PROVISIONAL hasta CM-372 (CA-5.15.9). */
+  audioEnabled?: boolean;
   history: { number: number; text: string; answerText: string }[];
 }

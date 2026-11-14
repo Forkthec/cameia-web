@@ -27,6 +27,7 @@ const ENTRY: SessionEntry = {
   answerFormat: 'TEXTO',
   question: { turnId: 's1-t1', number: 1, text: 'Cuéntame sobre un proyecto.' },
   progress: { current: 1, total: 5 },
+  audioEnabled: false,
 };
 
 const llmUnavailable = () =>

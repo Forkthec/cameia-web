@@ -161,6 +161,27 @@
         "en": "Your interview is in English. Answer in English.",
         "es-CO": "Your interview is in Spanish. Answer in Spanish."
       }
+    },
+    "escuchar": {
+      "boton": "Listen",
+      "botonAria": "Listen to question {{numero}}",
+      "preparando": "Preparing the audio…",
+      "detener": "Stop",
+      "usos": "{{restantes}} of {{total}}",
+      "aviso": "The question text is sent to an external service to turn it into speech. CAMEIA does not store the audio.",
+      "automatico": "Listen to questions automatically",
+      "errores": {
+        "limite": "You already listened to this question the maximum number of times. You can read it on screen.",
+        "demora": "The voice took too long. Try again or read it on screen.",
+        "fallo": "We couldn't play the question. Try again or read it on screen.",
+        "noDisponible": "The voice is not available right now. You can read the question.",
+        "ocupado": "Many people are listening. Try again in a few seconds.",
+        "noMostrada": "That question is not available yet.",
+        "textoVacio": "We couldn't play this question. You can read it on screen.",
+        "noEncontrada": "We couldn't find what you were looking for.",
+        "abandonada": "Session abandoned: no evaluation is generated.",
+        "noAdmite": "This interview no longer allows that action."
+      }
     }
   },
   "inicio": {

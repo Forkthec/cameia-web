@@ -40,7 +40,15 @@ export function readSessionEntry(state: unknown): SessionEntry | null {
     sessionId,
     sessionLanguage,
     answerFormat,
-    question: { turnId: question.turnId, number: question.number, text: question.text },
+    question: {
+      turnId: question.turnId,
+      number: question.number,
+      text: question.text,
+      ...(typeof question.audioPlaysRemaining === 'number'
+        ? { audioPlaysRemaining: question.audioPlaysRemaining }
+        : {}),
+    },
     progress: { current: progress.current, total: progress.total },
+    audioEnabled: state.audioEnabled === true,
   };
 }

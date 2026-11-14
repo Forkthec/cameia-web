@@ -38,3 +38,6 @@ export const AUDIO_REQUEST_TIMEOUT_MS = 130_000;
  * punto 4.4, CM-357).
  */
 export const INTERVIEW_AI_TIMEOUT_MS = 130_000;
+
+/** Usos de audio por pregunta (CA-5.15.6): el servidor genera el audio como máximo 3 veces. */
+export const AUDIO_PLAYS_PER_QUESTION = 3;

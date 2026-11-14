@@ -3,7 +3,7 @@ feature: interview-session
 estado: EN_CURSO
 hu: [HU-5.2, HU-5.8, HU-5.5]
 prt: [PRT-05.10, PRT-05.12]
-jira: [CM-217, CM-317, CM-221, CM-226, CM-346, CM-376]
+jira: [CM-217, CM-317, CM-221, CM-226, CM-346, CM-376, CM-373]
 rutas: [/entrenar/sesion/:sessionId]
 documentacion: tsdoc-es
 backlog: 11112026_03_v11.3
@@ -1206,4 +1206,34 @@ especificaciones de CM-216 y CM-220:
   como pide la regla «Funcionalidades no disponibles» (CM-376). Cuando exista HU-5.10, se habilita.
 - El chat pide la consolidación en vez de consultar `GET …/state` en bucle: con un solo pedido se
   cubren CA-5.5.6, CA-5.5.3 y CA-5.5.11. Se pidió a Backend confirmarlo.
+
+## Escuchar la pregunta (CM-373 · HU-5.15, backlog v11.6)
+
+Fuentes: hoja HE-05, filas 159 a 188, y el aviso de Backend del 14-11-2026
+(`14112026_v1_escuchar-la-pregunta-y-cierre-sin-reporte-para-frontend.md`). La ruta, los campos
+y los códigos son **PROVISIONALES** hasta que Backend cierre CM-372.
+
+- **Contrato.** `POST …/sessions/{id}/questions/{number}/audio`, sin cuerpo; responde `audio/mpeg`.
+  Se pide con `fetch` y el `Authorization` del cliente (`httpClient` con `responseType: 'blob'`),
+  porque un `<audio src>` directo no envía encabezados. El objeto de estado suma `audioEnabled` y
+  `pendingQuestion.audioPlaysRemaining`; las mappers los pasan a la entrada del chat. Sin esos
+  campos (Backend aún sin CM-372), `audioEnabled` es falso y no se muestra nada (CA-5.15.9).
+- **Pantalla** (`src/features/interview-session/organisms/QuestionAudioControl/QuestionAudioControl.tsx`,
+  `src/features/interview-session/hooks/useQuestionAudio.ts`): «Escuchar» con nombre «Escuchar la
+  pregunta N» (CA-5.15.16), usos «N de 3» (CA-5.15.1), «Preparando el audio…» con el botón
+  deshabilitado (CA-5.15.27), «Detener» (CA-5.15.2), repetición desde la memoria sin gastar usos
+  (CA-5.15.4), botón deshabilitado sin usos (CA-5.15.6), aviso del texto enviado antes de la
+  primera reproducción (CA-5.15.29) y la casilla «Escuchar las preguntas automáticamente»,
+  desmarcada y recordada en el navegador (`uiPreferences.store`, CA-5.15.30).
+- **Errores.** Cada `code` de la tabla del aviso de Backend tiene su mensaje; ninguno muestra el
+  genérico. Un error no resta uso, salvo `QUESTION_AUDIO_LIMIT_REACHED`, que lo deja en 0.
+- **Usos restantes.** Se restan en la pantalla al recibir cada audio. Backend recomienda volver a
+  leer `…/state`; no hace falta mientras la pantalla sea la única que pide audio de la sesión.
+
+**Diferencias conscientes:**
+
+- El chat de Simulación muestra solo la pregunta pendiente (sin historial), así que «Escuchar»
+  aparece junto a esa pregunta y no junto a las anteriores (CA-5.15.1).
+- «Mis entrevistas» (CA-5.10.4) y «Planes y precios» (CA-8.2.1) no existen en la web: sus textos
+  sin promesa del reporte se aplican cuando se construyan esas pantallas.
 

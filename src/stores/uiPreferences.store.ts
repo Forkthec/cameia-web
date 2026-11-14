@@ -35,8 +35,11 @@ interface UiPreferencesState {
   // Se pone en `null` al perder la sesión (`useLogout` y `AuthProvider`,
   // CA-1.8.3, CM-243): es de la cuenta, no del dispositivo, a diferencia de `idioma`.
   lastUsedProfileId: string | null;
+  /** «Escuchar las preguntas automáticamente» (CA-5.15.30): desmarcada por defecto, se recuerda en este navegador. */
+  autoListenQuestions: boolean;
   setIdioma: (idioma: UiLanguage) => void;
   setLastUsedProfileId: (profileId: string | null) => void;
+  setAutoListenQuestions: (value: boolean) => void;
 }
 
 export const useUiPreferencesStore = create<UiPreferencesState>()(
@@ -44,8 +47,10 @@ export const useUiPreferencesStore = create<UiPreferencesState>()(
     (set) => ({
       idioma: DEFAULT_LOCALE,
       lastUsedProfileId: null,
+      autoListenQuestions: false,
       setIdioma: (idioma) => set({ idioma }),
       setLastUsedProfileId: (profileId) => set({ lastUsedProfileId: profileId }),
+      setAutoListenQuestions: (value) => set({ autoListenQuestions: value }),
     }),
     { name: 'cameia-ui-preferences' },
   ),

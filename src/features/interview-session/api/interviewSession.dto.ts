@@ -17,6 +17,8 @@ export interface QuestionDto {
   turnId: string;
   number: number;
   text: string;
+  /** Usos de audio que quedan. PROVISIONAL hasta CM-372 (HU-5.15). */
+  audioPlaysRemaining?: number;
 }
 
 export interface ProgressDto {

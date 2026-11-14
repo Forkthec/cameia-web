@@ -52,8 +52,10 @@ export interface ChatEntry {
   /** Idioma de la entrevista (BCP-47); lo usa el aviso de idioma distinto en la voz (CA-5.12.10). */
   sessionLanguage: string;
   answerFormat: 'TEXTO' | 'AUDIO';
-  question: { turnId: string; number: number; text: string };
+  question: { turnId: string; number: number; text: string; audioPlaysRemaining?: number };
   progress: { current: number; total: number };
+  /** Si se puede escuchar la pregunta (HU-5.15); falso si Backend no lo manda. */
+  audioEnabled: boolean;
 }
 
 /**
@@ -78,8 +80,16 @@ export function toChatEntry(
     sessionId,
     sessionLanguage,
     answerFormat: dto.answerFormat === 'AUDIO' ? 'AUDIO' : 'TEXTO',
-    question: { turnId: pending.turnId, number: pending.number, text: pending.text },
+    question: {
+      turnId: pending.turnId,
+      number: pending.number,
+      text: pending.text,
+      ...(typeof pending.audioPlaysRemaining === 'number'
+        ? { audioPlaysRemaining: pending.audioPlaysRemaining }
+        : {}),
+    },
     progress: { current: dto.progress.currentQuestion, total: dto.progress.totalQuestions },
+    audioEnabled: dto.audioEnabled === true,
   };
 }
 
