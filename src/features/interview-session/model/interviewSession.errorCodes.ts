@@ -40,9 +40,9 @@ export const SESSION_TRANSITION_NOT_ALLOWED = 'SESSION_TRANSITION_NOT_ALLOWED';
 export const TURN_RETRY_LIMIT_REACHED = 'TURN_RETRY_LIMIT_REACHED';
 
 /**
- * `409` de `…/reprocess`: el turno ya no espera un reintento (p. ej. una `200` perdida); genérico
- * sin «Reintentar» y con «Ir al inicio» (SPEC v11.3 D9; `ErrorCode.java:183` de
- * `cameia-entrevista`, `origin/develop` `48773cb`).
+ * `409` de `…/reprocess`: el turno ya no espera un reintento (p. ej. una `200` perdida); muestra
+ * `interview:sesion.noEsperaReintento` (CM-226), sin «Reintentar» y con «Ir al inicio» (SPEC
+ * v11.3 D9; `ErrorCode.java:183` de `cameia-entrevista`, `origin/develop` `48773cb`).
  */
 export const TURN_NOT_RETRYABLE = 'TURN_NOT_RETRYABLE';
 
