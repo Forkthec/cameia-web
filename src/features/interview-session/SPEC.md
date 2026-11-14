@@ -3,7 +3,7 @@ feature: interview-session
 estado: EN_CURSO
 hu: [HU-5.2, HU-5.8, HU-5.5]
 prt: [PRT-05.10, PRT-05.12]
-jira: [CM-217, CM-317, CM-221, CM-226, CM-346]
+jira: [CM-217, CM-317, CM-221, CM-226, CM-346, CM-376]
 rutas: [/entrenar/sesion/:sessionId]
 documentacion: tsdoc-es
 backlog: 11112026_03_v11.3
@@ -1187,8 +1187,10 @@ especificaciones de CM-216 y CM-220:
   vez; el endpoint es idempotente). Mientras responde: orbe girando, la última pregunta con
   «Procesando tu respuesta…» en lugar de «Tu entrevista terminó.», sin campo ni «Enviar» (CA-5.5.6,
   backlog v11). Con HU-5.5 ya no se usa «Tu entrevista terminó.» (CA-5.2.5 y CA-5.12.6, v11).
-- `200` con `status: FINALIZADA`: el título pasa a «Tu entrevista terminó. Tu Reporte de Evaluación
-  estará disponible en breve.», sin resultados ni resumen (CA-5.5.3).
+- `200` con `status: FINALIZADA`: el título pasa a «Tu entrevista terminó. Tu reporte completo
+  estará disponible próximamente.» (backlog v11.5, fila 324), sin resultados ni resumen, y
+  «Ver mis entrevistas» deshabilitado con «Próximamente» mientras HU-5.10 no exista (regla
+  «Funcionalidades no disponibles»; CA-5.5.3, CM-376).
 - `503 SESSION_CONSOLIDATION_FAILED`, red u otra respuesta: «Ocurrió un error. Inténtalo de
   nuevo.» con «Reintentar», que pide un ciclo nuevo (CA-5.5.11).
 - `409 SESSION_ABANDONED` al responder: «Sesión abandonada: no genera evaluación.», sin campo
@@ -1199,9 +1201,9 @@ especificaciones de CM-216 y CM-220:
 
 **Diferencias conscientes:**
 
-- CA-5.5.3 pide la acción «Ver mis entrevistas» (HU-5.10), pero esa pantalla no está en el plan de
-  los Sprints 4 y 5 ni tiene tarjeta en Jira. No se muestra un botón sin destino; queda pendiente de
-  la decisión de la PO (pregunta 4.4 del documento de Frontend del 4-11-2026).
+- CA-5.5.3 pide la acción «Ver mis entrevistas» (HU-5.10), pero esa pantalla aún no se entrega
+  (backlog v11.6: MVP, sin sprint ni tarjeta en Jira). Se muestra deshabilitada con «Próximamente»,
+  como pide la regla «Funcionalidades no disponibles» (CM-376). Cuando exista HU-5.10, se habilita.
 - El chat pide la consolidación en vez de consultar `GET …/state` en bucle: con un solo pedido se
   cubren CA-5.5.6, CA-5.5.3 y CA-5.5.11. Se pidió a Backend confirmarlo.
 

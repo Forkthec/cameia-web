@@ -782,7 +782,7 @@ describe('InterviewSessionPage', () => {
   });
 
   describe('cierre de la entrevista (HU-5.5)', () => {
-    const CLOSING = 'Tu entrevista terminó. Tu Reporte de Evaluación estará disponible en breve.';
+    const CLOSING = 'Tu entrevista terminó. Tu reporte completo estará disponible próximamente.';
     const CONSOLIDATION_URL = '*/api/v1/interviews/sessions/:id/consolidation';
     const LAST = {
       ...ENTRY,
@@ -836,6 +836,16 @@ describe('InterviewSessionPage', () => {
       expect(await screen.findByRole('heading', { level: 1, name: CLOSING })).toBeInTheDocument();
       expect(screen.queryByLabelText('Respuesta')).not.toBeInTheDocument();
       expect(screen.queryByText('Procesando tu respuesta…')).not.toBeInTheDocument();
+    });
+
+    it('ofrece «Ver mis entrevistas» deshabilitado con «Próximamente» mientras HU-5.10 no exista (CA-5.5.3, CM-376)', async () => {
+      useHandlers(
+        http.post(ANSWERS_URL, () => HttpResponse.json(FINISHED)),
+        http.post(CONSOLIDATION_URL, () => HttpResponse.json(FINALIZED)),
+      );
+      await answerLast();
+      expect(await screen.findByRole('button', { name: 'Ver mis entrevistas' })).toBeDisabled();
+      expect(screen.getByText('Próximamente')).toBeInTheDocument();
     });
 
     it('si la evaluación no se reúne muestra el error con «Reintentar», que pide otro ciclo (CA-5.5.11)', async () => {

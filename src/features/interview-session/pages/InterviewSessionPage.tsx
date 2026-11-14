@@ -29,8 +29,10 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useLocation } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
+import { Button } from '@/design-system/atoms/Button';
 import { AlertInline } from '@/design-system/molecules/AlertInline';
 import type { BrandOrbState } from '@/design-system/molecules/BrandOrb';
+import { StateLocked } from '@/design-system/molecules/StateLocked';
 import { useInterviewClosing } from '../hooks/useInterviewClosing';
 import { useInterviewTurn } from '../hooks/useInterviewTurn';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
@@ -205,6 +207,16 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
           : turn.question.text
       }
     >
+      {/* «Ver mis entrevistas» (CA-5.5.3) lleva a HU-5.10, que aún no se entrega: deshabilitado
+          con «Próximamente» (regla «Funcionalidades no disponibles», backlog v11.6; CM-376). */}
+      {turn.phase === 'finished' && closing.status === 'finalized' ? (
+        <StateLocked label={t('interview:sesion.proximamente')}>
+          <Button variant="secondary" disabled>
+            {t('interview:sesion.verMisEntrevistas')}
+          </Button>
+        </StateLocked>
+      ) : null}
+
       {turn.phase === 'finished' && closing.status === 'failed' ? (
         <EvaluationRetryPanel
           message={t('errors:generico')}
