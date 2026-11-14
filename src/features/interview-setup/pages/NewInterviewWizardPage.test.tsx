@@ -3,14 +3,16 @@
  * personalización de Backend (HU-4.3, backlog v8.2): opciones y
  * disponibilidad del catálogo (CA-4.3.10) y su error con «Reintentar carga»
  * sin poder avanzar (CA-4.3.11). También que un doble clic en «Iniciar
- * entrevista» envíe una sola petición (CA-4.4.17, defecto CM-341).
+ * entrevista» envíe una sola petición (CA-4.4.17, defecto CM-341), y que
+ * «Volver a mi entrevista» abra el chat en la pregunta pendiente (CA-4.4.8,
+ * defecto CM-369).
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { I18nextProvider } from 'react-i18next';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { beforeEach, describe, expect, it } from 'vitest';
 import i18n from '@/i18n';
 import { useHandlers } from '@/test/msw';
@@ -136,5 +138,64 @@ describe('NewInterviewWizardPage · iniciar entrevista', () => {
     await waitFor(() => expect(posts).toBe(1));
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(posts).toBe(1);
+  });
+
+  it('«Volver a mi entrevista» abre el chat de la anterior en su pregunta pendiente (CM-369)', async () => {
+    useHandlers(
+      http.get('*/api/v1/profiles', () =>
+        HttpResponse.json({
+          profiles: [{ id: 'p1', name: 'Mi perfil', status: 'COMPLETED', targetRoles: [] }],
+        }),
+      ),
+      http.post('*/api/v1/interviews/sessions', () =>
+        HttpResponse.json(
+          {
+            sessionId: 's-nueva',
+            status: 'CONFIGURADA',
+            ongoingSession: { sessionId: 's-vieja', answersCount: 2 },
+          },
+          { status: 201 },
+        ),
+      ),
+      http.get('*/api/v1/interviews/sessions/s-vieja/state', () =>
+        HttpResponse.json({
+          sessionId: 's-vieja',
+          status: 'EN_CURSO',
+          answerFormat: 'TEXTO',
+          interviewFinished: false,
+          progress: { currentQuestion: 3, totalQuestions: 5 },
+          pendingQuestion: { turnId: 's-vieja-t3', number: 3, text: 'Pregunta tres' },
+          history: [],
+        }),
+      ),
+    );
+    useInterviewSetupStore.getState().setProfile('p1');
+    useInterviewSetupStore.getState().setTargetRole('r1');
+    useInterviewSetupStore.getState().goToStep(4);
+    function SessionProbe() {
+      const location = useLocation();
+      return <p data-testid="chat">{JSON.stringify(location.state)}</p>;
+    }
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <I18nextProvider i18n={i18n}>
+          <MemoryRouter initialEntries={['/entrenar/nueva']}>
+            <Routes>
+              <Route path="/entrenar/nueva" element={<NewInterviewWizardPage />} />
+              <Route path="/entrenar/sesion/:id" element={<SessionProbe />} />
+            </Routes>
+          </MemoryRouter>
+        </I18nextProvider>
+      </QueryClientProvider>,
+    );
+    const user = userEvent.setup();
+    const start = await screen.findByRole('button', { name: /Iniciar entrevista/ });
+    await waitFor(() => expect(start).toBeEnabled());
+    await user.click(start);
+    await user.click(await screen.findByRole('button', { name: 'Volver a mi entrevista' }));
+    const chat = await screen.findByTestId('chat');
+    expect(chat.textContent).toContain('s-vieja-t3');
+    expect(chat.textContent).toContain('Pregunta tres');
   });
 });

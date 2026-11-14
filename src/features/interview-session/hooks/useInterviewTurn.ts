@@ -26,7 +26,7 @@
  *   de CA-5.2.20; `SESSION_ABANDONED`, `SESSION_ALREADY_CLOSED` y
  *   `SESSION_TRANSITION_NOT_ALLOWED` pasan a la fase `closed` con
  *   `toClosedReason`, igual que en `…/answers`; `TURN_NOT_RETRYABLE` deja el
- *   genérico en `retryError`, sin «Reintentar» (`turnNotRetryable`).
+ *   mensaje propio sin «Reintentar» (`turnNotRetryable`, CM-226).
  * - «Enviar» y «Reintentar» tienen guarda síncrona: dos llamadas en el mismo
  *   instante hacen una sola petición (CA-5.2.4, CA-5.2.20; lección DF-004).
  * - Audio rechazado al transcribir (sin registrar respuesta ni gastar
@@ -244,7 +244,7 @@ export function useInterviewTurn(entry: SessionEntry) {
       }
       if (error instanceof ApiError && error.hasCode(TURN_NOT_RETRYABLE)) {
         setTurnNotRetryable(true);
-        setRetryError('generico');
+        setRetryError(null);
         return;
       }
       setRetryError(toSubmitErrorKey(error));
@@ -263,7 +263,7 @@ export function useInterviewTurn(entry: SessionEntry) {
     retriesExhausted: failedRetries >= MAX_EVALUATION_RETRIES,
     /** `false` tras el 2.º fallo de la IA del tramo 2: ya no se ofrece «Reintentar» (v11.3 D2). */
     canRetry,
-    /** `409 TURN_NOT_RETRYABLE`: genérico sin «Reintentar» y con «Ir al inicio» (v11.3 D9). */
+    /** `409 TURN_NOT_RETRYABLE`: mensaje propio sin «Reintentar» y con «Ir al inicio» (CM-226). */
     turnNotRetryable,
     audioRejection,
     closedReason,

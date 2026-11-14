@@ -127,6 +127,7 @@
     "en": "English"
   },
   "sesion": {
+    "noEsperaReintento": "Your answer is not waiting for a retry.",
     "progreso": "Question {{actual}} of {{total}}",
     "modoYForma": "{{modo}} · {{forma}}",
     "respuesta": {

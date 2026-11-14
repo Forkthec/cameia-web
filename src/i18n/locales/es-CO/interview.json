@@ -127,6 +127,7 @@
     "en": "Inglés"
   },
   "sesion": {
+    "noEsperaReintento": "Tu respuesta no está esperando un reintento.",
     "progreso": "Pregunta {{actual}} de {{total}}",
     "modoYForma": "{{modo}} · {{forma}}",
     "respuesta": {
