@@ -31,9 +31,10 @@ import { Navigate, useLocation } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
 import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
 import { Button } from '@/design-system/atoms/Button';
+import { Pill } from '@/design-system/atoms/Pill';
+import { Icon } from '@/design-system/icons/Icon';
 import { AlertInline } from '@/design-system/molecules/AlertInline';
 import type { BrandOrbState } from '@/design-system/molecules/BrandOrb';
-import { StateLocked } from '@/design-system/molecules/StateLocked';
 import { useInterviewClosing } from '../hooks/useInterviewClosing';
 import { useInterviewTurn } from '../hooks/useInterviewTurn';
 import { useQuestionAudio } from '../hooks/useQuestionAudio';
@@ -223,11 +224,17 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
       {/* «Ver mis entrevistas» (CA-5.5.3) lleva a HU-5.10, que aún no se entrega: deshabilitado
           con «Próximamente» (regla «Funcionalidades no disponibles», backlog v11.6; CM-376). */}
       {turn.phase === 'finished' && closing.status === 'finalized' ? (
-        <StateLocked label={t('interview:sesion.proximamente')}>
+        // La insignia va al lado del botón, no encima: `StateLocked` la superpone y tapaba el
+        // texto (reprueba de Testeo del 14-11-2026, CM-376).
+        <div className="gap-space-3 flex flex-wrap items-center justify-center">
           <Button variant="secondary" disabled>
             {t('interview:sesion.verMisEntrevistas')}
           </Button>
-        </StateLocked>
+          <Pill className="gap-space-1">
+            <Icon name="lock" size={12} />
+            <span>{t('interview:sesion.proximamente')}</span>
+          </Pill>
+        </div>
       ) : null}
 
       {turn.phase === 'finished' && closing.status === 'failed' ? (
