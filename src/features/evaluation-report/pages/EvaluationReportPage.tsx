@@ -274,7 +274,7 @@ export function EvaluationReportPage() {
             </dl>
           </div>
         </div>
-        <p className="border-brand-accent/40 bg-brand-accent/10 p-space-4 text-body text-text-primary max-w-[72ch] rounded-lg border">
+        <p className="border-brand-accent/40 bg-brand-accent/10 p-space-4 text-body text-text-primary rounded-lg border">
           {t('report:aviso')}
         </p>
       </header>
