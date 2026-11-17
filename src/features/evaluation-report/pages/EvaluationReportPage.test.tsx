@@ -188,9 +188,11 @@ describe('EvaluationReportPage', () => {
     const second = screen.getByText('Pregunta 2').closest('article')!;
     expect(within(second).getByText('Técnica')).toBeInTheDocument();
     expect(within(second).getByText('Respondida por voz')).toBeInTheDocument();
-    expect(within(second).getByText('110 palabras por minuto')).toBeInTheDocument();
+    expect(within(second).getByText('110')).toBeInTheDocument();
+    expect(within(second).getByText('palabras por minuto')).toBeInTheDocument();
     expect(within(second).getByText('28,3 %')).toBeInTheDocument();
-    expect(within(second).getByText('7,1 por cada 100 palabras')).toBeInTheDocument();
+    expect(within(second).getByText('7,1')).toBeInTheDocument();
+    expect(within(second).getByText('por cada 100 palabras')).toBeInTheDocument();
     expect(screen.getByText('Respondida por texto: sin datos de voz.')).toBeInTheDocument();
     expect(screen.getByText('Respondida por voz: sin datos de voz.')).toBeInTheDocument();
     expect(screen.getByText('Sin respuesta registrada.')).toBeInTheDocument();
@@ -286,5 +288,19 @@ describe('EvaluationReportPage', () => {
       await screen.findByText('No hay conexión. Revisa tu internet e inténtalo de nuevo.'),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
+  });
+
+  it('un dato de voz vacío de una respuesta se muestra como «Sin resultado» (CM-380)', async () => {
+    const body = evaluationReportBody('s1');
+    body.questions = body.questions.map((question) =>
+      question.number === 1 && question.voice
+        ? { ...question, voice: { ...question.voice, speechRate: null } }
+        : question,
+    );
+    useHandlers(http.get(URL, () => HttpResponse.json(body)));
+    renderPage();
+    const first = (await screen.findByText('Pregunta 1')).closest('article')!;
+    const rhythm = within(first).getByText('Ritmo').closest('div')!;
+    expect(within(rhythm).getByText('Sin resultado')).toBeInTheDocument();
   });
 });

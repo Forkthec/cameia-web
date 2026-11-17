@@ -21,12 +21,13 @@ export interface StarDto {
   level: number | null;
 }
 
+/** Ritmo, pausas y vacilación pueden faltar (`AnswerVoiceResponse` de cameia-entrevista, CM-380). */
 export interface VoiceDataDto {
   words: number;
   fillers: number;
-  speechRate: number;
-  pauseTime: number;
-  hesitationRate: number;
+  speechRate: number | null;
+  pauseTime: number | null;
+  hesitationRate: number | null;
 }
 
 export interface QuestionResultDto {

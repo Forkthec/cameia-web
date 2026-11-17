@@ -43,12 +43,13 @@ export interface StarResult {
   level: number | null;
 }
 
+/** Datos de voz de una respuesta; un `null` es «Sin resultado». */
 export interface VoiceData {
   words: number;
   fillers: number;
-  speechRate: number;
-  pauseTime: number;
-  hesitationRate: number;
+  speechRate: number | null;
+  pauseTime: number | null;
+  hesitationRate: number | null;
 }
 
 export interface QuestionResult {

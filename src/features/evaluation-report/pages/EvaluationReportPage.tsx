@@ -124,6 +124,15 @@ export function EvaluationReportPage() {
     return { ...base, value, unit: full.replace(value, '').trim(), valueText: full };
   }
 
+  // Separa el número de su unidad («132» y «palabras por minuto») para que la unidad vaya debajo,
+  // en pequeño, sin partir la línea. Con «%» el número la lleva pegada («9,4 %»).
+  function split(unit: 'WORDS_PER_MINUTE' | 'PERCENT' | 'PER_100_WORDS', value: string | null) {
+    if (value === null) return { value: t('report:pantalla.sinResultadoEtiqueta') };
+    const full = t(`report:pantalla.unidades.${unit}`, { value });
+    if (unit === 'PERCENT') return { value: full };
+    return { value, unit: full.replace(value, '').trim() };
+  }
+
   function voiceOf(question: QuestionResult) {
     if (question.voice) {
       const voice = question.voice;
@@ -146,19 +155,21 @@ export function EvaluationReportPage() {
           },
           {
             label: t('report:pantalla.datosDeVoz.speechRate'),
-            value: t('report:pantalla.unidades.WORDS_PER_MINUTE', {
-              value: formatInteger(voice.speechRate, locale),
-            }),
+            ...split(
+              'WORDS_PER_MINUTE',
+              voice.speechRate === null ? null : formatInteger(voice.speechRate, locale),
+            ),
           },
           {
             label: t('report:pantalla.datosDeVoz.pauseTime'),
-            value: t('report:pantalla.unidades.PERCENT', { value: one(voice.pauseTime) }),
+            ...split('PERCENT', voice.pauseTime === null ? null : one(voice.pauseTime)),
           },
           {
             label: t('report:pantalla.datosDeVoz.hesitationRate'),
-            value: t('report:pantalla.unidades.PER_100_WORDS', {
-              value: one(voice.hesitationRate),
-            }),
+            ...split(
+              'PER_100_WORDS',
+              voice.hesitationRate === null ? null : one(voice.hesitationRate),
+            ),
           },
         ],
       };

@@ -54,6 +54,10 @@ o con otro clic; un solo texto abierto a la vez.
 
 ## 5. Enlace HTTP · PROVISIONAL
 
+Contrastado con `EvaluationReportResponse` de `cameia-entrevista` `origin/develop` `c4ba3fa` (CM-380,
+#62): mismos campos; en `voice` de cada pregunta, `speechRate`, `pauseTime` y `hesitationRate`
+pueden llegar `null` y se muestran como «Sin resultado».
+
 `GET /api/v1/interviews/sessions/{sessionId}/evaluation-report` (Backend, CM-380). Espera hasta 120 s
 (la primera consulta genera el reporte). Contrato en `api/evaluationReport.dto.ts`; el mapper
 descarta códigos o unidades que la pantalla no conoce. Mock en

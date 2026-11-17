@@ -29,7 +29,12 @@ interface QuestionResultCardProps {
   answer: { text: string; missing: boolean };
   /** Datos de voz ya formateados, o el aviso que va en su lugar. */
   voice:
-    | { kind: 'data'; title: string; help: HelpProps; items: { label: string; value: string }[] }
+    | {
+        kind: 'data';
+        title: string;
+        help: HelpProps;
+        items: { label: string; value: string; unit?: string }[];
+      }
     | { kind: 'notice'; text: string }
     | null;
 }
@@ -98,7 +103,12 @@ export function QuestionResultCard({
                 className="border-border-subtle px-space-3 py-space-2 rounded-md border"
               >
                 <dt className="text-small text-text-muted">{item.label}</dt>
-                <dd className="text-body text-text-primary font-bold tabular-nums">{item.value}</dd>
+                <dd className="text-text-primary">
+                  <span className="text-body font-bold tabular-nums">{item.value}</span>
+                  {item.unit ? (
+                    <span className="text-small text-text-muted block">{item.unit}</span>
+                  ) : null}
+                </dd>
               </div>
             ))}
           </dl>
