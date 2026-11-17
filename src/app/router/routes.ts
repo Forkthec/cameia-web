@@ -18,6 +18,7 @@ export const ROUTES = {
   entrenarNueva: '/entrenar/nueva',
   entrenarIniciando: '/entrenar/nueva/iniciando',
   entrenarSesion: (sessionId: string) => `/entrenar/sesion/${sessionId}`,
+  entrenarReporte: (sessionId: string) => `/entrenar/sesion/${sessionId}/reporte`,
 } as const;
 
 /** Paths con parámetros, tal como los necesita `<Route path="...">` de react-router. */
@@ -25,4 +26,5 @@ export const ROUTE_PATTERNS = {
   perfilEditar: '/perfiles/:id/editar',
   perfilRoles: '/perfiles/:id/roles',
   entrenarSesion: '/entrenar/sesion/:sessionId',
+  entrenarReporte: '/entrenar/sesion/:sessionId/reporte',
 } as const;

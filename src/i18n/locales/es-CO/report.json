@@ -1,0 +1,94 @@
+{
+  "pantalla": {
+    "titulo": "Reporte de Evaluación",
+    "encabezado": {
+      "fecha": "Fecha",
+      "idioma": "Idioma",
+      "tono": "Tono"
+    },
+    "secciones": {
+      "contenido": "Métricas de contenido",
+      "voz": "Métricas de voz",
+      "star": "Método STAR",
+      "preguntas": "Preguntas y respuestas"
+    },
+    "nombresMetricas": {
+      "PRECISION_CLARITY": "Precisión y Claridad",
+      "VERBAL_CHARISMA": "Carisma Verbal",
+      "INCLUSIVE_LANGUAGE": "Lenguaje Inclusivo y Adecuado",
+      "SPEECH_RATE": "Ritmo de Habla",
+      "PAUSE_TIME": "Tiempo de Pausas",
+      "HESITATION_RATE": "Tasa de Vacilación",
+      "ENTHUSIASM": "Entusiasmo"
+    },
+    "unidades": {
+      "SCORE_1_5": "{{value}} de 5",
+      "WORDS_PER_MINUTE": "{{value}} palabras por minuto",
+      "PERCENT": "{{value}} %",
+      "PER_100_WORDS": "{{value}} por cada 100 palabras"
+    },
+    "sinResultadoEtiqueta": "Sin resultado",
+    "starComponentes": {
+      "situation": "Situación",
+      "task": "Tarea",
+      "action": "Acción",
+      "result": "Resultado"
+    },
+    "starPresente": "Presente",
+    "starAusente": "Ausente",
+    "starNivel": "{{n}} de 4",
+    "pregunta": "Pregunta {{n}}",
+    "origen": {
+      "TEXT": "Respondida por texto",
+      "VOICE": "Respondida por voz"
+    },
+    "datosDeVoz": {
+      "words": "Palabras",
+      "fillers": "Muletillas",
+      "speechRate": "Ritmo",
+      "pauseTime": "Pausas",
+      "hesitationRate": "Vacilación"
+    },
+    "nombresAccesibles": {
+      "metrica": "Qué mide {{name}}",
+      "star": "Qué es el Método STAR",
+      "respuesta": "Qué muestra la respuesta",
+      "vozDeLaRespuesta": "Qué significan los datos de voz"
+    },
+    "respuestaTitulo": "Respuesta",
+    "datosDeVozTitulo": "Datos de voz"
+  },
+  "aviso": "Este reporte resume cómo se respondió la entrevista. Las métricas de contenido y el Método STAR los califica una inteligencia artificial (IA) a partir del texto de las respuestas, por lo que pueden contener errores. Las métricas de voz, en cambio, se calculan con fórmulas fijas a partir de las respuestas grabadas por voz.",
+  "metricas": {
+    "PRECISION_CLARITY": "Esta métrica indica qué tan bien las respuestas contestan lo que se preguntó. Para obtenerla, una IA lee cada respuesta y le pone una nota de 1 a 5; el valor que se ve es el promedio de esas notas. Un 1 significa que la respuesta no contesta la pregunta o es confusa; un 3, que la contesta con ideas comprensibles, pero generales o desordenadas; y un 5, que la contesta de forma directa, ordenada y con ejemplos o datos concretos. Las preguntas conductuales, que son las que piden contar una experiencia vivida, no entran en este promedio, porque se revisan con el Método STAR.",
+    "VERBAL_CHARISMA": "Esta métrica indica qué tan seguro, cercano y convincente suena lo que se dice. Una IA la califica de 1 a 5 en cada respuesta leyendo el texto, no escuchando la voz, y el valor que se ve es el promedio. Un 1 corresponde a un tono plano, inseguro o negativo; un 3, a un tono correcto, pero poco convincente; y un 5, a un tono seguro, cercano y convincente, que transmite interés. Las preguntas conductuales, que son las que piden contar una experiencia vivida, no entran en este promedio, porque se revisan con el Método STAR.",
+    "INCLUSIVE_LANGUAGE": "Esta métrica indica si las palabras usadas son apropiadas para una entrevista de trabajo y respetuosas con todas las personas. Una IA la califica de 1 a 5 en cada respuesta y el valor que se ve es el promedio. Un 1 corresponde a expresiones ofensivas, discriminatorias o vulgares; un 3, a un lenguaje informal o poco apropiado para una entrevista, sin llegar a ser ofensivo; y un 5, a un lenguaje profesional, respetuoso e inclusivo. Las preguntas conductuales, que son las que piden contar una experiencia vivida, no entran en este promedio, porque se revisan con el Método STAR.",
+    "SPEECH_RATE": "Esta métrica indica la velocidad al hablar, medida en palabras por minuto. Se calcula sumando las palabras de todas las respuestas grabadas por voz y dividiéndolas entre el tiempo que se habló, contado desde la primera hasta la última palabra de cada respuesta. Por eso, un número más alto significa que se habló más rápido. Si ninguna respuesta fue por voz, aparece «Sin resultado».",
+    "PAUSE_TIME": "Esta métrica indica qué parte del tiempo de habla fue silencio. Cuenta solo los silencios de medio segundo o más entre una palabra y la siguiente, y los compara con el tiempo total que se habló en las respuestas por voz. Por ejemplo, un 20 % significa que una quinta parte de ese tiempo fue silencio. Si ninguna respuesta fue por voz, aparece «Sin resultado».",
+    "HESITATION_RATE": "Esta métrica indica con qué frecuencia aparecen muletillas, que son los sonidos que se hacen al dudar, como «eh», «em» o «mm» en español, o «um» y «uh» en inglés. Se calcula contando las muletillas de las respuestas por voz por cada 100 palabras dichas. Por ejemplo, un 5,0 significa que hubo 5 muletillas por cada 100 palabras. En las entrevistas en inglés solo se reconocen «um» y «uh», así que el valor puede quedar por debajo del real. Si ninguna respuesta fue por voz, aparece «Sin resultado».",
+    "ENTHUSIASM": "Esta métrica indicaría la energía con la que se habla, a partir de los cambios en el tono de la voz. Medirla requiere analizar el sonido de la grabación, algo que todavía no se hace; por eso aparece siempre «Sin resultado»."
+  },
+  "star": "El Método STAR es una forma de contar una experiencia real para que quien escucha la entienda completa. Su nombre viene de las iniciales en inglés de sus cuatro partes: la Situación (dónde y cuándo ocurrió), la Tarea (qué había que lograr), la Acción (qué se hizo personalmente) y el Resultado (cómo terminó y qué se logró). Se aplica a las preguntas conductuales, que son las que piden contar una experiencia vivida, como «Cuéntame de una vez que…». Una IA revisa si cada una de las cuatro partes aparece en la respuesta y la marca como presente o ausente; así, «4 de 4» significa que la respuesta contó la experiencia completa, y «3 de 4», que le faltó la parte que aparece marcada como ausente.",
+  "sinResultado": "«Sin resultado» significa que no hubo datos para calcular esta métrica; por ejemplo, las de voz cuando todas las respuestas fueron por texto, o las de contenido cuando la IA no pudo calificar. No es lo mismo que un 0, que sí es un valor calculado.",
+  "respuesta": "Es el texto que se guardó como respuesta. Si se respondió por voz, es la transcripción automática del audio y conserva las muletillas tal como se dijeron.",
+  "vozDeLaRespuesta": "Estos datos se calculan solo con esta respuesta. Las palabras son las que reconoció la transcripción automática del audio. Las muletillas son los sonidos de duda que se encontraron en ella, como «eh», «em» o «mm» (en inglés, «um» y «uh»). El ritmo es la cantidad de palabras por minuto, contando desde la primera hasta la última palabra de la respuesta. Las pausas indican qué parte de ese tiempo fueron silencios de medio segundo o más entre una palabra y la siguiente. La vacilación es la cantidad de muletillas por cada 100 palabras; por ejemplo, 4 muletillas en 56 palabras dan 7,1.",
+  "tiposDePregunta": {
+    "APERTURA": "Apertura",
+    "TECNICA": "Técnica",
+    "CONDUCTUAL": "Conductual",
+    "SITUACIONAL": "Situacional"
+  },
+  "estados": {
+    "sinDatosDeVoz": "Respondida por texto: sin datos de voz.",
+    "sinRespuesta": "Sin respuesta registrada.",
+    "vozSinDatos": "Respondida por voz: sin datos de voz."
+  },
+  "reporteCompleto": {
+    "titulo": "Reporte completo",
+    "etiqueta": "Próximamente",
+    "texto": "Más adelante, este reporte incluirá un análisis de cada respuesta y recomendaciones concretas para mejorar."
+  },
+  "generando": "Tu reporte se está generando.",
+  "abandonada": "Sesión abandonada: no genera evaluación.",
+  "noTerminada": "Tu entrevista aún no ha terminado."
+}

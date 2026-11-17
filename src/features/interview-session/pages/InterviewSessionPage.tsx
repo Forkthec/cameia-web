@@ -27,7 +27,7 @@
  */
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Navigate, useLocation } from 'react-router';
+import { Link, Navigate, useLocation } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
 import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
 import { Button } from '@/design-system/atoms/Button';
@@ -221,12 +221,19 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
           : turn.question.text
       }
     >
-      {/* «Ver mis entrevistas» (CA-5.5.3) lleva a HU-5.10, que aún no se entrega: deshabilitado
-          con «Próximamente» (regla «Funcionalidades no disponibles», backlog v11.6; CM-376). */}
+      {/* CA-5.5.3 (backlog v11.8): «Ver Reporte de Evaluación» abre el reporte (HU-6.4, CM-379);
+          «Ver mis entrevistas» lleva a HU-5.10, que aún no se entrega: deshabilitado con
+          «Próximamente» (regla «Funcionalidades no disponibles»; CM-376). */}
       {turn.phase === 'finished' && closing.status === 'finalized' ? (
         // La insignia va al lado del botón, no encima: `StateLocked` la superpone y tapaba el
         // texto (reprueba de Testeo del 14-11-2026, CM-376).
         <div className="gap-space-3 flex flex-wrap items-center justify-center">
+          <Link
+            to={ROUTES.entrenarReporte(entry.sessionId)}
+            className="bg-action-primary px-space-6 text-body text-action-on-primary hover:bg-action-primary-hover focus-visible:shadow-focus-ring min-h-touch-target inline-flex items-center rounded-full font-bold focus-visible:outline-none"
+          >
+            {t('interview:sesion.verReporte')}
+          </Link>
           <Button variant="secondary" disabled>
             {t('interview:sesion.verMisEntrevistas')}
           </Button>

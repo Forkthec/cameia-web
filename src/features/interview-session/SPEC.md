@@ -3,7 +3,7 @@ feature: interview-session
 estado: EN_CURSO
 hu: [HU-5.2, HU-5.8, HU-5.5, HU-5.13]
 prt: [PRT-05.10, PRT-05.12]
-jira: [CM-217, CM-317, CM-221, CM-226, CM-346, CM-376, CM-373, CM-363]
+jira: [CM-217, CM-317, CM-221, CM-226, CM-346, CM-376, CM-373, CM-363, CM-379]
 rutas: [/entrenar/sesion/:sessionId]
 documentacion: tsdoc-es
 backlog: 14112026_03_v11.6
@@ -1291,10 +1291,11 @@ especificaciones de CM-216 y CM-220:
   vez; el endpoint es idempotente). Mientras responde: orbe girando, la última pregunta con
   «Procesando tu respuesta…» en lugar de «Tu entrevista terminó.», sin campo ni «Enviar» (CA-5.5.6,
   backlog v11). Con HU-5.5 ya no se usa «Tu entrevista terminó.» (CA-5.2.5 y CA-5.12.6, v11).
-- `200` con `status: FINALIZADA`: el título pasa a «Tu entrevista terminó. Tu reporte completo
-  estará disponible próximamente.» (backlog v11.5, fila 324), sin resultados ni resumen, y
+- `200` con `status: FINALIZADA`: el título pasa a «Tu entrevista terminó. Ya puedes ver tu
+  Reporte de Evaluación.» (CA-5.5.3, backlog v11.8), sin resultados ni resumen en el chat, con
+  «Ver Reporte de Evaluación», que abre `/entrenar/sesion/:sessionId/reporte` (HU-6.4, CM-379), y
   «Ver mis entrevistas» deshabilitado con «Próximamente» mientras HU-5.10 no exista (regla
-  «Funcionalidades no disponibles»; CA-5.5.3, CM-376).
+  «Funcionalidades no disponibles»; CM-376).
 - `503 SESSION_CONSOLIDATION_FAILED`, red u otra respuesta: «Ocurrió un error. Inténtalo de
   nuevo.» con «Reintentar», que pide un ciclo nuevo (CA-5.5.11).
 - `409 SESSION_ABANDONED` al responder: «Sesión abandonada: no genera evaluación.», sin campo

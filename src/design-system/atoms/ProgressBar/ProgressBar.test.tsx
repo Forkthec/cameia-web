@@ -23,4 +23,21 @@ describe('ProgressBar', () => {
 
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');
   });
+
+  it('acepta una escala que no empieza en 0 y se lee con su unidad (reporte, CM-379)', () => {
+    render(
+      <ProgressBar
+        context="report-metric"
+        value={3}
+        min={1}
+        max={5}
+        label="Precisión"
+        valueText="3,0 de 5"
+      />,
+    );
+    const bar = screen.getByRole('progressbar', { name: 'Precisión' });
+    expect(bar).toHaveAttribute('aria-valuemin', '1');
+    expect(bar).toHaveAttribute('aria-valuetext', '3,0 de 5');
+    expect(bar.firstElementChild).toHaveStyle({ width: '50%' });
+  });
 });
