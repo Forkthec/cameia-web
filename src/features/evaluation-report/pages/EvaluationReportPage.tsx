@@ -29,6 +29,16 @@ import { MetricCard } from '../organisms/MetricCard';
 import { QuestionResultCard } from '../organisms/QuestionResultCard';
 import { StarCard } from '../organisms/StarCard';
 
+/** Punto de sol mostaza junto a cada título de sección, como el `Eyebrow` de la landing. */
+function SunDot() {
+  return (
+    <span
+      aria-hidden="true"
+      className="bg-brand-accent size-3 shrink-0 rounded-full shadow-[0_0_0_5px_color-mix(in_srgb,var(--brand-accent)_20%,transparent)]"
+    />
+  );
+}
+
 /**
  * Las métricas con valor se reparten en columnas parejas; las que no tienen resultado van debajo,
  * a lo ancho, para que su explicación no estire ni deje huecos en la fila de las demás.
@@ -226,42 +236,66 @@ export function EvaluationReportPage() {
 
   return (
     <div className="gap-space-8 py-space-6 mx-auto flex w-full max-w-5xl flex-col">
+      {/* Encabezado con la escena de marca de la landing (CM-329, «Amanecer»): fondo índigo con el
+          sol mostaza; solo tokens y utilidades de marca (CLAUDE.md §3.1). */}
       <header className="gap-space-4 flex flex-col">
-        <h1 className="text-h1 font-display text-text-primary font-extrabold">
-          {t('report:pantalla.titulo')}
-        </h1>
-        <dl className="gap-x-space-6 gap-y-space-2 text-body flex flex-wrap">
-          <div className="gap-space-2 flex">
-            <dt className="text-text-muted">{t('report:pantalla.encabezado.fecha')}</dt>
-            <dd className="text-text-primary font-semibold">{interviewDate}</dd>
+        <div className="bg-brand-surface p-space-6 lg:p-space-7 shadow-elevation-3 relative overflow-hidden rounded-xl">
+          <span
+            aria-hidden="true"
+            className="bg-brand-glow absolute -top-[60%] -right-[10%] aspect-square w-[55%] rounded-full"
+          />
+          <span
+            aria-hidden="true"
+            className="bg-brand-sun absolute -top-[30%] right-[4%] aspect-square w-[18%] min-w-24 rounded-full opacity-90"
+          />
+          <div className="gap-space-4 relative flex flex-col">
+            <h1 className="text-h1 font-display text-text-on-inverse font-extrabold">
+              {t('report:pantalla.titulo')}
+            </h1>
+            <dl className="gap-x-space-6 gap-y-space-2 text-body flex flex-wrap">
+              <div className="gap-space-2 flex">
+                <dt className="text-text-on-inverse/75">{t('report:pantalla.encabezado.fecha')}</dt>
+                <dd className="text-text-accent-on-inverse font-semibold">{interviewDate}</dd>
+              </div>
+              <div className="gap-space-2 flex">
+                <dt className="text-text-on-inverse/75">
+                  {t('report:pantalla.encabezado.idioma')}
+                </dt>
+                <dd className="text-text-accent-on-inverse font-semibold">
+                  {t(`interview:idioma.${report.sessionLanguage}`)}
+                </dd>
+              </div>
+              <div className="gap-space-2 flex">
+                <dt className="text-text-on-inverse/75">{t('report:pantalla.encabezado.tono')}</dt>
+                <dd className="text-text-accent-on-inverse font-semibold">
+                  {t(`interview:tono.${report.tone}`)}
+                </dd>
+              </div>
+            </dl>
           </div>
-          <div className="gap-space-2 flex">
-            <dt className="text-text-muted">{t('report:pantalla.encabezado.idioma')}</dt>
-            <dd className="text-text-primary font-semibold">
-              {t(`interview:idioma.${report.sessionLanguage}`)}
-            </dd>
-          </div>
-          <div className="gap-space-2 flex">
-            <dt className="text-text-muted">{t('report:pantalla.encabezado.tono')}</dt>
-            <dd className="text-text-primary font-semibold">
-              {t(`interview:tono.${report.tone}`)}
-            </dd>
-          </div>
-        </dl>
-        <p className="bg-brand-tint p-space-4 text-body text-text-primary max-w-[72ch] rounded-lg">
+        </div>
+        <p className="border-brand-accent/40 bg-brand-accent/10 p-space-4 text-body text-text-primary max-w-[72ch] rounded-lg border">
           {t('report:aviso')}
         </p>
       </header>
 
       <section aria-labelledby="reporte-contenido" className="gap-space-4 flex flex-col">
-        <h2 id="reporte-contenido" className="text-h2 font-display text-text-primary font-bold">
+        <h2
+          id="reporte-contenido"
+          className="gap-space-3 text-h2 font-display text-text-primary flex items-center font-bold"
+        >
+          <SunDot />
           {t('report:pantalla.secciones.contenido')}
         </h2>
         <MetricGrid metrics={report.contentMetrics} minWidth="16rem" render={metricProps} />
       </section>
 
       <section aria-labelledby="reporte-voz" className="gap-space-4 flex flex-col">
-        <h2 id="reporte-voz" className="text-h2 font-display text-text-primary font-bold">
+        <h2
+          id="reporte-voz"
+          className="gap-space-3 text-h2 font-display text-text-primary flex items-center font-bold"
+        >
+          <SunDot />
           {t('report:pantalla.secciones.voz')}
         </h2>
         <MetricGrid metrics={report.voiceMetrics} minWidth="14rem" render={metricProps} />
@@ -270,7 +304,11 @@ export function EvaluationReportPage() {
       {report.star.length > 0 ? (
         <section aria-labelledby="reporte-star" className="gap-space-4 flex flex-col">
           <div className="gap-space-2 flex items-center">
-            <h2 id="reporte-star" className="text-h2 font-display text-text-primary font-bold">
+            <h2
+              id="reporte-star"
+              className="gap-space-3 text-h2 font-display text-text-primary flex items-center font-bold"
+            >
+              <SunDot />
               {t('report:pantalla.secciones.star')}
             </h2>
             <HelpTip label={t('report:pantalla.nombresAccesibles.star')} {...help('star')}>
@@ -301,7 +339,11 @@ export function EvaluationReportPage() {
       ) : null}
 
       <section aria-labelledby="reporte-preguntas" className="gap-space-4 flex flex-col">
-        <h2 id="reporte-preguntas" className="text-h2 font-display text-text-primary font-bold">
+        <h2
+          id="reporte-preguntas"
+          className="gap-space-3 text-h2 font-display text-text-primary flex items-center font-bold"
+        >
+          <SunDot />
           {t('report:pantalla.secciones.preguntas')}
         </h2>
         {report.questions.map((question) => (

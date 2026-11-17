@@ -45,7 +45,7 @@ export function MetricCard({
   return (
     // Sin resultado la explicación va al lado de «Sin resultado»: la página pone estas tarjetas a
     // lo ancho, debajo de las que tienen valor.
-    <article className="gap-space-3 border-border-subtle bg-bg-surface p-space-5 shadow-elevation-1 flex flex-col rounded-xl border">
+    <article className="gap-space-3 border-border-subtle border-t-brand-accent bg-bg-surface p-space-5 shadow-elevation-1 flex flex-col rounded-xl border border-t-4">
       <div className="gap-space-2 flex items-start justify-between">
         <h3 className="text-body text-text-primary font-bold">{name}</h3>
         <HelpTip label={helpLabel} open={helpOpen} onOpenChange={onHelpOpenChange}>
@@ -77,6 +77,7 @@ export function MetricCard({
             <div className="gap-space-1 flex flex-col">
               <ProgressBar
                 context="report-metric"
+                tone="accent"
                 value={bar.value}
                 min={bar.min}
                 max={bar.max}
