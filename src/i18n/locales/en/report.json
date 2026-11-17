@@ -1,0 +1,94 @@
+{
+  "pantalla": {
+    "titulo": "Evaluation Report",
+    "encabezado": {
+      "fecha": "Date",
+      "idioma": "Language",
+      "tono": "Tone"
+    },
+    "secciones": {
+      "contenido": "Content metrics",
+      "voz": "Voice metrics",
+      "star": "STAR Method",
+      "preguntas": "Questions and answers"
+    },
+    "nombresMetricas": {
+      "PRECISION_CLARITY": "Precision and Clarity",
+      "VERBAL_CHARISMA": "Verbal Charisma",
+      "INCLUSIVE_LANGUAGE": "Inclusive and Appropriate Language",
+      "SPEECH_RATE": "Speech Rate",
+      "PAUSE_TIME": "Pause Time",
+      "HESITATION_RATE": "Hesitation Rate",
+      "ENTHUSIASM": "Enthusiasm"
+    },
+    "unidades": {
+      "SCORE_1_5": "{{value}} of 5",
+      "WORDS_PER_MINUTE": "{{value}} words per minute",
+      "PERCENT": "{{value}}%",
+      "PER_100_WORDS": "{{value}} per 100 words"
+    },
+    "sinResultadoEtiqueta": "No result",
+    "starComponentes": {
+      "situation": "Situation",
+      "task": "Task",
+      "action": "Action",
+      "result": "Result"
+    },
+    "starPresente": "Present",
+    "starAusente": "Missing",
+    "starNivel": "{{n}} of 4",
+    "pregunta": "Question {{n}}",
+    "origen": {
+      "TEXT": "Answered in writing",
+      "VOICE": "Answered by voice"
+    },
+    "datosDeVoz": {
+      "words": "Words",
+      "fillers": "Filler sounds",
+      "speechRate": "Speaking rate",
+      "pauseTime": "Pauses",
+      "hesitationRate": "Hesitation rate"
+    },
+    "nombresAccesibles": {
+      "metrica": "What {{name}} measures",
+      "star": "What the STAR Method is",
+      "respuesta": "What the answer shows",
+      "vozDeLaRespuesta": "What the voice data mean"
+    },
+    "respuestaTitulo": "Answer",
+    "datosDeVozTitulo": "Voice data"
+  },
+  "aviso": "This report summarizes how the interview was answered. The content metrics and the STAR Method are scored by an artificial intelligence (AI) from the text of the answers, so they may contain errors. The voice metrics, on the other hand, are calculated with fixed formulas from the answers recorded by voice.",
+  "metricas": {
+    "PRECISION_CLARITY": "This metric shows how well the answers address what was asked. To obtain it, an AI reads each answer and gives it a score from 1 to 5; the value shown is the average of those scores. A 1 means the answer does not address the question or is confusing; a 3, that it addresses it with understandable but general or disorganized ideas; and a 5, that it addresses it directly, in order and with concrete examples or data. Behavioral questions, which are the ones that ask for a lived experience, are not included in this average, because they are reviewed with the STAR Method.",
+    "VERBAL_CHARISMA": "This metric shows how confident, approachable and convincing the answers sound. An AI scores it from 1 to 5 for each answer by reading the text, not by listening to the voice, and the value shown is the average. A 1 corresponds to a flat, insecure or negative tone; a 3, to a correct but unconvincing tone; and a 5, to a confident, approachable and convincing tone that conveys interest. Behavioral questions, which are the ones that ask for a lived experience, are not included in this average, because they are reviewed with the STAR Method.",
+    "INCLUSIVE_LANGUAGE": "This metric shows whether the words used are appropriate for a job interview and respectful toward everyone. An AI scores it from 1 to 5 for each answer, and the value shown is the average. A 1 corresponds to offensive, discriminatory or vulgar expressions; a 3, to informal language or language not quite suitable for an interview, without being offensive; and a 5, to professional, respectful and inclusive language. Behavioral questions, which are the ones that ask for a lived experience, are not included in this average, because they are reviewed with the STAR Method.",
+    "SPEECH_RATE": "This metric shows speaking speed, measured in words per minute. It is calculated by adding up the words of all the answers recorded by voice and dividing them by the time spent speaking, counted from the first to the last word of each answer. Therefore, a higher number means faster speech. If no answer was given by voice, it shows “No result”.",
+    "PAUSE_TIME": "This metric shows how much of the speaking time was silence. It counts only silences of half a second or more between one word and the next, and compares them with the total time spent speaking in the voice answers. For example, 20% means that one fifth of that time was silence. If no answer was given by voice, it shows “No result”.",
+    "HESITATION_RATE": "This metric shows how often filler sounds appear. Filler sounds are the sounds people make when hesitating, such as “um” and “uh” in English, or “eh”, “em” and “mm” in Spanish. It is calculated by counting the filler sounds in the voice answers per 100 words spoken. For example, 5.0 means there were 5 filler sounds per 100 words. In English interviews only “um” and “uh” are recognized, so the value may be lower than the real one. If no answer was given by voice, it shows “No result”.",
+    "ENTHUSIASM": "This metric would show the energy of the speech, based on changes in the tone of voice. Measuring it requires analyzing the sound of the recording, which is not done yet; that is why it always shows “No result”."
+  },
+  "star": "The STAR Method is a way of telling a real experience so that the listener understands it fully. Its name comes from the initials of its four parts: the Situation (where and when it happened), the Task (what had to be achieved), the Action (what was done personally) and the Result (how it ended and what was achieved). It applies to behavioral questions, which are the ones that ask for a lived experience, such as “Tell me about a time when…”. An AI checks whether each of the four parts appears in the answer and marks it as present or missing; so “4 of 4” means the answer told the complete experience, and “3 of 4” means it lacked the part marked as missing.",
+  "sinResultado": "“No result” means there was no data to calculate this metric; for example, the voice metrics when all the answers were given in writing, or the content metrics when the AI could not score them. It is not the same as 0, which is a calculated value.",
+  "respuesta": "This is the text saved as the answer. If the answer was given by voice, it is the automatic transcription of the audio, and it keeps the filler sounds just as they were said.",
+  "vozDeLaRespuesta": "These figures are calculated with this answer only. The words are those recognized by the automatic transcription of the audio. The filler sounds are the hesitation sounds found in it, such as “um” and “uh” (in Spanish, “eh”, “em” and “mm”). The speaking rate is the number of words per minute, counted from the first to the last word of the answer. The pauses show how much of that time was silence of half a second or more between one word and the next. The hesitation rate is the number of filler sounds per 100 words; for example, 4 filler sounds in 56 words give 7.1.",
+  "tiposDePregunta": {
+    "APERTURA": "Opening",
+    "TECNICA": "Technical",
+    "CONDUCTUAL": "Behavioral",
+    "SITUACIONAL": "Situational"
+  },
+  "estados": {
+    "sinDatosDeVoz": "Answered in writing: no voice data.",
+    "sinRespuesta": "No answer recorded.",
+    "vozSinDatos": "Answered by voice: no voice data."
+  },
+  "reporteCompleto": {
+    "titulo": "Full report",
+    "etiqueta": "Coming soon",
+    "texto": "In the future, this report will include an analysis of each answer and concrete recommendations to improve."
+  },
+  "generando": "Your report is being generated.",
+  "abandonada": "Session abandoned: no evaluation is generated.",
+  "noTerminada": "Your interview has not finished yet."
+}

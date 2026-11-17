@@ -782,7 +782,7 @@ describe('InterviewSessionPage', () => {
   });
 
   describe('cierre de la entrevista (HU-5.5)', () => {
-    const CLOSING = 'Tu entrevista terminó. Tu reporte completo estará disponible próximamente.';
+    const CLOSING = 'Tu entrevista terminó. Ya puedes ver tu Reporte de Evaluación.';
     const CONSOLIDATION_URL = '*/api/v1/interviews/sessions/:id/consolidation';
     const LAST = {
       ...ENTRY,
@@ -845,6 +845,10 @@ describe('InterviewSessionPage', () => {
       );
       await answerLast();
       expect(await screen.findByRole('button', { name: 'Ver mis entrevistas' })).toBeDisabled();
+      expect(screen.getByRole('link', { name: 'Ver Reporte de Evaluación' })).toHaveAttribute(
+        'href',
+        '/entrenar/sesion/s1/reporte',
+      );
       expect(screen.getByText('Próximamente')).toBeInTheDocument();
     });
 
