@@ -43,6 +43,8 @@ export function MetricCard({
   noResultHelp,
 }: MetricCardProps) {
   return (
+    // Sin resultado la explicación va al lado de «Sin resultado»: la página pone estas tarjetas a
+    // lo ancho, debajo de las que tienen valor.
     <article className="gap-space-3 border-border-subtle bg-bg-surface p-space-5 shadow-elevation-1 flex flex-col rounded-xl border">
       <div className="gap-space-2 flex items-start justify-between">
         <h3 className="text-body text-text-primary font-bold">{name}</h3>
@@ -52,10 +54,10 @@ export function MetricCard({
       </div>
 
       {value === null ? (
-        <>
-          <p className="text-h3 text-text-muted font-display font-bold">{noResultLabel}</p>
-          <p className="text-small text-text-muted">{noResultHelp}</p>
-        </>
+        <div className="gap-x-space-6 gap-y-space-2 flex flex-col md:flex-row md:items-baseline">
+          <p className="text-h3 text-text-muted font-display shrink-0 font-bold">{noResultLabel}</p>
+          <p className="text-small text-text-muted max-w-[70ch]">{noResultHelp}</p>
+        </div>
       ) : (
         <>
           <p className="gap-space-2 flex flex-wrap items-baseline" aria-label={valueText}>

@@ -12,7 +12,7 @@
  * Los textos son los literales del anexo de Backend del 16-11-2026 (namespace `report`). Solo un
  * texto de ayuda («?») abierto a la vez: la página guarda cuál.
  */
-import { useState } from 'react';
+import { useState, type ComponentProps } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
@@ -21,12 +21,51 @@ import { Pill } from '@/design-system/atoms/Pill';
 import { Spinner } from '@/design-system/atoms/Spinner';
 import { Icon } from '@/design-system/icons/Icon';
 import { HelpTip } from '@/design-system/molecules/HelpTip';
+import { cn } from '@/utils/cn';
 import { useEvaluationReport, type ReportError } from '../hooks/useEvaluationReport';
 import { formatInteger, formatOneDecimal } from '../model/formatReportNumber';
 import { STAR_PARTS, type Metric, type QuestionResult } from '../model/evaluationReport.types';
 import { MetricCard } from '../organisms/MetricCard';
 import { QuestionResultCard } from '../organisms/QuestionResultCard';
 import { StarCard } from '../organisms/StarCard';
+
+/**
+ * Las métricas con valor se reparten en columnas parejas; las que no tienen resultado van debajo,
+ * a lo ancho, para que su explicación no estire ni deje huecos en la fila de las demás.
+ */
+function MetricGrid({
+  metrics,
+  minWidth,
+  render,
+}: {
+  metrics: Metric[];
+  minWidth: '14rem' | '16rem';
+  render: (metric: Metric) => ComponentProps<typeof MetricCard>;
+}) {
+  const withValue = metrics.filter((metric) => metric.value !== null);
+  const withoutValue = metrics.filter((metric) => metric.value === null);
+  return (
+    <div className="gap-space-4 flex flex-col">
+      {withValue.length > 0 ? (
+        <div
+          className={cn(
+            'gap-space-4 grid',
+            minWidth === '14rem'
+              ? 'grid-cols-[repeat(auto-fit,minmax(14rem,1fr))]'
+              : 'grid-cols-[repeat(auto-fit,minmax(16rem,1fr))]',
+          )}
+        >
+          {withValue.map((metric) => (
+            <MetricCard key={metric.code} {...render(metric)} />
+          ))}
+        </div>
+      ) : null}
+      {withoutValue.map((metric) => (
+        <MetricCard key={metric.code} {...render(metric)} />
+      ))}
+    </div>
+  );
+}
 
 const ERROR_KEYS: Record<ReportError, string> = {
   noEncontrada: 'errors:codigos.NOT_FOUND',
@@ -218,22 +257,14 @@ export function EvaluationReportPage() {
         <h2 id="reporte-contenido" className="text-h2 font-display text-text-primary font-bold">
           {t('report:pantalla.secciones.contenido')}
         </h2>
-        <div className="gap-space-4 grid grid-cols-[repeat(auto-fit,minmax(16rem,1fr))]">
-          {report.contentMetrics.map((metric) => (
-            <MetricCard key={metric.code} {...metricProps(metric)} />
-          ))}
-        </div>
+        <MetricGrid metrics={report.contentMetrics} minWidth="16rem" render={metricProps} />
       </section>
 
       <section aria-labelledby="reporte-voz" className="gap-space-4 flex flex-col">
         <h2 id="reporte-voz" className="text-h2 font-display text-text-primary font-bold">
           {t('report:pantalla.secciones.voz')}
         </h2>
-        <div className="gap-space-4 grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))]">
-          {report.voiceMetrics.map((metric) => (
-            <MetricCard key={metric.code} {...metricProps(metric)} />
-          ))}
-        </div>
+        <MetricGrid metrics={report.voiceMetrics} minWidth="14rem" render={metricProps} />
       </section>
 
       {report.star.length > 0 ? (
