@@ -37,6 +37,8 @@ interface RequestOptions {
   headers?: Record<string, string>;
   /** Tope propio de la petición; por defecto 30 s. La respuesta por voz espera hasta 130 s (HU-5.8). */
   timeoutMs?: number;
+  /** `'blob'` devuelve el cuerpo binario (audio de la pregunta, HU-5.15); por defecto JSON. */
+  responseType?: 'json' | 'blob';
 }
 
 /**
@@ -120,6 +122,10 @@ async function request<T>(
 
     if (response.status === 204) {
       return undefined as T;
+    }
+
+    if (options?.responseType === 'blob') {
+      return (await response.blob()) as T;
     }
 
     return (await response.json()) as T;

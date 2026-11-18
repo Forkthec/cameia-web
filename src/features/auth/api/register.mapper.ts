@@ -10,6 +10,7 @@
  * (ceros iniciales, etc.) que solo la librería conoce.
  */
 import { parsePhoneNumberFromString, type CountryCode } from 'libphonenumber-js';
+import { POLICY_VERSION } from '@/config/policy';
 import type { RegisterFormValues } from '../schemas/register.schema';
 import type { RegisterUserRequestDto, RegisteredUserResponseDto } from './register.dto';
 
@@ -43,6 +44,8 @@ export function toRegisterUserRequest(values: RegisterFormValues): RegisterUserR
     password: values.contrasena,
     pronoun: values.pronombres || undefined,
     phoneNumber: toBackendPhoneNumber(values.celular),
+    dataAuthorization: values.aceptaPolitica,
+    policyVersion: POLICY_VERSION,
   };
 }
 

@@ -19,6 +19,9 @@
  * (`CLAUDE.md` §10: el foco nunca se escapa de un diálogo abierto), y
  * `BottomSheet` reutiliza la misma lógica de `utils/focusTrap.ts`.
  *
+ * `dismissible={false}` (CM-368, aviso de política nueva): sin la `X`, sin
+ * cerrar con Esc ni con el velo; solo la acción primaria lo resuelve.
+ *
  * Sin `useTranslation` (CLAUDE.md §14.7, mismo patrón que el resto del
  * design system): todo texto visible entra por prop obligatoria.
  */
@@ -38,9 +41,6 @@ import { Icon } from '../../icons/Icon';
 type ModalBaseProps = {
   title: string;
   children: ReactNode;
-  onClose: () => void;
-  /** Nombre accesible del botón de cierre (la `X` de la esquina). */
-  closeLabel: string;
   primaryActionLabel: string;
   onPrimaryAction: () => void;
   secondaryActionLabel?: string;
@@ -50,7 +50,18 @@ type ModalBaseProps = {
   className?: string;
 };
 
+type ModalDismissProps =
+  | {
+      /** `true` (por defecto): se cierra con la `X`, Esc o el velo. */
+      dismissible?: true;
+      onClose: () => void;
+      /** Nombre accesible del botón de cierre (la `X` de la esquina). */
+      closeLabel: string;
+    }
+  | { dismissible: false; onClose?: never; closeLabel?: never };
+
 type ModalProps = ModalBaseProps &
+  ModalDismissProps &
   (
     | { primaryActionLoading?: false; primaryActionLoadingLabel?: never }
     // Con primaryActionLoading=true, el gerundio es obligatorio — mismo
@@ -61,6 +72,7 @@ type ModalProps = ModalBaseProps &
 export function Modal({
   title,
   children,
+  dismissible = true,
   onClose,
   closeLabel,
   primaryActionLabel,
@@ -77,11 +89,11 @@ export function Modal({
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape' && dismissible) onClose?.();
     }
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  }, [onClose, dismissible]);
 
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null;
@@ -99,7 +111,7 @@ export function Modal({
         type="button"
         tabIndex={-1}
         aria-hidden="true"
-        onClick={onClose}
+        onClick={dismissible ? onClose : undefined}
         // `<button>`, no un `<div onClick>`: jsx-a11y exige un elemento
         // nativamente interactivo para un manejador de clic (§14, no se
         // desactiva la regla). `tabIndex={-1}`/`aria-hidden`: Esc ya cierra
@@ -128,15 +140,17 @@ export function Modal({
           <h2 id={titleId} className="text-h2 font-display text-text-primary">
             {title}
           </h2>
-          <Button
-            variant="icon"
-            size="sm"
-            className="shrink-0"
-            onClick={onClose}
-            icon={<Icon name="close" />}
-          >
-            {closeLabel}
-          </Button>
+          {dismissible && onClose ? (
+            <Button
+              variant="icon"
+              size="sm"
+              className="shrink-0"
+              onClick={onClose}
+              icon={<Icon name="close" />}
+            >
+              {closeLabel}
+            </Button>
+          ) : null}
         </div>
 
         <div className="text-body text-text-primary">{children}</div>

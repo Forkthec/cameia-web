@@ -15,7 +15,17 @@ const VALID = {
 
 describe('readSessionEntry', () => {
   it('devuelve la entrada cuando tiene la forma esperada', () => {
-    expect(readSessionEntry(VALID)).toEqual(VALID);
+    expect(readSessionEntry(VALID)).toEqual({ ...VALID, audioEnabled: false });
+  });
+
+  it('lee la voz de las preguntas y sus usos restantes (HU-5.15)', () => {
+    const entry = readSessionEntry({
+      ...VALID,
+      audioEnabled: true,
+      question: { ...VALID.question, audioPlaysRemaining: 2 },
+    });
+    expect(entry?.audioEnabled).toBe(true);
+    expect(entry?.question.audioPlaysRemaining).toBe(2);
   });
 
   it('devuelve null sin estado (recarga)', () => {

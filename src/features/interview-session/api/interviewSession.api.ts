@@ -2,16 +2,27 @@
  * Funciones de red del chat de Simulación (HU-5.2):
  * - `POST /api/v1/interviews/sessions/{session_id}/answers` registra la
  *   respuesta escrita con `Idempotency-Key` (CA-5.2.4, CA-5.2.11).
- * - `POST …/turns/{turnId}/reprocess` (provisional) vuelve a evaluar la
- *   respuesta guardada tras un fallo de la IA (CA-5.2.19).
+ * - `POST …/turns/{turnId}/reprocess` vuelve a evaluar la respuesta guardada
+ *   tras un fallo de la IA (CA-5.2.19).
+ *
+ * `…/answers` y `…/reprocess` siguen el contrato publicado
+ * (`InterviewSessionController` y su OpenAPI, `cameia-entrevista`
+ * `origin/develop` `48773cb`).
  * - `POST …/answers/audio` (HU-5.8) envía la grabación como multipart, con
  *   la misma `Idempotency-Key` del turno (CA-5.8.6, CA-5.8.22), y espera
  *   hasta 130 s porque transcribe y evalúa en la misma petición.
  */
 import { httpClient } from '@/services/http/httpClient';
 import { toAnswerResult } from './interviewSession.mapper';
-import type { AnswerResponseDto, SubmitAnswerRequestDto } from './interviewSession.dto';
-import { AUDIO_REQUEST_TIMEOUT_MS } from '../model/interviewSession.constants';
+import type {
+  AnswerResponseDto,
+  ConsolidationResponseDto,
+  SubmitAnswerRequestDto,
+} from './interviewSession.dto';
+import {
+  AUDIO_REQUEST_TIMEOUT_MS,
+  INTERVIEW_AI_TIMEOUT_MS,
+} from '../model/interviewSession.constants';
 import type { AnswerResult } from '../model/interviewSession.types';
 
 interface SubmitTextAnswerParams {
@@ -36,7 +47,7 @@ export async function submitTextAnswer({
   const dto = await httpClient.post<AnswerResponseDto>(
     `/api/v1/interviews/sessions/${sessionId}/answers`,
     body,
-    { headers: { 'Idempotency-Key': idempotencyKey } },
+    { headers: { 'Idempotency-Key': idempotencyKey }, timeoutMs: INTERVIEW_AI_TIMEOUT_MS },
   );
   return toAnswerResult(dto);
 }
@@ -45,11 +56,17 @@ export async function submitTextAnswer({
  * @param sessionId sesión en curso.
  * @param turnId turno cuya evaluación falló.
  * @returns el resultado del turno si la nueva evaluación tiene éxito.
- * @throws ApiError con `LLM_UNAVAILABLE` si vuelve a fallar.
+ * @throws ApiError con `LLM_UNAVAILABLE`, `LLM_LIMIT_REACHED` o `LLM_INVALID_OUTPUT` si la IA
+ *   vuelve a fallar (CA-5.2.19, CA-5.2.20; SPEC v11.3 D1); con `409 TURN_RETRY_LIMIT_REACHED`
+ *   si Backend ya contó los 4 usos del turno (v11.3 D7); con `409 TURN_NOT_RETRYABLE` si el
+ *   turno ya no espera reintento (v11.3 D9); y con `409 SESSION_*` si la entrevista ya no
+ *   admite la acción (v11.3 D8).
  */
 export async function reprocessTurn(sessionId: string, turnId: string): Promise<AnswerResult> {
   const dto = await httpClient.post<AnswerResponseDto>(
     `/api/v1/interviews/sessions/${sessionId}/turns/${turnId}/reprocess`,
+    undefined,
+    { timeoutMs: INTERVIEW_AI_TIMEOUT_MS },
   );
   return toAnswerResult(dto);
 }
@@ -82,4 +99,40 @@ export async function submitAudioAnswer({
     { headers: { 'Idempotency-Key': idempotencyKey }, timeoutMs: AUDIO_REQUEST_TIMEOUT_MS },
   );
   return toAnswerResult(dto);
+}
+
+/**
+ * Pide reunir la evaluación de una entrevista en evaluación y finalizarla
+ * (HU-5.5). Es idempotente: si ya estaba finalizada responde igual.
+ *
+ * @param sessionId sesión que respondió sus 5 preguntas.
+ * @returns `true` si la entrevista quedó finalizada.
+ * @throws ApiError 503 `SESSION_CONSOLIDATION_FAILED` si los 3 intentos de
+ *   Backend fallan (CA-5.5.11); TypeError si no hay red.
+ */
+export async function consolidateSession(sessionId: string): Promise<boolean> {
+  const dto = await httpClient.post<ConsolidationResponseDto>(
+    `/api/v1/interviews/sessions/${sessionId}/consolidation`,
+    undefined,
+    { timeoutMs: INTERVIEW_AI_TIMEOUT_MS },
+  );
+  return dto.status === 'FINALIZADA';
+}
+
+/**
+ * Pide el audio de una pregunta ya mostrada (HU-5.15, CA-5.15.2). Ruta y códigos PROVISIONALES
+ * hasta CM-372. Se pide con `fetch` y el `Authorization` del cliente: un `<audio src>` directo no
+ * envía encabezados. Cada llamada exitosa gasta un uso de audio en el servidor.
+ *
+ * @param sessionId sesión en curso.
+ * @param questionNumber número de la pregunta (1 a 5).
+ * @returns el audio MP3.
+ * @throws ApiError con los códigos `SPEECH_*` / `QUESTION_*`; TypeError si no hay red.
+ */
+export async function fetchQuestionAudio(sessionId: string, questionNumber: number): Promise<Blob> {
+  return httpClient.post<Blob>(
+    `/api/v1/interviews/sessions/${sessionId}/questions/${questionNumber}/audio`,
+    undefined,
+    { responseType: 'blob', headers: { Accept: 'audio/mpeg' } },
+  );
 }

@@ -2,13 +2,17 @@
  * Respuesta por voz del chat de Simulación (HU-5.8): «Grabar», «Detener»,
  * «Enviar» y «Responder por texto», con el aviso de tratamiento del audio
  * antes de la primera grabación (CA-5.8.24) y, si el envío pasa de 20 s,
- * el aviso de que puede tardar hasta 2 minutos (CA-5.8.5).
+ * el aviso de que puede tardar hasta 2 minutos (CA-5.8.26).
  *
  * Mientras se envía, «Enviar» queda deshabilitado con un spinner visible y
  * conserva su nombre accesible (CA-5.8.6, CM-316 D7): no usa el modo de
  * carga de `Button`, que cambia la etiqueta. «Procesando tu respuesta…» lo
  * anuncia solo la región `aria-live` de `SessionStage`, como en el texto
  * (CA-5.2.4).
+ *
+ * Mientras se envía, «Grabar» y «Responder por texto» también se ven, deshabilitados
+ * (CA-5.13.8, CM-363 D1): no se ocultan. «Grabar» deshabilitado solo aparece durante el
+ * envío; con la grabación detenida y sin enviar se ve solo «Enviar».
  *
  * Solo pinta: el estado de la grabación y el envío vienen de
  * `useVoiceRecorder` y `useInterviewTurn` a través de la página. Mismo
@@ -28,7 +32,7 @@ interface VoiceAnswerComposerProps {
   /** Tiempo grabado sobre el máximo, ya formateado (p. ej. «0:42 / 3:00»). */
   elapsedLabel: string;
   isSubmitting: boolean;
-  /** `true` cuando el envío ya pasó de 20 s (CA-5.8.5). */
+  /** `true` cuando el envío ya pasó de 20 s (CA-5.8.26). */
   showLongWait: boolean;
   /** `true` hasta que la primera grabación empieza de verdad (CA-5.8.24, CM-316 D8). */
   showPrivacyNotice: boolean;
@@ -91,16 +95,23 @@ export function VoiceAnswerComposer({
             {labels.stop}
           </Button>
         ) : step === 'stopped' ? (
-          <Button
-            variant="primary"
-            size="lg"
-            icon={isSubmitting ? <Icon name="loading-arc" className="animate-spin" /> : undefined}
-            disabled={isSubmitting}
-            aria-busy={isSubmitting || undefined}
-            onClick={onSend}
-          >
-            {labels.send}
-          </Button>
+          <>
+            {isSubmitting ? (
+              <Button variant="primary" size="lg" icon={<Icon name="microphone" />} disabled>
+                {labels.record}
+              </Button>
+            ) : null}
+            <Button
+              variant="primary"
+              size="lg"
+              icon={isSubmitting ? <Icon name="loading-arc" className="animate-spin" /> : undefined}
+              disabled={isSubmitting}
+              aria-busy={isSubmitting || undefined}
+              onClick={onSend}
+            >
+              {labels.send}
+            </Button>
+          </>
         ) : (
           <Button
             variant="primary"
@@ -113,15 +124,16 @@ export function VoiceAnswerComposer({
           </Button>
         )}
 
-        {isSubmitting || !showSwitchToText ? null : (
+        {showSwitchToText ? (
           <button
             type="button"
+            disabled={isSubmitting}
             onClick={onSwitchToText}
-            className="text-body text-text-on-inverse min-h-touch-target px-space-2 focus-visible:shadow-focus-ring cursor-pointer rounded-md font-semibold underline underline-offset-4 focus-visible:outline-none"
+            className="text-body text-text-on-inverse min-h-touch-target px-space-2 focus-visible:shadow-focus-ring disabled:text-text-disabled cursor-pointer rounded-md font-semibold underline underline-offset-4 focus-visible:outline-none disabled:cursor-not-allowed"
           >
             {labels.switchToText}
           </button>
-        )}
+        ) : null}
       </div>
 
       {isSubmitting && showLongWait ? (

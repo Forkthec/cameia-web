@@ -127,6 +127,9 @@
     "en": "Inglés"
   },
   "sesion": {
+    "verMisEntrevistas": "Ver mis entrevistas",
+    "proximamente": "Próximamente",
+    "noEsperaReintento": "Tu respuesta no está esperando un reintento.",
     "progreso": "Pregunta {{actual}} de {{total}}",
     "modoYForma": "{{modo}} · {{forma}}",
     "respuesta": {
@@ -138,12 +141,14 @@
     "procesando": "Procesando tu respuesta…",
     "reintentosAgotados": "No pudimos evaluar tu respuesta en este momento. Tu respuesta quedó guardada; inténtalo más tarde.",
     "irAlInicio": "Ir al inicio",
-    "terminada": "Tu entrevista terminó.",
+    "cierre": "Tu entrevista terminó. Ya puedes ver tu Reporte de Evaluación.",
+    "abandonada": "Sesión abandonada: no genera evaluación.",
+    "noAdmite": "Esta entrevista ya no admite esa acción.",
     "voz": {
       "grabar": "Grabar",
       "detener": "Detener",
       "responderPorTexto": "Responder por texto",
-      "privacidad": "Tu audio se usa solo para transcribir tu respuesta y no se guarda.",
+      "privacidad": "Tu audio se usa solo para transcribir tu respuesta. Lo procesa un servicio externo, que lo elimina a los 2 días; CAMEIA no lo guarda.",
       "sinVoz": "No detectamos tu voz, intenta de nuevo.",
       "micDenegado": "No pudimos acceder a tu micrófono. Puedes responder por texto.",
       "sinMicrofono": "No encontramos un micrófono. Puedes responder por texto.",
@@ -156,11 +161,34 @@
         "en": "Tu entrevista es en inglés. Responde en inglés.",
         "es-CO": "Tu entrevista es en español. Responde en español."
       }
-    }
+    },
+    "escuchar": {
+      "boton": "Escuchar",
+      "botonAria": "Escuchar la pregunta {{numero}}",
+      "preparando": "Preparando el audio…",
+      "detener": "Detener",
+      "usos": "{{restantes}} de {{total}}",
+      "aviso": "El texto de la pregunta se envía a un servicio externo para convertirlo en voz. CAMEIA no guarda el audio.",
+      "automatico": "Escuchar las preguntas automáticamente",
+      "errores": {
+        "limite": "Ya escuchaste esta pregunta el máximo de veces. Puedes leerla en pantalla.",
+        "demora": "La voz tardó demasiado. Inténtalo de nuevo o léela en pantalla.",
+        "fallo": "No pudimos reproducir la pregunta. Inténtalo de nuevo o léela en pantalla.",
+        "noDisponible": "La voz no está disponible por ahora. Puedes leer la pregunta.",
+        "ocupado": "Hay muchas personas escuchando. Inténtalo en unos segundos.",
+        "noMostrada": "Esa pregunta todavía no está disponible.",
+        "textoVacio": "No pudimos reproducir esta pregunta. Puedes leerla en pantalla.",
+        "noEncontrada": "No encontramos lo que buscabas.",
+        "abandonada": "Sesión abandonada: no genera evaluación.",
+        "noAdmite": "Esta entrevista ya no admite esa acción."
+      }
+    },
+    "verReporte": "Ver Reporte de Evaluación"
   },
   "inicio": {
     "titulo": "Iniciando sesión de entrevista",
     "reintentosAgotados": "No pudimos preparar tu entrevista en este momento. Inténtalo más tarde.",
-    "accionNoAdmitida": "Esta entrevista ya no admite esa acción."
+    "accionNoAdmitida": "Esta entrevista ya no admite esa acción.",
+    "perfilInservible": "No pudimos preparar tu entrevista con tu perfil actual. Revisa tu perfil e inténtalo de nuevo."
   }
 }

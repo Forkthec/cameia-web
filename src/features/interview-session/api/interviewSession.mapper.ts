@@ -1,7 +1,9 @@
 /**
  * Cortafuegos del contrato (ADR-0003, CLAUDE.md §8): convierte la respuesta
  * de `…/answers`, `…/reprocess` y `…/answers/audio` al modelo del chat. Si
- * Backend renombra un campo, solo cambia este archivo.
+ * Backend renombra un campo, solo cambia este archivo. El contrato de
+ * `…/answers` y `…/reprocess` es el publicado (`InterviewSessionController` y
+ * su OpenAPI, `cameia-entrevista` `origin/develop` `48773cb`).
  *
  * Valida la forma del `200` antes de leerlo (D10): si no calza, lanza
  * {@link AnswerResponseShapeError} y el chat muestra el genérico, no «No hay
@@ -41,7 +43,14 @@ function isAnswerResponseDto(value: unknown): value is AnswerResponseDto {
  * @returns la pregunta del modelo de UI.
  */
 export function toInterviewQuestion(dto: QuestionDto): InterviewQuestion {
-  return { turnId: dto.turnId, number: dto.number, text: dto.text };
+  return {
+    turnId: dto.turnId,
+    number: dto.number,
+    text: dto.text,
+    ...(typeof dto.audioPlaysRemaining === 'number'
+      ? { audioPlaysRemaining: dto.audioPlaysRemaining }
+      : {}),
+  };
 }
 
 /**

@@ -3,7 +3,7 @@ feature: interview-setup
 estado: EN_CURSO
 hu: [HU-4.2, HU-4.5]
 prt: [PRT-04.02, PRT-04.03, PRT-04.11]
-jira: [CM-202, CM-213, CM-208, CM-205, CM-353]
+jira: [CM-202, CM-213, CM-208, CM-205, CM-353, CM-369]
 rutas: [/entrenar/nueva]
 documentacion: tsdoc-es
 backlog: 16102026_01_v8.2
@@ -216,8 +216,11 @@ oferta opcional con tope de 3000).
   entrevista» sin datos (CA-4.5.17).
 - **Vacío:** sin `sessionId` (recarga) → `/entrenar/nueva`.
 
-Diferencia consciente: CA-4.5.16 (volver a la entrevista anterior al cancelar) necesita
-`GET …/state` (HU-5.7), que no existe; mientras tanto «Cancelar» siempre va a «Nueva entrevista».
+CA-4.5.16 (aviso de Backend del 7-11-2026): si se llegó desde «Iniciar la nueva» del aviso de
+entrevista en curso, «Cancelar» elimina la sesión nueva, consulta `GET …/state` de la anterior y abre
+su chat en la pregunta pendiente con «Pregunta k de 5». Si no se puede abrir, va a «Nueva entrevista».
+Diferencia consciente: el chat todavía no muestra el historial de preguntas y respuestas que pide
+CA-4.5.16; el objeto de estado ya lo trae (`history`) y mostrarlo es un cambio del chat (CM-217).
 `…/start` y `DELETE` no existen aún en cameia-entrevista: se prueban con MSW.
 
 Códigos del catálogo de cameia-entrevista (`docs/errores.md`), que el backlog v9.2.2 no nombra (solo «409», CA-4.5.9): `409 SESSION_CONFLICT` se reintenta solo una vez; si se repite,
@@ -259,7 +262,30 @@ cameia-entrevista; documento del 23-10-2026):
 Un doble clic real llegaba antes de que el botón pasara a carga y enviaba 2 peticiones
 (CA-4.4.17). La página lleva un candado síncrono: solo sale una petición hasta que esa termina.
 
+### «Volver a mi entrevista» (CM-369, testeo del 13-11-2026)
+
+El botón del aviso de entrevista en curso abría la ruta del chat sin la pregunta pendiente, y el
+chat rebotaba a «Nueva entrevista». Ahora consulta `GET …/{id}/state` de la anterior y abre su chat
+en la pregunta pendiente (CA-4.4.8), igual que «Cancelar» de la pantalla de inicio (CA-4.5.16). Si
+la consulta falla, el aviso se cierra y se queda en el asistente.
+
 ### Sin tono Motivador (CM-353 · HT-09, backlog v10)
 
 «Motivador» sale del catálogo de tonos, sus textos y su ícono. Quedan Profesional y neutro, Cálido y
 Estricto. Si el catálogo de Backend aún lo entrega (CM-352), el mapper lo omite como valor desconocido.
+
+### Contrato de inicio y estado (aviso de Backend del 7-11-2026, CM-213)
+
+- `POST …/start` y `GET …/state` responden el **objeto de estado**: `sessionId`, `status`,
+  `answerFormat`, `interviewFinished`, `progress`, `pendingQuestion` (solo en EN_CURSO) y `history`.
+  El chat abre con `pendingQuestion`.
+- `…/start` espera hasta 130 s (`INTERVIEW_AI_TIMEOUT_MS`): el Gateway espera 120 s (CM-357).
+- `LLM_INVALID_OUTPUT` se trata como cualquier fallo de preparación («Reintentar» y «Cancelar»).
+- Siguen provisionales hasta que Backend apruebe la especificación de CM-212 (PR #47 de
+  cameia-entrevista, cerrado sin fusionar el 10-11-2026).
+- `503 PROFILE_SNAPSHOT_INVALID` (comentario de Backend del 10-11-2026): «No pudimos preparar tu
+  entrevista con tu perfil actual. Revisa tu perfil e inténtalo de nuevo.» con «Mi Perfil Profesional»
+  y «Cancelar», sin «Reintentar». El texto sale del catálogo de errores de cameia-entrevista; el
+  backlog no lo nombra. `503 DATABASE_UNAVAILABLE` usa el error genérico con «Reintentar».
+- Backend devuelve `history` vacío por ahora (`SessionStateResponse.from` usa `List.of()`).
+

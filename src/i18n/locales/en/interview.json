@@ -127,6 +127,9 @@
     "en": "English"
   },
   "sesion": {
+    "verMisEntrevistas": "View my interviews",
+    "proximamente": "Coming soon",
+    "noEsperaReintento": "Your answer is not waiting for a retry.",
     "progreso": "Question {{actual}} of {{total}}",
     "modoYForma": "{{modo}} · {{forma}}",
     "respuesta": {
@@ -138,12 +141,14 @@
     "procesando": "Processing your answer…",
     "reintentosAgotados": "We couldn't evaluate your answer right now. Your answer was saved; try again later.",
     "irAlInicio": "Go to home",
-    "terminada": "Your interview is over.",
+    "cierre": "Your interview is over. You can now see your Evaluation Report.",
+    "abandonada": "Abandoned session: it will not be evaluated.",
+    "noAdmite": "This interview no longer allows that action.",
     "voz": {
       "grabar": "Record",
       "detener": "Stop",
       "responderPorTexto": "Answer by text",
-      "privacidad": "Your audio is only used to transcribe your answer and isn't stored.",
+      "privacidad": "Your audio is only used to transcribe your answer. It's processed by an external service that deletes it after 2 days; CAMEIA doesn't store it.",
       "sinVoz": "We didn't detect your voice, try again.",
       "micDenegado": "We couldn't access your microphone. You can answer by text.",
       "sinMicrofono": "We couldn't find a microphone. You can answer by text.",
@@ -156,11 +161,34 @@
         "en": "Your interview is in English. Answer in English.",
         "es-CO": "Your interview is in Spanish. Answer in Spanish."
       }
-    }
+    },
+    "escuchar": {
+      "boton": "Listen",
+      "botonAria": "Listen to question {{numero}}",
+      "preparando": "Preparing the audio…",
+      "detener": "Stop",
+      "usos": "{{restantes}} of {{total}}",
+      "aviso": "The question text is sent to an external service to turn it into speech. CAMEIA does not store the audio.",
+      "automatico": "Listen to questions automatically",
+      "errores": {
+        "limite": "You already listened to this question the maximum number of times. You can read it on screen.",
+        "demora": "The voice took too long. Try again or read it on screen.",
+        "fallo": "We couldn't play the question. Try again or read it on screen.",
+        "noDisponible": "The voice is not available right now. You can read the question.",
+        "ocupado": "Many people are listening. Try again in a few seconds.",
+        "noMostrada": "That question is not available yet.",
+        "textoVacio": "We couldn't play this question. You can read it on screen.",
+        "noEncontrada": "We couldn't find what you were looking for.",
+        "abandonada": "Session abandoned: no evaluation is generated.",
+        "noAdmite": "This interview no longer allows that action."
+      }
+    },
+    "verReporte": "View Evaluation Report"
   },
   "inicio": {
     "titulo": "Starting your interview session",
     "reintentosAgotados": "We couldn't prepare your interview right now. Try again later.",
-    "accionNoAdmitida": "This interview no longer allows that action."
+    "accionNoAdmitida": "This interview no longer allows that action.",
+    "perfilInservible": "We couldn't prepare your interview with your current profile. Review your profile and try again."
   }
 }

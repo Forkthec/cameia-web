@@ -18,7 +18,7 @@
  * y «Grabar» (CA-5.8.25). Tras elegir texto, la pregunta siguiente vuelve a
  * ofrecer la voz; con el micrófono denegado o ausente se sigue por texto.
  * El aviso del audio se ve hasta que la grabación empieza de verdad
- * (CA-5.8.24, CM-316 D8), y el de 20 s se programa por cada envío (CA-5.8.5).
+ * (CA-5.8.24, CM-316 D8), y el de 20 s se programa por cada envío (CA-5.8.26).
  *
  * El texto escrito se guarda por turno: sobrevive a un error de red
  * (CA-5.2.18) y la pregunta siguiente arranca vacía. La grabación detenida
@@ -27,19 +27,27 @@
  */
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Navigate, useLocation } from 'react-router';
+import { Link, Navigate, useLocation } from 'react-router';
 import { ROUTES } from '@/app/router/routes';
+import { useUiPreferencesStore } from '@/stores/uiPreferences.store';
+import { Button } from '@/design-system/atoms/Button';
+import { Pill } from '@/design-system/atoms/Pill';
+import { Icon } from '@/design-system/icons/Icon';
 import { AlertInline } from '@/design-system/molecules/AlertInline';
 import type { BrandOrbState } from '@/design-system/molecules/BrandOrb';
+import { useInterviewClosing } from '../hooks/useInterviewClosing';
 import { useInterviewTurn } from '../hooks/useInterviewTurn';
+import { useQuestionAudio } from '../hooks/useQuestionAudio';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
 import {
   ANSWER_MAX_LENGTH,
+  AUDIO_PLAYS_PER_QUESTION,
   LONG_WAIT_NOTICE_MS,
   MAX_RECORDING_SECONDS,
 } from '../model/interviewSession.constants';
 import { readSessionEntry } from '../model/sessionEntry';
 import { EvaluationRetryPanel } from '../organisms/EvaluationRetryPanel';
+import { QuestionAudioControl } from '../organisms/QuestionAudioControl';
 import { SessionStage } from '../organisms/SessionStage';
 import { TextAnswerComposer } from '../organisms/TextAnswerComposer';
 import { VoiceAnswerComposer, type VoiceComposerStep } from '../organisms/VoiceAnswerComposer';
@@ -59,7 +67,18 @@ interface InterviewSessionViewProps {
 function InterviewSessionView({ entry }: InterviewSessionViewProps) {
   const { t, i18n } = useTranslation(['interview', 'common', 'errors']);
   const turn = useInterviewTurn(entry);
+  const closing = useInterviewClosing(entry.sessionId, turn.phase === 'finished');
+  const isClosingBusy = turn.phase === 'finished' && closing.status === 'processing';
   const recorder = useVoiceRecorder();
+  const autoListen = useUiPreferencesStore((state) => state.autoListenQuestions);
+  const setAutoListen = useUiPreferencesStore((state) => state.setAutoListenQuestions);
+  const questionAudio = useQuestionAudio(
+    entry.sessionId,
+    turn.question,
+    entry.audioEnabled && turn.phase === 'answering' && autoListen,
+  );
+  const [hasListened, setHasListened] = useState(false);
+  if (questionAudio.status === 'playing' && !hasListened) setHasListened(true);
   const turnId = turn.question.turnId;
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -86,10 +105,14 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
   const isBusy = turn.isSubmitting || turn.isRetrying;
   const orbState: BrandOrbState =
     turn.phase === 'finished'
-      ? 'complete'
+      ? closing.status === 'finalized'
+        ? 'complete'
+        : closing.status === 'failed'
+          ? 'error'
+          : 'processing'
       : isBusy
         ? 'processing'
-        : turn.phase === 'evaluationFailed'
+        : turn.phase === 'evaluationFailed' || turn.phase === 'closed'
           ? 'error'
           : recorder.status === 'recording'
             ? 'recording'
@@ -100,11 +123,13 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
 
   // El panel muestra el último fallo de «Reintentar»: red, 404 u otro error
   // con su mensaje; un fallo de la IA, el genérico o el de tope agotado (D4).
-  const retryMessage = turn.retryError
-    ? t(`errors:${turn.retryError}`)
-    : turn.retriesExhausted
-      ? t('interview:sesion.reintentosAgotados')
-      : t('errors:generico');
+  const retryMessage = turn.turnNotRetryable
+    ? t('interview:sesion.noEsperaReintento')
+    : turn.retryError
+      ? t(`errors:${turn.retryError}`)
+      : turn.retriesExhausted
+        ? t('interview:sesion.reintentosAgotados')
+        : t('errors:generico');
 
   const voiceStep: VoiceComposerStep =
     recorder.status === 'recording'
@@ -187,9 +212,52 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
         total: turn.progress.total,
       })}
       orbState={orbState}
-      statusText={isBusy ? t('interview:sesion.procesando') : undefined}
-      heading={turn.phase === 'finished' ? t('interview:sesion.terminada') : turn.question.text}
+      statusText={isBusy || isClosingBusy ? t('interview:sesion.procesando') : undefined}
+      // Hasta que la entrevista quede finalizada se mantiene la última pregunta con
+      // «Procesando tu respuesta…», no «Tu entrevista terminó.» (CA-5.5.6, backlog v11).
+      heading={
+        turn.phase === 'finished' && closing.status === 'finalized'
+          ? t('interview:sesion.cierre')
+          : turn.question.text
+      }
     >
+      {/* CA-5.5.3 (backlog v11.8): «Ver Reporte de Evaluación» abre el reporte (HU-6.4, CM-379);
+          «Ver mis entrevistas» lleva a HU-5.10, que aún no se entrega: deshabilitado con
+          «Próximamente» (regla «Funcionalidades no disponibles»; CM-376). */}
+      {turn.phase === 'finished' && closing.status === 'finalized' ? (
+        // La insignia va al lado del botón, no encima: `StateLocked` la superpone y tapaba el
+        // texto (reprueba de Testeo del 14-11-2026, CM-376).
+        <div className="gap-space-3 flex flex-wrap items-center justify-center">
+          <Link
+            to={ROUTES.entrenarReporte(entry.sessionId)}
+            className="bg-action-primary px-space-6 text-body text-action-on-primary hover:bg-action-primary-hover focus-visible:shadow-focus-ring min-h-touch-target inline-flex items-center rounded-full font-bold focus-visible:outline-none"
+          >
+            {t('interview:sesion.verReporte')}
+          </Link>
+          <Button variant="secondary" disabled>
+            {t('interview:sesion.verMisEntrevistas')}
+          </Button>
+          <Pill className="gap-space-1">
+            <Icon name="lock" size={12} />
+            <span>{t('interview:sesion.proximamente')}</span>
+          </Pill>
+        </div>
+      ) : null}
+
+      {turn.phase === 'finished' && closing.status === 'failed' ? (
+        <EvaluationRetryPanel
+          message={t('errors:generico')}
+          retryLabel={t('common:acciones.reintentar')}
+          retryingLabel={t('interview:sesion.procesando')}
+          isRetrying={closing.isRetrying}
+          onRetry={closing.retry}
+        />
+      ) : null}
+
+      {turn.phase === 'closed' && turn.closedReason ? (
+        <AlertInline variant="error">{t(`interview:sesion.${turn.closedReason}`)}</AlertInline>
+      ) : null}
+
       {turn.phase === 'evaluationFailed' ? (
         <EvaluationRetryPanel
           message={retryMessage}
@@ -197,11 +265,46 @@ function InterviewSessionView({ entry }: InterviewSessionViewProps) {
           retryingLabel={t('interview:sesion.procesando')}
           isRetrying={turn.isRetrying}
           onRetry={turn.retryEvaluation}
+          showRetry={turn.canRetry}
           homeLink={
-            turn.retriesExhausted
+            turn.retriesExhausted || turn.turnNotRetryable
               ? { label: t('interview:sesion.irAlInicio'), to: ROUTES.inicio }
               : undefined
           }
+        />
+      ) : null}
+
+      {/* «Escuchar» (HU-5.15) solo con la voz disponible y la entrevista en curso (CA-5.15.9). */}
+      {entry.audioEnabled && (turn.phase === 'answering' || turn.phase === 'evaluationFailed') ? (
+        <QuestionAudioControl
+          status={questionAudio.status}
+          canPlay={questionAudio.canPlay}
+          autoListen={autoListen}
+          showNotice={!hasListened}
+          errorMessage={
+            questionAudio.error
+              ? t(`interview:sesion.escuchar.errores.${questionAudio.error}`)
+              : undefined
+          }
+          labels={{
+            listen: t('interview:sesion.escuchar.boton'),
+            listenAria: t('interview:sesion.escuchar.botonAria', { numero: turn.question.number }),
+            preparing: t('interview:sesion.escuchar.preparando'),
+            stop: t('interview:sesion.escuchar.detener'),
+            remaining: t('interview:sesion.escuchar.usos', {
+              restantes: questionAudio.remaining,
+              total: AUDIO_PLAYS_PER_QUESTION,
+            }),
+            notice: t('interview:sesion.escuchar.aviso'),
+            autoListen: t('interview:sesion.escuchar.automatico'),
+          }}
+          onPlay={() => void questionAudio.play()}
+          onStop={questionAudio.stop}
+          onAutoListenChange={(value) => {
+            setAutoListen(value);
+            // Desmarcar detiene el audio en curso (CA-5.15.30).
+            if (!value) questionAudio.stop();
+          }}
         />
       ) : null}
 

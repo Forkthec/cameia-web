@@ -15,10 +15,12 @@
 import { createBrowserRouter, type RouteObject } from 'react-router';
 import { featureFlags } from '@/config/features';
 import { authRoutes, verifyEmailRoutes } from '@/features/auth';
+import { evaluationReportShellRoutes } from '@/features/evaluation-report';
 import { homeRoutes } from '@/features/home';
 import { interviewSessionRoutes } from '@/features/interview-session';
 import { interviewSetupRoutes, interviewSetupShellRoutes } from '@/features/interview-setup';
 import { landingRoutes } from '@/features/landing';
+import { legalRoutes } from '@/features/legal';
 import { professionalProfileShellRoutes } from '@/features/professional-profile';
 import { AuthenticatedAppShell } from './AuthenticatedAppShell';
 import { NotFoundPage } from './NotFoundPage';
@@ -45,6 +47,7 @@ export const routeConfig: RouteObject[] = [
               ...homeRoutes,
               ...professionalProfileShellRoutes,
               ...interviewSetupShellRoutes,
+              ...evaluationReportShellRoutes,
             ],
           },
           ...interviewSetupRoutes,
@@ -52,6 +55,7 @@ export const routeConfig: RouteObject[] = [
         ],
       },
       ...verifyEmailRoutes,
+      ...legalRoutes,
       { path: '*', element: <NotFoundPage /> },
     ],
   },

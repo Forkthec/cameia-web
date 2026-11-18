@@ -176,3 +176,7 @@ intentar.
 ## Cuándo actualizar este README
 
 Actualizarlo en el mismo PR que cambie propósito, stack, scripts, variables, rutas públicas, contratos del Gateway, estructura, pruebas, despliegue o responsables. Si el cambio no requiere actualización, justificarlo en la plantilla del PR.
+
+## Licencia
+
+Este proyecto se distribuye bajo la licencia MIT. Consulta el archivo [LICENSE](LICENSE).

@@ -54,6 +54,7 @@ const formValues = {
   contrasena: 'secreta123',
   confirmarContrasena: 'secreta123',
   pronombres: 'SHE',
+  aceptaPolitica: true,
 };
 
 describe('useRegister', () => {
@@ -172,7 +173,7 @@ describe('useRegister', () => {
     await result.current.register(formValues);
 
     await waitFor(() =>
-      expect(result.current.errorInfo).toEqual({ httpStatus: 422, field: 'birthDate' }),
+      expect(result.current.errorInfo).toEqual({ httpStatus: 422, fields: ['birthDate'] }),
     );
   });
 
